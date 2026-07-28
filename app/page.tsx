@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft, ArrowRight, Bus, CalendarDays, Camera, ChevronRight,
   CircleUserRound, Clock3, ExternalLink, LogOut, Map, MapPin, MessageCircle,
   Navigation, Plane, Plus, ReceiptText, TrainFront, Utensils, Wallet
 } from "lucide-react";
+import TripOverviewMap, { type TripMapDay } from "@/components/trip-overview-map";
 
 type Day = {
   n: number; date: string; city: string; title: string; type: "plane" | "train" | "bus" | "walk";
@@ -65,10 +66,22 @@ const days: Day[] = [
 ];
 
 const icons = { plane: Plane, train: TrainFront, bus: Bus, walk: Navigation };
+const tripMapDays: TripMapDay[] = days
+  .map((day, index) => ({
+    index,
+    n: day.n,
+    date: day.date,
+    city: day.city,
+    title: day.title,
+    lat: day.lat,
+    lon: day.lon,
+    color: day.color
+  }))
+  .filter((day) => day.n <= 11);
 
 export default function Home() {
   const [active, setActive] = useState(0);
-  const [tab, setTab] = useState<"programma" | "ricordi" | "spese">("programma");
+  const [tab, setTab] = useState<"mappa" | "programma" | "ricordi" | "spese">("mappa");
   const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
   const [notes, setNotes] = useState<Record<number, NoteEntry>>({});
   const [restaurants, setRestaurants] = useState<RestaurantEntry[]>([]);
@@ -80,6 +93,11 @@ export default function Home() {
   const day = days[active];
   const Icon = icons[day.type];
   const total = useMemo(() => expenses.reduce((s, e) => s + e.amount, 0), [expenses]);
+
+  function openDay(index: number) {
+    setActive(index);
+    setTab("programma");
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -214,12 +232,40 @@ export default function Home() {
       </section>
 
       <nav className="tabs">
-        <button className={tab === "programma" ? "active" : ""} onClick={() => setTab("programma")}><Map size={18}/> Programma</button>
+        <button className={tab === "mappa" ? "active" : ""} onClick={() => setTab("mappa")}><Map size={18}/> Mappa</button>
+        <button className={tab === "programma" ? "active" : ""} onClick={() => setTab("programma")}><CalendarDays size={18}/> Programma</button>
         <button className={tab === "ricordi" ? "active" : ""} onClick={() => setTab("ricordi")}><Camera size={18}/> Ricordi <b>{Object.values(photos).flat().length}</b></button>
         <button className={tab === "spese" ? "active" : ""} onClick={() => setTab("spese")}><Wallet size={18}/> Spese <b>€ {total}</b></button>
       </nav>
       {dataLoading && <p className="dataStatus">Sincronizzazione con il diario condiviso…</p>}
       {dataError && <p className="dataError" role="alert">{dataError}</p>}
+
+      {tab === "mappa" && (
+        <section className="overviewPage">
+          <div className="overviewHead">
+            <div>
+              <span>LA ROTTA IN UZBEKISTAN</span>
+              <h2>Undici giorni, una mappa</h2>
+              <p>Tocca un numero sulla mappa o una tappa qui sotto per aprire il programma di quel giorno.</p>
+            </div>
+            <a href="https://www.openstreetmap.org/#map=6/41.5/64.5" target="_blank" rel="noreferrer">
+              Apri la mappa completa <ExternalLink size={14}/>
+            </a>
+          </div>
+          <div className="overviewMap">
+            <TripOverviewMap days={tripMapDays} onSelect={openDay}/>
+          </div>
+          <div className="overviewDayList" aria-label="Giorni del tour">
+            {tripMapDays.map((mapDay) => (
+              <button key={mapDay.n} onClick={() => openDay(mapDay.index)}>
+                <span style={{ background: mapDay.color }}>{mapDay.n}</span>
+                <span><small>{mapDay.date}</small><strong>{mapDay.city}</strong></span>
+                <ChevronRight size={16}/>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {tab === "programma" && <div className="dashboard">
         <aside className="timeline">
@@ -239,7 +285,21 @@ export default function Home() {
 
         <section className="detail">
           <div className="detailHead">
-            <div><span className="tag" style={{color:day.color}}>{day.label ?? `GIORNO ${day.n}`} · {day.date}</span><h2>{day.title}</h2><p><MapPin size={16}/>{day.city}</p></div>
+            <div>
+              <span className="tag" style={{color:day.color}}>{day.label ?? `GIORNO ${day.n}`} · {day.date}</span>
+              <h2>{day.title}</h2>
+              <p>
+                <MapPin size={16}/>
+                <span className="cityLinks">
+                  {day.city.split(" → ").map((cityName, cityIndex) => (
+                    <Fragment key={`${cityName}-${cityIndex}`}>
+                      {cityIndex > 0 && <ArrowRight size={12}/>}
+                      <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cityName)}`} target="_blank" rel="noreferrer">{cityName}<ExternalLink size={11}/></a>
+                    </Fragment>
+                  ))}
+                </span>
+              </p>
+            </div>
             <div className="pager"><button disabled={active===0} onClick={()=>setActive(active-1)}><ArrowLeft size={17}/></button><button disabled={active===days.length-1} onClick={()=>setActive(active+1)}><ArrowRight size={17}/></button></div>
           </div>
           {day.from && <div className="transfer">
@@ -268,7 +328,10 @@ export default function Home() {
           )}
           <div className="stayInfo">
             <span><CircleUserRound size={16}/>{day.service}</span>
-            <span><MapPin size={16}/><strong>{day.hotel}</strong></span>
+            <span><MapPin size={16}/>{day.flightLegs
+              ? <strong>{day.hotel}</strong>
+              : <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${day.hotel.replace(/^Check-out da /, "")} Uzbekistan`)}`} target="_blank" rel="noreferrer"><strong>{day.hotel}</strong><ExternalLink size={12}/></a>
+            }</span>
           </div>
           <div className="activityGrid">
             <div className="activities">
