@@ -18,3 +18,149 @@
 .stayInfo span:last-child {
   background: #edf5f3;
 }
+
+.flightStrip {
+  display: grid;
+  grid-template-columns: 210px 1fr 1fr;
+  gap: 18px;
+  align-items: stretch;
+  padding: 18px 6vw;
+  background: #f7f1e6;
+  border-bottom: 1px solid var(--line);
+}
+
+.flightStripTitle,
+.flightCard,
+.flightLegs,
+.flightLegs span {
+  display: flex;
+  align-items: center;
+}
+
+.flightStripTitle {
+  gap: 11px;
+}
+
+.flightIcon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--rust);
+  color: white;
+}
+
+.flightStripTitle small,
+.flightMeta b,
+.flightRoute small,
+.flightLegs small {
+  display: block;
+  font-size: 7px;
+  letter-spacing: 1.2px;
+}
+
+.flightStripTitle strong {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--font-serif);
+}
+
+.flightCard {
+  gap: 15px;
+  padding: 12px 15px;
+  border: 1px solid #e4dac9;
+  border-radius: 9px;
+  background: white;
+}
+
+.flightMeta {
+  min-width: 58px;
+}
+
+.flightMeta b {
+  color: var(--rust);
+}
+
+.flightMeta span {
+  display: block;
+  margin-top: 3px;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.flightRoute {
+  min-width: 145px;
+}
+
+.flightRoute strong {
+  display: block;
+  font-family: var(--font-serif);
+  font-size: 12px;
+}
+
+.flightRoute small {
+  margin-top: 4px;
+  color: #89908f;
+}
+
+.flightLegs {
+  gap: 8px;
+  margin-left: auto;
+}
+
+.flightLegs span {
+  align-items: flex-start;
+  flex-direction: column;
+  padding-left: 9px;
+  border-left: 1px solid var(--line);
+}
+
+.flightLegs b {
+  color: var(--teal);
+  font-size: 11px;
+}
+
+.flightLegs small {
+  margin-top: 2px;
+  color: #89908f;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 1050px) {
+  .flightStrip {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .flightStripTitle {
+    grid-column: 1 / -1;
+  }
+
+  .flightCard {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 700px) {
+  .flightStrip {
+    grid-template-columns: 1fr;
+    padding: 16px 18px;
+  }
+
+  .flightStripTitle {
+    grid-column: auto;
+  }
+
+  .flightCard {
+    display: grid;
+    grid-template-columns: 64px 1fr;
+  }
+
+  .flightLegs {
+    grid-column: 1 / -1;
+    margin-left: 0;
+    width: 100%;
+  }
+}

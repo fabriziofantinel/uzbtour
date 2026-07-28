@@ -14,7 +14,7 @@ type Day = {
 };
 
 const days: Day[] = [
-  { n: 1, date: "2 AGO", city: "Tashkent → Khiva", title: "La capitale e il volo verso Urgench", type: "plane", from: "Tashkent", to: "Urgench / Khiva", duration: "20:40 · arrivo da confermare", description: "Arrivo a Tashkent alle 00:50, accoglienza e riposo. Colazione 07:00–10:00, visite dalle 10:30/11:00. In serata volo interno per Urgench e trasferimento privato di circa 40 km a Khiva.", activities: ["Complesso Khast Imam", "Madrasa Barak Khan", "Bazaar Chorsu", "Metropolitana di Tashkent", "Piazza dell’Indipendenza"], color: "#D6663D", lat: 41.2995, lon: 69.2401, hotel: "Zarafshon, Khiva", service: "Guida privata in italiano · cena inclusa" },
+  { n: 1, date: "2 AGO", city: "Tashkent → Khiva", title: "La capitale e il volo verso Urgench", type: "plane", from: "Tashkent", to: "Urgench / Khiva", duration: "20:40 · arrivo da confermare", description: "Partenza il 1 agosto da Torino con TK1310, coincidenza a Istanbul sul TK370 e arrivo a Tashkent alle 00:50 del 2 agosto. Accoglienza e riposo, poi visite dalle 10:30/11:00. In serata volo interno per Urgench e trasferimento di circa 40 km a Khiva.", activities: ["Complesso Khast Imam", "Madrasa Barak Khan", "Bazaar Chorsu", "Metropolitana di Tashkent", "Piazza dell’Indipendenza"], color: "#D6663D", lat: 41.2995, lon: 69.2401, hotel: "Zarafshon, Khiva", service: "Guida privata in italiano · cena inclusa" },
   { n: 2, date: "3 AGO", city: "Khiva", title: "La città-museo di Ichan Kala", type: "walk", description: "Visita guidata di mezza giornata nel cuore murato di Khiva. Al termine delle visite, tempo libero e cena in ristorante locale.", activities: ["Ichan Kala", "Kalta Minor", "Kunya Ark", "Madrasa Muhammad Amin Khan", "Moschea Juma", "Palazzo Tosh Hovli"], color: "#715C9D", lat: 41.3784, lon: 60.3605, hotel: "Zarafshon, Khiva", service: "Guida privata in italiano · cena inclusa" },
   { n: 3, date: "4 AGO", city: "Bukhara", title: "Nel deserto sulla Via della Seta", type: "bus", from: "Khiva", to: "Bukhara", duration: "480 km · 6/7 ore", description: "Partenza in veicolo privato attraverso il deserto con soste tecniche. Arrivo nel pomeriggio e passeggiata orientativa nel centro storico.", activities: ["Deserto del Kyzylkum", "Centro storico di Bukhara"], color: "#C4902F", lat: 39.7681, lon: 64.4556, hotel: "Shaxriston, Bukhara", service: "Autista privato · cena inclusa" },
   { n: 4, date: "5 AGO", city: "Bukhara", title: "La città santa dell’Asia Centrale", type: "walk", description: "Giornata di visita guidata tra fortezze, mausolei, moschee e gli antichi mercati coperti.", activities: ["Mausoleo dei Samanidi", "Fortezza Ark", "Moschea Bolo Hauz", "Complesso Poi Kalon", "Mercati coperti di Bukhara", "Chor Minor"], color: "#C4902F", lat: 39.7758, lon: 64.4149, hotel: "Shaxriston, Bukhara", service: "Guida privata in italiano · cena inclusa" },
@@ -24,10 +24,33 @@ const days: Day[] = [
   { n: 8, date: "9 AGO", city: "Samarcanda → Tashkent", title: "Necropoli, astronomia e carta", type: "train", from: "Samarcanda", to: "Tashkent", duration: "17:40–20:07", description: "Ultimi approfondimenti culturali a Samarcanda. Nel tardo pomeriggio treno per Tashkent, trasferimento in hotel e cena.", activities: ["Necropoli Shah-i-Zinda", "Osservatorio di Ulugh Beg", "Fabbrica della carta di Konigil"], color: "#177A78", lat: 39.674, lon: 66.987, hotel: "Inspira-S, Tashkent", service: "Guida privata · treno · cena inclusa" },
   { n: 9, date: "10 AGO", city: "Kokand → Fergana", title: "Ceramiche e palazzi nella Valle di Fergana", type: "train", from: "Tashkent", to: "Kokand", duration: "08:10–12:29", description: "Treno senza guida verso la Valle di Fergana. Incontro con l’autista locale, visita di Kokand e del villaggio dei ceramisti di Rishtan; proseguimento per Fergana.", activities: ["Palazzo Khudoyar Khan", "Moschea del venerdì di Kokand", "Ceramiche di Rishtan"], color: "#A35D55", lat: 40.5286, lon: 70.9425, hotel: "Saroy Garden, Fergana", service: "Autista privato · senza guida" },
   { n: 10, date: "11 AGO", city: "Margilan → Tashkent", title: "La seta della Valle di Fergana", type: "bus", from: "Fergana", to: "Tashkent", duration: "Trasferimento su strada", description: "Partenza con autista per Margilan. Visita alla produzione tradizionale della seta e al bazar della frutta; rientro a Tashkent con sosta panoramica in montagna.", activities: ["Fabbrica della seta di Margilan", "Bazar di Margilan", "Passo montano Kamchik"], color: "#A35D55", lat: 40.4711, lon: 71.7247, hotel: "Inspira-S, Tashkent", service: "Autista privato · senza guida · cena inclusa" },
-  { n: 11, date: "12 AGO", city: "Tashkent", title: "Ultime visite e partenza", type: "plane", from: "Tashkent", to: "Italia", duration: "Volo alle 23:50", description: "Colazione e tempo libero. Camera fino alle 12:00; late check-out fino alle 18:00 su richiesta. Cena di arrivederci e trasferimento in aeroporto.", activities: ["Tempo libero a Tashkent", "Ultimi acquisti", "Cena di arrivederci"], color: "#D6663D", lat: 41.2995, lon: 69.2401, hotel: "Check-out da Inspira-S", service: "Trasferimento aeroporto · cena inclusa" }
+  { n: 11, date: "12 AGO", city: "Tashkent", title: "Ultime visite e partenza", type: "plane", from: "Tashkent", to: "Istanbul / Torino", duration: "TK363 + TK1309", description: "Colazione e tempo libero. Camera fino alle 12:00; late check-out fino alle 18:00 su richiesta. Cena di arrivederci, trasferimento in aeroporto e rientro via Istanbul con i voli TK363 e TK1309.", activities: ["Tempo libero a Tashkent", "Ultimi acquisti", "Cena di arrivederci"], color: "#D6663D", lat: 41.2995, lon: 69.2401, hotel: "Check-out da Inspira-S", service: "Trasferimento aeroporto · cena inclusa" }
 ];
 
 const icons = { plane: Plane, train: TrainFront, bus: Bus, walk: Navigation };
+
+const internationalFlights = [
+  {
+    direction: "ANDATA",
+    date: "1 AGOSTO",
+    route: "Torino → Istanbul → Tashkent",
+    airports: "TRN · IST · TAS",
+    legs: [
+      { number: "TK1310", from: "Torino", to: "Istanbul" },
+      { number: "TK370", from: "Istanbul", to: "Tashkent" }
+    ]
+  },
+  {
+    direction: "RITORNO",
+    date: "12 AGOSTO",
+    route: "Tashkent → Istanbul → Torino",
+    airports: "TAS · IST · TRN",
+    legs: [
+      { number: "TK363", from: "Tashkent", to: "Istanbul" },
+      { number: "TK1309", from: "Istanbul", to: "Torino" }
+    ]
+  }
+];
 
 export default function Home() {
   const [active, setActive] = useState(0);
@@ -55,7 +78,7 @@ export default function Home() {
     <main>
       <header className="topbar">
         <div className="brand"><span className="brandMark">UZ</span><div><strong>Via della Seta</strong><small>UZBEKISTAN · 2026</small></div></div>
-        <div className="tripDates"><CalendarDays size={17}/><span>2 — 12 agosto</span><i>11 giorni</i></div>
+        <div className="tripDates"><CalendarDays size={17}/><span>1 — 12 agosto</span><i>11 gg tour</i></div>
         <div className="people">
           <span>Il nostro gruppo</span>
           <div className="avatars"><i>FF</i><i>AN</i><i>MR</i></div>
@@ -75,6 +98,30 @@ export default function Home() {
           <div><strong>8</strong><span>LOCALITÀ</span></div>
           <div><strong>3</strong><span>VIAGGIATORI</span></div>
         </div>
+      </section>
+
+      <section className="flightStrip" aria-label="Voli internazionali">
+        <div className="flightStripTitle">
+          <span className="flightIcon"><Plane size={19}/></span>
+          <div><small>VOLI INTERNAZIONALI</small><strong>Turkish Airlines</strong></div>
+        </div>
+        {internationalFlights.map((flight) => (
+          <article className="flightCard" key={flight.direction}>
+            <div className="flightMeta"><b>{flight.direction}</b><span>{flight.date}</span></div>
+            <div className="flightRoute">
+              <strong>{flight.route}</strong>
+              <small>{flight.airports}</small>
+            </div>
+            <div className="flightLegs">
+              {flight.legs.map((leg) => (
+                <span key={leg.number}>
+                  <b>{leg.number}</b>
+                  <small>{leg.from} → {leg.to}</small>
+                </span>
+              ))}
+            </div>
+          </article>
+        ))}
       </section>
 
       <nav className="tabs">
