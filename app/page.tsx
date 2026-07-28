@@ -4,12 +4,13 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft, ArrowRight, ArrowRightLeft, Banknote, Bus, CalendarDays, Camera, ChevronRight,
   CircleUserRound, Clock3, Download, ExternalLink, LoaderCircle, LogOut, Map, MapPin,
-  MessageCircle, Info, Navigation, Plane, Plus, ReceiptText, Trash2, TrainFront,
-  Trophy, Utensils, Wallet
+  MessageCircle, Info, Navigation, Plane, Plus, ReceiptText, ShieldCheck, Trash2,
+  TrainFront, Trophy, Utensils, Wallet
 } from "lucide-react";
 import { upload as uploadBlob } from "@vercel/blob/client";
 import TripOverviewMap, { type TripMapDay } from "@/components/trip-overview-map";
 import UsefulInfo from "@/components/useful-info";
+import InsuranceInfo from "@/components/insurance-info";
 import TripQuiz from "@/components/trip-quiz";
 import { PhotoContestPanel, PhotoContestShowcase } from "@/components/photo-contest";
 
@@ -144,7 +145,7 @@ const tripMapDays: TripMapDay[] = days
 
 export default function Home() {
   const [active, setActive] = useState(0);
-  const [tab, setTab] = useState<"mappa" | "programma" | "ricordi" | "spese" | "info" | "quiz">("mappa");
+  const [tab, setTab] = useState<"mappa" | "programma" | "ricordi" | "spese" | "info" | "assicurazione" | "quiz">("mappa");
   const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
   const [notes, setNotes] = useState<Record<number, NoteEntry>>({});
   const [restaurants, setRestaurants] = useState<RestaurantEntry[]>([]);
@@ -472,6 +473,7 @@ export default function Home() {
         <button className={tab === "ricordi" ? "active" : ""} onClick={() => setTab("ricordi")}><Camera size={18}/> Ricordi <b>{Object.values(photos).flat().length}</b></button>
         <button className={tab === "spese" ? "active" : ""} onClick={() => setTab("spese")}><Wallet size={18}/> Spese <b>€ {expenseTotals.EUR} · {formatSom.format(expenseTotals.UZS)} UZS</b></button>
         <button className={tab === "info" ? "active" : ""} onClick={() => setTab("info")}><Info size={18}/> Info utili</button>
+        <button className={tab === "assicurazione" ? "active" : ""} onClick={() => setTab("assicurazione")}><ShieldCheck size={18}/> Polizza</button>
         <button className={tab === "quiz" ? "active" : ""} onClick={() => setTab("quiz")}><Trophy size={18}/> Quiz</button>
       </nav>
       {dataLoading && <p className="dataStatus">Sincronizzazione con il diario condiviso…</p>}
@@ -696,6 +698,7 @@ export default function Home() {
       </section>}
 
       {tab === "info" && <UsefulInfo/>}
+      {tab === "assicurazione" && <InsuranceInfo/>}
       {tab === "quiz" && <TripQuiz/>}
     </main>
   );
