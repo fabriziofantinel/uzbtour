@@ -66,8 +66,8 @@ export default function Home() {
   ]);
   const [expenses, setExpenses] = useState([
     { label: "Treno Afrosiyob", amount: 48, payer: "Fabrizio" },
-    { label: "Cena Caravan", amount: 72, payer: "Partecipante 2" },
-    { label: "Ingressi Registan", amount: 36, payer: "Partecipante 3" }
+    { label: "Cena Caravan", amount: 72, payer: "Simona" },
+    { label: "Ingressi Registan", amount: 36, payer: "Mattia" }
   ]);
   const [photos, setPhotos] = useState<Record<number, PhotoEntry[]>>({});
   const day = days[active];
@@ -97,7 +97,7 @@ export default function Home() {
         <div className="tripDates"><CalendarDays size={17}/><span>1 — 12 agosto</span><i>11 gg tour</i></div>
         <div className="people">
           {currentUser && <span className="currentUser"><i>{currentUser.initials}</i><b>{currentUser.name}</b></span>}
-          <div className="avatars"><i>FF</i><i>P2</i><i>P3</i></div>
+          <div className="avatars"><i>FF</i><i>SI</i><i>MA</i></div>
           <form action="/api/auth/logout" method="post">
             <button className="logoutButton" type="submit" aria-label="Esci" title="Esci">
               <LogOut size={17}/><span>Esci</span>
