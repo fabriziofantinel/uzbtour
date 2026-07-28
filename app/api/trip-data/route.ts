@@ -5,13 +5,64 @@ import { getSql } from "@/lib/db";
 type NoteRequest = { action: "note"; day?: number; text?: string };
 type RestaurantRequest = { action: "restaurant"; day?: number; name?: string };
 type ExpenseRequest = { action: "expense"; label?: string; amount?: number };
-type TripDataRequest = NoteRequest | RestaurantRequest | ExpenseRequest;
+type CashMovementRequest = {
+  action: "withdrawal" | "exchange";
+  day?: number;
+  location?: string;
+  euroAmount?: number;
+  somAmount?: number;
+  feeEuro?: number;
+};
+type TripDataRequest = NoteRequest | RestaurantRequest | ExpenseRequest | CashMovementRequest;
 
 export const runtime = "nodejs";
 export const preferredRegion = "fra1";
 
+let cashSchemaPromise: Promise<void> | null = null;
+
 function validDay(day: unknown): day is number {
   return Number.isInteger(day) && Number(day) >= 1 && Number(day) <= 13;
+}
+
+async function ensureCashMovementsTable(sql: ReturnType<typeof getSql>) {
+  if (!cashSchemaPromise) {
+    cashSchemaPromise = (async () => {
+      await sql`
+        CREATE TABLE IF NOT EXISTS trip_cash_movements (
+          id BIGSERIAL PRIMARY KEY,
+          day INTEGER NOT NULL CHECK (day BETWEEN 1 AND 13),
+          kind TEXT NOT NULL CHECK (kind IN ('withdrawal', 'exchange')),
+          location TEXT NOT NULL,
+          euro_amount NUMERIC(12, 2),
+          som_amount NUMERIC(18, 2) NOT NULL,
+          fee_eur NUMERIC(12, 2),
+          added_by_id TEXT NOT NULL,
+          added_by_name TEXT NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `;
+    })().catch((error) => {
+      cashSchemaPromise = null;
+      throw error;
+    });
+  }
+  await cashSchemaPromise;
+}
+
+function cashMovementFromRow(row: Record<string, unknown>) {
+  const euroAmount = row.euro_amount == null ? null : Number(row.euro_amount);
+  const feeEuro = row.fee_eur == null ? null : Number(row.fee_eur);
+  return {
+    id: String(row.id),
+    day: Number(row.day),
+    kind: String(row.kind),
+    location: String(row.location),
+    euroAmount,
+    somAmount: Number(row.som_amount),
+    feeEuro,
+    addedBy: String(row.added_by_name),
+    createdAt: row.created_at
+  };
 }
 
 export async function GET() {
@@ -20,10 +71,13 @@ export async function GET() {
 
   try {
     const sql = getSql();
-    const [noteRows, restaurantRows, expenseRows] = await Promise.all([
+    await ensureCashMovementsTable(sql);
+    const [noteRows, restaurantRows, expenseRows, cashRows] = await Promise.all([
       sql`SELECT day, text, updated_by_name, updated_at FROM trip_notes ORDER BY day`,
       sql`SELECT id, day, name, added_by_name, created_at FROM trip_restaurants ORDER BY created_at`,
-      sql`SELECT id, label, amount, payer_name, created_at FROM trip_expenses ORDER BY created_at`
+      sql`SELECT id, label, amount, payer_name, created_at FROM trip_expenses ORDER BY created_at`,
+      sql`SELECT id, day, kind, location, euro_amount, som_amount, fee_eur, added_by_name, created_at
+          FROM trip_cash_movements ORDER BY created_at`
     ]);
 
     return NextResponse.json({
@@ -46,7 +100,8 @@ export async function GET() {
         amount: Number(row.amount),
         payer: String(row.payer_name),
         createdAt: row.created_at
-      }))
+      })),
+      cashMovements: cashRows.map(cashMovementFromRow)
     });
   } catch (error) {
     console.error("Impossibile leggere i dati del viaggio", error);
@@ -119,6 +174,46 @@ export async function POST(request: Request) {
           createdAt: row.created_at
         }
       });
+    }
+
+    if (body.action === "withdrawal" || body.action === "exchange") {
+      const location = typeof body.location === "string" ? body.location.trim() : "";
+      const euroAmount = body.euroAmount == null ? null : Number(body.euroAmount);
+      const somAmount = Number(body.somAmount);
+      const feeEuro = body.feeEuro == null ? null : Number(body.feeEuro);
+      const validEuro = euroAmount == null || (Number.isFinite(euroAmount) && euroAmount > 0 && euroAmount <= 1_000_000);
+      const validFee = feeEuro == null || (Number.isFinite(feeEuro) && feeEuro >= 0 && feeEuro <= 100_000);
+
+      if (
+        !validDay(body.day) ||
+        !location ||
+        location.length > 200 ||
+        !Number.isFinite(somAmount) ||
+        somAmount <= 0 ||
+        somAmount > 100_000_000_000 ||
+        !validEuro ||
+        !validFee ||
+        (body.action === "exchange" && euroAmount == null)
+      ) {
+        return NextResponse.json({ error: "Movimento di valuta non valido" }, { status: 400 });
+      }
+
+      await ensureCashMovementsTable(sql);
+      const rows = await sql`
+        INSERT INTO trip_cash_movements (
+          day, kind, location, euro_amount, som_amount, fee_eur, added_by_id, added_by_name
+        )
+        VALUES (
+          ${body.day}, ${body.action}, ${location}, ${euroAmount}, ${somAmount}, ${feeEuro},
+          ${user.id}, ${user.name}
+        )
+        RETURNING id, day, kind, location, euro_amount, som_amount, fee_eur, added_by_name, created_at
+      `;
+      return NextResponse.json({ cashMovement: cashMovementFromRow(rows[0]) });
+    }
+
+    if (body.action !== "expense") {
+      return NextResponse.json({ error: "Azione non supportata" }, { status: 400 });
     }
 
     const label = typeof body.label === "string" ? body.label.trim() : "";

@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft, ArrowRight, Bus, CalendarDays, Camera, ChevronRight,
+  ArrowLeft, ArrowRight, ArrowRightLeft, Banknote, Bus, CalendarDays, Camera, ChevronRight,
   CircleUserRound, Clock3, ExternalLink, LogOut, Map, MapPin, MessageCircle,
   Navigation, Plane, Plus, ReceiptText, TrainFront, Utensils, Wallet
 } from "lucide-react";
@@ -23,10 +23,22 @@ type NoteEntry = { text: string; updatedBy: string; updatedAt?: string };
 type PhotoEntry = { url: string; addedBy: string };
 type RestaurantEntry = { id: string; day: number; name: string; addedBy: string; createdAt?: string };
 type ExpenseEntry = { id: string; label: string; amount: number; payer: string; createdAt?: string };
+type CashMovementEntry = {
+  id: string;
+  day: number;
+  kind: "withdrawal" | "exchange";
+  location: string;
+  euroAmount: number | null;
+  somAmount: number;
+  feeEuro: number | null;
+  addedBy: string;
+  createdAt?: string;
+};
 type TripData = {
   notes: Array<NoteEntry & { day: number }>;
   restaurants: RestaurantEntry[];
   expenses: ExpenseEntry[];
+  cashMovements: CashMovementEntry[];
 };
 
 async function readJson<T>(response: Response): Promise<T> {
@@ -42,6 +54,16 @@ async function postTripData<T>(body: object) {
     body: JSON.stringify(body)
   }));
 }
+
+function parseLocalizedNumber(value: string) {
+  const compact = value.trim().replace(/\s/g, "");
+  if (!compact) return Number.NaN;
+  if (compact.includes(",")) return Number(compact.replace(/\./g, "").replace(",", "."));
+  if (/^\d{1,3}(\.\d{3})+$/.test(compact)) return Number(compact.replace(/\./g, ""));
+  return Number(compact);
+}
+
+const formatSom = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0 });
 
 const days: Day[] = [
   { n: 12, label: "PARTENZA", date: "1 AGO", city: "Torino → Istanbul → Tashkent", title: "In viaggio verso l’Uzbekistan", type: "plane", from: "Torino", to: "Tashkent", duration: "11:15 → 00:50 (+1)", description: "Partenza da Torino Caselle con Turkish Airlines. Scalo a Istanbul di circa 3 ore e 20 minuti, quindi volo notturno verso Tashkent con arrivo alle 00:50 del 2 agosto. Gli orari sono locali.", activities: ["Check-in a Torino Caselle", "Coincidenza a Istanbul", "Arrivo a Tashkent il 2 agosto"], color: "#D6663D", lat: 45.2008, lon: 7.6496, hotel: "Notte in volo · arrivo il 2 agosto", service: "Turkish Airlines · TRN / IST / TAS", flightLegs: [
@@ -86,6 +108,7 @@ export default function Home() {
   const [notes, setNotes] = useState<Record<number, NoteEntry>>({});
   const [restaurants, setRestaurants] = useState<RestaurantEntry[]>([]);
   const [expenses, setExpenses] = useState<ExpenseEntry[]>([]);
+  const [cashMovements, setCashMovements] = useState<CashMovementEntry[]>([]);
   const [photos, setPhotos] = useState<Record<number, PhotoEntry[]>>({});
   const [dataLoading, setDataLoading] = useState(true);
   const [saving, setSaving] = useState("");
@@ -93,6 +116,17 @@ export default function Home() {
   const day = days[active];
   const Icon = icons[day.type];
   const total = useMemo(() => expenses.reduce((s, e) => s + e.amount, 0), [expenses]);
+  const dayCashMovements = cashMovements.filter((movement) => movement.day === day.n);
+  const cashSummary = useMemo(() => cashMovements.reduce((summary, movement) => {
+    if (movement.kind === "withdrawal") {
+      summary.withdrawnSom += movement.somAmount;
+      summary.withdrawalFees += movement.feeEuro ?? 0;
+    } else {
+      summary.exchangedEuro += movement.euroAmount ?? 0;
+      summary.exchangedSom += movement.somAmount;
+    }
+    return summary;
+  }, { withdrawnSom: 0, withdrawalFees: 0, exchangedEuro: 0, exchangedSom: 0 }), [cashMovements]);
 
   function openDay(index: number) {
     setActive(index);
@@ -114,6 +148,7 @@ export default function Home() {
         ));
         setRestaurants(tripData.restaurants);
         setExpenses(tripData.expenses);
+        setCashMovements(tripData.cashMovements);
       })
       .catch((error: unknown) => {
         if (!cancelled) {
@@ -186,6 +221,82 @@ export default function Home() {
       setExpenses((previous) => [...previous, result.expense]);
     } catch (error) {
       setDataError(error instanceof Error ? error.message : "Spesa non salvata");
+    } finally {
+      setSaving("");
+    }
+  }
+
+  async function addWithdrawal(dayNumber: number) {
+    const location = prompt("Banca, sportello ATM o luogo del prelievo?")?.trim();
+    if (!location || !currentUser) return;
+    const somRaw = prompt("Importo prelevato in SOM (es. 1000000, senza simboli)?");
+    if (somRaw === null) return;
+    const somAmount = parseLocalizedNumber(somRaw);
+    if (!Number.isFinite(somAmount) || somAmount <= 0) {
+      setDataError("Inserisci un importo in SOM valido.");
+      return;
+    }
+    const euroRaw = prompt("Importo addebitato in euro? Lascia vuoto se non ancora disponibile.");
+    if (euroRaw === null) return;
+    const euroAmount = euroRaw.trim() ? parseLocalizedNumber(euroRaw) : null;
+    if (euroAmount !== null && (!Number.isFinite(euroAmount) || euroAmount <= 0)) {
+      setDataError("Inserisci un importo in euro valido.");
+      return;
+    }
+    const feeRaw = prompt("Commissione bancaria in euro? Lascia vuoto se assente.");
+    if (feeRaw === null) return;
+    const feeEuro = feeRaw.trim() ? parseLocalizedNumber(feeRaw) : null;
+    if (feeEuro !== null && (!Number.isFinite(feeEuro) || feeEuro < 0)) {
+      setDataError("Inserisci una commissione valida.");
+      return;
+    }
+
+    setSaving("withdrawal");
+    setDataError("");
+    try {
+      const result = await postTripData<{ cashMovement: CashMovementEntry }>({
+        action: "withdrawal",
+        day: dayNumber,
+        location,
+        somAmount,
+        euroAmount,
+        feeEuro
+      });
+      setCashMovements((previous) => [...previous, result.cashMovement]);
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : "Prelievo non salvato");
+    } finally {
+      setSaving("");
+    }
+  }
+
+  async function addExchange(dayNumber: number) {
+    const location = prompt("Banca, ufficio cambio o luogo del cambio?")?.trim();
+    if (!location || !currentUser) return;
+    const euroRaw = prompt("Euro cambiati?");
+    if (euroRaw === null) return;
+    const euroAmount = parseLocalizedNumber(euroRaw);
+    const somRaw = prompt("SOM ricevuti?");
+    if (somRaw === null) return;
+    const somAmount = parseLocalizedNumber(somRaw);
+    if (!Number.isFinite(euroAmount) || euroAmount <= 0 || !Number.isFinite(somAmount) || somAmount <= 0) {
+      setDataError("Inserisci importi euro e SOM validi.");
+      return;
+    }
+
+    setSaving("exchange");
+    setDataError("");
+    try {
+      const result = await postTripData<{ cashMovement: CashMovementEntry }>({
+        action: "exchange",
+        day: dayNumber,
+        location,
+        euroAmount,
+        somAmount
+      });
+      setCashMovements((previous) => [...previous, result.cashMovement]);
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : "Cambio non salvato");
     } finally {
       setSaving("");
     }
@@ -363,6 +474,8 @@ export default function Home() {
             <label className={!currentUser ? "disabled" : ""}><Camera size={18}/><span>Aggiungi foto<small>{photos[day.n]?.length ?? 0} caricate</small></span><Plus size={17}/><input type="file" accept="image/*" multiple disabled={!currentUser} onChange={upload}/></label>
             <button disabled={!currentUser || Boolean(saving)} onClick={() => addRestaurant(day.n)}><Utensils size={18}/><span>Aggiungi locale<small>{restaurants.filter(r=>r.day===day.n).length} salvati</small></span><Plus size={17}/></button>
             <button disabled={!currentUser || Boolean(saving)} onClick={addExpense}><ReceiptText size={18}/><span>Aggiungi spesa<small>Totale € {total}</small></span><Plus size={17}/></button>
+            <button disabled={!currentUser || Boolean(saving)} onClick={() => addWithdrawal(day.n)}><Banknote size={18}/><span>Aggiungi prelievo<small>{dayCashMovements.filter(movement => movement.kind === "withdrawal").length} registrati</small></span><Plus size={17}/></button>
+            <button disabled={!currentUser || Boolean(saving)} onClick={() => addExchange(day.n)}><ArrowRightLeft size={18}/><span>Aggiungi cambio<small>{dayCashMovements.filter(movement => movement.kind === "exchange").length} registrati</small></span><Plus size={17}/></button>
           </div>
           {restaurants.filter((restaurant) => restaurant.day === day.n).length > 0 && (
             <div className="restaurantList">
@@ -386,6 +499,31 @@ export default function Home() {
         <div className="expenseHero"><span>SPESE DEL GRUPPO</span><h2>€ {total.toFixed(2)}</h2><p>€ {(total/3).toFixed(2)} a persona</p></div>
         <div className="expenseList">{expenses.map((e)=><div key={e.id}><span className="receipt"><ReceiptText size={18}/></span><span><strong>{e.label}</strong><small>Pagato da {e.payer}</small></span><b>€ {e.amount.toFixed(2)}</b></div>)}</div>
         <button className="primary" disabled={!currentUser || Boolean(saving)} onClick={addExpense}><Plus size={17}/> {saving === "expense" ? "Salvataggio…" : "Nuova spesa"}</button>
+        <div className="cashSection">
+          <div className="sectionTitle"><div><span>GESTIONE CONTANTI</span><h2>Prelievi e cambi</h2></div></div>
+          <div className="cashSummary">
+            <div><Banknote size={19}/><span><small>SOM PRELEVATI</small><strong>{formatSom.format(cashSummary.withdrawnSom)} UZS</strong></span></div>
+            <div><ArrowRightLeft size={19}/><span><small>EURO CAMBIATI</small><strong>€ {cashSummary.exchangedEuro.toFixed(2)}</strong></span></div>
+            <div><Wallet size={19}/><span><small>SOM DAL CAMBIO</small><strong>{formatSom.format(cashSummary.exchangedSom)} UZS</strong></span></div>
+          </div>
+          {cashMovements.length === 0
+            ? <p className="cashEmpty">Nessun prelievo o cambio registrato.</p>
+            : <div className="cashMovementList">{cashMovements.map((movement) => {
+                const movementDay = days.find((tripDay) => tripDay.n === movement.day);
+                const rate = movement.euroAmount ? movement.somAmount / movement.euroAmount : null;
+                return <div key={`${movement.kind}-${movement.id}`}>
+                  <span className={`cashIcon ${movement.kind}`}><Banknote size={18}/></span>
+                  <span>
+                    <strong>{movement.kind === "withdrawal" ? "Prelievo ATM" : "Cambio euro–SOM"}</strong>
+                    <small>{movement.location} · {movementDay?.date} · Inserito da {movement.addedBy}</small>
+                    {movement.kind === "withdrawal" && movement.feeEuro !== null && <small>Commissione: € {movement.feeEuro.toFixed(2)}</small>}
+                    {movement.kind === "exchange" && rate !== null && <small>Cambio: {formatSom.format(rate)} UZS per €</small>}
+                  </span>
+                  <b>{movement.euroAmount !== null && <small>€ {movement.euroAmount.toFixed(2)}</small>}{formatSom.format(movement.somAmount)} UZS</b>
+                </div>;
+              })}</div>
+          }
+        </div>
       </section>}
     </main>
   );

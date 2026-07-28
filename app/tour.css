@@ -257,6 +257,10 @@
   opacity: .55;
 }
 
+.quickActions {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
 .restaurantList {
   display: grid;
   gap: 7px;
@@ -283,6 +287,123 @@
 .restaurantList small {
   color: #919998;
   font-size: 8px;
+}
+
+.cashSection {
+  margin-top: 36px;
+  padding-top: 28px;
+  border-top: 1px solid var(--line);
+}
+
+.cashSummary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.cashSummary > div {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--cream);
+  color: var(--teal);
+}
+
+.cashSummary span,
+.cashSummary small,
+.cashSummary strong {
+  display: block;
+  min-width: 0;
+}
+
+.cashSummary small {
+  margin-bottom: 3px;
+  color: #7a8584;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.cashSummary strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-family: var(--font-serif);
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cashEmpty {
+  margin: 12px 0 0;
+  padding: 22px;
+  border-radius: 9px;
+  background: #faf7f0;
+  color: #7a8584;
+  font-size: 11px;
+  text-align: center;
+}
+
+.cashMovementList {
+  margin-top: 12px;
+}
+
+.cashMovementList > div {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 2px;
+  border-bottom: 1px solid var(--line);
+}
+
+.cashMovementList strong,
+.cashMovementList small {
+  display: block;
+}
+
+.cashMovementList small {
+  margin-top: 3px;
+  color: #8b9392;
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.cashMovementList > div > b {
+  color: var(--teal);
+  font-size: 12px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.cashMovementList > div > b small {
+  margin: 0 0 3px;
+  color: var(--ink);
+  font-size: 9px;
+}
+
+.cashIcon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 9px;
+  background: #edf5f3;
+  color: var(--teal);
+}
+
+.cashIcon.exchange {
+  background: var(--cream);
+  color: var(--rust);
+}
+
+@media (max-width: 900px) {
+  .quickActions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 700px) {
@@ -721,6 +842,7 @@
   }
 
   .quickActions {
+    grid-template-columns: 1fr;
     gap: 10px;
   }
 
@@ -752,6 +874,23 @@
   .restaurantList small {
     grid-column: 2;
     font-size: 9px;
+  }
+
+  .cashSummary {
+    grid-template-columns: 1fr;
+  }
+
+  .cashSummary > div {
+    min-height: 68px;
+  }
+
+  .cashMovementList > div {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .cashMovementList > div > b {
+    grid-column: 2;
+    text-align: left;
   }
 
   .collection {
