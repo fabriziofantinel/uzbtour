@@ -28,7 +28,7 @@ export const quizDays: QuizDay[] = [
     city: "Tashkent e Khiva",
     route: "Tashkent → Urgench → Khiva",
     theme: "La capitale e il volo verso Urgench",
-    hotel: "Zarafshon, Khiva",
+    hotel: "Inspira-S, Tashkent · Zarafshon, Khiva",
     transport: "Volo interno e trasferimento in auto",
     service: "Guida privata in italiano e cena inclusa",
     finale: "Volo serale per Urgench e trasferimento a Khiva",

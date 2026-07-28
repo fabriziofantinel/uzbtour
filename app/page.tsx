@@ -16,7 +16,7 @@ import { PhotoContestPanel, PhotoContestShowcase } from "@/components/photo-cont
 type Day = {
   n: number; date: string; city: string; title: string; type: "plane" | "train" | "bus" | "walk";
   from?: string; to?: string; duration?: string; description: string; activities: string[];
-  color: string; lat: number; lon: number; hotel: string; service?: string;
+  color: string; lat: number; lon: number; hotel: string | string[]; service?: string;
   label?: string; layover?: string;
   flightLegs?: Array<{
     number: string; from: string; to: string; departure: string; arrival: string;
@@ -111,7 +111,7 @@ const days: Day[] = [
     { number: "TK1310", from: "Aeroporto di Torino (TRN)", to: "Aeroporto di Istanbul (IST)", departure: "10:25", arrival: "14:25", duration: "3 ore", aircraft: "Boeing 737 MAX 8 · fusoliera stretta", trackingUrl: "https://it.flightaware.com/live/flight/THY1310" },
     { number: "TK370", from: "Aeroporto di Istanbul (IST)", to: "Aeroporto Internazionale di Tashkent (TAS)", departure: "18:25", arrival: "00:50 (+1)", duration: "4 ore 25 min", aircraft: "Airbus A330-203 · fusoliera larga", trackingUrl: "https://it.flightaware.com/live/flight/THY370" }
   ] },
-  { n: 1, date: "2 AGO", city: "Tashkent → Khiva", title: "La capitale e il volo verso Urgench", type: "plane", from: "Tashkent", to: "Urgench / Khiva", duration: "20:40–22:10", description: "Arrivo a Tashkent alle 00:50, accoglienza, trasferimento e riposo. Dalle 10:30 visita guidata della capitale. In serata volo interno per Urgench e trasferimento in auto di circa 40 km fino a Khiva.", activities: ["Complesso Khast Imam", "Madrasa Barak Khan", "Bazaar Chorsu", "Metropolitana di Tashkent", "Piazza dell’Indipendenza"], color: "#D6663D", lat: 41.2995, lon: 69.2401, hotel: "Zarafshon, Khiva", service: "Guida privata in italiano · cena inclusa" },
+  { n: 1, date: "2 AGO", city: "Tashkent → Khiva", title: "La capitale e il volo verso Urgench", type: "plane", from: "Tashkent", to: "Urgench / Khiva", duration: "20:40–22:10", description: "Arrivo a Tashkent alle 00:50, accoglienza, trasferimento e check-in all’Hotel Inspira-S per il riposo. Dalle 10:30 visita guidata della capitale. In serata volo interno per Urgench e trasferimento in auto di circa 40 km fino a Khiva.", activities: ["Complesso Khast Imam", "Madrasa Barak Khan", "Bazaar Chorsu", "Metropolitana di Tashkent", "Piazza dell’Indipendenza"], color: "#D6663D", lat: 41.2995, lon: 69.2401, hotel: ["Inspira-S, Tashkent", "Zarafshon, Khiva"], service: "Guida privata in italiano · cena inclusa" },
   { n: 2, date: "3 AGO", city: "Khiva", title: "La città-museo di Ichan Kala", type: "walk", description: "Visita guidata di mezza giornata nel cuore murato di Khiva. Al termine delle visite, tempo libero e cena in ristorante locale.", activities: ["Ichan Kala", "Kalta Minor", "Kunya Ark", "Madrasa Muhammad Amin Khan", "Moschea Juma", "Palazzo Tosh Hovli"], color: "#715C9D", lat: 41.3784, lon: 60.3605, hotel: "Zarafshon, Khiva", service: "Guida privata in italiano · cena inclusa" },
   { n: 3, date: "4 AGO", city: "Khiva → Bukhara", title: "Nel deserto sulla Via della Seta", type: "train", from: "Khiva", to: "Bukhara", duration: "Circa 6/7 ore", description: "Partenza in treno da Khiva verso Bukhara, attraversando il paesaggio del Kyzylkum. Viaggio senza guida. Arrivo nel pomeriggio e passeggiata orientativa nel centro storico.", activities: ["Viaggio in treno nel Kyzylkum", "Centro storico di Bukhara"], color: "#C4902F", lat: 39.7681, lon: 64.4556, hotel: "Shaxriston, Bukhara", service: "Treno · senza guida · cena inclusa" },
   { n: 4, date: "5 AGO", city: "Bukhara", title: "La città santa dell’Asia Centrale", type: "walk", description: "Giornata di visita guidata tra fortezze, mausolei, moschee e gli antichi mercati coperti.", activities: ["Mausoleo dei Samanidi", "Fortezza Ark", "Moschea Bolo Hauz", "Complesso Poi Kalon", "Mercati coperti di Bukhara", "Chor Minor"], color: "#C4902F", lat: 39.7758, lon: 64.4149, hotel: "Shaxriston, Bukhara", service: "Guida privata in italiano · cena inclusa" },
@@ -568,8 +568,13 @@ export default function Home() {
           <div className="stayInfo">
             <span><CircleUserRound size={16}/>{day.service}</span>
             <span><MapPin size={16}/>{day.flightLegs
-              ? <strong>{day.hotel}</strong>
-              : <a href={`https://www.google.com/search?q=${encodeURIComponent(`${day.hotel.replace(/^Check-out da /, "")} hotel Uzbekistan`)}`} target="_blank" rel="noreferrer"><strong>{day.hotel}</strong><ExternalLink size={12}/></a>
+              ? <strong>{Array.isArray(day.hotel) ? day.hotel.join(" · ") : day.hotel}</strong>
+              : (Array.isArray(day.hotel) ? day.hotel : [day.hotel]).map((hotel, hotelIndex) => (
+                  <Fragment key={hotel}>
+                    {hotelIndex > 0 && <span aria-hidden="true"> · </span>}
+                    <a href={`https://www.google.com/search?q=${encodeURIComponent(`${hotel.replace(/^Check-out da /, "")} hotel Uzbekistan`)}`} target="_blank" rel="noreferrer"><strong>{hotel}</strong><ExternalLink size={12}/></a>
+                  </Fragment>
+                ))
             }</span>
           </div>
           <div className="activityGrid">
