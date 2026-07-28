@@ -11,6 +11,7 @@ import { upload as uploadBlob } from "@vercel/blob/client";
 import TripOverviewMap, { type TripMapDay } from "@/components/trip-overview-map";
 import UsefulInfo from "@/components/useful-info";
 import TripQuiz from "@/components/trip-quiz";
+import { PhotoContestPanel, PhotoContestShowcase } from "@/components/photo-contest";
 
 type Day = {
   n: number; date: string; city: string; title: string; type: "plane" | "train" | "bus" | "walk";
@@ -612,6 +613,7 @@ export default function Home() {
             <button disabled={!currentUser || Boolean(saving)} onClick={() => addWithdrawal(day.n)}><Banknote size={18}/><span>Aggiungi prelievo<small>{dayCashMovements.filter(movement => movement.kind === "withdrawal").length} registrati</small></span><Plus size={17}/></button>
             <button disabled={!currentUser || Boolean(saving)} onClick={() => addExchange(day.n)}><ArrowRightLeft size={18}/><span>Aggiungi cambio<small>{dayCashMovements.filter(movement => movement.kind === "exchange").length} registrati</small></span><Plus size={17}/></button>
           </div>
+          <PhotoContestPanel day={day.n} photoCount={photos[day.n]?.length ?? 0}/>
           {restaurants.filter((restaurant) => restaurant.day === day.n).length > 0 && (
             <div className="restaurantList">
               {restaurants.filter((restaurant) => restaurant.day === day.n).map((restaurant) => (
@@ -626,6 +628,7 @@ export default function Home() {
 
       {tab === "ricordi" && <section className="collection">
         <div className="sectionTitle"><div><span>DIARIO VISIVO</span><h2>I nostri ricordi</h2></div></div>
+        <PhotoContestShowcase/>
         {Object.values(photos).flat().length === 0 ? <div className="empty"><Camera size={36}/><h3>La galleria aspetta il primo ricordo</h3><p>Apri una giornata del programma e aggiungi le tue foto.</p><button onClick={()=>setTab("programma")}>Vai al programma</button></div> :
         <div className="photoGrid">{Object.entries(photos).flatMap(([d,entries])=>entries.map(photo=>
           <figure key={photo.id}>

@@ -62,6 +62,23 @@ await sql`
 `;
 
 await sql`
+  CREATE TABLE IF NOT EXISTS trip_photo_contests (
+    day SMALLINT PRIMARY KEY CHECK (day BETWEEN 1 AND 11),
+    status TEXT NOT NULL CHECK (status IN ('processing', 'completed', 'failed')),
+    winner_photo_id BIGINT REFERENCES trip_photos(id) ON DELETE SET NULL,
+    winner_score SMALLINT CHECK (winner_score BETWEEN 0 AND 100),
+    winner_reason TEXT,
+    rankings JSONB NOT NULL DEFAULT '[]'::JSONB,
+    judged_by_id TEXT NOT NULL,
+    judged_by_name TEXT NOT NULL,
+    model TEXT NOT NULL,
+    error_message TEXT,
+    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    completed_at TIMESTAMPTZ
+  )
+`;
+
+await sql`
   CREATE TABLE IF NOT EXISTS trip_quiz_attempts (
     id BIGSERIAL PRIMARY KEY,
     day SMALLINT NOT NULL CHECK (day BETWEEN 1 AND 11),

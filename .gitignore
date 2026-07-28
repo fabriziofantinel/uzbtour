@@ -13,6 +13,7 @@
 # temporary and generated files
 /tmp
 *.log
+*.tsbuildinfo
 
 # operating systems and editors
 .DS_Store

@@ -2,6 +2,7 @@ import { del } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { getSql } from "@/lib/db";
+import { ensurePhotoContestsTable } from "@/lib/photo-contest";
 import { ensurePhotosTable, isPhotoAdmin } from "@/lib/photos";
 
 export const runtime = "nodejs";
@@ -21,11 +22,16 @@ export async function DELETE(
 
   try {
     await ensurePhotosTable();
+    await ensurePhotoContestsTable();
     const sql = getSql();
     const rows = await sql`
-      SELECT id, pathname, uploaded_by_id
-      FROM trip_photos
-      WHERE id = ${id}
+      SELECT p.id, p.pathname, p.uploaded_by_id,
+             EXISTS (
+               SELECT 1 FROM trip_photo_contests c
+               WHERE c.winner_photo_id = p.id AND c.status = 'completed'
+             ) AS is_contest_winner
+      FROM trip_photos p
+      WHERE p.id = ${id}
       LIMIT 1
     `;
     const photo = rows[0];
@@ -37,6 +43,12 @@ export async function DELETE(
         { status: 403 }
       );
     }
+    if (photo.is_contest_winner) {
+      return NextResponse.json(
+        { error: "La foto vincitrice di un concorso non può essere cancellata" },
+        { status: 409 }
+      );
+    }
 
     await del(String(photo.pathname));
     await sql`DELETE FROM trip_photos WHERE id = ${id}`;
@@ -46,4 +58,3 @@ export async function DELETE(
     return NextResponse.json({ error: "Cancellazione non riuscita" }, { status: 503 });
   }
 }
-

@@ -304,6 +304,240 @@
   opacity: .65;
 }
 
+.photoContestPanel {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid #e4d8c4;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fffaf0, #f5eee1);
+}
+
+.photoContestPanelHead,
+.photoContestIntro,
+.photoContestAction > span,
+.photoContestWaiting,
+.photoContestLoading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.photoContestPanelHead > span,
+.photoContestIntro > span {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #e6b767;
+  color: #533f1d;
+}
+
+.photoContestPanelHead small,
+.photoContestIntro small,
+.photoWinnerCopy > small {
+  display: block;
+  color: var(--rust);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 1.6px;
+}
+
+.photoContestPanelHead strong {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--font-serif);
+  font-size: 15px;
+}
+
+.photoContestPanel > p {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 13px 0 0;
+  font-size: 10px;
+}
+
+.photoContestAction {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px 14px;
+  margin-top: 14px;
+}
+
+.photoContestAction > span {
+  font-size: 10px;
+}
+
+.photoContestAction button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--teal);
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.photoContestAction button:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
+.photoContestAction > small {
+  grid-column: 1 / -1;
+  color: #827761;
+  font-size: 9px;
+}
+
+.photoContestWaiting {
+  color: #706958;
+  font-size: 9px;
+}
+
+.photoContestError {
+  color: #a9472b;
+}
+
+.photoContestShowcase {
+  margin-bottom: 28px;
+}
+
+.photoContestIntro {
+  margin-bottom: 16px;
+  padding: 18px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #123f3f, #0b6462);
+  color: white;
+}
+
+.photoContestIntro h2 {
+  margin: 2px 0 4px;
+  font-family: var(--font-serif);
+  font-size: 24px;
+}
+
+.photoContestIntro p {
+  max-width: 690px;
+  margin: 0;
+  color: rgba(255, 255, 255, .72);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.photoContestLoading,
+.photoContestEmpty {
+  justify-content: center;
+  padding: 18px;
+  border: 1px dashed #d9cdb9;
+  border-radius: 10px;
+  color: #746d61;
+  font-size: 10px;
+  text-align: center;
+}
+
+.photoWinnerList {
+  display: grid;
+  gap: 16px;
+}
+
+.photoWinnerCard {
+  display: grid;
+  grid-template-columns: minmax(220px, 42%) minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid #e4d8c4;
+  border-radius: 12px;
+  background: white;
+}
+
+.photoContestPanel .photoWinnerCard {
+  margin-top: 14px;
+}
+
+.photoWinnerImage {
+  position: relative;
+  min-height: 230px;
+  background: #dfd8cc;
+}
+
+.photoWinnerImage img {
+  object-fit: cover;
+}
+
+.photoWinnerImage > span {
+  position: absolute;
+  z-index: 1;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 20px;
+  background: #e6b767;
+  color: #3f3218;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.photoWinnerCopy {
+  align-self: center;
+  padding: 22px;
+}
+
+.photoWinnerCopy h3 {
+  margin: 4px 0 9px;
+  font-family: var(--font-serif);
+  font-size: 23px;
+}
+
+.photoWinnerCopy > strong {
+  color: var(--teal);
+  font-family: var(--font-serif);
+  font-size: 21px;
+}
+
+.photoWinnerCopy > p {
+  margin: 10px 0;
+  color: #596565;
+  font-family: var(--font-serif);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.photoWinnerCopy > span {
+  color: #8a8e8c;
+  font-size: 9px;
+}
+
+.photoScoreGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 5px;
+  margin-top: 14px;
+}
+
+.photoScoreGrid span {
+  padding: 7px 5px;
+  border-radius: 6px;
+  background: var(--cream);
+  color: #706958;
+  font-size: 7px;
+  text-align: center;
+}
+
+.photoScoreGrid b {
+  color: var(--rust);
+  font-size: 11px;
+}
+
 .quizPage {
   max-width: 1180px;
   margin: 34px auto 60px;
@@ -1561,6 +1795,63 @@
 
   .photoGrid figure {
     height: min(72vw, 300px);
+  }
+
+  .photoContestPanel {
+    padding: 14px;
+  }
+
+  .photoContestPanelHead {
+    align-items: flex-start;
+  }
+
+  .photoContestPanelHead strong {
+    font-size: 14px;
+    line-height: 1.35;
+  }
+
+  .photoContestAction {
+    grid-template-columns: 1fr;
+  }
+
+  .photoContestAction button {
+    width: 100%;
+    min-height: 50px;
+    font-size: 11px;
+  }
+
+  .photoContestAction > small {
+    grid-column: auto;
+    line-height: 1.45;
+  }
+
+  .photoContestIntro {
+    align-items: flex-start;
+    padding: 16px;
+  }
+
+  .photoContestIntro h2 {
+    font-size: 22px;
+  }
+
+  .photoWinnerCard {
+    grid-template-columns: 1fr;
+  }
+
+  .photoWinnerImage {
+    min-height: min(72vw, 310px);
+  }
+
+  .photoWinnerCopy {
+    padding: 18px;
+  }
+
+  .photoWinnerCopy h3 {
+    font-size: 21px;
+  }
+
+  .photoScoreGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .expenseHero {
