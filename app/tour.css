@@ -178,8 +178,77 @@
   font-weight: 800;
 }
 
+.currentUser {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.currentUser i {
+  display: grid;
+  place-items: center;
+  width: 29px;
+  height: 29px;
+  border-radius: 50%;
+  background: var(--teal);
+  color: white;
+  font-style: normal;
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.currentUser b {
+  font-size: 10px;
+}
+
+.auditBy {
+  display: block;
+  color: #919998;
+  font-size: 8px;
+  text-align: right;
+}
+
+.quickActions button:disabled,
+.quickActions label.disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.restaurantList {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.restaurantList > span {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf9;
+  color: var(--teal);
+}
+
+.restaurantList b {
+  color: var(--ink);
+  font-size: 10px;
+}
+
+.restaurantList small {
+  color: #919998;
+  font-size: 8px;
+}
+
 @media (max-width: 700px) {
   .logoutButton span {
+    display: none;
+  }
+
+  .currentUser b,
+  .avatars {
     display: none;
   }
 }

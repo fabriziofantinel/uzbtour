@@ -3,6 +3,12 @@ const encoder = new TextEncoder();
 export const SESSION_COOKIE = "uzb_tour_session";
 export const SESSION_DURATION_SECONDS = 60 * 60 * 24 * 30;
 
+export type SessionUser = {
+  id: string;
+  name: string;
+  initials: string;
+};
+
 function toBase64Url(bytes: Uint8Array) {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
@@ -26,24 +32,35 @@ async function getSigningKey(secret: string) {
   );
 }
 
-export async function createSessionToken(secret: string) {
+export async function createSessionToken(secret: string, user: SessionUser) {
   const expiresAt = Math.floor(Date.now() / 1000) + SESSION_DURATION_SECONDS;
-  const payload = String(expiresAt);
+  const payload = toBase64Url(encoder.encode(JSON.stringify({ ...user, expiresAt })));
   const key = await getSigningKey(secret);
   const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(payload));
   return `${payload}.${toBase64Url(new Uint8Array(signature))}`;
 }
 
 export async function verifySessionToken(token: string | undefined, secret: string | undefined) {
-  if (!token || !secret) return false;
-  const [expiresAt, signature] = token.split(".");
-  if (!expiresAt || !signature || Number(expiresAt) <= Math.floor(Date.now() / 1000)) return false;
+  if (!token || !secret) return null;
+  const [payload, signature] = token.split(".");
+  if (!payload || !signature) return null;
 
   try {
     const key = await getSigningKey(secret);
-    return await crypto.subtle.verify("HMAC", key, fromBase64Url(signature), encoder.encode(expiresAt));
+    const valid = await crypto.subtle.verify("HMAC", key, fromBase64Url(signature), encoder.encode(payload));
+    if (!valid) return null;
+
+    const session = JSON.parse(new TextDecoder().decode(fromBase64Url(payload))) as SessionUser & { expiresAt: number };
+    if (
+      !session.id ||
+      !session.name ||
+      !session.initials ||
+      session.expiresAt <= Math.floor(Date.now() / 1000)
+    ) return null;
+
+    return { id: session.id, name: session.name, initials: session.initials } satisfies SessionUser;
   } catch {
-    return false;
+    return null;
   }
 }
 

@@ -23,11 +23,11 @@ La demo salva lo stato durante la sessione del browser. Il passaggio alla persis
 
 ## Accesso privato
 
-L'intera applicazione è protetta da un codice di viaggio condiviso e da una sessione firmata in un cookie `HttpOnly`.
+L'intera applicazione è protetta da tre codici personali e da sessioni firmate in cookie `HttpOnly` che identificano il partecipante.
 
 Configurare in Vercel, per Production, Preview e Development:
 
-- `TRIP_ACCESS_CODE`: codice scelto dal gruppo
+- `TRIP_USERS_B64`: configurazione Base64 dei tre utenti e relativi codici
 - `AUTH_SECRET`: stringa casuale di almeno 32 byte
 
 Per lo sviluppo locale, copiare `.env.example` in `.env.local` e valorizzare entrambe le variabili.

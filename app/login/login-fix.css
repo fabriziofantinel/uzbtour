@@ -7,6 +7,70 @@
   min-width: 0;
 }
 
+.fieldLabel {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.userChoices {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.userChoices button {
+  min-width: 0;
+  padding: 10px 5px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: white;
+  color: var(--ink);
+}
+
+.userChoices button i {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin: 0 auto 7px;
+  border-radius: 50%;
+  background: var(--cream);
+  color: var(--teal);
+  font-style: normal;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.userChoices button span {
+  display: block;
+  overflow: hidden;
+  font-size: 8px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.userChoices button.selected {
+  border-color: var(--teal);
+  background: #edf5f3;
+  box-shadow: 0 0 0 2px rgba(11, 100, 98, .08);
+}
+
+.userChoices button.selected i {
+  background: var(--teal);
+  color: white;
+}
+
+.loginHelp {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
 @media (max-width: 760px) {
   .loginPage {
     grid-template-columns: 1fr;

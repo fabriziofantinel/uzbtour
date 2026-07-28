@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft, ArrowRight, Bus, CalendarDays, Camera, ChevronRight,
   CircleUserRound, Clock3, ExternalLink, LogOut, Map, MapPin, MessageCircle,
@@ -12,6 +12,10 @@ type Day = {
   from?: string; to?: string; duration?: string; description: string; activities: string[];
   color: string; lat: number; lon: number; hotel: string; service?: string;
 };
+
+type SessionUser = { id: string; name: string; initials: string };
+type NoteEntry = { text: string; updatedBy: string };
+type PhotoEntry = { url: string; addedBy: string };
 
 const days: Day[] = [
   { n: 1, date: "2 AGO", city: "Tashkent → Khiva", title: "La capitale e il volo verso Urgench", type: "plane", from: "Tashkent", to: "Urgench / Khiva", duration: "20:40 · arrivo da confermare", description: "Partenza il 1 agosto da Torino con TK1310, coincidenza a Istanbul sul TK370 e arrivo a Tashkent alle 00:50 del 2 agosto. Accoglienza e riposo, poi visite dalle 10:30/11:00. In serata volo interno per Urgench e trasferimento di circa 40 km a Khiva.", activities: ["Complesso Khast Imam", "Madrasa Barak Khan", "Bazaar Chorsu", "Metropolitana di Tashkent", "Piazza dell’Indipendenza"], color: "#D6663D", lat: 41.2995, lon: 69.2401, hotel: "Zarafshon, Khiva", service: "Guida privata in italiano · cena inclusa" },
@@ -55,23 +59,35 @@ const internationalFlights = [
 export default function Home() {
   const [active, setActive] = useState(0);
   const [tab, setTab] = useState<"programma" | "ricordi" | "spese">("programma");
-  const [notes, setNotes] = useState<Record<number, string>>({});
-  const [restaurants, setRestaurants] = useState<{ day: number; name: string }[]>([
-    { day: 1, name: "Caravan — cucina uzbeka" }
+  const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
+  const [notes, setNotes] = useState<Record<number, NoteEntry>>({});
+  const [restaurants, setRestaurants] = useState<{ day: number; name: string; addedBy: string }[]>([
+    { day: 1, name: "Caravan — cucina uzbeka", addedBy: "Fabrizio" }
   ]);
   const [expenses, setExpenses] = useState([
     { label: "Treno Afrosiyob", amount: 48, payer: "Fabrizio" },
-    { label: "Cena Caravan", amount: 72, payer: "Anna" },
-    { label: "Ingressi Registan", amount: 36, payer: "Marco" }
+    { label: "Cena Caravan", amount: 72, payer: "Partecipante 2" },
+    { label: "Ingressi Registan", amount: 36, payer: "Partecipante 3" }
   ]);
-  const [photos, setPhotos] = useState<Record<number, string[]>>({});
+  const [photos, setPhotos] = useState<Record<number, PhotoEntry[]>>({});
   const day = days[active];
   const Icon = icons[day.type];
   const total = useMemo(() => expenses.reduce((s, e) => s + e.amount, 0), [expenses]);
 
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((response) => response.json())
+      .then((result: { user?: SessionUser }) => setCurrentUser(result.user ?? null));
+  }, []);
+
   function upload(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!currentUser) return;
     const files = Array.from(e.target.files ?? []);
-    setPhotos(p => ({ ...p, [day.n]: [...(p[day.n] ?? []), ...files.map(URL.createObjectURL)] }));
+    const addedBy = currentUser.name;
+    setPhotos(p => ({
+      ...p,
+      [day.n]: [...(p[day.n] ?? []), ...files.map((file) => ({ url: URL.createObjectURL(file), addedBy }))]
+    }));
   }
 
   return (
@@ -80,8 +96,8 @@ export default function Home() {
         <div className="brand"><span className="brandMark">UZ</span><div><strong>Via della Seta</strong><small>UZBEKISTAN · 2026</small></div></div>
         <div className="tripDates"><CalendarDays size={17}/><span>1 — 12 agosto</span><i>11 gg tour</i></div>
         <div className="people">
-          <span>Il nostro gruppo</span>
-          <div className="avatars"><i>FF</i><i>AN</i><i>MR</i></div>
+          {currentUser && <span className="currentUser"><i>{currentUser.initials}</i><b>{currentUser.name}</b></span>}
+          <div className="avatars"><i>FF</i><i>P2</i><i>P3</i></div>
           <form action="/api/auth/logout" method="post">
             <button className="logoutButton" type="submit" aria-label="Esci" title="Esci">
               <LogOut size={17}/><span>Esci</span>
@@ -177,26 +193,44 @@ export default function Home() {
           </div>
           <div className="journal">
             <div><MessageCircle size={18}/><strong>Nota del giorno</strong></div>
-            <textarea placeholder="Scrivi qui un ricordo, un consiglio, una curiosità…" value={notes[day.n] ?? ""} onChange={e=>setNotes({...notes,[day.n]:e.target.value})}/>
+            <textarea
+              placeholder="Scrivi qui un ricordo, un consiglio, una curiosità…"
+              value={notes[day.n]?.text ?? ""}
+              disabled={!currentUser}
+              onChange={e => setNotes({
+                ...notes,
+                [day.n]: { text: e.target.value, updatedBy: currentUser!.name }
+              })}
+            />
+            {notes[day.n]?.text && <small className="auditBy">Ultima modifica: {notes[day.n].updatedBy}</small>}
           </div>
           <div className="quickActions">
-            <label><Camera size={18}/><span>Aggiungi foto<small>{photos[day.n]?.length ?? 0} caricate</small></span><Plus size={17}/><input type="file" accept="image/*" multiple onChange={upload}/></label>
-            <button onClick={()=>{const name=prompt("Nome del locale?"); if(name)setRestaurants([...restaurants,{day:day.n,name}])}}><Utensils size={18}/><span>Aggiungi locale<small>{restaurants.filter(r=>r.day===day.n).length} salvati</small></span><Plus size={17}/></button>
-            <button onClick={()=>{const label=prompt("Descrizione spesa?"); const amount=Number(prompt("Importo in euro?")); if(label&&amount)setExpenses([...expenses,{label,amount,payer:"Fabrizio"}])}}><ReceiptText size={18}/><span>Aggiungi spesa<small>Totale € {total}</small></span><Plus size={17}/></button>
+            <label className={!currentUser ? "disabled" : ""}><Camera size={18}/><span>Aggiungi foto<small>{photos[day.n]?.length ?? 0} caricate</small></span><Plus size={17}/><input type="file" accept="image/*" multiple disabled={!currentUser} onChange={upload}/></label>
+            <button disabled={!currentUser} onClick={()=>{const name=prompt("Nome del locale?"); if(name&&currentUser)setRestaurants([...restaurants,{day:day.n,name,addedBy:currentUser.name}])}}><Utensils size={18}/><span>Aggiungi locale<small>{restaurants.filter(r=>r.day===day.n).length} salvati</small></span><Plus size={17}/></button>
+            <button disabled={!currentUser} onClick={()=>{const label=prompt("Descrizione spesa?"); const amount=Number(prompt("Importo in euro?")); if(label&&amount&&currentUser)setExpenses([...expenses,{label,amount,payer:currentUser.name}])}}><ReceiptText size={18}/><span>Aggiungi spesa<small>Totale € {total}</small></span><Plus size={17}/></button>
           </div>
+          {restaurants.filter((restaurant) => restaurant.day === day.n).length > 0 && (
+            <div className="restaurantList">
+              {restaurants.filter((restaurant) => restaurant.day === day.n).map((restaurant, index) => (
+                <span key={`${restaurant.name}-${index}`}>
+                  <Utensils size={13}/><b>{restaurant.name}</b><small>Aggiunto da {restaurant.addedBy}</small>
+                </span>
+              ))}
+            </div>
+          )}
         </section>
       </div>}
 
       {tab === "ricordi" && <section className="collection">
         <div className="sectionTitle"><div><span>DIARIO VISIVO</span><h2>I nostri ricordi</h2></div></div>
         {Object.values(photos).flat().length === 0 ? <div className="empty"><Camera size={36}/><h3>La galleria aspetta il primo ricordo</h3><p>Apri una giornata del programma e aggiungi le tue foto.</p><button onClick={()=>setTab("programma")}>Vai al programma</button></div> :
-        <div className="photoGrid">{Object.entries(photos).flatMap(([d,srcs])=>srcs.map(src=><figure key={src}><img src={src} alt="Ricordo del viaggio"/><figcaption>Giorno {d}</figcaption></figure>))}</div>}
+        <div className="photoGrid">{Object.entries(photos).flatMap(([d,entries])=>entries.map(photo=><figure key={photo.url}><img src={photo.url} alt="Ricordo del viaggio"/><figcaption>Giorno {d} · {photo.addedBy}</figcaption></figure>))}</div>}
       </section>}
 
       {tab === "spese" && <section className="collection expensesPage">
         <div className="expenseHero"><span>SPESE DEL GRUPPO</span><h2>€ {total.toFixed(2)}</h2><p>€ {(total/3).toFixed(2)} a persona</p></div>
         <div className="expenseList">{expenses.map((e,i)=><div key={i}><span className="receipt"><ReceiptText size={18}/></span><span><strong>{e.label}</strong><small>Pagato da {e.payer}</small></span><b>€ {e.amount.toFixed(2)}</b></div>)}</div>
-        <button className="primary" onClick={()=>{const label=prompt("Descrizione spesa?"); const amount=Number(prompt("Importo in euro?")); if(label&&amount)setExpenses([...expenses,{label,amount,payer:"Fabrizio"}])}}><Plus size={17}/> Nuova spesa</button>
+        <button className="primary" disabled={!currentUser} onClick={()=>{const label=prompt("Descrizione spesa?"); const amount=Number(prompt("Importo in euro?")); if(label&&amount&&currentUser)setExpenses([...expenses,{label,amount,payer:currentUser.name}])}}><Plus size={17}/> Nuova spesa</button>
       </section>}
     </main>
   );

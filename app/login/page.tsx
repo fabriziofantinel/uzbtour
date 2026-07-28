@@ -1,17 +1,30 @@
 "use client";
 
-import { FormEvent, Suspense, useState } from "react";
-import { Eye, EyeOff, KeyRound, LoaderCircle, LockKeyhole, Plane } from "lucide-react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
+import { CircleUserRound, Eye, EyeOff, KeyRound, LoaderCircle, LockKeyhole, Plane } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import "./login.css";
 import "./login-fix.css";
 
 function LoginContent() {
   const searchParams = useSearchParams();
+  const [users, setUsers] = useState<{ id: string; name: string; initials: string }[]>([]);
+  const [userId, setUserId] = useState("");
   const [code, setCode] = useState("");
   const [showCode, setShowCode] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/users")
+      .then((response) => response.json())
+      .then((result: { users?: { id: string; name: string; initials: string }[] }) => {
+        const availableUsers = result.users ?? [];
+        setUsers(availableUsers);
+        setUserId(availableUsers[0]?.id ?? "");
+      })
+      .catch(() => setError("Non è stato possibile caricare i partecipanti."));
+  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -22,7 +35,7 @@ function LoginContent() {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code })
+        body: JSON.stringify({ userId, code })
       });
       const result = (await response.json()) as { error?: string };
       if (!response.ok) {
@@ -59,10 +72,24 @@ function LoginContent() {
         <div className="loginBox">
           <span className="loginLock"><LockKeyhole size={24}/></span>
           <p className="loginEyebrow">AREA RISERVATA</p>
-          <h2>Bentornato, viaggiatore</h2>
-          <p className="loginIntro">Inserisci il codice condiviso con il gruppo per entrare nel diario di viaggio.</p>
+          <h2>Chi sta viaggiando?</h2>
+          <p className="loginIntro">Seleziona il tuo profilo e inserisci il codice personale. Le tue attività saranno attribuite a te.</p>
           <form onSubmit={submit}>
-            <label htmlFor="access-code">Codice del viaggio</label>
+            <span className="fieldLabel">Il tuo profilo</span>
+            <div className="userChoices">
+              {users.map((user) => (
+                <button
+                  className={userId === user.id ? "selected" : ""}
+                  key={user.id}
+                  type="button"
+                  onClick={() => { setUserId(user.id); setError(""); }}
+                >
+                  <i>{user.initials}</i>
+                  <span>{user.name}</span>
+                </button>
+              ))}
+            </div>
+            <label htmlFor="access-code">Il tuo codice personale</label>
             <div className="codeInput">
               <KeyRound size={18}/>
               <input
@@ -80,12 +107,12 @@ function LoginContent() {
               </button>
             </div>
             {error && <p className="loginError" role="alert">{error}</p>}
-            <button className="loginSubmit" type="submit" disabled={loading || !code.trim()}>
+            <button className="loginSubmit" type="submit" disabled={loading || !userId || !code.trim()}>
               {loading ? <LoaderCircle className="spin" size={18}/> : <LockKeyhole size={17}/>}
               {loading ? "Accesso in corso…" : "Entra nel viaggio"}
             </button>
           </form>
-          <p className="loginHelp">Non ricordi il codice? Chiedilo a un partecipante del viaggio.</p>
+          <p className="loginHelp"><CircleUserRound size={13}/> Ogni partecipante dispone di un codice diverso.</p>
         </div>
       </section>
     </main>
