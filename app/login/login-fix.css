@@ -74,6 +74,8 @@
 @media (max-width: 760px) {
   .loginPage {
     grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    min-height: 100svh;
   }
 
   .loginStory {
