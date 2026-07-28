@@ -29,15 +29,31 @@ Configurare in Vercel, per Production, Preview e Development:
 
 - `TRIP_USERS_B64`: configurazione Base64 dei tre utenti e relativi codici
 - `AUTH_SECRET`: stringa casuale di almeno 32 byte
+- `DATABASE_URL`: connessione al database Neon Postgres collegato al progetto
 
-Per lo sviluppo locale, copiare `.env.example` in `.env.local` e valorizzare entrambe le variabili.
+Per lo sviluppo locale, sincronizzare le variabili con `vercel env pull .env.local`.
 
-## Modello dati previsto
+## Database
 
-- `trips`, `participants`, `days`, `activities`
-- `comments`, `restaurants`, `expenses`, `expense_splits`
-- `photos` con URL Blob, autore, giorno e didascalia
+Note giornaliere, locali e spese sono persistiti su Neon Postgres. Ogni scrittura
+registra l'identificativo e il nome dell'utente ricavati dalla sessione firmata.
 
-## Perché non Gmail
+Per creare o aggiornare le tabelle:
 
-Gmail è un servizio email, non uno storage applicativo. Google Drive sarebbe tecnicamente possibile ma richiede OAuth e gestione dei permessi. Amazon S3 è un'alternativa valida per grandi volumi; per tre persone e un singolo viaggio, Vercel Blob è più rapido da configurare e resta integrato con il deployment.
+```bash
+npm run db:migrate
+```
+
+Le foto restano al momento locali al browser e non vengono salvate nel database.
+
+## Modello dati attuale
+
+- `trip_notes`: una nota condivisa per ciascun giorno, con ultimo autore
+- `trip_restaurants`: locali associati al giorno e all'utente che li ha inseriti
+- `trip_expenses`: importi, descrizione e partecipante che ha pagato
+
+## Storage fotografico
+
+La scelta dello storage delle foto è intenzionalmente rimandata. Gmail non è adatto
+come storage applicativo; Vercel Blob, Amazon S3 e Google Drive verranno valutati
+separatamente prima di collegare il caricamento permanente.

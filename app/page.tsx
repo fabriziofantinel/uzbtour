@@ -14,8 +14,29 @@ type Day = {
 };
 
 type SessionUser = { id: string; name: string; initials: string };
-type NoteEntry = { text: string; updatedBy: string };
+type NoteEntry = { text: string; updatedBy: string; updatedAt?: string };
 type PhotoEntry = { url: string; addedBy: string };
+type RestaurantEntry = { id: string; day: number; name: string; addedBy: string; createdAt?: string };
+type ExpenseEntry = { id: string; label: string; amount: number; payer: string; createdAt?: string };
+type TripData = {
+  notes: Array<NoteEntry & { day: number }>;
+  restaurants: RestaurantEntry[];
+  expenses: ExpenseEntry[];
+};
+
+async function readJson<T>(response: Response): Promise<T> {
+  const result = (await response.json()) as T & { error?: string };
+  if (!response.ok) throw new Error(result.error ?? "Operazione non riuscita");
+  return result;
+}
+
+async function postTripData<T>(body: object) {
+  return readJson<T>(await fetch("/api/trip-data", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  }));
+}
 
 const days: Day[] = [
   { n: 1, date: "2 AGO", city: "Tashkent → Khiva", title: "La capitale e il volo verso Urgench", type: "plane", from: "Tashkent", to: "Urgench / Khiva", duration: "20:40 · arrivo da confermare", description: "Partenza il 1 agosto da Torino con TK1310, coincidenza a Istanbul sul TK370 e arrivo a Tashkent alle 00:50 del 2 agosto. Accoglienza e riposo, poi visite dalle 10:30/11:00. In serata volo interno per Urgench e trasferimento di circa 40 km a Khiva.", activities: ["Complesso Khast Imam", "Madrasa Barak Khan", "Bazaar Chorsu", "Metropolitana di Tashkent", "Piazza dell’Indipendenza"], color: "#D6663D", lat: 41.2995, lon: 69.2401, hotel: "Zarafshon, Khiva", service: "Guida privata in italiano · cena inclusa" },
@@ -61,24 +82,107 @@ export default function Home() {
   const [tab, setTab] = useState<"programma" | "ricordi" | "spese">("programma");
   const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
   const [notes, setNotes] = useState<Record<number, NoteEntry>>({});
-  const [restaurants, setRestaurants] = useState<{ day: number; name: string; addedBy: string }[]>([
-    { day: 1, name: "Caravan — cucina uzbeka", addedBy: "Fabrizio" }
-  ]);
-  const [expenses, setExpenses] = useState([
-    { label: "Treno Afrosiyob", amount: 48, payer: "Fabrizio" },
-    { label: "Cena Caravan", amount: 72, payer: "Simona" },
-    { label: "Ingressi Registan", amount: 36, payer: "Mattia" }
-  ]);
+  const [restaurants, setRestaurants] = useState<RestaurantEntry[]>([]);
+  const [expenses, setExpenses] = useState<ExpenseEntry[]>([]);
   const [photos, setPhotos] = useState<Record<number, PhotoEntry[]>>({});
+  const [dataLoading, setDataLoading] = useState(true);
+  const [saving, setSaving] = useState("");
+  const [dataError, setDataError] = useState("");
   const day = days[active];
   const Icon = icons[day.type];
   const total = useMemo(() => expenses.reduce((s, e) => s + e.amount, 0), [expenses]);
 
   useEffect(() => {
-    fetch("/api/auth/me")
-      .then((response) => response.json())
-      .then((result: { user?: SessionUser }) => setCurrentUser(result.user ?? null));
+    let cancelled = false;
+
+    Promise.all([
+      fetch("/api/auth/me").then((response) => readJson<{ user: SessionUser }>(response)),
+      fetch("/api/trip-data").then((response) => readJson<TripData>(response))
+    ])
+      .then(([identity, tripData]) => {
+        if (cancelled) return;
+        setCurrentUser(identity.user);
+        setNotes(Object.fromEntries(
+          tripData.notes.map(({ day: noteDay, ...note }) => [noteDay, note])
+        ));
+        setRestaurants(tripData.restaurants);
+        setExpenses(tripData.expenses);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setDataError(error instanceof Error ? error.message : "Dati non disponibili");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setDataLoading(false);
+      });
+
+    return () => { cancelled = true; };
   }, []);
+
+  async function saveNote(dayNumber: number) {
+    if (!currentUser) return;
+    setSaving(`note-${dayNumber}`);
+    setDataError("");
+    try {
+      const result = await postTripData<{ note: NoteEntry & { day: number } }>({
+        action: "note",
+        day: dayNumber,
+        text: notes[dayNumber]?.text ?? ""
+      });
+      const { day: savedDay, ...savedNote } = result.note;
+      setNotes((previous) => ({ ...previous, [savedDay]: savedNote }));
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : "Nota non salvata");
+    } finally {
+      setSaving("");
+    }
+  }
+
+  async function addRestaurant(dayNumber: number) {
+    const name = prompt("Nome del locale?")?.trim();
+    if (!name || !currentUser) return;
+
+    setSaving("restaurant");
+    setDataError("");
+    try {
+      const result = await postTripData<{ restaurant: RestaurantEntry }>({
+        action: "restaurant",
+        day: dayNumber,
+        name
+      });
+      setRestaurants((previous) => [...previous, result.restaurant]);
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : "Locale non salvato");
+    } finally {
+      setSaving("");
+    }
+  }
+
+  async function addExpense() {
+    const label = prompt("Descrizione spesa?")?.trim();
+    if (!label || !currentUser) return;
+    const amount = Number(prompt("Importo in euro?")?.replace(",", "."));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setDataError("Inserisci un importo valido maggiore di zero.");
+      return;
+    }
+
+    setSaving("expense");
+    setDataError("");
+    try {
+      const result = await postTripData<{ expense: ExpenseEntry }>({
+        action: "expense",
+        label,
+        amount
+      });
+      setExpenses((previous) => [...previous, result.expense]);
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : "Spesa non salvata");
+    } finally {
+      setSaving("");
+    }
+  }
 
   function upload(e: React.ChangeEvent<HTMLInputElement>) {
     if (!currentUser) return;
@@ -149,6 +253,8 @@ export default function Home() {
         <button className={tab === "ricordi" ? "active" : ""} onClick={() => setTab("ricordi")}><Camera size={18}/> Ricordi <b>{Object.values(photos).flat().length}</b></button>
         <button className={tab === "spese" ? "active" : ""} onClick={() => setTab("spese")}><Wallet size={18}/> Spese <b>€ {total}</b></button>
       </nav>
+      {dataLoading && <p className="dataStatus">Sincronizzazione con il diario condiviso…</p>}
+      {dataError && <p className="dataError" role="alert">{dataError}</p>}
 
       {tab === "programma" && <div className="dashboard">
         <aside className="timeline">
@@ -196,23 +302,26 @@ export default function Home() {
             <textarea
               placeholder="Scrivi qui un ricordo, un consiglio, una curiosità…"
               value={notes[day.n]?.text ?? ""}
-              disabled={!currentUser}
-              onChange={e => setNotes({
-                ...notes,
+              disabled={!currentUser || dataLoading}
+              onChange={e => setNotes((previous) => ({
+                ...previous,
                 [day.n]: { text: e.target.value, updatedBy: currentUser!.name }
-              })}
+              }))}
+              onBlur={() => saveNote(day.n)}
             />
-            {notes[day.n]?.text && <small className="auditBy">Ultima modifica: {notes[day.n].updatedBy}</small>}
+            {saving === `note-${day.n}`
+              ? <small className="auditBy">Salvataggio…</small>
+              : notes[day.n]?.text && <small className="auditBy">Ultima modifica: {notes[day.n].updatedBy}</small>}
           </div>
           <div className="quickActions">
             <label className={!currentUser ? "disabled" : ""}><Camera size={18}/><span>Aggiungi foto<small>{photos[day.n]?.length ?? 0} caricate</small></span><Plus size={17}/><input type="file" accept="image/*" multiple disabled={!currentUser} onChange={upload}/></label>
-            <button disabled={!currentUser} onClick={()=>{const name=prompt("Nome del locale?"); if(name&&currentUser)setRestaurants([...restaurants,{day:day.n,name,addedBy:currentUser.name}])}}><Utensils size={18}/><span>Aggiungi locale<small>{restaurants.filter(r=>r.day===day.n).length} salvati</small></span><Plus size={17}/></button>
-            <button disabled={!currentUser} onClick={()=>{const label=prompt("Descrizione spesa?"); const amount=Number(prompt("Importo in euro?")); if(label&&amount&&currentUser)setExpenses([...expenses,{label,amount,payer:currentUser.name}])}}><ReceiptText size={18}/><span>Aggiungi spesa<small>Totale € {total}</small></span><Plus size={17}/></button>
+            <button disabled={!currentUser || Boolean(saving)} onClick={() => addRestaurant(day.n)}><Utensils size={18}/><span>Aggiungi locale<small>{restaurants.filter(r=>r.day===day.n).length} salvati</small></span><Plus size={17}/></button>
+            <button disabled={!currentUser || Boolean(saving)} onClick={addExpense}><ReceiptText size={18}/><span>Aggiungi spesa<small>Totale € {total}</small></span><Plus size={17}/></button>
           </div>
           {restaurants.filter((restaurant) => restaurant.day === day.n).length > 0 && (
             <div className="restaurantList">
-              {restaurants.filter((restaurant) => restaurant.day === day.n).map((restaurant, index) => (
-                <span key={`${restaurant.name}-${index}`}>
+              {restaurants.filter((restaurant) => restaurant.day === day.n).map((restaurant) => (
+                <span key={restaurant.id}>
                   <Utensils size={13}/><b>{restaurant.name}</b><small>Aggiunto da {restaurant.addedBy}</small>
                 </span>
               ))}
@@ -229,8 +338,8 @@ export default function Home() {
 
       {tab === "spese" && <section className="collection expensesPage">
         <div className="expenseHero"><span>SPESE DEL GRUPPO</span><h2>€ {total.toFixed(2)}</h2><p>€ {(total/3).toFixed(2)} a persona</p></div>
-        <div className="expenseList">{expenses.map((e,i)=><div key={i}><span className="receipt"><ReceiptText size={18}/></span><span><strong>{e.label}</strong><small>Pagato da {e.payer}</small></span><b>€ {e.amount.toFixed(2)}</b></div>)}</div>
-        <button className="primary" disabled={!currentUser} onClick={()=>{const label=prompt("Descrizione spesa?"); const amount=Number(prompt("Importo in euro?")); if(label&&amount&&currentUser)setExpenses([...expenses,{label,amount,payer:currentUser.name}])}}><Plus size={17}/> Nuova spesa</button>
+        <div className="expenseList">{expenses.map((e)=><div key={e.id}><span className="receipt"><ReceiptText size={18}/></span><span><strong>{e.label}</strong><small>Pagato da {e.payer}</small></span><b>€ {e.amount.toFixed(2)}</b></div>)}</div>
+        <button className="primary" disabled={!currentUser || Boolean(saving)} onClick={addExpense}><Plus size={17}/> {saving === "expense" ? "Salvataggio…" : "Nuova spesa"}</button>
       </section>}
     </main>
   );

@@ -208,6 +208,27 @@
   text-align: right;
 }
 
+.dataStatus,
+.dataError {
+  margin: 12px auto 0;
+  padding: 9px 14px;
+  width: min(1180px, calc(100% - 36px));
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.dataStatus {
+  background: #edf5f3;
+  color: var(--teal);
+}
+
+.dataError {
+  background: #fff0eb;
+  color: #a9472b;
+}
+
 .quickActions button:disabled,
 .quickActions label.disabled {
   cursor: wait;
