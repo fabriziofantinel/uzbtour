@@ -75,4 +75,105 @@
   .loginPage {
     grid-template-columns: 1fr;
   }
+
+  .loginStory {
+    min-height: 190px;
+    padding: 22px 20px;
+  }
+
+  .loginBrand {
+    font-size: 17px;
+  }
+
+  .loginBrand span {
+    width: 38px;
+    height: 38px;
+  }
+
+  .loginStoryCopy > p {
+    margin: 10px 0 0;
+    font-size: 8px;
+    letter-spacing: 2px;
+  }
+
+  .loginStoryCopy h1 {
+    margin: 7px 0 0;
+    font-size: 28px;
+    line-height: 1.05;
+  }
+
+  .loginStoryCopy > span {
+    display: none;
+  }
+
+  .loginPanel {
+    place-items: start center;
+    padding: 26px 18px calc(30px + env(safe-area-inset-bottom));
+  }
+
+  .loginLock {
+    width: 44px;
+    height: 44px;
+    margin-bottom: 15px;
+  }
+
+  .loginBox h2 {
+    font-size: 29px;
+  }
+
+  .loginIntro {
+    margin-bottom: 22px;
+    font-size: 14px;
+  }
+
+  .userChoices {
+    gap: 7px;
+    margin-bottom: 20px;
+  }
+
+  .userChoices button {
+    min-height: 78px;
+    padding: 9px 4px;
+  }
+
+  .userChoices button i {
+    width: 34px;
+    height: 34px;
+    font-size: 10px;
+  }
+
+  .userChoices button span {
+    font-size: 9px;
+  }
+
+  .codeInput input,
+  .loginSubmit {
+    min-height: 54px;
+    font-size: 16px;
+  }
+
+  .codeInput button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .loginHelp {
+    margin-top: 20px;
+    font-size: 10px;
+    line-height: 1.4;
+  }
+}
+
+@media (max-width: 370px) {
+  .loginStory {
+    min-height: 170px;
+  }
+
+  .loginBox h2 {
+    font-size: 27px;
+  }
+
+  .loginIntro {
+    font-size: 13px;
+  }
 }

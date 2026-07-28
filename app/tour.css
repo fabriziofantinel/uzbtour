@@ -273,3 +273,559 @@
     display: none;
   }
 }
+
+/* Smartphone experience */
+@media (max-width: 700px) {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+  }
+
+  button,
+  a,
+  label {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  main:not(.loginPage) {
+    padding-bottom: calc(70px + env(safe-area-inset-bottom));
+  }
+
+  .topbar {
+    position: relative;
+    z-index: 5;
+    height: 64px;
+    padding: 0 14px;
+  }
+
+  .brand {
+    gap: 9px;
+    min-width: 0;
+  }
+
+  .brandMark {
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+  }
+
+  .brand strong {
+    overflow: hidden;
+    max-width: 150px;
+    font-size: 16px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .brand small,
+  .tripDates,
+  .avatars {
+    display: none;
+  }
+
+  .people {
+    gap: 7px;
+  }
+
+  .people > .currentUser {
+    display: flex;
+  }
+
+  .currentUser i {
+    width: 36px;
+    height: 36px;
+    font-size: 10px;
+  }
+
+  .currentUser b {
+    display: none;
+  }
+
+  .logoutButton {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+  }
+
+  .hero {
+    display: block;
+    height: auto;
+    min-height: 286px;
+    padding: 28px 18px 24px;
+  }
+
+  .hero:after {
+    right: -45%;
+    top: -45%;
+    width: 110%;
+    height: 150%;
+    border-width: 50px;
+  }
+
+  .eyebrow {
+    margin-bottom: 9px;
+    font-size: 8px;
+    letter-spacing: 2.4px;
+  }
+
+  .hero h1 {
+    font-size: clamp(30px, 9.4vw, 37px);
+    line-height: 1.03;
+  }
+
+  .heroCopy > p:last-child {
+    margin: 13px 0 0;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .routeSummary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: 22px;
+    padding: 11px 4px;
+  }
+
+  .routeSummary div {
+    min-width: 0;
+    padding: 0 6px;
+    text-align: center;
+  }
+
+  .routeSummary strong {
+    font-size: 22px;
+  }
+
+  .routeSummary span {
+    display: block;
+    margin-top: 2px;
+    font-size: 6px;
+    letter-spacing: .8px;
+    line-height: 1.3;
+  }
+
+  .flightStrip {
+    gap: 10px;
+    padding: 16px;
+  }
+
+  .flightStripTitle {
+    min-height: 44px;
+  }
+
+  .flightCard {
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .flightRoute {
+    min-width: 0;
+  }
+
+  .flightRoute strong {
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .flightLegs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+
+  .flightLegs span {
+    min-width: 0;
+    padding: 7px 8px;
+  }
+
+  .flightLegs small {
+    overflow: hidden;
+    max-width: 100%;
+    text-overflow: ellipsis;
+  }
+
+  .tabs {
+    position: fixed;
+    z-index: 30;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    width: 100%;
+    height: calc(64px + env(safe-area-inset-bottom));
+    padding: 0 6px env(safe-area-inset-bottom);
+    border-top: 1px solid var(--line);
+    border-bottom: 0;
+    box-shadow: 0 -8px 24px rgba(23, 60, 60, .1);
+  }
+
+  .tabs button {
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    min-width: 0;
+    min-height: 58px;
+    padding: 5px 2px;
+    font-size: 10px;
+  }
+
+  .tabs button svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .tabs button.active:after {
+    top: 0;
+    bottom: auto;
+    right: 18%;
+    left: 18%;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+  }
+
+  .tabs b {
+    display: none;
+  }
+
+  .dataStatus,
+  .dataError {
+    width: calc(100% - 32px);
+    margin-top: 10px;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  .dashboard {
+    min-height: 0;
+  }
+
+  .timeline {
+    padding: 20px 0 14px;
+  }
+
+  .timeline .sectionTitle {
+    padding: 0 16px;
+  }
+
+  .sectionTitle {
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .sectionTitle h2 {
+    font-size: 22px;
+  }
+
+  .dayList {
+    gap: 8px;
+    max-height: none;
+    padding: 0 16px 8px;
+    scroll-padding-inline: 16px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .dayList::-webkit-scrollbar {
+    display: none;
+  }
+
+  .dayRow {
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 9px;
+    min-width: 154px;
+    min-height: 78px;
+    padding: 9px;
+    border: 1px solid var(--line);
+    background: white;
+    scroll-snap-align: start;
+  }
+
+  .dayRow.selected {
+    border-color: rgba(11, 100, 98, .35);
+    box-shadow: 0 4px 12px rgba(23, 60, 60, .07);
+  }
+
+  .dayRow > svg,
+  .dayInfo em {
+    display: none;
+  }
+
+  .dayDate b {
+    font-size: 21px;
+  }
+
+  .dayInfo {
+    min-width: 0;
+  }
+
+  .dayInfo strong {
+    overflow: hidden;
+    font-size: 14px;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+  }
+
+  .detail {
+    padding: 24px 16px 30px;
+  }
+
+  .detailHead {
+    gap: 12px;
+  }
+
+  .detailHead > div:first-child {
+    min-width: 0;
+  }
+
+  .tag {
+    font-size: 8px;
+    letter-spacing: 1.5px;
+  }
+
+  .detailHead h2 {
+    font-size: clamp(25px, 7.5vw, 30px);
+    line-height: 1.12;
+  }
+
+  .detailHead p {
+    align-items: flex-start;
+    line-height: 1.4;
+  }
+
+  .pager {
+    display: flex;
+    flex: 0 0 auto;
+  }
+
+  .pager button {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+  }
+
+  .transfer {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .transport {
+    width: 40px;
+    height: 40px;
+  }
+
+  .transfer strong {
+    flex-wrap: wrap;
+    gap: 5px;
+    line-height: 1.35;
+  }
+
+  .transfer > span:last-child {
+    grid-column: 2;
+    line-height: 1.35;
+  }
+
+  .description {
+    font-size: 16px;
+    line-height: 1.7;
+  }
+
+  .stayInfo {
+    display: grid;
+    grid-template-columns: 1fr;
+    margin-bottom: 20px;
+  }
+
+  .stayInfo span {
+    align-items: flex-start;
+    min-height: 42px;
+    border-radius: 9px;
+    padding: 10px 12px;
+    font-size: 10px;
+    line-height: 1.45;
+  }
+
+  .activities h3 {
+    font-size: 19px;
+  }
+
+  .activities a {
+    grid-template-columns: 32px minmax(0, 1fr) 20px;
+    min-height: 52px;
+    padding: 11px 2px;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .mapCard {
+    height: 245px;
+  }
+
+  .mapCard > a {
+    min-height: 44px;
+    padding: 10px 13px;
+    font-size: 10px;
+  }
+
+  .journal {
+    margin-top: 20px;
+    padding: 14px;
+  }
+
+  .journal > div {
+    font-size: 12px;
+  }
+
+  .journal textarea {
+    min-height: 96px;
+    padding: 12px 0;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  .auditBy {
+    font-size: 9px;
+  }
+
+  .quickActions {
+    gap: 10px;
+  }
+
+  .quickActions button,
+  .quickActions label {
+    grid-template-columns: 30px minmax(0, 1fr) 20px;
+    min-height: 64px;
+    padding: 12px 14px;
+  }
+
+  .quickActions span {
+    font-size: 12px;
+  }
+
+  .quickActions small {
+    font-size: 9px;
+  }
+
+  .restaurantList > span {
+    grid-template-columns: 22px minmax(0, 1fr);
+    min-height: 52px;
+    padding: 10px 12px;
+  }
+
+  .restaurantList b {
+    font-size: 11px;
+  }
+
+  .restaurantList small {
+    grid-column: 2;
+    font-size: 9px;
+  }
+
+  .collection {
+    margin: 24px auto;
+    padding: 0 16px;
+  }
+
+  .empty {
+    padding: 48px 20px;
+  }
+
+  .empty h3 {
+    font-size: 23px;
+  }
+
+  .empty p {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .empty button,
+  .primary {
+    min-height: 48px;
+    padding: 12px 18px;
+  }
+
+  .photoGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .photoGrid figure {
+    height: min(72vw, 300px);
+  }
+
+  .expenseHero {
+    padding: 25px 18px;
+  }
+
+  .expenseHero h2 {
+    font-size: 38px;
+  }
+
+  .expenseList > div {
+    gap: 10px;
+    padding: 14px 2px;
+  }
+
+  .expenseList > div > b {
+    white-space: nowrap;
+  }
+
+  .receipt {
+    flex: 0 0 auto;
+    width: 42px;
+    height: 42px;
+  }
+
+  .primary {
+    justify-content: center;
+    width: 100%;
+    margin: 0;
+  }
+}
+
+@media (max-width: 370px) {
+  .brand strong {
+    max-width: 112px;
+    font-size: 15px;
+  }
+
+  .hero {
+    padding-inline: 15px;
+  }
+
+  .routeSummary strong {
+    font-size: 20px;
+  }
+
+  .flightStrip,
+  .detail {
+    padding-inline: 14px;
+  }
+
+  .flightLegs {
+    grid-template-columns: 1fr;
+  }
+
+  .flightLegs span + span {
+    border-top: 1px solid var(--line);
+  }
+
+  .dayRow {
+    min-width: 145px;
+  }
+
+  .pager button {
+    width: 42px;
+  }
+}
