@@ -55,10 +55,10 @@ export const quizDays: QuizDay[] = [
     route: "Khiva → deserto del Kyzylkum → Bukhara",
     theme: "Nel deserto sulla Via della Seta",
     hotel: "Shaxriston, Bukhara",
-    transport: "Veicolo privato",
-    service: "Autista privato e cena inclusa",
+    transport: "Treno",
+    service: "Viaggio in treno senza guida e cena inclusa",
     finale: "Passeggiata orientativa nel centro storico di Bukhara",
-    highlights: ["Deserto del Kyzylkum", "Trasferimento di circa 480 km", "Viaggio di circa 6–7 ore", "Soste tecniche nel deserto", "Arrivo a Bukhara nel pomeriggio", "Centro storico di Bukhara"],
+    highlights: ["Deserto del Kyzylkum", "Trasferimento in treno", "Viaggio di circa 6–7 ore", "Viaggio senza guida", "Arrivo a Bukhara nel pomeriggio", "Centro storico di Bukhara"],
     unlockAt: "2026-08-04T15:00:00.000Z"
   },
   {
