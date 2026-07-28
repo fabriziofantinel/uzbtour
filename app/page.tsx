@@ -3,9 +3,11 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft, ArrowRight, ArrowRightLeft, Banknote, Bus, CalendarDays, Camera, ChevronRight,
-  CircleUserRound, Clock3, ExternalLink, LogOut, Map, MapPin, MessageCircle,
-  Info, Navigation, Plane, Plus, ReceiptText, TrainFront, Utensils, Wallet
+  CircleUserRound, Clock3, Download, ExternalLink, LoaderCircle, LogOut, Map, MapPin,
+  MessageCircle, Info, Navigation, Plane, Plus, ReceiptText, Trash2, TrainFront,
+  Utensils, Wallet
 } from "lucide-react";
+import { upload as uploadBlob } from "@vercel/blob/client";
 import TripOverviewMap, { type TripMapDay } from "@/components/trip-overview-map";
 import UsefulInfo from "@/components/useful-info";
 
@@ -22,7 +24,18 @@ type Day = {
 
 type SessionUser = { id: string; name: string; initials: string };
 type NoteEntry = { text: string; updatedBy: string; updatedAt?: string };
-type PhotoEntry = { url: string; addedBy: string };
+type PhotoEntry = {
+  id: string;
+  day: number;
+  originalName: string;
+  contentType: string;
+  sizeBytes: number | null;
+  addedBy: string;
+  createdAt?: string;
+  contentUrl: string;
+  downloadUrl: string;
+  canDelete: boolean;
+};
 type RestaurantEntry = { id: string; day: number; name: string; addedBy: string; createdAt?: string };
 type ExpenseEntry = { id: string; label: string; amount: number; currency: "EUR" | "UZS"; payer: string; createdAt?: string };
 type CashMovementEntry = {
@@ -42,6 +55,7 @@ type TripData = {
   expenses: ExpenseEntry[];
   cashMovements: CashMovementEntry[];
 };
+type PhotoUploadState = { day: number; current: number; total: number; progress: number };
 
 async function readJson<T>(response: Response): Promise<T> {
   const result = (await response.json()) as T & { error?: string };
@@ -66,6 +80,29 @@ function parseLocalizedNumber(value: string) {
 }
 
 const formatSom = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0 });
+
+function groupPhotos(entries: PhotoEntry[]) {
+  return entries.reduce<Record<number, PhotoEntry[]>>((grouped, photo) => {
+    grouped[photo.day] = [...(grouped[photo.day] ?? []), photo];
+    return grouped;
+  }, {});
+}
+
+function photoExtension(file: File) {
+  const byType: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/heic": "heic",
+    "image/heif": "heif"
+  };
+  const fromName = file.name.split(".").pop()?.toLowerCase();
+  return byType[file.type] ?? (
+    fromName && ["jpg", "jpeg", "png", "webp", "heic", "heif"].includes(fromName)
+      ? fromName
+      : null
+  );
+}
 
 const days: Day[] = [
   { n: 12, label: "PARTENZA", date: "1 AGO", city: "Torino → Istanbul → Tashkent", title: "In viaggio verso l’Uzbekistan", type: "plane", from: "Torino", to: "Tashkent", duration: "10:25 → 00:50 (+1)", description: "Partenza dall’Aeroporto di Torino alle 10:25 con Turkish Airlines. Arrivo a Istanbul alle 14:25, scalo di 4 ore e partenza alle 18:25 verso Tashkent, con arrivo alle 00:50 del 2 agosto. Gli orari sono locali.", activities: ["Check-in all’Aeroporto di Torino", "Coincidenza di 4 ore a Istanbul", "Arrivo a Tashkent il 2 agosto"], color: "#D6663D", lat: 45.2008, lon: 7.6496, hotel: "Notte in volo · arrivo il 2 agosto", service: "Turkish Airlines · TRN / IST / TAS", layover: "4 ore all’Aeroporto di Istanbul (IST)", flightLegs: [
@@ -112,6 +149,7 @@ export default function Home() {
   const [expenses, setExpenses] = useState<ExpenseEntry[]>([]);
   const [cashMovements, setCashMovements] = useState<CashMovementEntry[]>([]);
   const [photos, setPhotos] = useState<Record<number, PhotoEntry[]>>({});
+  const [photoUpload, setPhotoUpload] = useState<PhotoUploadState | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
   const [saving, setSaving] = useState("");
   const [dataError, setDataError] = useState("");
@@ -143,9 +181,10 @@ export default function Home() {
 
     Promise.all([
       fetch("/api/auth/me").then((response) => readJson<{ user: SessionUser }>(response)),
-      fetch("/api/trip-data").then((response) => readJson<TripData>(response))
+      fetch("/api/trip-data").then((response) => readJson<TripData>(response)),
+      fetch("/api/photos").then((response) => readJson<{ photos: PhotoEntry[] }>(response))
     ])
-      .then(([identity, tripData]) => {
+      .then(([identity, tripData, photoData]) => {
         if (cancelled) return;
         setCurrentUser(identity.user);
         setNotes(Object.fromEntries(
@@ -154,6 +193,7 @@ export default function Home() {
         setRestaurants(tripData.restaurants);
         setExpenses(tripData.expenses);
         setCashMovements(tripData.cashMovements);
+        setPhotos(groupPhotos(photoData.photos));
       })
       .catch((error: unknown) => {
         if (!cancelled) {
@@ -317,14 +357,81 @@ export default function Home() {
     }
   }
 
-  function upload(e: React.ChangeEvent<HTMLInputElement>) {
-    if (!currentUser) return;
+  async function upload(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!currentUser || photoUpload) return;
     const files = Array.from(e.target.files ?? []);
-    const addedBy = currentUser.name;
-    setPhotos(p => ({
-      ...p,
-      [day.n]: [...(p[day.n] ?? []), ...files.map((file) => ({ url: URL.createObjectURL(file), addedBy }))]
-    }));
+    e.target.value = "";
+    if (files.length === 0) return;
+
+    const uploadDay = day.n;
+    const invalidFile = files.find((file) => !photoExtension(file) || file.size > 25 * 1024 * 1024);
+    if (invalidFile) {
+      setDataError(`"${invalidFile.name}" non è un'immagine supportata oppure supera 25 MB.`);
+      return;
+    }
+
+    setDataError("");
+    try {
+      for (let index = 0; index < files.length; index++) {
+        const file = files[index];
+        const extension = photoExtension(file)!;
+        setPhotoUpload({ day: uploadDay, current: index + 1, total: files.length, progress: 0 });
+        const pathname = `uzbekistan-2026/giorno-${uploadDay}/${crypto.randomUUID()}.${extension}`;
+        const blob = await uploadBlob(pathname, file, {
+          access: "private",
+          handleUploadUrl: "/api/photos/upload",
+          clientPayload: JSON.stringify({ day: uploadDay, originalName: file.name }),
+          onUploadProgress: ({ percentage }) => {
+            setPhotoUpload({
+              day: uploadDay,
+              current: index + 1,
+              total: files.length,
+              progress: Math.round(percentage)
+            });
+          }
+        });
+
+        const result = await readJson<{ photo: PhotoEntry }>(await fetch("/api/photos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            day: uploadDay,
+            pathname: blob.pathname,
+            originalName: file.name
+          })
+        }));
+        setPhotos((previous) => ({
+          ...previous,
+          [uploadDay]: [
+            result.photo,
+            ...(previous[uploadDay] ?? []).filter((photo) => photo.id !== result.photo.id)
+          ]
+        }));
+      }
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : "Caricamento foto non riuscito");
+    } finally {
+      setPhotoUpload(null);
+    }
+  }
+
+  async function deletePhoto(photo: PhotoEntry) {
+    if (!photo.canDelete || !confirm(`Cancellare definitivamente "${photo.originalName}"?`)) return;
+    setSaving(`photo-${photo.id}`);
+    setDataError("");
+    try {
+      await readJson<{ deleted: boolean }>(await fetch(`/api/photos/${photo.id}`, {
+        method: "DELETE"
+      }));
+      setPhotos((previous) => ({
+        ...previous,
+        [photo.day]: (previous[photo.day] ?? []).filter((entry) => entry.id !== photo.id)
+      }));
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : "Foto non cancellata");
+    } finally {
+      setSaving("");
+    }
   }
 
   return (
@@ -489,7 +596,15 @@ export default function Home() {
               : notes[day.n]?.text && <small className="auditBy">Ultima modifica: {notes[day.n].updatedBy}</small>}
           </div>
           <div className="quickActions">
-            <label className={!currentUser ? "disabled" : ""}><Camera size={18}/><span>Aggiungi foto<small>{photos[day.n]?.length ?? 0} caricate</small></span><Plus size={17}/><input type="file" accept="image/*" multiple disabled={!currentUser} onChange={upload}/></label>
+            <label className={!currentUser || photoUpload ? "disabled" : ""}>
+              {photoUpload?.day === day.n ? <LoaderCircle className="spin" size={18}/> : <Camera size={18}/>}
+              <span>Aggiungi foto<small>{photoUpload?.day === day.n
+                ? `Foto ${photoUpload.current}/${photoUpload.total} · ${photoUpload.progress}%`
+                : `${photos[day.n]?.length ?? 0} caricate`
+              }</small></span>
+              <Plus size={17}/>
+              <input type="file" accept="image/*,.heic,.heif" multiple disabled={!currentUser || Boolean(photoUpload)} onChange={upload}/>
+            </label>
             <button disabled={!currentUser || Boolean(saving)} onClick={() => addRestaurant(day.n)}><Utensils size={18}/><span>Aggiungi locale<small>{restaurants.filter(r=>r.day===day.n).length} salvati</small></span><Plus size={17}/></button>
             <button disabled={!currentUser || Boolean(saving)} onClick={addExpense}><ReceiptText size={18}/><span>Aggiungi spesa<small>€ {expenseTotals.EUR} · {formatSom.format(expenseTotals.UZS)} UZS</small></span><Plus size={17}/></button>
             <button disabled={!currentUser || Boolean(saving)} onClick={() => addWithdrawal(day.n)}><Banknote size={18}/><span>Aggiungi prelievo<small>{dayCashMovements.filter(movement => movement.kind === "withdrawal").length} registrati</small></span><Plus size={17}/></button>
@@ -510,7 +625,25 @@ export default function Home() {
       {tab === "ricordi" && <section className="collection">
         <div className="sectionTitle"><div><span>DIARIO VISIVO</span><h2>I nostri ricordi</h2></div></div>
         {Object.values(photos).flat().length === 0 ? <div className="empty"><Camera size={36}/><h3>La galleria aspetta il primo ricordo</h3><p>Apri una giornata del programma e aggiungi le tue foto.</p><button onClick={()=>setTab("programma")}>Vai al programma</button></div> :
-        <div className="photoGrid">{Object.entries(photos).flatMap(([d,entries])=>entries.map(photo=><figure key={photo.url}><img src={photo.url} alt="Ricordo del viaggio"/><figcaption>Giorno {d} · {photo.addedBy}</figcaption></figure>))}</div>}
+        <div className="photoGrid">{Object.entries(photos).flatMap(([d,entries])=>entries.map(photo=>
+          <figure key={photo.id}>
+            <img src={photo.contentUrl} alt={photo.originalName} loading="lazy"/>
+            <div className="photoActions">
+              <a href={photo.downloadUrl} aria-label={`Scarica ${photo.originalName}`} title="Scarica">
+                <Download size={17}/>
+              </a>
+              {photo.canDelete && <button
+                type="button"
+                onClick={() => deletePhoto(photo)}
+                disabled={saving === `photo-${photo.id}`}
+                aria-label={`Cancella ${photo.originalName}`}
+                title="Cancella"
+              >
+                {saving === `photo-${photo.id}` ? <LoaderCircle className="spin" size={17}/> : <Trash2 size={17}/>}
+              </button>}
+            </div>
+            <figcaption>Giorno {d} · {photo.addedBy}</figcaption>
+          </figure>))}</div>}
       </section>}
 
       {tab === "spese" && <section className="collection expensesPage">

@@ -261,6 +261,49 @@
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
+.spin {
+  animation: spin .85s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.photoGrid figure {
+  background: #e8e2d7;
+}
+
+.photoActions {
+  position: absolute;
+  z-index: 2;
+  top: 9px;
+  right: 9px;
+  display: flex;
+  gap: 7px;
+}
+
+.photoActions a,
+.photoActions button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(255, 255, 255, .5);
+  border-radius: 50%;
+  background: rgba(23, 60, 60, .88);
+  color: white;
+  text-decoration: none;
+  backdrop-filter: blur(5px);
+}
+
+.photoActions button {
+  background: rgba(153, 57, 35, .9);
+}
+
+.photoActions button:disabled {
+  opacity: .65;
+}
+
 .restaurantList {
   display: grid;
   gap: 7px;
