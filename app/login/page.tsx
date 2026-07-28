@@ -31,7 +31,10 @@ function LoginContent() {
       }
 
       const destination = searchParams.get("next");
-      window.location.href = destination?.startsWith("/") ? destination : "/";
+      const safeDestination = destination?.startsWith("/") && !destination.startsWith("//")
+        ? destination
+        : "/";
+      window.location.href = safeDestination;
     } catch {
       setError("Connessione non disponibile. Riprova tra poco.");
     } finally {
