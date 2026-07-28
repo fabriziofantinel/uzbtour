@@ -5,11 +5,12 @@ import {
   ArrowLeft, ArrowRight, ArrowRightLeft, Banknote, Bus, CalendarDays, Camera, ChevronRight,
   CircleUserRound, Clock3, Download, ExternalLink, LoaderCircle, LogOut, Map, MapPin,
   MessageCircle, Info, Navigation, Plane, Plus, ReceiptText, Trash2, TrainFront,
-  Utensils, Wallet
+  Trophy, Utensils, Wallet
 } from "lucide-react";
 import { upload as uploadBlob } from "@vercel/blob/client";
 import TripOverviewMap, { type TripMapDay } from "@/components/trip-overview-map";
 import UsefulInfo from "@/components/useful-info";
+import TripQuiz from "@/components/trip-quiz";
 
 type Day = {
   n: number; date: string; city: string; title: string; type: "plane" | "train" | "bus" | "walk";
@@ -142,7 +143,7 @@ const tripMapDays: TripMapDay[] = days
 
 export default function Home() {
   const [active, setActive] = useState(0);
-  const [tab, setTab] = useState<"mappa" | "programma" | "ricordi" | "spese" | "info">("mappa");
+  const [tab, setTab] = useState<"mappa" | "programma" | "ricordi" | "spese" | "info" | "quiz">("mappa");
   const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
   const [notes, setNotes] = useState<Record<number, NoteEntry>>({});
   const [restaurants, setRestaurants] = useState<RestaurantEntry[]>([]);
@@ -470,6 +471,7 @@ export default function Home() {
         <button className={tab === "ricordi" ? "active" : ""} onClick={() => setTab("ricordi")}><Camera size={18}/> Ricordi <b>{Object.values(photos).flat().length}</b></button>
         <button className={tab === "spese" ? "active" : ""} onClick={() => setTab("spese")}><Wallet size={18}/> Spese <b>€ {expenseTotals.EUR} · {formatSom.format(expenseTotals.UZS)} UZS</b></button>
         <button className={tab === "info" ? "active" : ""} onClick={() => setTab("info")}><Info size={18}/> Info utili</button>
+        <button className={tab === "quiz" ? "active" : ""} onClick={() => setTab("quiz")}><Trophy size={18}/> Quiz</button>
       </nav>
       {dataLoading && <p className="dataStatus">Sincronizzazione con il diario condiviso…</p>}
       {dataError && <p className="dataError" role="alert">{dataError}</p>}
@@ -686,6 +688,7 @@ export default function Home() {
       </section>}
 
       {tab === "info" && <UsefulInfo/>}
+      {tab === "quiz" && <TripQuiz/>}
     </main>
   );
 }
