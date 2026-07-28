@@ -1,3 +1,5 @@
+import { quizQuestionSets } from "@/lib/quiz-question-sets";
+
 export type QuizQuestion = {
   id: string;
   prompt: string;
@@ -177,51 +179,10 @@ function question(id: string, prompt: string, correct: string, distractors: stri
   return { id, prompt, correctAnswer: correct, options: rotateOptions(id, correct, distractors) };
 }
 
-function takeOther<T>(values: T[], current: T, start: number, count = 3) {
-  const others = values.filter((value) => value !== current);
-  return Array.from({ length: count }, (_, index) => others[(start + index) % others.length]);
-}
-
 export function getQuizQuestions(dayNumber: number) {
-  const day = quizDays.find((entry) => entry.day === dayNumber);
-  if (!day) return [];
-  const dayIndex = quizDays.indexOf(day);
-  const cities = quizDays.map((entry) => entry.city);
-  const routes = quizDays.map((entry) => entry.route);
-  const themes = quizDays.map((entry) => entry.theme);
-  const hotels = [...new Set(quizDays.map((entry) => entry.hotel))];
-  const transports = [...new Set(quizDays.map((entry) => entry.transport))];
-  const services = [...new Set(quizDays.map((entry) => entry.service))];
-  const dates = quizDays.map((entry) => entry.date);
-  const finales = quizDays.map((entry) => entry.finale);
-  const otherDayHighlights = quizDays
-    .filter((entry) => entry.day !== day.day)
-    .flatMap((entry) => entry.highlights);
-
-  const questions: QuizQuestion[] = [
-    question(`${day.day}-city`, "Qual era la tappa principale della giornata?", day.city, takeOther(cities, day.city, dayIndex)),
-    question(`${day.day}-route`, "Quale percorso descrive meglio questa giornata?", day.route, takeOther(routes, day.route, dayIndex + 2)),
-    question(`${day.day}-theme`, "Qual era il tema della giornata nel programma?", day.theme, takeOther(themes, day.theme, dayIndex + 4)),
-    question(`${day.day}-hotel`, "Dove era previsto il pernottamento?", day.hotel, takeOther(hotels, day.hotel, dayIndex + 1)),
-    question(`${day.day}-transport`, "Qual era il mezzo o la modalità di trasferimento principale?", day.transport, takeOther(transports, day.transport, dayIndex + 3)),
-    ...day.highlights.map((highlight, index) => question(
-      `${day.day}-highlight-${index + 1}`,
-      index % 2 === 0 ? "Quale esperienza faceva parte del programma di oggi?" : "Quale luogo o momento apparteneva a questa giornata?",
-      highlight,
-      takeOther(otherDayHighlights, highlight, dayIndex * 5 + index * 7)
-    )),
-    question(`${day.day}-date`, "A quale data corrispondeva questa giornata?", day.date, takeOther(dates, day.date, dayIndex + 5)),
-    question(`${day.day}-service`, "Quale servizio era previsto?", day.service, takeOther(services, day.service, dayIndex + 2)),
-    question(`${day.day}-finale`, "Come si concludeva la giornata secondo il programma?", day.finale, takeOther(finales, day.finale, dayIndex + 6)),
-    question(
-      `${day.day}-intruder`,
-      "Quale elemento NON apparteneva alla giornata?",
-      quizDays[(dayIndex + 1) % quizDays.length].highlights[0],
-      day.highlights.slice(0, 3)
-    )
-  ];
-
-  return questions.slice(0, 15);
+  return (quizQuestionSets[dayNumber] ?? []).map(([prompt, correct, ...distractors], index) =>
+    question(`${dayNumber}-attraction-${index + 1}`, prompt, correct, distractors)
+  );
 }
 
 export function isQuizUnlocked(day: QuizDay, user: { initials: string }, now = new Date()) {
