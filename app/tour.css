@@ -417,7 +417,7 @@
 
 @media (max-width: 700px) {
   .tabs {
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(8, minmax(0, 1fr));
   }
 
   .insurancePage {
@@ -3168,6 +3168,330 @@
   flex: 0 0 auto;
 }
 
+.practicalAdviceGrid,
+.cultureGrid,
+.contextFacts,
+.contextText {
+  display: grid;
+  gap: 10px;
+}
+
+.practicalAdviceGrid {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.practicalAdviceGrid article {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 15px;
+  border-radius: 11px;
+  background: #f5faf8;
+}
+
+.practicalAdviceGrid article > span {
+  display: grid;
+  place-items: center;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  color: white;
+  background: var(--teal);
+}
+
+.practicalAdviceGrid h4,
+.cultureGrid h4,
+.contextText h4 {
+  margin: 0 0 5px;
+  font-family: var(--font-serif);
+  font-size: 14px;
+}
+
+.practicalAdviceGrid p,
+.cultureGrid p,
+.contextText p {
+  margin: 0;
+  color: #63706f;
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.practicalSources {
+  margin-top: 13px;
+}
+
+.cultureSection {
+  background: #fffaf2;
+}
+
+.cultureGrid {
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: 14px;
+}
+
+.cultureGrid article {
+  padding: 15px;
+  border: 1px solid #eee4d4;
+  border-radius: 11px;
+  background: white;
+}
+
+.cultureGrid article > svg {
+  margin-bottom: 9px;
+  color: var(--rust);
+}
+
+.countryContext {
+  border-color: #cfe0dc;
+}
+
+.contextFacts {
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: 14px;
+}
+
+.contextFacts div {
+  padding: 14px;
+  border-radius: 10px;
+  color: white;
+  background: var(--teal);
+}
+
+.contextFacts strong,
+.contextFacts span {
+  display: block;
+}
+
+.contextFacts strong {
+  margin-bottom: 4px;
+  font-family: var(--font-serif);
+  font-size: 21px;
+}
+
+.contextFacts span {
+  opacity: .75;
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.contextText {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.contextText article {
+  padding: 14px;
+  border-radius: 10px;
+  background: var(--cream);
+}
+
+.phrasebookPage {
+  max-width: 1120px;
+  margin: 36px auto 60px;
+  padding: 0 30px;
+}
+
+.phrasebookHero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 28px 30px;
+  border-radius: 16px;
+  color: white;
+  background:
+    radial-gradient(circle at 90% 20%, rgba(255,255,255,.12) 0 110px, transparent 111px),
+    var(--teal);
+}
+
+.phrasebookHero > span {
+  display: grid;
+  place-items: center;
+  flex: 0 0 52px;
+  width: 52px;
+  height: 52px;
+  border-radius: 13px;
+  color: var(--teal);
+  background: white;
+}
+
+.phrasebookHero small {
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 2px;
+}
+
+.phrasebookHero h2 {
+  margin: 3px 0;
+  font-family: var(--font-serif);
+  font-size: 34px;
+}
+
+.phrasebookHero p {
+  margin: 0;
+  opacity: .75;
+  font-size: 11px;
+}
+
+.phrasebookTools {
+  margin: 18px 0 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: white;
+}
+
+.phrasebookTools > label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 0 13px;
+  border-radius: 9px;
+  background: var(--cream);
+}
+
+.phrasebookTools input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  color: var(--ink);
+  background: transparent;
+}
+
+.phraseCategories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 11px;
+}
+
+.phraseCategories button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  color: #657270;
+  background: white;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.phraseCategories button.active {
+  border-color: var(--teal);
+  color: white;
+  background: var(--teal);
+}
+
+.languageNote {
+  margin-bottom: 14px;
+  padding: 10px 13px;
+  border-radius: 9px;
+  color: #5f6d6b;
+  background: #edf5f3;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.phraseList {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.phraseList article {
+  position: relative;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: white;
+}
+
+.phraseCategory {
+  display: inline-block;
+  padding: 4px 7px;
+  border-radius: 12px;
+  color: var(--rust);
+  background: #fff0eb;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.phraseList h3 {
+  margin: 8px 0 12px;
+  font-family: var(--font-serif);
+  font-size: 18px;
+}
+
+.phraseTranslations {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.phraseTranslations > div {
+  min-width: 0;
+  padding: 11px;
+  border-radius: 9px;
+  background: var(--cream);
+}
+
+.phraseTranslations > div:first-child {
+  background: #edf5f3;
+}
+
+.phraseTranslations small,
+.phraseTranslations strong,
+.phraseTranslations em {
+  display: block;
+}
+
+.phraseTranslations small {
+  color: var(--rust);
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.phraseTranslations strong {
+  margin: 4px 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
+.phraseTranslations em {
+  color: #78817f;
+  font-size: 8px;
+  font-style: normal;
+}
+
+.phraseEmpty {
+  padding: 50px 20px;
+  border-radius: 12px;
+  text-align: center;
+  background: var(--cream);
+}
+
+.phrasebookFooter {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 14px;
+  color: #78817f;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.phrasebookFooter svg {
+  flex: 0 0 auto;
+  color: var(--rust);
+}
+
 @media (max-width: 900px) {
   .emergencyGrid {
     grid-template-columns: repeat(3, 1fr);
@@ -3224,7 +3548,11 @@
   .emergencyGrid,
   .medicalGrid,
   .infoColumns,
-  .tipsGrid {
+  .tipsGrid,
+  .practicalAdviceGrid,
+  .cultureGrid,
+  .contextFacts,
+  .contextText {
     grid-template-columns: 1fr;
   }
 
@@ -3245,11 +3573,83 @@
   .emergencyCard em {
     grid-column: 3;
   }
+
+  .practicalAdviceGrid article {
+    padding: 13px;
+  }
+
+  .cultureGrid article {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    column-gap: 8px;
+  }
+
+  .cultureGrid article > svg {
+    grid-row: 1 / 3;
+    margin: 0;
+  }
+
+  .cultureGrid article p {
+    grid-column: 2;
+  }
+
+  .phrasebookPage {
+    margin: 20px auto 0;
+    padding: 0 14px calc(82px + env(safe-area-inset-bottom));
+  }
+
+  .phrasebookHero {
+    padding: 21px 17px;
+  }
+
+  .phrasebookHero > span {
+    flex-basis: 44px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .phrasebookHero h2 {
+    font-size: 27px;
+    line-height: 1.06;
+  }
+
+  .phrasebookTools {
+    padding: 11px;
+  }
+
+  .phraseCategories {
+    flex-wrap: nowrap;
+    margin-right: -11px;
+    margin-left: -11px;
+    padding: 0 11px 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .phraseCategories::-webkit-scrollbar {
+    display: none;
+  }
+
+  .phraseCategories button {
+    flex: 0 0 auto;
+  }
+
+  .phraseList {
+    grid-template-columns: 1fr;
+  }
+
+  .phraseList article {
+    padding: 15px;
+  }
+
+  .phraseTranslations {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 700px) {
   .tabs {
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(8, minmax(0, 1fr));
   }
 
   .tabs button {

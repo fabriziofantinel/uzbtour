@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import {
-  AlertTriangle, ArrowRightLeft, Banknote, Building2, CircleHelp, CloudSun,
-  Droplets, ExternalLink, HeartPulse, Landmark, MapPin, Phone, Plane,
-  Plug, ShieldCheck, Shirt, Smartphone, Stethoscope, Utensils, Wifi
+  AlertTriangle, ArrowRightLeft, Banknote, Building2, CarTaxiFront,
+  CircleHelp, CloudSun, Coffee, Droplets, ExternalLink, FileCheck2, Globe2,
+  HandHeart, HeartPulse, Landmark, MapPin, Phone, Pill, Plane, Plug, ShieldCheck,
+  Shirt, Smartphone, Stethoscope, Utensils, Wheat, Wifi
 } from "lucide-react";
 
 const FALLBACK_RATE = 13663.77;
@@ -252,7 +253,67 @@ export default function UsefulInfo() {
         </section>
       </div>
 
-      <p className="programmeSource"><MapPin size={14}/> Indicazioni pratiche tratte dal programma Golden Terra Travel e dal cronoprogramma allegato; contatti di emergenza verificati il 28 luglio 2026.</p>
+      <section className="infoSection">
+        <div className="infoSectionHead"><Smartphone size={22}/><div><small>VITA QUOTIDIANA</small><h3>Muoversi e viaggiare senza imprevisti</h3></div></div>
+        <div className="practicalAdviceGrid">
+          <article>
+            <span><CarTaxiFront size={20}/></span>
+            <div><h4>Taxi con Yandex Go</h4><p>Per gli spostamenti urbani usa l’app: destinazione e prezzo sono mostrati prima della corsa. Verifica sempre targa e autista prima di salire.</p></div>
+          </article>
+          <article>
+            <span><FileCheck2 size={20}/></span>
+            <div><h4>Registrazione negli hotel</h4><p>La registrazione del soggiorno è obbligatoria e viene effettuata dalla struttura. Conserva o fotografa ricevute e tagliandi fino all’uscita dal Paese.</p></div>
+          </article>
+          <article>
+            <span><Pill size={20}/></span>
+            <div><h4>Medicinali e dogana</h4><p>Controlla prima della partenza i farmaci vietati o soggetti a restrizioni. La codeina può creare problemi; porta ricetta medica, preferibilmente in inglese, e dichiara i medicinali prescritti.</p></div>
+          </article>
+          <article>
+            <span><Droplets size={20}/></span>
+            <div><h4>Kit igienico giornaliero</h4><p>Nei bazar, durante le soste e fuori città i servizi possono essere essenziali: tieni nello zaino gel disinfettante, salviettine e fazzoletti.</p></div>
+          </article>
+        </div>
+        <div className="inlineLinks practicalSources">
+          <a href="https://yandex.com/legal/yandexgo_mobile_agreement/en/" target="_blank" rel="noreferrer">Yandex Go Uzbekistan <ExternalLink size={11}/></a>
+          <a href="https://my.gov.uz/kaa/for-foreigners" target="_blank" rel="noreferrer">Registrazione ufficiale <ExternalLink size={11}/></a>
+          <a href="https://www.gov.uk/foreign-travel-advice/uzbekistan/entry-requirements" target="_blank" rel="noreferrer">Regole sui medicinali <ExternalLink size={11}/></a>
+        </div>
+      </section>
+
+      <section className="infoSection cultureSection">
+        <div className="infoSectionHead"><HandHeart size={22}/><div><small>USI E TRADIZIONI</small><h3>Piccoli gesti che fanno la differenza</h3></div></div>
+        <div className="cultureGrid">
+          <article><Coffee size={20}/><h4>Il rituale del tè</h4><p>Può capitare che le prime piala vengano versate e rimesse nella teiera per amalgamare l’infuso. Accettare il tè è un gesto di ospitalità.</p></article>
+          <article><HandHeart size={20}/><h4>Il saluto</h4><p>Una mano destra sul cuore accompagnata da un lieve cenno del capo comunica rispetto e cordialità.</p></article>
+          <article><Wheat size={20}/><h4>Il pane è prezioso</h4><p>Il pane uzbeko, chiamato non, viene spezzato con le mani, non tagliato con il coltello. Evita di appoggiarlo capovolto o di sprecarlo.</p></article>
+          <article><Utensils size={20}/><h4>Il palov</h4><p>La preparazione e condivisione del palov è patrimonio culturale immateriale UNESCO dal 2016. Le varianti cambiano da città a città.</p></article>
+          <article><CloudSun size={20}/><h4>Meloni e angurie</h4><p>Agosto è piena stagione: nei bazar Chorsu e Siab troverai molte varietà provenienti dalle oasi e dalla Valle di Fergana.</p></article>
+          <article><Landmark size={20}/><h4>La metro di Tashkent</h4><p>Un tempo fotografare era vietato; oggi le stazioni si possono ammirare e fotografare come una galleria d’arte sotterranea.</p></article>
+        </div>
+        <a className="sourceLink" href="https://ich.unesco.org/en/RL/palov-culture-and-tradition-01166" target="_blank" rel="noreferrer">Fonte UNESCO: cultura e tradizione del palov <ExternalLink size={12}/></a>
+      </section>
+
+      <section className="infoSection countryContext">
+        <div className="infoSectionHead"><Globe2 size={22}/><div><small>CAPIRE IL PAESE</small><h3>Uzbekistan contemporaneo</h3></div></div>
+        <div className="contextFacts">
+          <div><strong>38,4 milioni</strong><span>Abitanti ad aprile 2026: il Paese più popoloso dell’Asia Centrale.</span></div>
+          <div><strong>1991</strong><span>Indipendenza dopo la dissoluzione dell’Unione Sovietica.</span></div>
+          <div><strong>Dal 2016</strong><span>Presidenza Shavkat Mirziyoyev e programma di riforme chiamato “Nuovo Uzbekistan”.</span></div>
+        </div>
+        <div className="contextText">
+          <article><h4>Dal periodo Karimov alle riforme</h4><p>Tra il 1991 e il 2016 Islam Karimov guidò un sistema fortemente centralizzato e poco aperto. Dal 2016 il governo ha promosso liberalizzazione economica, semplificazione dei visti, infrastrutture e turismo. Il processo di apertura coesiste con limiti politici e istituzionali ancora oggetto di attenzione internazionale.</p></article>
+          <article><h4>Una politica estera multi-vettoriale</h4><p>L’Uzbekistan mantiene legami storici e linguistici con la Russia, sviluppa commercio e infrastrutture con la Cina lungo la Belt and Road e amplia la cooperazione con Unione Europea e altri partner. L’obiettivo è bilanciare relazioni diverse senza dipendere da un solo blocco.</p></article>
+          <article><h4>Sicurezza per chi viaggia</h4><p>Le principali città e rotte turistiche sono generalmente considerate stabili. Restano valide le normali precauzioni, l’attenzione ai documenti e l’indicazione di evitare le aree prossime al confine afghano; consulta sempre Viaggiare Sicuri.</p></article>
+        </div>
+        <div className="inlineLinks practicalSources">
+          <a href="https://stat.uz/en/press-center/news-of-committee/67794-zbekistonning-doimij-a-olisi-soni-arijb-38-4-mln-nafarga-etdi-4" target="_blank" rel="noreferrer">Statistiche ufficiali <ExternalLink size={11}/></a>
+          <a href="https://president.uz/en/" target="_blank" rel="noreferrer">Presidenza dell’Uzbekistan <ExternalLink size={11}/></a>
+          <a href="https://www.eeas.europa.eu/uzbekistan/european-union-and-uzbekistan_en" target="_blank" rel="noreferrer">Relazioni UE-Uzbekistan <ExternalLink size={11}/></a>
+          <a href="https://www.viaggiaresicuri.it/find-country/country/UZB" target="_blank" rel="noreferrer">Sicurezza aggiornata <ExternalLink size={11}/></a>
+        </div>
+      </section>
+
+      <p className="programmeSource"><MapPin size={14}/> Indicazioni pratiche tratte dal programma Golden Terra Travel e dal cronoprogramma allegato; informazioni operative e fonti verificate il 28 luglio 2026.</p>
     </section>
   );
 }
