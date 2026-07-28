@@ -406,7 +406,7 @@ export default function Home() {
                   {day.city.split(" → ").map((cityName, cityIndex) => (
                     <Fragment key={`${cityName}-${cityIndex}`}>
                       {cityIndex > 0 && <ArrowRight size={12}/>}
-                      <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cityName)}`} target="_blank" rel="noreferrer">{cityName}<ExternalLink size={11}/></a>
+                      <a href={`https://www.google.com/search?q=${encodeURIComponent(cityName)}`} target="_blank" rel="noreferrer">{cityName}<ExternalLink size={11}/></a>
                     </Fragment>
                   ))}
                 </span>
@@ -444,7 +444,7 @@ export default function Home() {
             <span><CircleUserRound size={16}/>{day.service}</span>
             <span><MapPin size={16}/>{day.flightLegs
               ? <strong>{day.hotel}</strong>
-              : <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${day.hotel.replace(/^Check-out da /, "")} Uzbekistan`)}`} target="_blank" rel="noreferrer"><strong>{day.hotel}</strong><ExternalLink size={12}/></a>
+              : <a href={`https://www.google.com/search?q=${encodeURIComponent(`${day.hotel.replace(/^Check-out da /, "")} hotel Uzbekistan`)}`} target="_blank" rel="noreferrer"><strong>{day.hotel}</strong><ExternalLink size={12}/></a>
             }</span>
           </div>
           <div className="activityGrid">
