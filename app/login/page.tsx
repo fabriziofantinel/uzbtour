@@ -61,7 +61,7 @@ function LoginContent() {
         <div className="loginPattern" />
         <div className="loginBrand"><span>UZ</span> Via della Seta</div>
         <div className="loginStoryCopy">
-          <p>UZBEKISTAN · 1–12 AGOSTO 2026</p>
+          <p>UZBEKISTAN · 1–13 AGOSTO 2026</p>
           <h1>Il viaggio è già<br/><em>iniziato qui.</em></h1>
           <span><Plane size={17}/> Torino · Istanbul · Tashkent</span>
         </div>

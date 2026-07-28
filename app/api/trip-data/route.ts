@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 export const preferredRegion = "fra1";
 
 function validDay(day: unknown): day is number {
-  return Number.isInteger(day) && Number(day) >= 1 && Number(day) <= 11;
+  return Number.isInteger(day) && Number(day) >= 1 && Number(day) <= 13;
 }
 
 export async function GET() {
