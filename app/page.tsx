@@ -4,9 +4,10 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft, ArrowRight, ArrowRightLeft, Banknote, Bus, CalendarDays, Camera, ChevronRight,
   CircleUserRound, Clock3, ExternalLink, LogOut, Map, MapPin, MessageCircle,
-  Navigation, Plane, Plus, ReceiptText, TrainFront, Utensils, Wallet
+  Info, Navigation, Plane, Plus, ReceiptText, TrainFront, Utensils, Wallet
 } from "lucide-react";
 import TripOverviewMap, { type TripMapDay } from "@/components/trip-overview-map";
+import UsefulInfo from "@/components/useful-info";
 
 type Day = {
   n: number; date: string; city: string; title: string; type: "plane" | "train" | "bus" | "walk";
@@ -104,7 +105,7 @@ const tripMapDays: TripMapDay[] = days
 
 export default function Home() {
   const [active, setActive] = useState(0);
-  const [tab, setTab] = useState<"mappa" | "programma" | "ricordi" | "spese">("mappa");
+  const [tab, setTab] = useState<"mappa" | "programma" | "ricordi" | "spese" | "info">("mappa");
   const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
   const [notes, setNotes] = useState<Record<number, NoteEntry>>({});
   const [restaurants, setRestaurants] = useState<RestaurantEntry[]>([]);
@@ -348,6 +349,7 @@ export default function Home() {
         <button className={tab === "programma" ? "active" : ""} onClick={() => setTab("programma")}><CalendarDays size={18}/> Programma</button>
         <button className={tab === "ricordi" ? "active" : ""} onClick={() => setTab("ricordi")}><Camera size={18}/> Ricordi <b>{Object.values(photos).flat().length}</b></button>
         <button className={tab === "spese" ? "active" : ""} onClick={() => setTab("spese")}><Wallet size={18}/> Spese <b>€ {total}</b></button>
+        <button className={tab === "info" ? "active" : ""} onClick={() => setTab("info")}><Info size={18}/> Info utili</button>
       </nav>
       {dataLoading && <p className="dataStatus">Sincronizzazione con il diario condiviso…</p>}
       {dataError && <p className="dataError" role="alert">{dataError}</p>}
@@ -528,6 +530,8 @@ export default function Home() {
           }
         </div>
       </section>}
+
+      {tab === "info" && <UsefulInfo/>}
     </main>
   );
 }
