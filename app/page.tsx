@@ -24,7 +24,7 @@ type SessionUser = { id: string; name: string; initials: string };
 type NoteEntry = { text: string; updatedBy: string; updatedAt?: string };
 type PhotoEntry = { url: string; addedBy: string };
 type RestaurantEntry = { id: string; day: number; name: string; addedBy: string; createdAt?: string };
-type ExpenseEntry = { id: string; label: string; amount: number; payer: string; createdAt?: string };
+type ExpenseEntry = { id: string; label: string; amount: number; currency: "EUR" | "UZS"; payer: string; createdAt?: string };
 type CashMovementEntry = {
   id: string;
   day: number;
@@ -117,7 +117,10 @@ export default function Home() {
   const [dataError, setDataError] = useState("");
   const day = days[active];
   const Icon = icons[day.type];
-  const total = useMemo(() => expenses.reduce((s, e) => s + e.amount, 0), [expenses]);
+  const expenseTotals = useMemo(() => expenses.reduce((totals, expense) => {
+    totals[expense.currency] += expense.amount;
+    return totals;
+  }, { EUR: 0, UZS: 0 }), [expenses]);
   const dayCashMovements = cashMovements.filter((movement) => movement.day === day.n);
   const cashSummary = useMemo(() => cashMovements.reduce((summary, movement) => {
     if (movement.kind === "withdrawal") {
@@ -206,7 +209,20 @@ export default function Home() {
   async function addExpense() {
     const label = prompt("Descrizione spesa?")?.trim();
     if (!label || !currentUser) return;
-    const amount = Number(prompt("Importo in euro?")?.replace(",", "."));
+    const currencyRaw = prompt("Valuta della spesa? Scrivi EUR oppure SOM.")?.trim().toUpperCase();
+    if (currencyRaw === undefined) return;
+    const currency = currencyRaw === "EUR" || currencyRaw === "€"
+      ? "EUR"
+      : currencyRaw === "SOM" || currencyRaw === "UZS"
+        ? "UZS"
+        : null;
+    if (!currency) {
+      setDataError("Scrivi EUR per gli euro oppure SOM per i som uzbeki.");
+      return;
+    }
+    const amountRaw = prompt(currency === "EUR" ? "Importo in euro?" : "Importo in SOM?");
+    if (amountRaw === null) return;
+    const amount = parseLocalizedNumber(amountRaw);
     if (!Number.isFinite(amount) || amount <= 0) {
       setDataError("Inserisci un importo valido maggiore di zero.");
       return;
@@ -218,7 +234,8 @@ export default function Home() {
       const result = await postTripData<{ expense: ExpenseEntry }>({
         action: "expense",
         label,
-        amount
+        amount,
+        currency
       });
       setExpenses((previous) => [...previous, result.expense]);
     } catch (error) {
@@ -229,8 +246,7 @@ export default function Home() {
   }
 
   async function addWithdrawal(dayNumber: number) {
-    const location = prompt("Banca, sportello ATM o luogo del prelievo?")?.trim();
-    if (!location || !currentUser) return;
+    if (!currentUser) return;
     const somRaw = prompt("Importo prelevato in SOM (es. 1000000, senza simboli)?");
     if (somRaw === null) return;
     const somAmount = parseLocalizedNumber(somRaw);
@@ -259,7 +275,6 @@ export default function Home() {
       const result = await postTripData<{ cashMovement: CashMovementEntry }>({
         action: "withdrawal",
         day: dayNumber,
-        location,
         somAmount,
         euroAmount,
         feeEuro
@@ -273,8 +288,7 @@ export default function Home() {
   }
 
   async function addExchange(dayNumber: number) {
-    const location = prompt("Banca, ufficio cambio o luogo del cambio?")?.trim();
-    if (!location || !currentUser) return;
+    if (!currentUser) return;
     const euroRaw = prompt("Euro cambiati?");
     if (euroRaw === null) return;
     const euroAmount = parseLocalizedNumber(euroRaw);
@@ -292,7 +306,6 @@ export default function Home() {
       const result = await postTripData<{ cashMovement: CashMovementEntry }>({
         action: "exchange",
         day: dayNumber,
-        location,
         euroAmount,
         somAmount
       });
@@ -348,7 +361,7 @@ export default function Home() {
         <button className={tab === "mappa" ? "active" : ""} onClick={() => setTab("mappa")}><Map size={18}/> Mappa</button>
         <button className={tab === "programma" ? "active" : ""} onClick={() => setTab("programma")}><CalendarDays size={18}/> Programma</button>
         <button className={tab === "ricordi" ? "active" : ""} onClick={() => setTab("ricordi")}><Camera size={18}/> Ricordi <b>{Object.values(photos).flat().length}</b></button>
-        <button className={tab === "spese" ? "active" : ""} onClick={() => setTab("spese")}><Wallet size={18}/> Spese <b>€ {total}</b></button>
+        <button className={tab === "spese" ? "active" : ""} onClick={() => setTab("spese")}><Wallet size={18}/> Spese <b>€ {expenseTotals.EUR} · {formatSom.format(expenseTotals.UZS)} UZS</b></button>
         <button className={tab === "info" ? "active" : ""} onClick={() => setTab("info")}><Info size={18}/> Info utili</button>
       </nav>
       {dataLoading && <p className="dataStatus">Sincronizzazione con il diario condiviso…</p>}
@@ -478,7 +491,7 @@ export default function Home() {
           <div className="quickActions">
             <label className={!currentUser ? "disabled" : ""}><Camera size={18}/><span>Aggiungi foto<small>{photos[day.n]?.length ?? 0} caricate</small></span><Plus size={17}/><input type="file" accept="image/*" multiple disabled={!currentUser} onChange={upload}/></label>
             <button disabled={!currentUser || Boolean(saving)} onClick={() => addRestaurant(day.n)}><Utensils size={18}/><span>Aggiungi locale<small>{restaurants.filter(r=>r.day===day.n).length} salvati</small></span><Plus size={17}/></button>
-            <button disabled={!currentUser || Boolean(saving)} onClick={addExpense}><ReceiptText size={18}/><span>Aggiungi spesa<small>Totale € {total}</small></span><Plus size={17}/></button>
+            <button disabled={!currentUser || Boolean(saving)} onClick={addExpense}><ReceiptText size={18}/><span>Aggiungi spesa<small>€ {expenseTotals.EUR} · {formatSom.format(expenseTotals.UZS)} UZS</small></span><Plus size={17}/></button>
             <button disabled={!currentUser || Boolean(saving)} onClick={() => addWithdrawal(day.n)}><Banknote size={18}/><span>Aggiungi prelievo<small>{dayCashMovements.filter(movement => movement.kind === "withdrawal").length} registrati</small></span><Plus size={17}/></button>
             <button disabled={!currentUser || Boolean(saving)} onClick={() => addExchange(day.n)}><ArrowRightLeft size={18}/><span>Aggiungi cambio<small>{dayCashMovements.filter(movement => movement.kind === "exchange").length} registrati</small></span><Plus size={17}/></button>
           </div>
@@ -501,8 +514,16 @@ export default function Home() {
       </section>}
 
       {tab === "spese" && <section className="collection expensesPage">
-        <div className="expenseHero"><span>SPESE DEL GRUPPO</span><h2>€ {total.toFixed(2)}</h2><p>€ {(total/3).toFixed(2)} a persona</p></div>
-        <div className="expenseList">{expenses.map((e)=><div key={e.id}><span className="receipt"><ReceiptText size={18}/></span><span><strong>{e.label}</strong><small>Pagato da {e.payer}</small></span><b>€ {e.amount.toFixed(2)}</b></div>)}</div>
+        <div className="expenseHero">
+          <span>SPESE DEL GRUPPO</span>
+          <h2>Totali per valuta</h2>
+          <div className="expenseCurrencyTotals">
+            <div><small>EURO</small><strong>€ {expenseTotals.EUR.toFixed(2)}</strong></div>
+            <div><small>SOM UZBEKI</small><strong>{formatSom.format(expenseTotals.UZS)} UZS</strong></div>
+          </div>
+          <p>A persona: € {(expenseTotals.EUR/3).toFixed(2)} · {formatSom.format(expenseTotals.UZS/3)} UZS</p>
+        </div>
+        <div className="expenseList">{expenses.map((e)=><div key={e.id}><span className="receipt"><ReceiptText size={18}/></span><span><strong>{e.label}</strong><small>Pagato da {e.payer} · {e.currency === "EUR" ? "Euro" : "Som"}</small></span><b>{e.currency === "EUR" ? `€ ${e.amount.toFixed(2)}` : `${formatSom.format(e.amount)} UZS`}</b></div>)}</div>
         <button className="primary" disabled={!currentUser || Boolean(saving)} onClick={addExpense}><Plus size={17}/> {saving === "expense" ? "Salvataggio…" : "Nuova spesa"}</button>
         <div className="cashSection">
           <div className="sectionTitle"><div><span>GESTIONE CONTANTI</span><h2>Prelievi e cambi</h2></div></div>

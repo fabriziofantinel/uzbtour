@@ -4,7 +4,7 @@ import { getSql } from "@/lib/db";
 
 type NoteRequest = { action: "note"; day?: number; text?: string };
 type RestaurantRequest = { action: "restaurant"; day?: number; name?: string };
-type ExpenseRequest = { action: "expense"; label?: string; amount?: number };
+type ExpenseRequest = { action: "expense"; label?: string; amount?: number; currency?: "EUR" | "UZS" };
 type CashMovementRequest = {
   action: "withdrawal" | "exchange";
   day?: number;
@@ -19,6 +19,7 @@ export const runtime = "nodejs";
 export const preferredRegion = "fra1";
 
 let cashSchemaPromise: Promise<void> | null = null;
+let expenseSchemaPromise: Promise<void> | null = null;
 
 function validDay(day: unknown): day is number {
   return Number.isInteger(day) && Number(day) >= 1 && Number(day) <= 13;
@@ -49,6 +50,19 @@ async function ensureCashMovementsTable(sql: ReturnType<typeof getSql>) {
   await cashSchemaPromise;
 }
 
+async function ensureExpenseCurrencyColumn(sql: ReturnType<typeof getSql>) {
+  if (!expenseSchemaPromise) {
+    expenseSchemaPromise = sql`
+      ALTER TABLE trip_expenses
+      ADD COLUMN IF NOT EXISTS currency TEXT NOT NULL DEFAULT 'EUR'
+    `.then(() => undefined).catch((error) => {
+      expenseSchemaPromise = null;
+      throw error;
+    });
+  }
+  await expenseSchemaPromise;
+}
+
 function cashMovementFromRow(row: Record<string, unknown>) {
   const euroAmount = row.euro_amount == null ? null : Number(row.euro_amount);
   const feeEuro = row.fee_eur == null ? null : Number(row.fee_eur);
@@ -71,11 +85,14 @@ export async function GET() {
 
   try {
     const sql = getSql();
-    await ensureCashMovementsTable(sql);
+    await Promise.all([
+      ensureCashMovementsTable(sql),
+      ensureExpenseCurrencyColumn(sql)
+    ]);
     const [noteRows, restaurantRows, expenseRows, cashRows] = await Promise.all([
       sql`SELECT day, text, updated_by_name, updated_at FROM trip_notes ORDER BY day`,
       sql`SELECT id, day, name, added_by_name, created_at FROM trip_restaurants ORDER BY created_at`,
-      sql`SELECT id, label, amount, payer_name, created_at FROM trip_expenses ORDER BY created_at`,
+      sql`SELECT id, label, amount, currency, payer_name, created_at FROM trip_expenses ORDER BY created_at`,
       sql`SELECT id, day, kind, location, euro_amount, som_amount, fee_eur, added_by_name, created_at
           FROM trip_cash_movements ORDER BY created_at`
     ]);
@@ -98,6 +115,7 @@ export async function GET() {
         id: String(row.id),
         label: String(row.label),
         amount: Number(row.amount),
+        currency: row.currency === "UZS" ? "UZS" : "EUR",
         payer: String(row.payer_name),
         createdAt: row.created_at
       })),
@@ -177,7 +195,8 @@ export async function POST(request: Request) {
     }
 
     if (body.action === "withdrawal" || body.action === "exchange") {
-      const location = typeof body.location === "string" ? body.location.trim() : "";
+      const suppliedLocation = typeof body.location === "string" ? body.location.trim() : "";
+      const location = suppliedLocation || (body.action === "withdrawal" ? "Prelievo ATM" : "Cambio valuta");
       const euroAmount = body.euroAmount == null ? null : Number(body.euroAmount);
       const somAmount = Number(body.somAmount);
       const feeEuro = body.feeEuro == null ? null : Number(body.feeEuro);
@@ -218,14 +237,17 @@ export async function POST(request: Request) {
 
     const label = typeof body.label === "string" ? body.label.trim() : "";
     const amount = Number(body.amount);
-    if (!label || label.length > 200 || !Number.isFinite(amount) || amount <= 0 || amount > 1_000_000) {
+    const currency = body.currency === "UZS" ? "UZS" : body.currency === "EUR" ? "EUR" : null;
+    const maximumAmount = currency === "UZS" ? 100_000_000_000 : 1_000_000;
+    if (!label || label.length > 200 || !currency || !Number.isFinite(amount) || amount <= 0 || amount > maximumAmount) {
       return NextResponse.json({ error: "Spesa non valida" }, { status: 400 });
     }
 
+    await ensureExpenseCurrencyColumn(sql);
     const rows = await sql`
-      INSERT INTO trip_expenses (label, amount, payer_id, payer_name)
-      VALUES (${label}, ${amount}, ${user.id}, ${user.name})
-      RETURNING id, label, amount, payer_name, created_at
+      INSERT INTO trip_expenses (label, amount, currency, payer_id, payer_name)
+      VALUES (${label}, ${amount}, ${currency}, ${user.id}, ${user.name})
+      RETURNING id, label, amount, currency, payer_name, created_at
     `;
     const row = rows[0];
     return NextResponse.json({
@@ -233,6 +255,7 @@ export async function POST(request: Request) {
         id: String(row.id),
         label: String(row.label),
         amount: Number(row.amount),
+        currency: row.currency === "UZS" ? "UZS" : "EUR",
         payer: String(row.payer_name),
         createdAt: row.created_at
       }
