@@ -1040,6 +1040,34 @@
   gap: 10px;
 }
 
+.flightLayover {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: #dcebe7;
+  color: var(--teal);
+}
+
+.flightLayover span,
+.flightLayover small,
+.flightLayover strong {
+  display: block;
+}
+
+.flightLayover small {
+  margin-bottom: 2px;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+}
+
+.flightLayover strong {
+  font-size: 10px;
+}
+
 .flightMonitorGrid a {
   display: grid;
   gap: 7px;
@@ -1069,9 +1097,25 @@
   font-size: 10px;
 }
 
-.flightTimes {
+.flightTimes,
+.flightAircraft {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   color: #647271;
   font-size: 10px;
+}
+
+.flightTimes b {
+  margin-left: auto;
+  color: var(--teal);
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.flightAircraft {
+  color: #556260;
+  font-size: 9px;
 }
 
 .flightTrack {

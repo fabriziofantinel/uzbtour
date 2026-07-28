@@ -12,9 +12,10 @@ type Day = {
   n: number; date: string; city: string; title: string; type: "plane" | "train" | "bus" | "walk";
   from?: string; to?: string; duration?: string; description: string; activities: string[];
   color: string; lat: number; lon: number; hotel: string; service?: string;
-  label?: string;
+  label?: string; layover?: string;
   flightLegs?: Array<{
-    number: string; from: string; to: string; departure: string; arrival: string; trackingUrl: string;
+    number: string; from: string; to: string; departure: string; arrival: string;
+    duration?: string; aircraft: string; trackingUrl: string;
   }>;
 };
 
@@ -66,9 +67,9 @@ function parseLocalizedNumber(value: string) {
 const formatSom = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0 });
 
 const days: Day[] = [
-  { n: 12, label: "PARTENZA", date: "1 AGO", city: "Torino → Istanbul → Tashkent", title: "In viaggio verso l’Uzbekistan", type: "plane", from: "Torino", to: "Tashkent", duration: "11:15 → 00:50 (+1)", description: "Partenza da Torino Caselle con Turkish Airlines. Scalo a Istanbul di circa 3 ore e 20 minuti, quindi volo notturno verso Tashkent con arrivo alle 00:50 del 2 agosto. Gli orari sono locali.", activities: ["Check-in a Torino Caselle", "Coincidenza a Istanbul", "Arrivo a Tashkent il 2 agosto"], color: "#D6663D", lat: 45.2008, lon: 7.6496, hotel: "Notte in volo · arrivo il 2 agosto", service: "Turkish Airlines · TRN / IST / TAS", flightLegs: [
-    { number: "TK1310", from: "Torino (TRN)", to: "Istanbul (IST)", departure: "11:15", arrival: "15:05", trackingUrl: "https://it.flightaware.com/live/flight/THY1310" },
-    { number: "TK370", from: "Istanbul (IST)", to: "Tashkent (TAS)", departure: "18:25", arrival: "00:50 (+1)", trackingUrl: "https://it.flightaware.com/live/flight/THY370" }
+  { n: 12, label: "PARTENZA", date: "1 AGO", city: "Torino → Istanbul → Tashkent", title: "In viaggio verso l’Uzbekistan", type: "plane", from: "Torino", to: "Tashkent", duration: "10:25 → 00:50 (+1)", description: "Partenza dall’Aeroporto di Torino alle 10:25 con Turkish Airlines. Arrivo a Istanbul alle 14:25, scalo di 4 ore e partenza alle 18:25 verso Tashkent, con arrivo alle 00:50 del 2 agosto. Gli orari sono locali.", activities: ["Check-in all’Aeroporto di Torino", "Coincidenza di 4 ore a Istanbul", "Arrivo a Tashkent il 2 agosto"], color: "#D6663D", lat: 45.2008, lon: 7.6496, hotel: "Notte in volo · arrivo il 2 agosto", service: "Turkish Airlines · TRN / IST / TAS", layover: "4 ore all’Aeroporto di Istanbul (IST)", flightLegs: [
+    { number: "TK1310", from: "Aeroporto di Torino (TRN)", to: "Aeroporto di Istanbul (IST)", departure: "10:25", arrival: "14:25", duration: "3 ore", aircraft: "Boeing 737 MAX 8 · fusoliera stretta", trackingUrl: "https://it.flightaware.com/live/flight/THY1310" },
+    { number: "TK370", from: "Aeroporto di Istanbul (IST)", to: "Aeroporto Internazionale di Tashkent (TAS)", departure: "18:25", arrival: "00:50 (+1)", duration: "4 ore 25 min", aircraft: "Airbus A330-203 · fusoliera larga", trackingUrl: "https://it.flightaware.com/live/flight/THY370" }
   ] },
   { n: 1, date: "2 AGO", city: "Tashkent → Khiva", title: "La capitale e il volo verso Urgench", type: "plane", from: "Tashkent", to: "Urgench / Khiva", duration: "20:40–22:10", description: "Arrivo a Tashkent alle 00:50, accoglienza, trasferimento e riposo. Dalle 10:30 visita guidata della capitale. In serata volo interno per Urgench e trasferimento in auto di circa 40 km fino a Khiva.", activities: ["Complesso Khast Imam", "Madrasa Barak Khan", "Bazaar Chorsu", "Metropolitana di Tashkent", "Piazza dell’Indipendenza"], color: "#D6663D", lat: 41.2995, lon: 69.2401, hotel: "Zarafshon, Khiva", service: "Guida privata in italiano · cena inclusa" },
   { n: 2, date: "3 AGO", city: "Khiva", title: "La città-museo di Ichan Kala", type: "walk", description: "Visita guidata di mezza giornata nel cuore murato di Khiva. Al termine delle visite, tempo libero e cena in ristorante locale.", activities: ["Ichan Kala", "Kalta Minor", "Kunya Ark", "Madrasa Muhammad Amin Khan", "Moschea Juma", "Palazzo Tosh Hovli"], color: "#715C9D", lat: 41.3784, lon: 60.3605, hotel: "Zarafshon, Khiva", service: "Guida privata in italiano · cena inclusa" },
@@ -81,9 +82,9 @@ const days: Day[] = [
   { n: 9, date: "10 AGO", city: "Tashkent → Kokand → Rishtan → Fergana", title: "Ceramiche e palazzi nella Valle di Fergana", type: "train", from: "Tashkent", to: "Kokand", duration: "08:10–12:29", description: "Treno senza guida verso Kokand. Incontro con l’autista locale, visita del Palazzo Khudoyar Khan e della Moschea del Venerdì; sosta ai laboratori di ceramica blu di Rishtan e proseguimento per Fergana.", activities: ["Palazzo Khudoyar Khan", "Moschea del Venerdì di Kokand", "Laboratori di ceramica di Rishtan"], color: "#A35D55", lat: 40.5286, lon: 70.9425, hotel: "Saroy Garden, Fergana", service: "Autista privato · senza guida · cena inclusa" },
   { n: 10, date: "11 AGO", city: "Fergana → Margilan → Tashkent", title: "La seta della Valle di Fergana", type: "bus", from: "Fergana", to: "Tashkent", duration: "Trasferimento panoramico", description: "Partenza con autista per Margilan. Visita alla produzione tradizionale della seta e al bazar della frutta; rientro a Tashkent con sosta panoramica in montagna.", activities: ["Fabbrica della seta di Margilan", "Bazar della frutta di Margilan", "Passo montano Kamchik"], color: "#A35D55", lat: 40.4711, lon: 71.7247, hotel: "Inspira-S, Tashkent", service: "Autista privato · senza guida · cena inclusa" },
   { n: 11, date: "12 AGO", city: "Tashkent", title: "Tempo libero e cena di arrivederci", type: "bus", from: "Hotel Inspira-S", to: "Aeroporto di Tashkent", duration: "In serata", description: "Mattina e pomeriggio liberi per gli ultimi acquisti e il relax. Camera disponibile fino alle 12:00, oppure fino alle 18:00 con late check-out. Cena di arrivederci e trasferimento in aeroporto per il volo delle 23:50.", activities: ["Tempo libero a Tashkent", "Ultimi acquisti", "Cena di arrivederci"], color: "#D6663D", lat: 41.2995, lon: 69.2401, hotel: "Check-out da Inspira-S", service: "Trasferimento aeroporto · cena inclusa" },
-  { n: 13, label: "RIENTRO", date: "13 AGO", city: "Tashkent → Istanbul → Torino", title: "Il viaggio verso casa", type: "plane", from: "Tashkent", to: "Torino", duration: "23:50 (12 AGO) → 09:30", description: "Il rientro inizia la sera del 12 agosto da Tashkent. Arrivo a Istanbul alle 03:15 del 13 agosto, coincidenza di circa 4 ore e 15 minuti e partenza per Torino alle 07:30. Arrivo previsto a Caselle alle 09:30. Gli orari sono locali.", activities: ["Partenza da Tashkent il 12 agosto", "Coincidenza a Istanbul", "Arrivo a Torino Caselle"], color: "#D6663D", lat: 41.2579, lon: 69.2812, hotel: "Rientro a casa", service: "Turkish Airlines · TAS / IST / TRN", flightLegs: [
-    { number: "TK363", from: "Tashkent (TAS)", to: "Istanbul (IST)", departure: "23:50 (12 AGO)", arrival: "03:15", trackingUrl: "https://it.flightaware.com/live/flight/THY363" },
-    { number: "TK1309", from: "Istanbul (IST)", to: "Torino (TRN)", departure: "07:30", arrival: "09:30", trackingUrl: "https://it.flightaware.com/live/flight/THY1309" }
+  { n: 13, label: "RIENTRO", date: "13 AGO", city: "Tashkent → Istanbul → Torino", title: "Il viaggio verso casa", type: "plane", from: "Tashkent", to: "Torino", duration: "23:50 (12 AGO) → 09:30", description: "Il rientro inizia alle 23:50 del 12 agosto dall’Aeroporto Internazionale di Tashkent. Arrivo a Istanbul alle 03:15 del 13 agosto, coincidenza di 4 ore e 15 minuti e partenza per Torino alle 07:30. Arrivo previsto alle 09:30. Gli orari sono locali.", activities: ["Partenza da Tashkent il 12 agosto", "Coincidenza di 4 ore e 15 minuti a Istanbul", "Arrivo all’Aeroporto di Torino"], color: "#D6663D", lat: 41.2579, lon: 69.2812, hotel: "Rientro a casa", service: "Turkish Airlines · TAS / IST / TRN", layover: "4 ore 15 min all’Aeroporto di Istanbul (IST)", flightLegs: [
+    { number: "TK363", from: "Aeroporto Internazionale di Tashkent (TAS)", to: "Aeroporto di Istanbul (IST)", departure: "23:50 (12 AGO)", arrival: "03:15 (13 AGO)", aircraft: "Airbus A321neo · fusoliera stretta", trackingUrl: "https://it.flightaware.com/live/flight/THY363" },
+    { number: "TK1309", from: "Aeroporto di Istanbul (IST)", to: "Aeroporto di Torino (TRN)", departure: "07:30", arrival: "09:30", duration: "3 ore", aircraft: "Boeing 737-800 · fusoliera stretta", trackingUrl: "https://it.flightaware.com/live/flight/THY1309" }
   ] }
 ];
 
@@ -425,12 +426,14 @@ export default function Home() {
                 <span><Plane size={18}/></span>
                 <div><small>MONITORAGGIO VOLI</small><strong>Aggiornamenti in tempo reale su FlightAware</strong></div>
               </div>
+              {day.layover && <div className="flightLayover"><Clock3 size={14}/><span><small>SCALO A ISTANBUL</small><strong>{day.layover}</strong></span></div>}
               <div className="flightMonitorGrid">
                 {day.flightLegs.map((leg) => (
                   <a key={leg.number} href={leg.trackingUrl} target="_blank" rel="noreferrer">
                     <span className="flightNumber">{leg.number}</span>
                     <span className="flightAirports"><b>{leg.from}</b><ArrowRight size={14}/><b>{leg.to}</b></span>
-                    <span className="flightTimes">{leg.departure} → {leg.arrival}</span>
+                    <span className="flightTimes"><Clock3 size={12}/>{leg.departure} → {leg.arrival}{leg.duration && <b>{leg.duration}</b>}</span>
+                    <span className="flightAircraft"><Plane size={12}/>{leg.aircraft}</span>
                     <span className="flightTrack">Segui il volo <ExternalLink size={13}/></span>
                   </a>
                 ))}
