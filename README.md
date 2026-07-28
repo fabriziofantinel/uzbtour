@@ -21,6 +21,17 @@ Aprire `http://localhost:3000`.
 
 La demo salva lo stato durante la sessione del browser. Il passaggio alla persistenza cloud richiede la creazione del progetto Vercel e delle relative integrazioni.
 
+## Accesso privato
+
+L'intera applicazione è protetta da un codice di viaggio condiviso e da una sessione firmata in un cookie `HttpOnly`.
+
+Configurare in Vercel, per Production, Preview e Development:
+
+- `TRIP_ACCESS_CODE`: codice scelto dal gruppo
+- `AUTH_SECRET`: stringa casuale di almeno 32 byte
+
+Per lo sviluppo locale, copiare `.env.example` in `.env.local` e valorizzare entrambe le variabili.
+
 ## Modello dati previsto
 
 - `trips`, `participants`, `days`, `activities`

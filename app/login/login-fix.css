@@ -1,0 +1,14 @@
+.loginPage {
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
+}
+
+.loginStory,
+.loginPanel {
+  min-width: 0;
+}
+
+@media (max-width: 760px) {
+  .loginPage {
+    grid-template-columns: 1fr;
+  }
+}

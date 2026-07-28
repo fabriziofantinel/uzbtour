@@ -164,3 +164,22 @@
     width: 100%;
   }
 }
+
+.logoutButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: 1px solid var(--line) !important;
+  border-radius: 7px;
+  background: white !important;
+  color: var(--ink) !important;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+@media (max-width: 700px) {
+  .logoutButton span {
+    display: none;
+  }
+}

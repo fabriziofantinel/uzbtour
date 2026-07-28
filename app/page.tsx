@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import {
   ArrowLeft, ArrowRight, Bus, CalendarDays, Camera, ChevronRight,
-  CircleUserRound, Clock3, ExternalLink, Map, MapPin, MessageCircle,
-  Navigation, Plane, Plus, ReceiptText, Search, TrainFront, Utensils, Wallet
+  CircleUserRound, Clock3, ExternalLink, LogOut, Map, MapPin, MessageCircle,
+  Navigation, Plane, Plus, ReceiptText, TrainFront, Utensils, Wallet
 } from "lucide-react";
 
 type Day = {
@@ -82,7 +82,11 @@ export default function Home() {
         <div className="people">
           <span>Il nostro gruppo</span>
           <div className="avatars"><i>FF</i><i>AN</i><i>MR</i></div>
-          <button aria-label="Cerca"><Search size={18}/></button>
+          <form action="/api/auth/logout" method="post">
+            <button className="logoutButton" type="submit" aria-label="Esci" title="Esci">
+              <LogOut size={17}/><span>Esci</span>
+            </button>
+          </form>
         </div>
       </header>
 
@@ -167,7 +171,7 @@ export default function Home() {
               {day.activities.map((a, i)=><a key={a} href={`https://www.google.com/search?q=${encodeURIComponent(a+" Uzbekistan")}`} target="_blank"><span>{String(i+1).padStart(2,"0")}</span><strong>{a}</strong><ExternalLink size={15}/></a>)}
             </div>
             <div className="mapCard">
-              <iframe title={`Mappa di ${day.city}`} src={`https://www.openstreetmap.org/export/embed.html?bbox=${day.lon-.06}%2C${day.lat-.04}%2C${day.lon+.06}%2C${day.lat+.04}&layer=mapnik&marker=${day.lat}%2C${day.lon}`} />
+              <iframe suppressHydrationWarning title={`Mappa di ${day.city}`} src={`https://www.openstreetmap.org/export/embed.html?bbox=${day.lon-.06}%2C${day.lat-.04}%2C${day.lon+.06}%2C${day.lat+.04}&layer=mapnik&marker=${day.lat}%2C${day.lon}`} />
               <a href={`https://www.google.com/maps/search/?api=1&query=${day.lat},${day.lon}`} target="_blank"><MapPin size={15}/> Apri la mappa <ExternalLink size={13}/></a>
             </div>
           </div>
