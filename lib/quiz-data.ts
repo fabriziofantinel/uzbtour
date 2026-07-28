@@ -194,7 +194,9 @@ export function getQuizQuestions(dayNumber: number) {
   const services = [...new Set(quizDays.map((entry) => entry.service))];
   const dates = quizDays.map((entry) => entry.date);
   const finales = quizDays.map((entry) => entry.finale);
-  const allHighlights = quizDays.flatMap((entry) => entry.highlights);
+  const otherDayHighlights = quizDays
+    .filter((entry) => entry.day !== day.day)
+    .flatMap((entry) => entry.highlights);
 
   const questions: QuizQuestion[] = [
     question(`${day.day}-city`, "Qual era la tappa principale della giornata?", day.city, takeOther(cities, day.city, dayIndex)),
@@ -206,7 +208,7 @@ export function getQuizQuestions(dayNumber: number) {
       `${day.day}-highlight-${index + 1}`,
       index % 2 === 0 ? "Quale esperienza faceva parte del programma di oggi?" : "Quale luogo o momento apparteneva a questa giornata?",
       highlight,
-      takeOther(allHighlights, highlight, dayIndex * 5 + index * 7)
+      takeOther(otherDayHighlights, highlight, dayIndex * 5 + index * 7)
     )),
     question(`${day.day}-date`, "A quale data corrispondeva questa giornata?", day.date, takeOther(dates, day.date, dayIndex + 5)),
     question(`${day.day}-service`, "Quale servizio era previsto?", day.service, takeOther(services, day.service, dayIndex + 2)),
@@ -225,4 +227,3 @@ export function getQuizQuestions(dayNumber: number) {
 export function isQuizUnlocked(day: QuizDay, user: { initials: string }, now = new Date()) {
   return user.initials.toUpperCase() === "FF" || now.getTime() >= new Date(day.unlockAt).getTime();
 }
-
