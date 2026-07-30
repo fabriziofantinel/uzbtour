@@ -16,6 +16,16 @@ await sql`
 `;
 
 await sql`
+  ALTER TABLE trip_notes
+  DROP CONSTRAINT IF EXISTS trip_notes_day_check
+`;
+
+await sql`
+  ALTER TABLE trip_notes
+  ADD CONSTRAINT trip_notes_day_check CHECK (day BETWEEN 1 AND 13)
+`;
+
+await sql`
   CREATE TABLE IF NOT EXISTS trip_restaurants (
     id BIGSERIAL PRIMARY KEY,
     day SMALLINT NOT NULL CHECK (day BETWEEN 1 AND 11),
@@ -32,14 +42,45 @@ await sql`
 `;
 
 await sql`
+  ALTER TABLE trip_restaurants
+  DROP CONSTRAINT IF EXISTS trip_restaurants_day_check
+`;
+
+await sql`
+  ALTER TABLE trip_restaurants
+  ADD CONSTRAINT trip_restaurants_day_check CHECK (day BETWEEN 1 AND 13)
+`;
+
+await sql`
   CREATE TABLE IF NOT EXISTS trip_expenses (
     id BIGSERIAL PRIMARY KEY,
+    day SMALLINT CHECK (day BETWEEN 1 AND 13),
     label TEXT NOT NULL CHECK (char_length(label) BETWEEN 1 AND 200),
     amount NUMERIC(12, 2) NOT NULL CHECK (amount > 0),
     payer_id TEXT NOT NULL,
     payer_name TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )
+`;
+
+await sql`
+  ALTER TABLE trip_expenses
+  ADD COLUMN IF NOT EXISTS day SMALLINT
+`;
+
+await sql`
+  ALTER TABLE trip_expenses
+  DROP CONSTRAINT IF EXISTS trip_expenses_day_check
+`;
+
+await sql`
+  ALTER TABLE trip_expenses
+  ADD CONSTRAINT trip_expenses_day_check CHECK (day IS NULL OR day BETWEEN 1 AND 13)
+`;
+
+await sql`
+  CREATE INDEX IF NOT EXISTS trip_expenses_day_created_idx
+  ON trip_expenses (day, created_at)
 `;
 
 await sql`

@@ -60,7 +60,7 @@ async function buildResponse(user: { initials: string }) {
       date: day.date,
       city: day.city,
       unlockAt: day.unlockAt,
-      unlocked: isPhotoContestUnlocked(day.day),
+      unlocked: isPhotoAdmin(user) || isPhotoContestUnlocked(day.day),
       photoCount: counts.get(day.day) ?? 0,
       contest: contests.get(day.day) ?? null
     }))
@@ -94,13 +94,6 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null) as { day?: number } | null;
   const tripDay = photoContestDay(body?.day);
   if (!tripDay) return NextResponse.json({ error: "Giornata non valida" }, { status: 400 });
-  if (!isPhotoContestUnlocked(tripDay.day)) {
-    return NextResponse.json(
-      { error: "La giuria si può avviare dalle 20:00, ora dell'Uzbekistan" },
-      { status: 403 }
-    );
-  }
-
   const sql = getSql();
   try {
     await ensurePhotosTable();

@@ -4,7 +4,7 @@ import { getSql } from "@/lib/db";
 
 type NoteRequest = { action: "note"; day?: number; text?: string };
 type RestaurantRequest = { action: "restaurant"; day?: number; name?: string };
-type ExpenseRequest = { action: "expense"; label?: string; amount?: number; currency?: "EUR" | "UZS" };
+type ExpenseRequest = { action: "expense"; day?: number | null; label?: string; amount?: number; currency?: "EUR" | "UZS" };
 type CashMovementRequest = {
   action: "withdrawal" | "exchange";
   day?: number;
@@ -50,12 +50,22 @@ async function ensureCashMovementsTable(sql: ReturnType<typeof getSql>) {
   await cashSchemaPromise;
 }
 
-async function ensureExpenseCurrencyColumn(sql: ReturnType<typeof getSql>) {
+async function ensureExpenseSchema(sql: ReturnType<typeof getSql>) {
   if (!expenseSchemaPromise) {
-    expenseSchemaPromise = sql`
-      ALTER TABLE trip_expenses
-      ADD COLUMN IF NOT EXISTS currency TEXT NOT NULL DEFAULT 'EUR'
-    `.then(() => undefined).catch((error) => {
+    expenseSchemaPromise = (async () => {
+      await sql`
+        ALTER TABLE trip_expenses
+        ADD COLUMN IF NOT EXISTS currency TEXT NOT NULL DEFAULT 'EUR'
+      `;
+      await sql`
+        ALTER TABLE trip_expenses
+        ADD COLUMN IF NOT EXISTS day SMALLINT
+      `;
+      await sql`
+        CREATE INDEX IF NOT EXISTS trip_expenses_day_created_idx
+        ON trip_expenses (day, created_at)
+      `;
+    })().catch((error) => {
       expenseSchemaPromise = null;
       throw error;
     });
@@ -87,12 +97,12 @@ export async function GET() {
     const sql = getSql();
     await Promise.all([
       ensureCashMovementsTable(sql),
-      ensureExpenseCurrencyColumn(sql)
+      ensureExpenseSchema(sql)
     ]);
     const [noteRows, restaurantRows, expenseRows, cashRows] = await Promise.all([
       sql`SELECT day, text, updated_by_name, updated_at FROM trip_notes ORDER BY day`,
       sql`SELECT id, day, name, added_by_name, created_at FROM trip_restaurants ORDER BY created_at`,
-      sql`SELECT id, label, amount, currency, payer_name, created_at FROM trip_expenses ORDER BY created_at`,
+      sql`SELECT id, day, label, amount, currency, payer_name, created_at FROM trip_expenses ORDER BY created_at`,
       sql`SELECT id, day, kind, location, euro_amount, som_amount, fee_eur, added_by_name, created_at
           FROM trip_cash_movements ORDER BY created_at`
     ]);
@@ -113,6 +123,7 @@ export async function GET() {
       })),
       expenses: expenseRows.map((row) => ({
         id: String(row.id),
+        day: row.day == null ? null : Number(row.day),
         label: String(row.label),
         amount: Number(row.amount),
         currency: row.currency === "UZS" ? "UZS" : "EUR",
@@ -236,23 +247,33 @@ export async function POST(request: Request) {
     }
 
     const label = typeof body.label === "string" ? body.label.trim() : "";
+    const expenseDay = body.day == null ? null : Number(body.day);
     const amount = Number(body.amount);
     const currency = body.currency === "UZS" ? "UZS" : body.currency === "EUR" ? "EUR" : null;
     const maximumAmount = currency === "UZS" ? 100_000_000_000 : 1_000_000;
-    if (!label || label.length > 200 || !currency || !Number.isFinite(amount) || amount <= 0 || amount > maximumAmount) {
+    if (
+      !label ||
+      label.length > 200 ||
+      !currency ||
+      (expenseDay !== null && !validDay(expenseDay)) ||
+      !Number.isFinite(amount) ||
+      amount <= 0 ||
+      amount > maximumAmount
+    ) {
       return NextResponse.json({ error: "Spesa non valida" }, { status: 400 });
     }
 
-    await ensureExpenseCurrencyColumn(sql);
+    await ensureExpenseSchema(sql);
     const rows = await sql`
-      INSERT INTO trip_expenses (label, amount, currency, payer_id, payer_name)
-      VALUES (${label}, ${amount}, ${currency}, ${user.id}, ${user.name})
-      RETURNING id, label, amount, currency, payer_name, created_at
+      INSERT INTO trip_expenses (day, label, amount, currency, payer_id, payer_name)
+      VALUES (${expenseDay}, ${label}, ${amount}, ${currency}, ${user.id}, ${user.name})
+      RETURNING id, day, label, amount, currency, payer_name, created_at
     `;
     const row = rows[0];
     return NextResponse.json({
       expense: {
         id: String(row.id),
+        day: row.day == null ? null : Number(row.day),
         label: String(row.label),
         amount: Number(row.amount),
         currency: row.currency === "UZS" ? "UZS" : "EUR",

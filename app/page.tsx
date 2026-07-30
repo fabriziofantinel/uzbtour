@@ -14,6 +14,7 @@ import InsuranceInfo from "@/components/insurance-info";
 import Phrasebook from "@/components/phrasebook";
 import TripQuiz from "@/components/trip-quiz";
 import { PhotoContestPanel, PhotoContestShowcase } from "@/components/photo-contest";
+import ExpenseDialog from "@/components/expense-dialog";
 
 type Day = {
   n: number; date: string; city: string; title: string; type: "plane" | "train" | "bus" | "walk";
@@ -41,7 +42,15 @@ type PhotoEntry = {
   canDelete: boolean;
 };
 type RestaurantEntry = { id: string; day: number; name: string; addedBy: string; createdAt?: string };
-type ExpenseEntry = { id: string; label: string; amount: number; currency: "EUR" | "UZS"; payer: string; createdAt?: string };
+type ExpenseEntry = {
+  id: string;
+  day: number | null;
+  label: string;
+  amount: number;
+  currency: "EUR" | "UZS";
+  payer: string;
+  createdAt?: string;
+};
 type CashMovementEntry = {
   id: string;
   day: number;
@@ -157,12 +166,17 @@ export default function Home() {
   const [dataLoading, setDataLoading] = useState(true);
   const [saving, setSaving] = useState("");
   const [dataError, setDataError] = useState("");
+  const [expenseDay, setExpenseDay] = useState<number | null | undefined>(undefined);
   const day = days[active];
   const Icon = icons[day.type];
   const expenseTotals = useMemo(() => expenses.reduce((totals, expense) => {
     totals[expense.currency] += expense.amount;
     return totals;
   }, { EUR: 0, UZS: 0 }), [expenses]);
+  const dayExpenseTotals = useMemo(() => expenses.reduce((totals, expense) => {
+    if (expense.day === day.n) totals[expense.currency] += expense.amount;
+    return totals;
+  }, { EUR: 0, UZS: 0 }), [day.n, expenses]);
   const dayCashMovements = cashMovements.filter((movement) => movement.day === day.n);
   const cashSummary = useMemo(() => cashMovements.reduce((summary, movement) => {
     if (movement.kind === "withdrawal") {
@@ -250,26 +264,17 @@ export default function Home() {
     }
   }
 
-  async function addExpense() {
-    const label = prompt("Descrizione spesa?")?.trim();
-    if (!label || !currentUser) return;
-    const currencyRaw = prompt("Valuta della spesa? Scrivi EUR oppure SOM.")?.trim().toUpperCase();
-    if (currencyRaw === undefined) return;
-    const currency = currencyRaw === "EUR" || currencyRaw === "€"
-      ? "EUR"
-      : currencyRaw === "SOM" || currencyRaw === "UZS"
-        ? "UZS"
-        : null;
-    if (!currency) {
-      setDataError("Scrivi EUR per gli euro oppure SOM per i som uzbeki.");
-      return;
-    }
-    const amountRaw = prompt(currency === "EUR" ? "Importo in euro?" : "Importo in SOM?");
-    if (amountRaw === null) return;
-    const amount = parseLocalizedNumber(amountRaw);
+  async function saveExpense(input: {
+    label: string;
+    amount: string;
+    currency: "EUR" | "UZS";
+  }) {
+    const label = input.label.trim();
+    if (!label || !currentUser) return false;
+    const amount = parseLocalizedNumber(input.amount);
     if (!Number.isFinite(amount) || amount <= 0) {
       setDataError("Inserisci un importo valido maggiore di zero.");
-      return;
+      return false;
     }
 
     setSaving("expense");
@@ -277,13 +282,16 @@ export default function Home() {
     try {
       const result = await postTripData<{ expense: ExpenseEntry }>({
         action: "expense",
+        day: expenseDay,
         label,
         amount,
-        currency
+        currency: input.currency
       });
       setExpenses((previous) => [...previous, result.expense]);
+      return true;
     } catch (error) {
       setDataError(error instanceof Error ? error.message : "Spesa non salvata");
+      return false;
     } finally {
       setSaving("");
     }
@@ -618,7 +626,7 @@ export default function Home() {
               <input type="file" accept="image/*,.heic,.heif" multiple disabled={!currentUser || Boolean(photoUpload)} onChange={upload}/>
             </label>
             <button disabled={!currentUser || Boolean(saving)} onClick={() => addRestaurant(day.n)}><Utensils size={18}/><span>Aggiungi locale<small>{restaurants.filter(r=>r.day===day.n).length} salvati</small></span><Plus size={17}/></button>
-            <button disabled={!currentUser || Boolean(saving)} onClick={addExpense}><ReceiptText size={18}/><span>Aggiungi spesa<small>€ {expenseTotals.EUR} · {formatSom.format(expenseTotals.UZS)} UZS</small></span><Plus size={17}/></button>
+            <button disabled={!currentUser || Boolean(saving)} onClick={() => setExpenseDay(day.n)}><ReceiptText size={18}/><span>Aggiungi spesa<small>Tappa: € {dayExpenseTotals.EUR.toFixed(2)} · {formatSom.format(dayExpenseTotals.UZS)} UZS</small></span><Plus size={17}/></button>
             <button disabled={!currentUser || Boolean(saving)} onClick={() => addWithdrawal(day.n)}><Banknote size={18}/><span>Aggiungi prelievo<small>{dayCashMovements.filter(movement => movement.kind === "withdrawal").length} registrati</small></span><Plus size={17}/></button>
             <button disabled={!currentUser || Boolean(saving)} onClick={() => addExchange(day.n)}><ArrowRightLeft size={18}/><span>Aggiungi cambio<small>{dayCashMovements.filter(movement => movement.kind === "exchange").length} registrati</small></span><Plus size={17}/></button>
           </div>
@@ -670,8 +678,8 @@ export default function Home() {
           </div>
           <p>A persona: € {(expenseTotals.EUR/3).toFixed(2)} · {formatSom.format(expenseTotals.UZS/3)} UZS</p>
         </div>
-        <div className="expenseList">{expenses.map((e)=><div key={e.id}><span className="receipt"><ReceiptText size={18}/></span><span><strong>{e.label}</strong><small>Pagato da {e.payer} · {e.currency === "EUR" ? "Euro" : "Som"}</small></span><b>{e.currency === "EUR" ? `€ ${e.amount.toFixed(2)}` : `${formatSom.format(e.amount)} UZS`}</b></div>)}</div>
-        <button className="primary" disabled={!currentUser || Boolean(saving)} onClick={addExpense}><Plus size={17}/> {saving === "expense" ? "Salvataggio…" : "Nuova spesa"}</button>
+        <div className="expenseList">{expenses.map((e)=><div key={e.id}><span className="receipt"><ReceiptText size={18}/></span><span><strong>{e.label}</strong><small>Pagato da {e.payer} · {e.currency === "EUR" ? "Euro" : "Som"}{e.day !== null ? ` · ${days.find((tripDay) => tripDay.n === e.day)?.date ?? `Giorno ${e.day}`}` : ""}</small></span><b>{e.currency === "EUR" ? `€ ${e.amount.toFixed(2)}` : `${formatSom.format(e.amount)} UZS`}</b></div>)}</div>
+        <button className="primary" disabled={!currentUser || Boolean(saving)} onClick={() => setExpenseDay(null)}><Plus size={17}/> {saving === "expense" ? "Salvataggio…" : "Nuova spesa"}</button>
         <div className="cashSection">
           <div className="sectionTitle"><div><span>GESTIONE CONTANTI</span><h2>Prelievi e cambi</h2></div></div>
           <div className="cashSummary">
@@ -703,6 +711,14 @@ export default function Home() {
       {tab === "assicurazione" && <InsuranceInfo/>}
       {tab === "frasario" && <Phrasebook/>}
       {tab === "quiz" && <TripQuiz/>}
+
+      <ExpenseDialog
+        open={expenseDay !== undefined}
+        dayLabel={expenseDay == null ? undefined : days.find((tripDay) => tripDay.n === expenseDay)?.date}
+        saving={saving === "expense"}
+        onClose={() => setExpenseDay(undefined)}
+        onSave={saveExpense}
+      />
     </main>
   );
 }

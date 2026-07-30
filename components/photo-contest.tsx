@@ -164,7 +164,7 @@ export function PhotoContestPanel({ day, photoCount }: { day: number; photoCount
           {data?.isAdmin ? (
             <button
               type="button"
-              disabled={!contestDay?.unlocked || count === 0 || processing}
+              disabled={count === 0 || processing}
               onClick={() => void judge(day)}
             >
               {processing
@@ -175,7 +175,7 @@ export function PhotoContestPanel({ day, photoCount }: { day: number; photoCount
           ) : (
             <span className="photoContestWaiting"><Clock3 size={15}/> La selezione sarà avviata da Fabrizio</span>
           )}
-          {!contestDay?.unlocked && (
+          {!data?.isAdmin && !contestDay?.unlocked && (
             <small>Disponibile dalle 20:00, ora dell’Uzbekistan, nel giorno della visita.</small>
           )}
           {processing && <small>L’analisi può richiedere alcuni minuti. Non chiudere questa pagina.</small>}
@@ -205,7 +205,7 @@ export function PhotoContestShowcase() {
       {loading && <p className="photoContestLoading"><LoaderCircle className="spin" size={17}/> Caricamento dei verdetti…</p>}
       {error && <p className="photoContestError" role="alert">{error}</p>}
       {!loading && winners.length === 0 && (
-        <p className="photoContestEmpty">Le vincitrici appariranno qui dopo la prima selezione delle 20:00.</p>
+        <p className="photoContestEmpty">Le vincitrici appariranno qui dopo la prima selezione avviata da Fabrizio.</p>
       )}
       <div className="photoWinnerList">
         {winners.map((winner) => <WinnerCard key={winner.day} day={winner}/>)}
