@@ -37,6 +37,8 @@ type ContestDay = {
   label: string;
   date: string;
   city: string;
+  themeTitle: string;
+  themeDescription: string;
   unlockAt: string;
   unlocked: boolean;
   photoCount: number;
@@ -152,6 +154,10 @@ export function PhotoContestPanel({ day, photoCount }: { day: number; photoCount
           <strong>{completed ? "La foto del giorno è stata scelta" : "Quale scatto racconterà meglio la giornata?"}</strong>
         </div>
       </div>
+      <div className="photoTheme">
+        <Sparkles size={17}/>
+        <span><small>TEMA DEL GIORNO</small><strong>{contestDay?.themeTitle ?? "Il viaggio in uno scatto"}</strong><p>{contestDay?.themeDescription}</p></span>
+      </div>
 
       {loading && <p><LoaderCircle className="spin" size={16}/> Caricamento della giuria…</p>}
       {error && <p className="photoContestError" role="alert">{error}</p>}
@@ -200,7 +206,7 @@ export function PhotoContestShowcase() {
         <div>
           <small>LA GIURIA DI GEMINI</small>
           <h2>Le foto del giorno</h2>
-          <p>Composizione, tecnica, racconto, originalità e valorizzazione del luogo: 100 punti per eleggere lo scatto più bello.</p>
+          <p>Ogni giornata ha un tema diverso. Gemini valuta composizione, tecnica, racconto, originalità, luogo e interpretazione del tema.</p>
         </div>
       </div>
       {loading && <p className="photoContestLoading"><LoaderCircle className="spin" size={17}/> Caricamento dei verdetti…</p>}

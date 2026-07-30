@@ -60,6 +60,8 @@ async function buildResponse(user: { initials: string }) {
       label: day.label,
       date: day.date,
       city: day.city,
+      themeTitle: day.themeTitle,
+      themeDescription: day.themeDescription,
       unlockAt: day.unlockAt,
       unlocked: isPhotoAdmin(user) || isPhotoContestUnlocked(day.day),
       photoCount: counts.get(day.day) ?? 0,
@@ -153,7 +155,9 @@ export async function POST(request: Request) {
       addedBy: String(photo.uploaded_by_name),
       day: tripDay.day,
       city: tripDay.city,
-      highlights: tripDay.highlights
+      highlights: tripDay.highlights,
+      themeTitle: tripDay.themeTitle,
+      themeDescription: tripDay.themeDescription
     })));
     const rankings = judgment.rankings;
     const winner = rankings[0];

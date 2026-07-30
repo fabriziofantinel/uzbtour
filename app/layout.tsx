@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Manrope, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import "./tour.css";
+import "./challenges.css";
 import "leaflet/dist/leaflet.css";
 
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-sans" });

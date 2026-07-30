@@ -4,18 +4,18 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft, ArrowRight, ArrowRightLeft, Banknote, Bus, CalendarDays, Camera, ChevronRight,
   CircleUserRound, Clock3, Download, ExternalLink, LoaderCircle, LogOut, Map, MapPin,
-  MessageCircle, Gamepad2, Info, Languages, Navigation, Plane, Plus, ReceiptText, ShieldCheck,
-  Trash2, TrainFront, Trophy, Utensils, Wallet
+  MessageCircle, House, Info, Languages, Navigation, Plane, Plus, ReceiptText, ShieldCheck,
+  Sparkles, Trash2, TrainFront, Utensils, Wallet
 } from "lucide-react";
 import { upload as uploadBlob } from "@vercel/blob/client";
 import TripOverviewMap, { type TripMapDay } from "@/components/trip-overview-map";
 import UsefulInfo from "@/components/useful-info";
 import InsuranceInfo from "@/components/insurance-info";
 import Phrasebook from "@/components/phrasebook";
-import TripQuiz from "@/components/trip-quiz";
 import { PhotoContestPanel, PhotoContestShowcase } from "@/components/photo-contest";
 import ExpenseDialog from "@/components/expense-dialog";
-import TripGames from "@/components/trip-games";
+import TodayDashboard from "@/components/today-dashboard";
+import TripChallenges from "@/components/trip-challenges";
 
 type Day = {
   n: number; date: string; city: string; title: string; type: "plane" | "train" | "bus" | "walk";
@@ -156,7 +156,7 @@ const tripMapDays: TripMapDay[] = days
 
 export default function Home() {
   const [active, setActive] = useState(0);
-  const [tab, setTab] = useState<"mappa" | "programma" | "ricordi" | "spese" | "info" | "assicurazione" | "frasario" | "quiz" | "giochi">("mappa");
+  const [tab, setTab] = useState<"oggi" | "mappa" | "programma" | "ricordi" | "spese" | "info" | "assicurazione" | "frasario" | "sfide">("oggi");
   const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
   const [notes, setNotes] = useState<Record<number, NoteEntry>>({});
   const [restaurants, setRestaurants] = useState<RestaurantEntry[]>([]);
@@ -478,6 +478,7 @@ export default function Home() {
       </section>
 
       <nav className="tabs">
+        <button className={tab === "oggi" ? "active" : ""} onClick={() => setTab("oggi")}><House size={18}/> Oggi</button>
         <button className={tab === "mappa" ? "active" : ""} onClick={() => setTab("mappa")}><Map size={18}/> Mappa</button>
         <button className={tab === "programma" ? "active" : ""} onClick={() => setTab("programma")}><CalendarDays size={18}/> Programma</button>
         <button className={tab === "ricordi" ? "active" : ""} onClick={() => setTab("ricordi")}><Camera size={18}/> Ricordi <b>{Object.values(photos).flat().length}</b></button>
@@ -485,11 +486,20 @@ export default function Home() {
         <button className={tab === "info" ? "active" : ""} onClick={() => setTab("info")}><Info size={18}/> Info utili</button>
         <button className={tab === "assicurazione" ? "active" : ""} onClick={() => setTab("assicurazione")}><ShieldCheck size={18}/> Polizza</button>
         <button className={tab === "frasario" ? "active" : ""} onClick={() => setTab("frasario")}><Languages size={18}/> Frasi</button>
-        <button className={tab === "quiz" ? "active" : ""} onClick={() => setTab("quiz")}><Trophy size={18}/> Quiz</button>
-        <button className={tab === "giochi" ? "active" : ""} onClick={() => setTab("giochi")}><Gamepad2 size={18}/> Giochi</button>
+        <button className={tab === "sfide" ? "active" : ""} onClick={() => setTab("sfide")}><Sparkles size={18}/> Sfide</button>
       </nav>
       {dataLoading && <p className="dataStatus">Sincronizzazione con il diario condiviso…</p>}
       {dataError && <p className="dataError" role="alert">{dataError}</p>}
+
+      {tab === "oggi" && (
+        <TodayDashboard
+          days={days}
+          expenses={expenses}
+          photos={photos}
+          onOpenDay={(dayNumber) => openDay(days.findIndex((tripDay) => tripDay.n === dayNumber))}
+          onOpenChallenges={() => setTab("sfide")}
+        />
+      )}
 
       {tab === "mappa" && (
         <section className="overviewPage">
@@ -712,8 +722,7 @@ export default function Home() {
       {tab === "info" && <UsefulInfo/>}
       {tab === "assicurazione" && <InsuranceInfo/>}
       {tab === "frasario" && <Phrasebook/>}
-      {tab === "quiz" && <TripQuiz/>}
-      {tab === "giochi" && <TripGames/>}
+      {tab === "sfide" && <TripChallenges/>}
 
       <ExpenseDialog
         open={expenseDay !== undefined}

@@ -11,6 +11,22 @@ export const GEMINI_PHOTO_FALLBACK_MODEL =
 const GEMINI_MAX_ATTEMPTS = 4;
 const GEMINI_RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
 
+const photoThemes: Record<number, { themeTitle: string; themeDescription: string }> = {
+  12: { themeTitle: "L’inizio dell’avventura", themeDescription: "Uno scatto che trasmetta attesa, movimento o emozione per la partenza." },
+  1: { themeTitle: "Il primo incontro", themeDescription: "La fotografia che racconta meglio il primo impatto con l’Uzbekistan." },
+  2: { themeTitle: "Geometrie di Khiva", themeDescription: "Linee, forme e colori capaci di valorizzare Ichan Kala." },
+  3: { themeTitle: "Dal finestrino", themeDescription: "Il paesaggio o il momento di viaggio più narrativo sul treno." },
+  4: { themeTitle: "Bukhara senza tempo", themeDescription: "Uno scatto che faccia percepire storia, artigianato o vita quotidiana." },
+  5: { themeTitle: "Luce sulla Via della Seta", themeDescription: "La luce più suggestiva tra Bukhara, il viaggio e il Registan." },
+  6: { themeTitle: "Il blu di Samarcanda", themeDescription: "La migliore interpretazione delle celebri sfumature della città." },
+  7: { themeTitle: "Grandezza e memoria", themeDescription: "Una foto che racconti la monumentalità di Shahrisabz e Amir Temur." },
+  8: { themeTitle: "Dettagli che raccontano", themeDescription: "Un particolare di maiolica, astronomia o carta capace di narrare la giornata." },
+  9: { themeTitle: "Mani e colori", themeDescription: "Artigianato, ceramiche o persone della Valle di Fergana." },
+  10: { themeTitle: "Seta in movimento", themeDescription: "Colori, trame e gesti legati alla seta e ai bazar di Margilan." },
+  11: { themeTitle: "L’ultimo sguardo", themeDescription: "Il luogo o il momento che vorresti portare a casa da Tashkent." },
+  13: { themeTitle: "Il viaggio in una foto", themeDescription: "Lo scatto che riassume meglio l’intera avventura in Uzbekistan." }
+};
+
 export const photoContestDays = [
   {
     day: 12,
@@ -23,9 +39,10 @@ export const photoContestDays = [
       "Scalo all’Aeroporto di Istanbul",
       "Volo Turkish Airlines TK370 verso Tashkent"
     ],
-    unlockAt: "2026-08-01T15:00:00.000Z"
+    unlockAt: "2026-08-01T15:00:00.000Z",
+    ...photoThemes[12]
   },
-  ...quizDays.map((day) => ({ ...day, label: `GIORNO ${day.day}` })),
+  ...quizDays.map((day) => ({ ...day, label: `GIORNO ${day.day}`, ...photoThemes[day.day] })),
   {
     day: 13,
     label: "RIENTRO",
@@ -37,7 +54,8 @@ export const photoContestDays = [
       "Scalo all’Aeroporto di Istanbul",
       "Volo Turkish Airlines TK1309 e arrivo a Torino"
     ],
-    unlockAt: "2026-08-13T15:00:00.000Z"
+    unlockAt: "2026-08-13T15:00:00.000Z",
+    ...photoThemes[13]
   }
 ];
 
@@ -235,6 +253,8 @@ async function judgeOnePhoto(input: {
   day: number;
   city: string;
   highlights: string[];
+  themeTitle: string;
+  themeDescription: string;
 }, model: string) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY non configurata");
@@ -244,8 +264,11 @@ async function judgeOnePhoto(input: {
     "Sei la giuria anonima di un concorso fotografico di viaggio.",
     `La foto è stata scattata durante il giorno ${input.day} del tour in ${input.city}.`,
     `Luoghi ed esperienze della giornata: ${input.highlights.join(", ")}.`,
+    `Tema fotografico del giorno: "${input.themeTitle}".`,
+    `Interpretazione richiesta: ${input.themeDescription}`,
     "Valuta soltanto la fotografia, senza tentare di identificare l'autore e senza giudicare l'aspetto fisico delle persone ritratte.",
     "Usa esattamente questa griglia: composizione 0-25, qualità tecnica 0-20, capacità narrativa 0-25, originalità 0-15, valorizzazione del luogo 0-15.",
+    "Nel punteggio di capacità narrativa e originalità considera anche quanto lo scatto interpreta creativamente il tema del giorno.",
     "Non premiare il tipo di fotocamera, filigrane, testo sovrapposto o volti attraenti.",
     "La motivazione deve essere in italiano, concreta, rispettosa e non superare 240 caratteri."
   ].join("\n");
