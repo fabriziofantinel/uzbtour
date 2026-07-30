@@ -10,10 +10,11 @@ import {
 } from "lucide-react";
 import TripQuiz from "./trip-quiz";
 import TripGames from "./trip-games";
+import { PhotoContestHub } from "./photo-contest";
 import { bingoItems, missionDays } from "@/lib/challenge-data";
 import { selectedTripDay } from "@/lib/today-data";
 
-type ChallengeTab = "missioni" | "bingo" | "quiz" | "giochi" | "profilo" | "validazioni";
+type ChallengeTab = "missioni" | "bingo" | "foto" | "quiz" | "giochi" | "profilo" | "validazioni";
 type EvidenceType = "mission" | "bingo";
 type EvidenceStatus = "pending" | "approved" | "rejected";
 type Submission = {
@@ -545,6 +546,7 @@ export default function TripChallenges() {
       <nav className={`challengeTabs ${data?.isAdmin ? "admin" : ""}`} aria-label="Tipi di sfida">
         <button className={tab === "missioni" ? "active" : ""} onClick={() => setTab("missioni")}><Compass size={18}/>Missioni</button>
         <button className={tab === "bingo" ? "active" : ""} onClick={() => setTab("bingo")}><Grid3X3 size={18}/>Bingo</button>
+        <button className={tab === "foto" ? "active" : ""} onClick={() => setTab("foto")}><Camera size={18}/>Foto</button>
         <button className={tab === "quiz" ? "active" : ""} onClick={() => setTab("quiz")}><Brain size={18}/>Quiz</button>
         <button className={tab === "giochi" ? "active" : ""} onClick={() => setTab("giochi")}><Gamepad2 size={18}/>Giochi</button>
         <button className={tab === "profilo" ? "active" : ""} onClick={() => setTab("profilo")}><Award size={18}/>Profilo</button>
@@ -559,6 +561,7 @@ export default function TripChallenges() {
       {error && <p className="challengeError" role="alert">{error}</p>}
       {!loading && data && tab === "missioni" && <MissionBoard data={data} uploadingKey={uploadingKey} uploadEvidence={uploadEvidence}/>}
       {!loading && data && tab === "bingo" && <BingoBoard data={data} uploadingKey={uploadingKey} uploadEvidence={uploadEvidence}/>}
+      {tab === "foto" && <PhotoContestHub/>}
       {tab === "quiz" && <TripQuiz/>}
       {tab === "giochi" && <TripGames/>}
       {!loading && data && tab === "profilo" && <TravellerProfile data={data}/>}

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Manrope, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import "./tour.css";
@@ -10,7 +10,20 @@ const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-serif"
 
 export const metadata: Metadata = {
   title: "Via della Seta — Uzbekistan, 1–13 agosto 2026",
-  description: "Il diario condiviso del nostro viaggio in Uzbekistan"
+  description: "Il diario condiviso del nostro viaggio in Uzbekistan",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "UZB Tour"
+  }
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#0b6462"
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

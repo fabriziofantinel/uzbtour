@@ -6,6 +6,7 @@ import {
   Hotel, MapPin, Navigation, ReceiptText, Share2, Sparkles, Wallet
 } from "lucide-react";
 import { selectedTripDay } from "@/lib/today-data";
+import PwaInstaller from "./pwa-installer";
 
 type DaySummary = {
   n: number;
@@ -155,6 +156,8 @@ export default function TodayDashboard({
         <button type="button" onClick={() => void shareMeetingPoint()}><Share2 size={19}/><span>Condividi ritrovo<small>{detail.meetingPoint}</small></span><ChevronRight size={15}/></button>
         <button type="button" onClick={onOpenChallenges}><Sparkles size={19}/><span>Sfide del giorno<small>Missioni, Bingo e giochi</small></span><ChevronRight size={15}/></button>
       </div>
+
+      <PwaInstaller/>
 
       <section className="todaySchedule">
         <div><Compass size={20}/><span><small>PROGRAMMA RAPIDO</small><h3>La giornata in un colpo d’occhio</h3></span></div>

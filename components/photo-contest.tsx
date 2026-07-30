@@ -220,3 +220,97 @@ export function PhotoContestShowcase() {
     </section>
   );
 }
+
+export function PhotoContestHub() {
+  const { data, loading, busyDay, error, judge } = usePhotoContests();
+  const [selectedDay, setSelectedDay] = useState(1);
+  const contestDay = data?.days.find((entry) => entry.day === selectedDay);
+  const completed = contestDay?.contest?.status === "completed";
+  const processing = contestDay?.contest?.status === "processing" || busyDay === selectedDay;
+  const winners = useMemo(
+    () => data?.days.filter((day) => day.contest?.status === "completed") ?? [],
+    [data]
+  );
+
+  return (
+    <section className="contestHub" aria-label="Contest fotografico">
+      <header className="contestHubHero">
+        <span><Camera size={25}/></span>
+        <div>
+          <small>UNO SCATTO · UN TEMA · UN VINCITORE</small>
+          <h3>Contest fotografico</h3>
+          <p>Ogni giornata ha un tema. Gemini confronta le foto caricate e sceglie quella che lo interpreta meglio.</p>
+        </div>
+      </header>
+
+      {loading && <p className="photoContestLoading"><LoaderCircle className="spin" size={17}/> Caricamento dei contest…</p>}
+      {error && <p className="photoContestError" role="alert">{error}</p>}
+
+      {!loading && data && (
+        <>
+          <div className="contestDayPicker" aria-label="Scegli la giornata del contest">
+            {data.days.map((day) => (
+              <button
+                type="button"
+                key={day.day}
+                className={selectedDay === day.day ? "active" : ""}
+                onClick={() => setSelectedDay(day.day)}
+              >
+                <small>GIORNO {day.day}</small>
+                <strong>{day.city}</strong>
+                <span>{day.contest?.status === "completed" ? <Trophy size={13}/> : <Camera size={13}/>} {day.photoCount}</span>
+              </button>
+            ))}
+          </div>
+
+          {contestDay && (
+            <article className="contestFocus">
+              <div className="contestFocusHead">
+                <div>
+                  <small>{contestDay.label} · {contestDay.date}</small>
+                  <h3>{contestDay.themeTitle}</h3>
+                  <p>{contestDay.themeDescription}</p>
+                </div>
+                <span><b>{contestDay.photoCount}</b> foto</span>
+              </div>
+
+              {contestDay.contest?.status === "failed" && data.isAdmin && (
+                <p className="photoContestError">Il tentativo precedente non è riuscito. Puoi riprovare.</p>
+              )}
+              {completed && <WinnerCard day={contestDay}/>}
+              {!completed && (
+                <div className="contestFocusAction">
+                  {data.isAdmin ? (
+                    <button
+                      type="button"
+                      disabled={contestDay.photoCount === 0 || processing}
+                      onClick={() => void judge(selectedDay)}
+                    >
+                      {processing
+                        ? <><LoaderCircle className="spin" size={17}/> Giuria in corso…</>
+                        : <><Sparkles size={17}/> Eleggi la foto del giorno</>
+                      }
+                    </button>
+                  ) : (
+                    <p><Clock3 size={16}/> Fabrizio avvierà la selezione delle foto.</p>
+                  )}
+                  {data.isAdmin && contestDay.photoCount === 0 && <small>Carica almeno una foto per avviare la valutazione.</small>}
+                  {processing && <small>L’analisi può richiedere alcuni minuti. Puoi lasciare aperta questa pagina.</small>}
+                </div>
+              )}
+            </article>
+          )}
+
+          {winners.length > 0 && (
+            <section className="contestWinners">
+              <h3><Trophy size={18}/> Albo delle foto del giorno</h3>
+              <div className="photoWinnerList">
+                {winners.map((winner) => <WinnerCard key={winner.day} day={winner}/>)}
+              </div>
+            </section>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
