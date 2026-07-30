@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   AlertTriangle, ArrowRightLeft, Banknote, Building2, CarTaxiFront,
-  CircleHelp, CloudSun, Coffee, Droplets, ExternalLink, FileCheck2, Globe2,
+  CircleHelp, Clock3, CloudSun, Coffee, Droplets, ExternalLink, FileCheck2, Globe2,
   HandHeart, HeartPulse, Landmark, MapPin, Phone, Pill, Plane, Plug, ShieldCheck,
   Shirt, Smartphone, Stethoscope, Utensils, Wheat, Wifi
 } from "lucide-react";
@@ -11,6 +11,18 @@ import {
 const FALLBACK_RATE = 13663.77;
 const somFormatter = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0 });
 const euroFormatter = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const italyTimeFormatter = new Intl.DateTimeFormat("it-IT", {
+  timeZone: "Europe/Rome",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false
+});
+const uzbekistanTimeFormatter = new Intl.DateTimeFormat("it-IT", {
+  timeZone: "Asia/Tashkent",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false
+});
 
 function parseNumber(value: string) {
   const compact = value.trim().replace(/\s/g, "");
@@ -32,11 +44,19 @@ function CallCard({ number, label, detail }: { number: string; label: string; de
 }
 
 export default function UsefulInfo() {
+  const [now, setNow] = useState<Date | null>(null);
   const [rateText, setRateText] = useState(String(FALLBACK_RATE));
   const [rateDate, setRateDate] = useState("");
   const [rateLive, setRateLive] = useState(false);
   const [euro, setEuro] = useState("100");
   const [som, setSom] = useState(String(Math.round(100 * FALLBACK_RATE)));
+
+  useEffect(() => {
+    const updateClock = () => setNow(new Date());
+    updateClock();
+    const interval = window.setInterval(updateClock, 30_000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -100,6 +120,20 @@ export default function UsefulInfo() {
         <h2>Informazioni utili</h2>
         <p>Contatti, conversioni e consigli pratici sempre a portata di mano.</p>
       </header>
+
+      <section className="worldClockBar" aria-label="Ora in Italia e Uzbekistan">
+        <article>
+          <small>ORA IN ITALIA</small>
+          <strong>{now ? italyTimeFormatter.format(now) : "--:--"}</strong>
+          <span>Roma · Europe/Rome</span>
+        </article>
+        <div aria-hidden="true"><Clock3 size={22}/><span>+3 ore in agosto</span></div>
+        <article>
+          <small>ORA IN UZBEKISTAN</small>
+          <strong>{now ? uzbekistanTimeFormatter.format(now) : "--:--"}</strong>
+          <span>Tashkent · Asia/Tashkent</span>
+        </article>
+      </section>
 
       <section className="converterCard" aria-labelledby="converter-title">
         <div className="converterHead">

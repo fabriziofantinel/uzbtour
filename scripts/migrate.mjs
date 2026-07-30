@@ -104,7 +104,7 @@ await sql`
 
 await sql`
   CREATE TABLE IF NOT EXISTS trip_photo_contests (
-    day SMALLINT PRIMARY KEY CHECK (day BETWEEN 1 AND 11),
+    day SMALLINT PRIMARY KEY CHECK (day BETWEEN 1 AND 13),
     status TEXT NOT NULL CHECK (status IN ('processing', 'completed', 'failed')),
     winner_photo_id BIGINT REFERENCES trip_photos(id) ON DELETE SET NULL,
     winner_score SMALLINT CHECK (winner_score BETWEEN 0 AND 100),
@@ -117,6 +117,16 @@ await sql`
     started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     completed_at TIMESTAMPTZ
   )
+`;
+
+await sql`
+  ALTER TABLE trip_photo_contests
+  DROP CONSTRAINT IF EXISTS trip_photo_contests_day_check
+`;
+
+await sql`
+  ALTER TABLE trip_photo_contests
+  ADD CONSTRAINT trip_photo_contests_day_check CHECK (day BETWEEN 1 AND 13)
 `;
 
 await sql`

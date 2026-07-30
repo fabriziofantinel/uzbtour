@@ -6,6 +6,36 @@ import { quizDays } from "./quiz-data";
 export const MAX_CONTEST_PHOTOS = 60;
 export const GEMINI_PHOTO_MODEL = process.env.GEMINI_PHOTO_MODEL || "gemini-3.6-flash";
 
+export const photoContestDays = [
+  {
+    day: 12,
+    label: "PARTENZA",
+    date: "1 agosto",
+    city: "Torino, Istanbul e volo verso Tashkent",
+    highlights: [
+      "Partenza dall’Aeroporto di Torino",
+      "Volo Turkish Airlines TK1310",
+      "Scalo all’Aeroporto di Istanbul",
+      "Volo Turkish Airlines TK370 verso Tashkent"
+    ],
+    unlockAt: "2026-08-01T15:00:00.000Z"
+  },
+  ...quizDays.map((day) => ({ ...day, label: `GIORNO ${day.day}` })),
+  {
+    day: 13,
+    label: "RIENTRO",
+    date: "13 agosto",
+    city: "Tashkent, Istanbul e Torino",
+    highlights: [
+      "Partenza dall’Aeroporto di Tashkent",
+      "Volo Turkish Airlines TK363",
+      "Scalo all’Aeroporto di Istanbul",
+      "Volo Turkish Airlines TK1309 e arrivo a Torino"
+    ],
+    unlockAt: "2026-08-13T15:00:00.000Z"
+  }
+];
+
 export type PhotoScore = {
   photoId: string;
   originalName: string;
@@ -27,7 +57,7 @@ export async function ensurePhotoContestsTable() {
     photoContestSchemaPromise = (async () => {
       await sql`
         CREATE TABLE IF NOT EXISTS trip_photo_contests (
-          day SMALLINT PRIMARY KEY CHECK (day BETWEEN 1 AND 11),
+          day SMALLINT PRIMARY KEY CHECK (day BETWEEN 1 AND 13),
           status TEXT NOT NULL CHECK (status IN ('processing', 'completed', 'failed')),
           winner_photo_id BIGINT REFERENCES trip_photos(id) ON DELETE SET NULL,
           winner_score SMALLINT CHECK (winner_score BETWEEN 0 AND 100),
@@ -51,13 +81,13 @@ export async function ensurePhotoContestsTable() {
 
 export function photoContestDay(day: unknown) {
   const numericDay = Number(day);
-  return Number.isInteger(numericDay) && numericDay >= 1 && numericDay <= 11
-    ? quizDays.find((entry) => entry.day === numericDay) ?? null
+  return Number.isInteger(numericDay) && numericDay >= 1 && numericDay <= 13
+    ? photoContestDays.find((entry) => entry.day === numericDay) ?? null
     : null;
 }
 
 export function isPhotoContestUnlocked(day: number, now = new Date()) {
-  const tripDay = quizDays.find((entry) => entry.day === day);
+  const tripDay = photoContestDays.find((entry) => entry.day === day);
   return Boolean(tripDay && now.getTime() >= new Date(tripDay.unlockAt).getTime());
 }
 

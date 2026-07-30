@@ -34,6 +34,7 @@ type PhotoContest = {
 
 type ContestDay = {
   day: number;
+  label: string;
   date: string;
   city: string;
   unlockAt: string;
@@ -114,7 +115,7 @@ function WinnerCard({ day }: { day: ContestDay }) {
         <span><Trophy size={14}/> Foto del giorno</span>
       </div>
       <div className="photoWinnerCopy">
-        <small>GIORNO {day.day} · {day.date}</small>
+        <small>{day.label} · {day.date}</small>
         <h3>{day.city}</h3>
         <strong>{contest.winnerScore}/100 punti</strong>
         <p>{contest.winnerReason}</p>
@@ -136,7 +137,7 @@ function WinnerCard({ day }: { day: ContestDay }) {
 export function PhotoContestPanel({ day, photoCount }: { day: number; photoCount: number }) {
   const { data, loading, busyDay, error, judge } = usePhotoContests();
   const contestDay = data?.days.find((entry) => entry.day === day);
-  if (day < 1 || day > 11) return null;
+  if (day < 1 || day > 13) return null;
 
   const completed = contestDay?.contest?.status === "completed";
   const processing = contestDay?.contest?.status === "processing" || busyDay === day;

@@ -7,10 +7,10 @@ import {
   isPhotoContestUnlocked,
   judgePhotos,
   MAX_CONTEST_PHOTOS,
-  photoContestDay
+  photoContestDay,
+  photoContestDays
 } from "@/lib/photo-contest";
 import { ensurePhotosTable, isPhotoAdmin } from "@/lib/photos";
-import { quizDays } from "@/lib/quiz-data";
 
 export const runtime = "nodejs";
 export const preferredRegion = "fra1";
@@ -46,7 +46,7 @@ async function buildResponse(user: { initials: string }) {
     sql`
       SELECT day, COUNT(*)::INTEGER AS photo_count
       FROM trip_photos
-      WHERE day BETWEEN 1 AND 11
+      WHERE day BETWEEN 1 AND 13
       GROUP BY day
     `
   ]);
@@ -55,8 +55,9 @@ async function buildResponse(user: { initials: string }) {
 
   return {
     isAdmin: isPhotoAdmin(user),
-    days: quizDays.map((day) => ({
+    days: photoContestDays.map((day) => ({
       day: day.day,
+      label: day.label,
       date: day.date,
       city: day.city,
       unlockAt: day.unlockAt,
