@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { Map as LeafletMap } from "leaflet";
+import { Minus, Plus, Scan } from "lucide-react";
 
 export type TripMapDay = {
   index: number;
@@ -48,7 +49,9 @@ export default function TripOverviewMap({ days, onSelect }: TripOverviewMapProps
       const map = L.map(containerRef.current, {
         attributionControl: true,
         scrollWheelZoom: false,
-        zoomControl: true
+        zoomControl: false,
+        touchZoom: true,
+        doubleClickZoom: true
       });
       mapRef.current = map;
 
@@ -96,5 +99,26 @@ export default function TripOverviewMap({ days, onSelect }: TripOverviewMapProps
     };
   }, [days]);
 
-  return <div className="tripMapCanvas" ref={containerRef} aria-label="Mappa interattiva dell’itinerario in Uzbekistan" />;
+  function showWholeRoute() {
+    mapRef.current?.fitBounds([[37.0, 55.5], [46.3, 73.6]], {
+      padding: [22, 22]
+    });
+  }
+
+  return (
+    <div className="tripMapShell">
+      <div className="tripMapCanvas" ref={containerRef} aria-label="Mappa interattiva dell’itinerario in Uzbekistan"/>
+      <div className="tripMapZoom" role="group" aria-label="Controlli zoom della mappa">
+        <button type="button" onClick={() => mapRef.current?.zoomIn()} aria-label="Ingrandisci la mappa">
+          <Plus size={21}/>
+        </button>
+        <button type="button" onClick={() => mapRef.current?.zoomOut()} aria-label="Riduci la mappa">
+          <Minus size={21}/>
+        </button>
+        <button type="button" className="routeReset" onClick={showWholeRoute} aria-label="Mostra tutta la rotta">
+          <Scan size={17}/><span>Tutta la rotta</span>
+        </button>
+      </div>
+    </div>
+  );
 }
