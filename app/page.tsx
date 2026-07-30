@@ -4,7 +4,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   ArrowLeft, ArrowRight, ArrowRightLeft, Banknote, Bus, CalendarDays, Camera, ChevronRight,
   CircleUserRound, Clock3, Download, ExternalLink, LoaderCircle, LogOut, Map, MapPin,
-  MessageCircle, Info, Languages, Navigation, Plane, Plus, ReceiptText, ShieldCheck,
+  MessageCircle, Gamepad2, Info, Languages, Navigation, Plane, Plus, ReceiptText, ShieldCheck,
   Trash2, TrainFront, Trophy, Utensils, Wallet
 } from "lucide-react";
 import { upload as uploadBlob } from "@vercel/blob/client";
@@ -15,6 +15,7 @@ import Phrasebook from "@/components/phrasebook";
 import TripQuiz from "@/components/trip-quiz";
 import { PhotoContestPanel, PhotoContestShowcase } from "@/components/photo-contest";
 import ExpenseDialog from "@/components/expense-dialog";
+import TripGames from "@/components/trip-games";
 
 type Day = {
   n: number; date: string; city: string; title: string; type: "plane" | "train" | "bus" | "walk";
@@ -155,7 +156,7 @@ const tripMapDays: TripMapDay[] = days
 
 export default function Home() {
   const [active, setActive] = useState(0);
-  const [tab, setTab] = useState<"mappa" | "programma" | "ricordi" | "spese" | "info" | "assicurazione" | "frasario" | "quiz">("mappa");
+  const [tab, setTab] = useState<"mappa" | "programma" | "ricordi" | "spese" | "info" | "assicurazione" | "frasario" | "quiz" | "giochi">("mappa");
   const [currentUser, setCurrentUser] = useState<SessionUser | null>(null);
   const [notes, setNotes] = useState<Record<number, NoteEntry>>({});
   const [restaurants, setRestaurants] = useState<RestaurantEntry[]>([]);
@@ -485,6 +486,7 @@ export default function Home() {
         <button className={tab === "assicurazione" ? "active" : ""} onClick={() => setTab("assicurazione")}><ShieldCheck size={18}/> Polizza</button>
         <button className={tab === "frasario" ? "active" : ""} onClick={() => setTab("frasario")}><Languages size={18}/> Frasi</button>
         <button className={tab === "quiz" ? "active" : ""} onClick={() => setTab("quiz")}><Trophy size={18}/> Quiz</button>
+        <button className={tab === "giochi" ? "active" : ""} onClick={() => setTab("giochi")}><Gamepad2 size={18}/> Giochi</button>
       </nav>
       {dataLoading && <p className="dataStatus">Sincronizzazione con il diario condiviso…</p>}
       {dataError && <p className="dataError" role="alert">{dataError}</p>}
@@ -711,6 +713,7 @@ export default function Home() {
       {tab === "assicurazione" && <InsuranceInfo/>}
       {tab === "frasario" && <Phrasebook/>}
       {tab === "quiz" && <TripQuiz/>}
+      {tab === "giochi" && <TripGames/>}
 
       <ExpenseDialog
         open={expenseDay !== undefined}

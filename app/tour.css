@@ -417,7 +417,7 @@
 
 @media (max-width: 700px) {
   .tabs {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
+    grid-template-columns: repeat(9, minmax(0, 1fr));
   }
 
   .insurancePage {
@@ -3117,7 +3117,7 @@
 .converterFields {
   display: grid;
   grid-template-columns: 1fr 34px 1fr;
-  align-items: end;
+  align-items: flex-end;
   gap: 10px;
   margin: 20px 0 14px;
 }
@@ -3903,7 +3903,7 @@
 
 @media (max-width: 700px) {
   .tabs {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
+    grid-template-columns: repeat(9, minmax(0, 1fr));
   }
 
   .tabs button {
@@ -4034,5 +4034,600 @@
   .quizSubmitBar button {
     min-height: 48px;
     font-size: 10px;
+  }
+}
+
+.gamesPage {
+  max-width: 1160px;
+  margin: 34px auto 60px;
+  padding: 0 30px;
+}
+
+.gamesHero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 30px;
+  border-radius: 17px;
+  color: white;
+  background: linear-gradient(135deg, #773e69, #a75874);
+}
+
+.gamesHero span,
+.gamesSectionHead span,
+.gamesDayHead span,
+.dailyGameCard header small {
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 1.7px;
+}
+
+.gamesHero h2 {
+  margin: 4px 0;
+  font: 700 35px/1.05 var(--font-serif);
+}
+
+.gamesHero p {
+  margin: 0;
+  font-size: 12px;
+  opacity: .78;
+}
+
+.gamesHero > svg {
+  opacity: .7;
+}
+
+.gamesTotals,
+.gamesDailyRanking {
+  margin: 24px 0;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: white;
+}
+
+.gamesSectionHead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 13px;
+}
+
+.gamesSectionHead span,
+.gamesDayHead span {
+  color: var(--rust);
+}
+
+.gamesSectionHead h3,
+.gamesDayHead h3,
+.dailyGameCard h3 {
+  margin: 3px 0 0;
+  font-family: var(--font-serif);
+}
+
+.gamesSectionHead > small {
+  color: #889290;
+  font-size: 9px;
+}
+
+.gamesPodium {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.gamesPodium > div {
+  display: grid;
+  grid-template-columns: 25px 36px 1fr auto;
+  align-items: center;
+  gap: 9px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--cream);
+}
+
+.gamesPodium > div.isCurrent {
+  outline: 2px solid #a75874;
+}
+
+.gamesPodium i {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 50%;
+  color: white;
+  background: #a75874;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.gamesPodium b,
+.gamesPodium b small {
+  display: block;
+}
+
+.gamesPodium b {
+  font-size: 11px;
+}
+
+.gamesPodium b small {
+  margin-top: 2px;
+  color: #8b9492;
+  font-size: 7px;
+}
+
+.gamesPodium > div > strong {
+  color: #773e69;
+  font-size: 14px;
+}
+
+.gamesDayPicker {
+  display: flex;
+  gap: 8px;
+  margin: 0 -8px 20px;
+  padding: 2px 8px 9px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.gamesDayPicker::-webkit-scrollbar {
+  display: none;
+}
+
+.gamesDayPicker button {
+  flex: 0 0 116px;
+  min-height: 65px;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  background: white;
+  text-align: left;
+}
+
+.gamesDayPicker button.active {
+  border-color: #a75874;
+  background: #fff2f6;
+  box-shadow: 0 0 0 1px #a75874;
+}
+
+.gamesDayPicker small {
+  color: var(--rust);
+  font-size: 7px;
+  font-weight: 900;
+}
+
+.gamesDayPicker strong {
+  font-size: 10px;
+}
+
+.gamesDayPicker b {
+  color: #773e69;
+  font-size: 9px;
+}
+
+.gamesDayPicker svg {
+  color: #999;
+}
+
+.gamesDayHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 13px;
+}
+
+.gamesDayHead h3 {
+  font-size: 26px;
+}
+
+.gamesDayHead > strong {
+  display: grid;
+  width: 68px;
+  height: 68px;
+  place-items: center;
+  align-content: center;
+  border-radius: 50%;
+  color: white;
+  background: #773e69;
+  font: 700 24px/1 var(--font-serif);
+}
+
+.gamesDayHead > strong small {
+  margin-top: 2px;
+  font: 8px var(--font-sans);
+  opacity: .75;
+}
+
+.dailyGamesGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 13px;
+}
+
+.dailyGameCard {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: white;
+}
+
+.dailyGameCard.photoPuzzleCard {
+  grid-column: 1 / -1;
+}
+
+.dailyGameCard > header {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.dailyGameCard > header > span {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 10px;
+  color: white;
+  background: #a75874;
+}
+
+.dailyGameCard header small {
+  color: var(--rust);
+}
+
+.dailyGameCard header > b {
+  padding: 6px 9px;
+  border-radius: 16px;
+  color: #773e69;
+  background: #fff0f5;
+  font-size: 10px;
+}
+
+.dailyGameCard > p {
+  color: #6f7a78;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.wordGameFields {
+  display: grid;
+  gap: 8px;
+}
+
+.wordGameFields label {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 1px 9px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--cream);
+}
+
+.wordGameFields label.correct {
+  border-color: #5a9274;
+  background: #edf7f1;
+}
+
+.wordGameFields label.wrong {
+  border-color: #d78069;
+  background: #fff1ed;
+}
+
+.wordGameFields label > span {
+  grid-row: 1 / 3;
+  display: grid;
+  width: 27px;
+  height: 27px;
+  place-items: center;
+  border-radius: 50%;
+  color: white;
+  background: #773e69;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.wordGameFields small {
+  color: #737e7c;
+  font-size: 8px;
+}
+
+.wordGameFields input {
+  min-width: 0;
+  padding: 5px 0;
+  border: 0;
+  border-bottom: 1px solid #d7d0c5;
+  outline: 0;
+  color: var(--ink);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.wordGameFields svg {
+  position: absolute;
+  top: 11px;
+  right: 10px;
+  color: #4f8c6f;
+}
+
+.wordGameFields em {
+  grid-column: 2;
+  color: #b34f35;
+  font-size: 8px;
+  font-style: normal;
+}
+
+.gameAction {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 12px;
+  padding: 9px 13px;
+  border: 0;
+  border-radius: 8px;
+  color: white;
+  background: #773e69;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.gameAction:disabled {
+  opacity: .45;
+}
+
+.chosenOrder {
+  display: grid;
+  gap: 6px;
+  min-height: 53px;
+  margin-bottom: 9px;
+  padding: 8px;
+  border: 1px dashed #cfc5b9;
+  border-radius: 9px;
+  background: var(--cream);
+}
+
+.chosenOrder > small {
+  align-self: center;
+  color: #969d9b;
+  text-align: center;
+}
+
+.chosenOrder button,
+.orderChoices button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink);
+  background: white;
+  text-align: left;
+  font-size: 9px;
+}
+
+.chosenOrder button b {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 50%;
+  color: white;
+  background: #773e69;
+}
+
+.orderChoices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.orderChoices button {
+  justify-content: space-between;
+}
+
+.gameButtons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.gameButtons > button:not(.gameAction) {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  color: #707a78;
+  background: transparent;
+  font-size: 9px;
+}
+
+.gameButtons .gameAction {
+  margin: 0;
+}
+
+.gameMessage {
+  margin: 8px 0 0 !important;
+  color: #773e69 !important;
+  font-weight: 800;
+}
+
+.photoPuzzle {
+  width: min(100%, 430px);
+  aspect-ratio: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  margin: 12px auto;
+  padding: 4px;
+  border-radius: 12px;
+  background: #173c3c;
+}
+
+.photoPuzzle button {
+  border: 0;
+  border-radius: 4px;
+  background-repeat: no-repeat;
+  background-size: 300% 300%;
+}
+
+.photoPuzzle button.blank {
+  background: rgba(255, 255, 255, .08);
+}
+
+.puzzleStatus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-size: 10px;
+}
+
+.puzzleStatus strong {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #773e69;
+}
+
+.puzzleStatus button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  color: #707a78;
+  background: none;
+  font-size: 9px;
+}
+
+.puzzleUnavailable,
+.gamesLocked,
+.gamesLoading {
+  display: grid;
+  min-height: 230px;
+  place-items: center;
+  align-content: center;
+  padding: 25px;
+  color: #7b8583;
+  text-align: center;
+}
+
+.puzzleUnavailable strong,
+.gamesLocked h3 {
+  margin-top: 7px;
+  color: var(--ink);
+  font-family: var(--font-serif);
+}
+
+.puzzleUnavailable p,
+.gamesLocked p {
+  max-width: 420px;
+  margin: 5px auto;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.gamesLocked {
+  min-height: 330px;
+  border-radius: 14px;
+  background: var(--cream);
+}
+
+.gamesDailyRanking > p {
+  color: #7f8987;
+  font-size: 10px;
+}
+
+.gamesDailyRanking > div:not(.gamesSectionHead) {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+}
+
+.gamesError {
+  margin: 12px 0;
+  padding: 11px;
+  border-radius: 8px;
+  color: #9f3c29;
+  background: #fff0ec;
+  font-size: 10px;
+}
+
+@media (max-width: 700px) {
+  .gamesPage {
+    margin: 20px auto 24px;
+    padding: 0 14px calc(80px + env(safe-area-inset-bottom));
+  }
+
+  .gamesHero {
+    padding: 22px 18px;
+  }
+
+  .gamesHero h2 {
+    font-size: 29px;
+  }
+
+  .gamesHero > svg {
+    width: 40px;
+    height: 40px;
+  }
+
+  .gamesPodium,
+  .dailyGamesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .gamesPodium > div {
+    grid-template-columns: 23px 34px 1fr auto;
+  }
+
+  .gamesDayPicker {
+    margin-right: -14px;
+    margin-left: -14px;
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .gamesDayHead h3 {
+    font-size: 21px;
+  }
+
+  .gamesDayHead > strong {
+    width: 60px;
+    height: 60px;
+    font-size: 21px;
+  }
+
+  .dailyGameCard,
+  .dailyGameCard.photoPuzzleCard {
+    grid-column: auto;
+    padding: 14px;
+  }
+
+  .orderChoices {
+    grid-template-columns: 1fr;
+  }
+
+  .photoPuzzle {
+    width: 100%;
   }
 }
