@@ -174,10 +174,30 @@ await sql`
     user_id TEXT NOT NULL,
     user_name TEXT NOT NULL,
     note TEXT NOT NULL DEFAULT '',
+    pathname TEXT,
+    original_name TEXT,
+    content_type TEXT,
+    size_bytes BIGINT,
+    status TEXT NOT NULL DEFAULT 'approved'
+      CHECK (status IN ('pending', 'approved', 'rejected')),
+    reviewed_by_id TEXT,
+    reviewed_by_name TEXT,
+    reviewed_at TIMESTAMPTZ,
+    review_note TEXT NOT NULL DEFAULT '',
     completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (day, mission_id, user_id)
   )
 `;
+
+await sql`ALTER TABLE trip_mission_completions ADD COLUMN IF NOT EXISTS pathname TEXT`;
+await sql`ALTER TABLE trip_mission_completions ADD COLUMN IF NOT EXISTS original_name TEXT`;
+await sql`ALTER TABLE trip_mission_completions ADD COLUMN IF NOT EXISTS content_type TEXT`;
+await sql`ALTER TABLE trip_mission_completions ADD COLUMN IF NOT EXISTS size_bytes BIGINT`;
+await sql`ALTER TABLE trip_mission_completions ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'approved'`;
+await sql`ALTER TABLE trip_mission_completions ADD COLUMN IF NOT EXISTS reviewed_by_id TEXT`;
+await sql`ALTER TABLE trip_mission_completions ADD COLUMN IF NOT EXISTS reviewed_by_name TEXT`;
+await sql`ALTER TABLE trip_mission_completions ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ`;
+await sql`ALTER TABLE trip_mission_completions ADD COLUMN IF NOT EXISTS review_note TEXT NOT NULL DEFAULT ''`;
 
 await sql`
   CREATE INDEX IF NOT EXISTS trip_mission_user_day_idx
@@ -191,10 +211,32 @@ await sql`
     user_id TEXT NOT NULL,
     user_name TEXT NOT NULL,
     note TEXT NOT NULL DEFAULT '',
+    day SMALLINT CHECK (day BETWEEN 1 AND 13),
+    pathname TEXT,
+    original_name TEXT,
+    content_type TEXT,
+    size_bytes BIGINT,
+    status TEXT NOT NULL DEFAULT 'approved'
+      CHECK (status IN ('pending', 'approved', 'rejected')),
+    reviewed_by_id TEXT,
+    reviewed_by_name TEXT,
+    reviewed_at TIMESTAMPTZ,
+    review_note TEXT NOT NULL DEFAULT '',
     completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (item_id, user_id)
   )
 `;
+
+await sql`ALTER TABLE trip_bingo_completions ADD COLUMN IF NOT EXISTS day SMALLINT`;
+await sql`ALTER TABLE trip_bingo_completions ADD COLUMN IF NOT EXISTS pathname TEXT`;
+await sql`ALTER TABLE trip_bingo_completions ADD COLUMN IF NOT EXISTS original_name TEXT`;
+await sql`ALTER TABLE trip_bingo_completions ADD COLUMN IF NOT EXISTS content_type TEXT`;
+await sql`ALTER TABLE trip_bingo_completions ADD COLUMN IF NOT EXISTS size_bytes BIGINT`;
+await sql`ALTER TABLE trip_bingo_completions ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'approved'`;
+await sql`ALTER TABLE trip_bingo_completions ADD COLUMN IF NOT EXISTS reviewed_by_id TEXT`;
+await sql`ALTER TABLE trip_bingo_completions ADD COLUMN IF NOT EXISTS reviewed_by_name TEXT`;
+await sql`ALTER TABLE trip_bingo_completions ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ`;
+await sql`ALTER TABLE trip_bingo_completions ADD COLUMN IF NOT EXISTS review_note TEXT NOT NULL DEFAULT ''`;
 
 await sql`
   CREATE INDEX IF NOT EXISTS trip_bingo_user_idx
