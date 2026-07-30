@@ -146,7 +146,7 @@ export async function POST(request: Request) {
       throw new Error(`Il concorso può valutare al massimo ${MAX_CONTEST_PHOTOS} foto`);
     }
 
-    const rankings = await judgePhotos(photos.map((photo) => ({
+    const judgment = await judgePhotos(photos.map((photo) => ({
       id: String(photo.id),
       pathname: String(photo.pathname),
       originalName: String(photo.original_name),
@@ -155,6 +155,7 @@ export async function POST(request: Request) {
       city: tripDay.city,
       highlights: tripDay.highlights
     })));
+    const rankings = judgment.rankings;
     const winner = rankings[0];
     const serializedRankings = JSON.stringify(rankings);
 
@@ -165,6 +166,7 @@ export async function POST(request: Request) {
           winner_score = ${winner.total},
           winner_reason = ${winner.rationale},
           rankings = CAST(${serializedRankings} AS JSONB),
+          model = ${judgment.model},
           error_message = NULL,
           completed_at = NOW()
       WHERE day = ${tripDay.day}

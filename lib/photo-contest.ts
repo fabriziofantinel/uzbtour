@@ -5,6 +5,11 @@ import { quizDays } from "./quiz-data";
 
 export const MAX_CONTEST_PHOTOS = 60;
 export const GEMINI_PHOTO_MODEL = process.env.GEMINI_PHOTO_MODEL || "gemini-3.6-flash";
+export const GEMINI_PHOTO_FALLBACK_MODEL =
+  process.env.GEMINI_PHOTO_FALLBACK_MODEL || "gemini-3.5-flash";
+
+const GEMINI_MAX_ATTEMPTS = 4;
+const GEMINI_RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
 
 export const photoContestDays = [
   {
@@ -108,6 +113,98 @@ function responseText(payload: Record<string, unknown>) {
   return text;
 }
 
+class GeminiRequestError extends Error {
+  constructor(
+    message: string,
+    readonly transient: boolean,
+    readonly status?: number
+  ) {
+    super(message);
+    this.name = "GeminiRequestError";
+  }
+}
+
+function retryDelay(attempt: number) {
+  const exponentialDelay = 1_000 * (2 ** attempt);
+  const jitter = Math.floor(Math.random() * 500);
+  return exponentialDelay + jitter;
+}
+
+function wait(milliseconds: number) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function requestGemini(model: string, apiKey: string, body: string) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+
+  for (let attempt = 0; attempt < GEMINI_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey
+        },
+        body,
+        signal: AbortSignal.timeout(90_000)
+      });
+
+      if (response.ok) return response;
+
+      const detail = await response.text().catch(() => "");
+      const transient = GEMINI_RETRYABLE_STATUS.has(response.status);
+      const lastAttempt = attempt === GEMINI_MAX_ATTEMPTS - 1;
+
+      if (transient && !lastAttempt) {
+        const delay = retryDelay(attempt);
+        console.warn("Gemini photo judge retry", {
+          model,
+          status: response.status,
+          attempt: attempt + 1,
+          delay
+        });
+        await wait(delay);
+        continue;
+      }
+
+      console.error("Gemini photo judge error", {
+        model,
+        status: response.status,
+        detail: detail.slice(0, 500)
+      });
+      throw new GeminiRequestError(
+        transient
+          ? "Gemini è temporaneamente sovraccarico. Riprova tra qualche minuto."
+          : `Gemini non disponibile (${response.status})`,
+        transient,
+        response.status
+      );
+    } catch (error) {
+      if (error instanceof GeminiRequestError) throw error;
+
+      const lastAttempt = attempt === GEMINI_MAX_ATTEMPTS - 1;
+      if (!lastAttempt) {
+        const delay = retryDelay(attempt);
+        console.warn("Gemini photo judge network retry", {
+          model,
+          attempt: attempt + 1,
+          delay,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        await wait(delay);
+        continue;
+      }
+
+      throw new GeminiRequestError(
+        "Gemini non è raggiungibile. Riprova tra qualche minuto.",
+        true
+      );
+    }
+  }
+
+  throw new GeminiRequestError("Gemini temporaneamente non disponibile", true);
+}
+
 async function loadPrivatePhoto(pathname: string) {
   const result = await get(pathname, { access: "private" });
   if (!result || result.statusCode !== 200) {
@@ -138,7 +235,7 @@ async function judgeOnePhoto(input: {
   day: number;
   city: string;
   highlights: string[];
-}) {
+}, model: string) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY non configurata");
 
@@ -153,54 +250,38 @@ async function judgeOnePhoto(input: {
     "La motivazione deve essere in italiano, concreta, rispettosa e non superare 240 caratteri."
   ].join("\n");
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_PHOTO_MODEL)}:generateContent`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey
-      },
-      body: JSON.stringify({
-        contents: [{
-          role: "user",
-          parts: [
-            { text: prompt },
-            { inlineData: { mimeType: image.mimeType, data: image.data } }
-          ]
-        }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: "OBJECT",
-            properties: {
-              composition: { type: "INTEGER" },
-              technical: { type: "INTEGER" },
-              storytelling: { type: "INTEGER" },
-              originality: { type: "INTEGER" },
-              relevance: { type: "INTEGER" },
-              rationale: { type: "STRING" }
-            },
-            required: [
-              "composition",
-              "technical",
-              "storytelling",
-              "originality",
-              "relevance",
-              "rationale"
-            ]
-          }
-        }
-      }),
-      signal: AbortSignal.timeout(90_000)
+  const body = JSON.stringify({
+    contents: [{
+      role: "user",
+      parts: [
+        { text: prompt },
+        { inlineData: { mimeType: image.mimeType, data: image.data } }
+      ]
+    }],
+    generationConfig: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: "OBJECT",
+        properties: {
+          composition: { type: "INTEGER" },
+          technical: { type: "INTEGER" },
+          storytelling: { type: "INTEGER" },
+          originality: { type: "INTEGER" },
+          relevance: { type: "INTEGER" },
+          rationale: { type: "STRING" }
+        },
+        required: [
+          "composition",
+          "technical",
+          "storytelling",
+          "originality",
+          "relevance",
+          "rationale"
+        ]
+      }
     }
-  );
-
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    console.error("Gemini photo judge error", response.status, detail.slice(0, 500));
-    throw new Error(`Gemini non disponibile (${response.status})`);
-  }
+  });
+  const response = await requestGemini(model, apiKey, body);
 
   const payload = await response.json() as Record<string, unknown>;
   const parsed = JSON.parse(responseText(payload)) as Record<string, unknown>;
@@ -227,12 +308,17 @@ async function judgeOnePhoto(input: {
   } satisfies PhotoScore;
 }
 
-export async function judgePhotos(inputs: Array<Parameters<typeof judgeOnePhoto>[0]>) {
+async function judgePhotosWithModel(
+  inputs: Array<Parameters<typeof judgeOnePhoto>[0]>,
+  model: string
+) {
   const scores: PhotoScore[] = [];
-  const batchSize = 3;
+  const batchSize = 2;
 
   for (let index = 0; index < inputs.length; index += batchSize) {
-    scores.push(...await Promise.all(inputs.slice(index, index + batchSize).map(judgeOnePhoto)));
+    scores.push(...await Promise.all(
+      inputs.slice(index, index + batchSize).map((input) => judgeOnePhoto(input, model))
+    ));
   }
 
   return scores.sort((left, right) =>
@@ -242,4 +328,31 @@ export async function judgePhotos(inputs: Array<Parameters<typeof judgeOnePhoto>
     right.originality - left.originality ||
     Number(left.photoId) - Number(right.photoId)
   );
+}
+
+export async function judgePhotos(inputs: Array<Parameters<typeof judgeOnePhoto>[0]>) {
+  try {
+    return {
+      rankings: await judgePhotosWithModel(inputs, GEMINI_PHOTO_MODEL),
+      model: GEMINI_PHOTO_MODEL
+    };
+  } catch (error) {
+    if (
+      !(error instanceof GeminiRequestError) ||
+      !error.transient ||
+      GEMINI_PHOTO_FALLBACK_MODEL === GEMINI_PHOTO_MODEL
+    ) {
+      throw error;
+    }
+
+    console.warn("Gemini photo judge switching model", {
+      from: GEMINI_PHOTO_MODEL,
+      to: GEMINI_PHOTO_FALLBACK_MODEL,
+      status: error.status
+    });
+    return {
+      rankings: await judgePhotosWithModel(inputs, GEMINI_PHOTO_FALLBACK_MODEL),
+      model: GEMINI_PHOTO_FALLBACK_MODEL
+    };
+  }
 }
