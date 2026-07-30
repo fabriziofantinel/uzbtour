@@ -951,6 +951,88 @@
   margin-top: 14px;
 }
 
+.programContestPanel {
+  padding: 18px;
+}
+
+.programContestGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 15px;
+}
+
+.programContestGrid > section {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #e2d6c3;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .72);
+}
+
+.programContestGrid > section > small {
+  color: var(--rust);
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+}
+
+.programContestGrid > section > h3 {
+  margin: 4px 0;
+  font-family: var(--font-serif);
+  font-size: 18px;
+}
+
+.programContestGrid > section > p {
+  min-height: 30px;
+  margin: 0 0 10px;
+  color: #737a77;
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.programContestGrid > section > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px;
+  color: #7e7463;
+  border-radius: 8px;
+  background: #f2ede3;
+  font-size: 8px;
+}
+
+.photoWinnerCard.compact {
+  display: block;
+  margin-top: 10px;
+}
+
+.photoWinnerCard.compact .photoWinnerImage {
+  min-height: 170px;
+}
+
+.photoWinnerCard.compact .photoWinnerCopy {
+  padding: 13px;
+}
+
+.photoWinnerCard.compact .photoWinnerCopy h3 {
+  font-size: 18px;
+}
+
+.photoWinnerCard.compact .photoWinnerCopy > p {
+  font-size: 10px;
+}
+
+@media (max-width: 700px) {
+  .programContestGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .programContestGrid > section > p {
+    min-height: 0;
+  }
+}
+
 .photoWinnerImage {
   position: relative;
   min-height: 230px;

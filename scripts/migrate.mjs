@@ -130,6 +130,79 @@ await sql`
 `;
 
 await sql`
+  CREATE TABLE IF NOT EXISTS trip_contest_photos (
+    id BIGSERIAL PRIMARY KEY,
+    day SMALLINT NOT NULL CHECK (day BETWEEN 1 AND 13),
+    contest_type TEXT NOT NULL CHECK (contest_type IN ('free', 'theme')),
+    participant_slot SMALLINT NOT NULL CHECK (participant_slot BETWEEN 1 AND 3),
+    pathname TEXT NOT NULL UNIQUE,
+    original_name TEXT NOT NULL CHECK (char_length(original_name) BETWEEN 1 AND 255),
+    content_type TEXT NOT NULL,
+    size_bytes BIGINT,
+    uploaded_by_id TEXT NOT NULL,
+    uploaded_by_name TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (day, contest_type, uploaded_by_id, participant_slot)
+  )
+`;
+
+await sql`
+  CREATE INDEX IF NOT EXISTS trip_contest_photos_day_type_idx
+  ON trip_contest_photos (day, contest_type, created_at)
+`;
+
+await sql`
+  CREATE TABLE IF NOT EXISTS trip_daily_photo_contests (
+    day SMALLINT NOT NULL CHECK (day BETWEEN 1 AND 13),
+    contest_type TEXT NOT NULL CHECK (contest_type IN ('free', 'theme')),
+    status TEXT NOT NULL CHECK (status IN ('processing', 'completed', 'failed')),
+    winner_photo_id BIGINT REFERENCES trip_contest_photos(id) ON DELETE SET NULL,
+    winner_score SMALLINT CHECK (winner_score BETWEEN 0 AND 100),
+    winner_reason TEXT,
+    rankings JSONB NOT NULL DEFAULT '[]'::JSONB,
+    judged_by_id TEXT NOT NULL,
+    judged_by_name TEXT NOT NULL,
+    model TEXT NOT NULL,
+    error_message TEXT,
+    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    completed_at TIMESTAMPTZ,
+    PRIMARY KEY (day, contest_type)
+  )
+`;
+
+await sql`
+  INSERT INTO trip_contest_photos (
+    day, contest_type, participant_slot, pathname, original_name,
+    content_type, size_bytes, uploaded_by_id, uploaded_by_name, created_at
+  )
+  SELECT
+    old_contest.day, 'theme', 1, old_photo.pathname, old_photo.original_name,
+    old_photo.content_type, old_photo.size_bytes, old_photo.uploaded_by_id,
+    old_photo.uploaded_by_name, old_photo.created_at
+  FROM trip_photo_contests old_contest
+  JOIN trip_photos old_photo ON old_photo.id = old_contest.winner_photo_id
+  WHERE old_contest.status = 'completed'
+  ON CONFLICT DO NOTHING
+`;
+
+await sql`
+  INSERT INTO trip_daily_photo_contests (
+    day, contest_type, status, winner_photo_id, winner_score, winner_reason,
+    rankings, judged_by_id, judged_by_name, model, error_message, started_at, completed_at
+  )
+  SELECT
+    old_contest.day, 'theme', old_contest.status, new_photo.id,
+    old_contest.winner_score, old_contest.winner_reason, old_contest.rankings,
+    old_contest.judged_by_id, old_contest.judged_by_name, old_contest.model,
+    old_contest.error_message, old_contest.started_at, old_contest.completed_at
+  FROM trip_photo_contests old_contest
+  JOIN trip_photos old_photo ON old_photo.id = old_contest.winner_photo_id
+  JOIN trip_contest_photos new_photo ON new_photo.pathname = old_photo.pathname
+  WHERE old_contest.status = 'completed'
+  ON CONFLICT (day, contest_type) DO NOTHING
+`;
+
+await sql`
   CREATE TABLE IF NOT EXISTS trip_quiz_attempts (
     id BIGSERIAL PRIMARY KEY,
     day SMALLINT NOT NULL CHECK (day BETWEEN 1 AND 11),

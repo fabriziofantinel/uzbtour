@@ -3,7 +3,10 @@ import sharp from "sharp";
 import { getSql } from "./db";
 import { quizDays } from "./quiz-data";
 
-export const MAX_CONTEST_PHOTOS = 60;
+export const MAX_CONTEST_PHOTOS = 12;
+export const MAX_PHOTOS_PER_PARTICIPANT = 3;
+export const PHOTO_CONTEST_TYPES = ["free", "theme"] as const;
+export type PhotoContestType = typeof PHOTO_CONTEST_TYPES[number];
 export const GEMINI_PHOTO_MODEL = process.env.GEMINI_PHOTO_MODEL || "gemini-3.6-flash";
 export const GEMINI_PHOTO_FALLBACK_MODEL =
   process.env.GEMINI_PHOTO_FALLBACK_MODEL || "gemini-3.5-flash";
@@ -79,10 +82,31 @@ export async function ensurePhotoContestsTable() {
   if (!photoContestSchemaPromise) {
     photoContestSchemaPromise = (async () => {
       await sql`
-        CREATE TABLE IF NOT EXISTS trip_photo_contests (
-          day SMALLINT PRIMARY KEY CHECK (day BETWEEN 1 AND 13),
+        CREATE TABLE IF NOT EXISTS trip_contest_photos (
+          id BIGSERIAL PRIMARY KEY,
+          day SMALLINT NOT NULL CHECK (day BETWEEN 1 AND 13),
+          contest_type TEXT NOT NULL CHECK (contest_type IN ('free', 'theme')),
+          participant_slot SMALLINT NOT NULL CHECK (participant_slot BETWEEN 1 AND 3),
+          pathname TEXT NOT NULL UNIQUE,
+          original_name TEXT NOT NULL CHECK (char_length(original_name) BETWEEN 1 AND 255),
+          content_type TEXT NOT NULL,
+          size_bytes BIGINT,
+          uploaded_by_id TEXT NOT NULL,
+          uploaded_by_name TEXT NOT NULL,
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE (day, contest_type, uploaded_by_id, participant_slot)
+        )
+      `;
+      await sql`
+        CREATE INDEX IF NOT EXISTS trip_contest_photos_day_type_idx
+        ON trip_contest_photos (day, contest_type, created_at)
+      `;
+      await sql`
+        CREATE TABLE IF NOT EXISTS trip_daily_photo_contests (
+          day SMALLINT NOT NULL CHECK (day BETWEEN 1 AND 13),
+          contest_type TEXT NOT NULL CHECK (contest_type IN ('free', 'theme')),
           status TEXT NOT NULL CHECK (status IN ('processing', 'completed', 'failed')),
-          winner_photo_id BIGINT REFERENCES trip_photos(id) ON DELETE SET NULL,
+          winner_photo_id BIGINT REFERENCES trip_contest_photos(id) ON DELETE SET NULL,
           winner_score SMALLINT CHECK (winner_score BETWEEN 0 AND 100),
           winner_reason TEXT,
           rankings JSONB NOT NULL DEFAULT '[]'::JSONB,
@@ -91,7 +115,8 @@ export async function ensurePhotoContestsTable() {
           model TEXT NOT NULL,
           error_message TEXT,
           started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          completed_at TIMESTAMPTZ
+          completed_at TIMESTAMPTZ,
+          PRIMARY KEY (day, contest_type)
         )
       `;
     })().catch((error) => {
@@ -100,6 +125,105 @@ export async function ensurePhotoContestsTable() {
     });
   }
   await photoContestSchemaPromise;
+}
+
+export function validPhotoContestType(value: unknown): value is PhotoContestType {
+  return PHOTO_CONTEST_TYPES.includes(value as PhotoContestType);
+}
+
+export function photoContestDefinition(day: number, contestType: PhotoContestType) {
+  const tripDay = photoContestDay(day);
+  if (!tripDay) return null;
+  return contestType === "free"
+    ? {
+        type: contestType,
+        title: "Tema libero",
+        description: "Scegli i tuoi scatti migliori della giornata, senza alcun vincolo di soggetto o stile."
+      }
+    : {
+        type: contestType,
+        title: tripDay.themeTitle,
+        description: tripDay.themeDescription
+      };
+}
+
+export function validContestPhotoPath(
+  pathname: unknown,
+  day: number,
+  contestType: PhotoContestType
+) {
+  if (typeof pathname !== "string") return false;
+  return new RegExp(
+    `^uzbekistan-2026/contest/giorno-${day}/${contestType}/[0-9a-f-]{36}\\.(?:jpe?g|png|webp|heic|heif)$`,
+    "i"
+  ).test(pathname);
+}
+
+export async function saveContestPhotoMetadata(input: {
+  day: number;
+  contestType: PhotoContestType;
+  pathname: string;
+  originalName: string;
+  contentType: string;
+  sizeBytes?: number | null;
+  user: { id: string; name: string };
+}) {
+  await ensurePhotoContestsTable();
+  const sql = getSql();
+  const existingRows = await sql`
+    SELECT id, day, contest_type, participant_slot, pathname, original_name,
+           content_type, size_bytes, uploaded_by_id, uploaded_by_name, created_at
+    FROM trip_contest_photos
+    WHERE pathname = ${input.pathname}
+    LIMIT 1
+  `;
+  if (existingRows[0]) {
+    const existing = existingRows[0];
+    if (
+      Number(existing.day) !== input.day ||
+      String(existing.contest_type) !== input.contestType ||
+      String(existing.uploaded_by_id) !== input.user.id
+    ) {
+      throw new Error("La foto risulta già associata a un altro caricamento");
+    }
+    return existing;
+  }
+
+  const rows = await sql`
+    WITH available_slot AS (
+      SELECT candidate.slot
+      FROM generate_series(1, ${MAX_PHOTOS_PER_PARTICIPANT}) AS candidate(slot)
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM trip_contest_photos existing
+        WHERE existing.day = ${input.day}
+          AND existing.contest_type = ${input.contestType}
+          AND existing.uploaded_by_id = ${input.user.id}
+          AND existing.participant_slot = candidate.slot
+      )
+      ORDER BY candidate.slot
+      LIMIT 1
+    )
+    INSERT INTO trip_contest_photos (
+      day, contest_type, participant_slot, pathname, original_name,
+      content_type, size_bytes, uploaded_by_id, uploaded_by_name
+    )
+    SELECT
+      ${input.day}, ${input.contestType}, available_slot.slot, ${input.pathname},
+      ${input.originalName}, ${input.contentType}, ${input.sizeBytes ?? null},
+      ${input.user.id}, ${input.user.name}
+    FROM available_slot
+    ON CONFLICT (pathname) DO UPDATE SET
+      original_name = EXCLUDED.original_name,
+      content_type = EXCLUDED.content_type,
+      size_bytes = COALESCE(EXCLUDED.size_bytes, trip_contest_photos.size_bytes)
+    RETURNING id, day, contest_type, participant_slot, pathname, original_name,
+              content_type, size_bytes, uploaded_by_id, uploaded_by_name, created_at
+  `;
+  if (!rows[0]) {
+    throw new Error(`Hai già caricato ${MAX_PHOTOS_PER_PARTICIPANT} foto in questo contest`);
+  }
+  return rows[0];
 }
 
 export function photoContestDay(day: unknown) {

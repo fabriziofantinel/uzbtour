@@ -642,7 +642,7 @@ export default function Home() {
             <button disabled={!currentUser || Boolean(saving)} onClick={() => addWithdrawal(day.n)}><Banknote size={18}/><span>Aggiungi prelievo<small>{dayCashMovements.filter(movement => movement.kind === "withdrawal").length} registrati</small></span><Plus size={17}/></button>
             <button disabled={!currentUser || Boolean(saving)} onClick={() => addExchange(day.n)}><ArrowRightLeft size={18}/><span>Aggiungi cambio<small>{dayCashMovements.filter(movement => movement.kind === "exchange").length} registrati</small></span><Plus size={17}/></button>
           </div>
-          <PhotoContestPanel day={day.n} photoCount={photos[day.n]?.length ?? 0}/>
+          <PhotoContestPanel day={day.n}/>
           {restaurants.filter((restaurant) => restaurant.day === day.n).length > 0 && (
             <div className="restaurantList">
               {restaurants.filter((restaurant) => restaurant.day === day.n).map((restaurant) => (

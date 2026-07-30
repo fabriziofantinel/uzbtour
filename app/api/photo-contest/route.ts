@@ -4,13 +4,16 @@ import { getSql } from "@/lib/db";
 import {
   ensurePhotoContestsTable,
   GEMINI_PHOTO_MODEL,
-  isPhotoContestUnlocked,
   judgePhotos,
   MAX_CONTEST_PHOTOS,
+  MAX_PHOTOS_PER_PARTICIPANT,
   photoContestDay,
-  photoContestDays
+  photoContestDays,
+  photoContestDefinition,
+  type PhotoContestType,
+  validPhotoContestType
 } from "@/lib/photo-contest";
-import { ensurePhotosTable, isPhotoAdmin } from "@/lib/photos";
+import { isPhotoAdmin } from "@/lib/photos";
 
 export const runtime = "nodejs";
 export const preferredRegion = "fra1";
@@ -20,11 +23,12 @@ function contestFromRow(row: Record<string, unknown>) {
   const winnerId = row.winner_photo_id == null ? null : String(row.winner_photo_id);
   return {
     day: Number(row.day),
+    contestType: String(row.contest_type),
     status: String(row.status),
     winnerPhotoId: winnerId,
     winnerScore: row.winner_score == null ? null : Number(row.winner_score),
     winnerReason: row.winner_reason == null ? null : String(row.winner_reason),
-    winnerContentUrl: winnerId ? `/api/photos/${winnerId}/content` : null,
+    winnerContentUrl: winnerId ? `/api/photo-contest/photos/${winnerId}/content` : null,
     rankings: Array.isArray(row.rankings) ? row.rankings : [],
     judgedBy: String(row.judged_by_name),
     model: String(row.model),
@@ -34,39 +38,80 @@ function contestFromRow(row: Record<string, unknown>) {
   };
 }
 
-async function buildResponse(user: { initials: string }) {
+function photoFromRow(
+  row: Record<string, unknown>,
+  user: { id: string; initials: string }
+) {
+  const id = String(row.id);
+  return {
+    id,
+    slot: Number(row.participant_slot),
+    originalName: String(row.original_name),
+    addedBy: String(row.uploaded_by_name),
+    isMine: String(row.uploaded_by_id) === user.id,
+    canDelete: String(row.uploaded_by_id) === user.id || isPhotoAdmin(user),
+    contentUrl: `/api/photo-contest/photos/${id}/content`,
+    createdAt: row.created_at
+  };
+}
+
+async function buildResponse(user: { id: string; initials: string }) {
   const sql = getSql();
   const [contestRows, photoRows] = await Promise.all([
     sql`
-      SELECT day, status, winner_photo_id, winner_score, winner_reason, rankings,
-             judged_by_name, model, error_message, started_at, completed_at
-      FROM trip_photo_contests
-      ORDER BY day
+      SELECT day, contest_type, status, winner_photo_id, winner_score, winner_reason,
+             rankings, judged_by_name, model, error_message, started_at, completed_at
+      FROM trip_daily_photo_contests
+      ORDER BY day, contest_type
     `,
     sql`
-      SELECT day, COUNT(*)::INTEGER AS photo_count
-      FROM trip_photos
-      WHERE day BETWEEN 1 AND 13
-      GROUP BY day
+      SELECT id, day, contest_type, participant_slot, original_name,
+             uploaded_by_id, uploaded_by_name, created_at
+      FROM trip_contest_photos
+      ORDER BY day, contest_type, uploaded_by_name, participant_slot
     `
   ]);
-  const counts = new Map(photoRows.map((row) => [Number(row.day), Number(row.photo_count)]));
-  const contests = new Map(contestRows.map((row) => [Number(row.day), contestFromRow(row)]));
+
+  const contests = new Map(
+    contestRows.map((row) => [
+      `${Number(row.day)}:${String(row.contest_type)}`,
+      contestFromRow(row)
+    ])
+  );
+  const photos = new Map<string, ReturnType<typeof photoFromRow>[]>();
+  for (const row of photoRows) {
+    const key = `${Number(row.day)}:${String(row.contest_type)}`;
+    photos.set(key, [...(photos.get(key) ?? []), photoFromRow(row, user)]);
+  }
 
   return {
     isAdmin: isPhotoAdmin(user),
-    days: photoContestDays.map((day) => ({
-      day: day.day,
-      label: day.label,
-      date: day.date,
-      city: day.city,
-      themeTitle: day.themeTitle,
-      themeDescription: day.themeDescription,
-      unlockAt: day.unlockAt,
-      unlocked: isPhotoAdmin(user) || isPhotoContestUnlocked(day.day),
-      photoCount: counts.get(day.day) ?? 0,
-      contest: contests.get(day.day) ?? null
-    }))
+    maxPhotosPerParticipant: MAX_PHOTOS_PER_PARTICIPANT,
+    days: photoContestDays.map((day) => {
+      const buildKind = (contestType: PhotoContestType) => {
+        const key = `${day.day}:${contestType}`;
+        const definition = photoContestDefinition(day.day, contestType)!;
+        const entries = photos.get(key) ?? [];
+        return {
+          ...definition,
+          photoCount: entries.length,
+          myPhotoCount: entries.filter((photo) => photo.isMine).length,
+          photos: entries,
+          contest: contests.get(key) ?? null
+        };
+      };
+
+      return {
+        day: day.day,
+        label: day.label,
+        date: day.date,
+        city: day.city,
+        contests: {
+          free: buildKind("free"),
+          theme: buildKind("theme")
+        }
+      };
+    })
   };
 }
 
@@ -75,7 +120,6 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
 
   try {
-    await ensurePhotosTable();
     await ensurePhotoContestsTable();
     return NextResponse.json(await buildResponse(user));
   } catch (error) {
@@ -94,17 +138,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Solo Fabrizio può avviare la giuria" }, { status: 403 });
   }
 
-  const body = await request.json().catch(() => null) as { day?: number } | null;
+  const body = await request.json().catch(() => null) as {
+    day?: number;
+    contestType?: PhotoContestType;
+  } | null;
   const tripDay = photoContestDay(body?.day);
-  if (!tripDay) return NextResponse.json({ error: "Giornata non valida" }, { status: 400 });
+  if (!tripDay || !validPhotoContestType(body?.contestType)) {
+    return NextResponse.json({ error: "Contest non valido" }, { status: 400 });
+  }
+  const contestType = body.contestType;
+  const definition = photoContestDefinition(tripDay.day, contestType)!;
   const sql = getSql();
-  try {
-    await ensurePhotosTable();
-    await ensurePhotoContestsTable();
 
+  try {
+    await ensurePhotoContestsTable();
     await sql`
-      DELETE FROM trip_photo_contests
+      DELETE FROM trip_daily_photo_contests
       WHERE day = ${tripDay.day}
+        AND contest_type = ${contestType}
         AND (
           status = 'failed'
           OR (status = 'processing' AND started_at < NOW() - INTERVAL '15 minutes')
@@ -112,25 +163,29 @@ export async function POST(request: Request) {
     `;
 
     const inserted = await sql`
-      INSERT INTO trip_photo_contests (
-        day, status, judged_by_id, judged_by_name, model, started_at
+      INSERT INTO trip_daily_photo_contests (
+        day, contest_type, status, judged_by_id, judged_by_name, model, started_at
       )
       VALUES (
-        ${tripDay.day}, 'processing', ${user.id}, ${user.name}, ${GEMINI_PHOTO_MODEL}, NOW()
+        ${tripDay.day}, ${contestType}, 'processing',
+        ${user.id}, ${user.name}, ${GEMINI_PHOTO_MODEL}, NOW()
       )
-      ON CONFLICT (day) DO NOTHING
+      ON CONFLICT (day, contest_type) DO NOTHING
       RETURNING day, started_at
     `;
     if (inserted.length === 0) {
       const existing = await sql`
-        SELECT status FROM trip_photo_contests WHERE day = ${tripDay.day} LIMIT 1
+        SELECT status
+        FROM trip_daily_photo_contests
+        WHERE day = ${tripDay.day} AND contest_type = ${contestType}
+        LIMIT 1
       `;
       const status = String(existing[0]?.status ?? "");
       return NextResponse.json(
         {
           error: status === "completed"
-            ? "La foto del giorno è già stata scelta"
-            : "La giuria per questa giornata è già in corso"
+            ? "La foto vincitrice di questo contest è già stata scelta"
+            : "La giuria di questo contest è già in corso"
         },
         { status: 409 }
       );
@@ -139,13 +194,15 @@ export async function POST(request: Request) {
     const startedAt = inserted[0].started_at;
     const photos = await sql`
       SELECT id, pathname, original_name, uploaded_by_name
-      FROM trip_photos
-      WHERE day = ${tripDay.day} AND created_at <= ${startedAt}
+      FROM trip_contest_photos
+      WHERE day = ${tripDay.day}
+        AND contest_type = ${contestType}
+        AND created_at <= ${startedAt}
       ORDER BY id
     `;
-    if (photos.length === 0) throw new Error("Nessuna foto caricata per questa giornata");
+    if (photos.length === 0) throw new Error("Nessuna foto caricata in questo contest");
     if (photos.length > MAX_CONTEST_PHOTOS) {
-      throw new Error(`Il concorso può valutare al massimo ${MAX_CONTEST_PHOTOS} foto`);
+      throw new Error(`Il contest può valutare al massimo ${MAX_CONTEST_PHOTOS} foto`);
     }
 
     const judgment = await judgePhotos(photos.map((photo) => ({
@@ -156,24 +213,22 @@ export async function POST(request: Request) {
       day: tripDay.day,
       city: tripDay.city,
       highlights: tripDay.highlights,
-      themeTitle: tripDay.themeTitle,
-      themeDescription: tripDay.themeDescription
+      themeTitle: definition.title,
+      themeDescription: definition.description
     })));
-    const rankings = judgment.rankings;
-    const winner = rankings[0];
-    const serializedRankings = JSON.stringify(rankings);
+    const winner = judgment.rankings[0];
 
     await sql`
-      UPDATE trip_photo_contests
+      UPDATE trip_daily_photo_contests
       SET status = 'completed',
           winner_photo_id = ${winner.photoId},
           winner_score = ${winner.total},
           winner_reason = ${winner.rationale},
-          rankings = CAST(${serializedRankings} AS JSONB),
+          rankings = CAST(${JSON.stringify(judgment.rankings)} AS JSONB),
           model = ${judgment.model},
           error_message = NULL,
           completed_at = NOW()
-      WHERE day = ${tripDay.day}
+      WHERE day = ${tripDay.day} AND contest_type = ${contestType}
     `;
 
     return NextResponse.json(await buildResponse(user));
@@ -181,9 +236,11 @@ export async function POST(request: Request) {
     const message = error instanceof Error ? error.message : "Valutazione non riuscita";
     console.error("Giuria fotografica non riuscita", error);
     await sql`
-      UPDATE trip_photo_contests
+      UPDATE trip_daily_photo_contests
       SET status = 'failed', error_message = ${message.slice(0, 300)}
-      WHERE day = ${tripDay.day} AND status = 'processing'
+      WHERE day = ${tripDay.day}
+        AND contest_type = ${contestType}
+        AND status = 'processing'
     `.catch(() => null);
     return NextResponse.json({ error: message }, { status: 503 });
   }
