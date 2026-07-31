@@ -216,7 +216,7 @@ function MissionBoard({
         <div className="challengeLocked">
           <LockKeyhole size={38}/>
           <h3>Missioni ancora chiuse</h3>
-          <p>Si sbloccano alle 20:00, ora uzbeka. Fabrizio può provarle in anticipo.</p>
+          <p>Si sbloccano alle 20:00, ora uzbeka, due giorni prima della giornata. Fabrizio può provarle in anticipo.</p>
         </div>
       ) : (
         <>
@@ -295,7 +295,7 @@ function BingoBoard({
   return (
     <section className="bingoBoard">
       <div className="bingoHeading">
-        <div><span>CACCIA LUNGO TUTTO IL TOUR</span><h3>Bingo Uzbekistan</h3><p>Fotografa ciò che trovi: la casella vale punti solo dopo l’approvazione.</p></div>
+        <div><span>SEMPRE SBLOCCATO · CACCIA LUNGO TUTTO IL TOUR</span><h3>Bingo Uzbekistan</h3><p>Fotografa ciò che trovi: la casella vale punti solo dopo l’approvazione di Fabrizio.</p></div>
         <strong>{data.bingo.score}<small>/{data.bingo.maximum} pt validati</small></strong>
       </div>
       <div className="bingoProgress"><span style={{ width: `${approved / bingoItems.length * 100}%` }}/></div>

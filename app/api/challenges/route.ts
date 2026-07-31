@@ -13,9 +13,9 @@ import {
   MISSION_POINTS,
   bingoItems,
   bingoScore,
+  isMissionUnlocked,
   missionDays
 } from "@/lib/challenge-data";
-import { isGameUnlocked } from "@/lib/game-data";
 import { getTripUsers } from "@/lib/trip-users";
 import { isPhotoAdmin, safeOriginalName, validPhotoDay } from "@/lib/photos";
 
@@ -147,7 +147,7 @@ async function buildResponse(user: { id: string; name: string; initials: string 
       label: day.label,
       date: day.date,
       city: day.city,
-      unlocked: isGameUnlocked(day, user),
+      unlocked: isMissionUnlocked(day, user),
       submissions: ownMissions
         .filter((row) => Number(row.day) === day.day)
         .map((row) => ({
@@ -295,7 +295,7 @@ export async function POST(request: Request) {
       if (!day || !mission) {
         return NextResponse.json({ error: "Missione non valida" }, { status: 400 });
       }
-      if (!isGameUnlocked(day, user)) {
+      if (!isMissionUnlocked(day, user)) {
         return NextResponse.json({ error: "Le missioni non sono ancora sbloccate" }, { status: 403 });
       }
       if (!body.pathname || !validChallengeEvidencePath(body.pathname, "mission", day.day)) {

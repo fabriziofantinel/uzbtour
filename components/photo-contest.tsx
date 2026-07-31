@@ -478,7 +478,7 @@ export function PhotoContestHub() {
         <div>
           <small>DUE CONTEST · TRE FOTO A TESTA · DUE VINCITORI</small>
           <h3>Contest fotografici</h3>
-          <p>Per ogni giornata partecipa sia alla gara a tema libero sia alla sfida con il tema proposto.</p>
+          <p>Sempre sbloccati: per ogni giornata partecipa sia alla gara a tema libero sia alla sfida con il tema proposto. Fabrizio decide quando avviare la valutazione.</p>
         </div>
       </header>
 

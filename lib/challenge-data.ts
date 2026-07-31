@@ -106,6 +106,18 @@ export const missionDays = gameDays.map((day) => ({
   missions: missionSets[day.day] ?? []
 }));
 
+const MISSION_UNLOCK_LEAD_MS = 2 * 24 * 60 * 60 * 1000;
+
+export function isMissionUnlocked(
+  day: { unlockAt: string },
+  user: { initials: string },
+  now = new Date()
+) {
+  if (user.initials.toUpperCase() === "FF") return true;
+  const unlockTime = new Date(day.unlockAt).getTime() - MISSION_UNLOCK_LEAD_MS;
+  return now.getTime() >= unlockTime;
+}
+
 export const bingoItems = [
   { id: "chevrolet", title: "Chevrolet bianca", description: "L’auto simbolo delle strade uzbeke" },
   { id: "non", title: "Pane non", description: "La focaccia tonda decorata" },

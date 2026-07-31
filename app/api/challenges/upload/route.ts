@@ -7,8 +7,7 @@ import {
   saveChallengeEvidence,
   validChallengeEvidencePath
 } from "@/lib/challenges";
-import { bingoItems, missionDays } from "@/lib/challenge-data";
-import { isGameUnlocked } from "@/lib/game-data";
+import { bingoItems, isMissionUnlocked, missionDays } from "@/lib/challenge-data";
 import {
   MAX_PHOTO_SIZE_BYTES,
   PHOTO_CONTENT_TYPES,
@@ -65,7 +64,7 @@ export async function POST(request: Request) {
         }
         if (payload.type === "mission") {
           const day = missionDays.find((entry) => entry.day === payload.day)!;
-          if (!isGameUnlocked(day, user)) throw new Error("Missione non ancora sbloccata");
+          if (!isMissionUnlocked(day, user)) throw new Error("Missione non ancora sbloccata");
         }
         return {
           allowedContentTypes: [...PHOTO_CONTENT_TYPES],
