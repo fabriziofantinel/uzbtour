@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  CheckCircle2, ChevronRight, Crown, Gamepad2, Grid3X3, ImageOff,
-  ListOrdered, LoaderCircle, LockKeyhole, RotateCcw, Send, Sparkles, Trophy
+  CheckCircle2, ChevronRight, Crown, Gamepad2, Grid3X3,
+  ListOrdered, LoaderCircle, RotateCcw, Send, Sparkles, Trophy
 } from "lucide-react";
 import { gameDays, normalizeGameAnswer, type GameDay } from "@/lib/game-data";
 
@@ -22,10 +22,26 @@ type GameResponse = {
 };
 type Photo = { id: string; day: number; contentUrl: string; originalName: string };
 
+const APP_ICON_PHOTO: Photo = {
+  id: "app-icon",
+  day: 0,
+  contentUrl: "/app-icon.svg",
+  originalName: "Icona UZB Tour"
+};
+
 async function readResponse<T>(response: Response) {
   const payload = await response.json() as T & { error?: string };
   if (!response.ok) throw new Error(payload.error ?? "Operazione non riuscita");
   return payload;
+}
+
+function shufflePhotos(input: Photo[]) {
+  const photos = [...input];
+  for (let cursor = photos.length - 1; cursor > 0; cursor -= 1) {
+    const randomIndex = Math.floor(Math.random() * (cursor + 1));
+    [photos[cursor], photos[randomIndex]] = [photos[randomIndex], photos[cursor]];
+  }
+  return photos;
 }
 
 function WordGame({
@@ -193,7 +209,7 @@ function PhotoPuzzle({
   onScore
 }: {
   day: number;
-  photo?: Photo;
+  photo: Photo;
   savedScore: number;
   onScore: (game: GameName, score: number) => Promise<void>;
 }) {
@@ -227,33 +243,27 @@ function PhotoPuzzle({
   return (
     <article className="dailyGameCard photoPuzzleCard">
       <header><span><Grid3X3 size={20}/></span><div><small>40 PUNTI</small><h3>Puzzle fotografico</h3></div><b>{savedScore}/40</b></header>
-      {!photo ? (
-        <div className="puzzleUnavailable"><ImageOff size={34}/><strong>Manca ancora una foto</strong><p>Il puzzle si attiverà quando verrà caricata una fotografia di questa giornata.</p></div>
-      ) : (
-        <>
-          <p>Ricostruisci lo scatto spostando le tessere accanto allo spazio vuoto.</p>
-          <div className="photoPuzzle" aria-label="Puzzle fotografico 3 per 3">
-            {board.map((tile, position) => (
-              <button
-                key={tile}
-                type="button"
-                className={tile === 8 ? "blank" : ""}
-                aria-label={tile === 8 ? "Spazio vuoto" : `Tessera ${tile + 1}`}
-                onClick={() => move(position)}
-                style={tile === 8 ? undefined : {
-                  backgroundImage: `url("${photo.contentUrl}")`,
-                  backgroundPosition: `${(tile % 3) * 50}% ${Math.floor(tile / 3) * 50}%`
-                }}
-              />
-            ))}
-          </div>
-          <div className="puzzleStatus">
-            <span><b>{moves}</b> mosse</span>
-            {completed && <strong><Trophy size={17}/> Puzzle completato!</strong>}
-            <button type="button" onClick={reset}><RotateCcw size={16}/> Mescola</button>
-          </div>
-        </>
-      )}
+      <p>Ricostruisci lo scatto spostando le tessere accanto allo spazio vuoto.</p>
+      <div className="photoPuzzle" aria-label={`Puzzle fotografico 3 per 3: ${photo.originalName}`}>
+        {board.map((tile, position) => (
+          <button
+            key={tile}
+            type="button"
+            className={tile === 8 ? "blank" : ""}
+            aria-label={tile === 8 ? "Spazio vuoto" : `Tessera ${tile + 1}`}
+            onClick={() => move(position)}
+            style={tile === 8 ? undefined : {
+              backgroundImage: `url("${photo.contentUrl}")`,
+              backgroundPosition: `${(tile % 3) * 50}% ${Math.floor(tile / 3) * 50}%`
+            }}
+          />
+        ))}
+      </div>
+      <div className="puzzleStatus">
+        <span><b>{moves}</b> mosse</span>
+        {completed && <strong><Trophy size={17}/> Puzzle completato!</strong>}
+        <button type="button" onClick={reset}><RotateCcw size={16}/> Mescola</button>
+      </div>
     </article>
   );
 }
@@ -269,11 +279,13 @@ export default function TripGames() {
     let cancelled = false;
     Promise.all([
       fetch("/api/games", { cache: "no-store" }).then((response) => readResponse<GameResponse>(response)),
-      fetch("/api/photos", { cache: "no-store" }).then((response) => readResponse<{ photos: Photo[] }>(response))
+      fetch("/api/photos", { cache: "no-store" })
+        .then((response) => readResponse<{ photos: Photo[] }>(response))
+        .catch(() => ({ photos: [] }))
     ]).then(([gameData, photoData]) => {
       if (cancelled) return;
       setData(gameData);
-      setPhotos(photoData.photos);
+      setPhotos(shufflePhotos(photoData.photos));
       const first = gameData.days.find((day) => day.unlocked && day.scores.total < 100)
         ?? gameData.days.find((day) => day.unlocked)
         ?? gameData.days[0];
@@ -288,8 +300,13 @@ export default function TripGames() {
 
   const day = gameDays.find((entry) => entry.day === activeDay) ?? gameDays[0];
   const dayState = data?.days.find((entry) => entry.day === activeDay);
-  const dayPhotos = useMemo(
-    () => photos.filter((photo) => photo.day === activeDay),
+  const puzzlePhoto = useMemo(
+    () => {
+      const dayPhotos = photos.filter((photo) => photo.day === activeDay);
+      const candidates = dayPhotos.length > 0 ? dayPhotos : photos;
+      if (candidates.length === 0) return APP_ICON_PHOTO;
+      return candidates[activeDay % candidates.length];
+    },
     [activeDay, photos]
   );
 
@@ -316,7 +333,7 @@ export default function TripGames() {
   return (
     <section className="gamesPage">
       <div className="gamesHero">
-        <div><span>IL DOPO-TOUR</span><h2>Giochi della giornata</h2><p>Parole, ricordi e fotografie: fino a 100 punti ogni giorno.</p></div>
+        <div><span>SEMPRE SBLOCCATI</span><h2>Giochi della giornata</h2><p>Parole, ricordi e fotografie: fino a 100 punti ogni giorno.</p></div>
         <Gamepad2 size={58}/>
       </div>
 
@@ -339,7 +356,7 @@ export default function TripGames() {
           const status = data.days.find((entry) => entry.day === gameDay.day)!;
           return <button key={gameDay.day} className={gameDay.day === activeDay ? "active" : ""} type="button" onClick={() => setActiveDay(gameDay.day)}>
             <small>{gameDay.label}</small><strong>{gameDay.date}</strong>
-            {status.unlocked ? <b>{status.scores.total}/100</b> : <LockKeyhole size={15}/>}
+            <b>{status.scores.total}/100</b>
           </button>;
         })}
       </div>
@@ -349,15 +366,11 @@ export default function TripGames() {
         <strong>{dayState.scores.total}<small>/100</small></strong>
       </section>
 
-      {!dayState.unlocked ? (
-        <div className="gamesLocked"><LockKeyhole size={42}/><h3>Giochi ancora chiusi</h3><p>Si sbloccheranno alle <strong>20:00, ora dell’Uzbekistan</strong>, alla fine della giornata.</p></div>
-      ) : (
-        <div className="dailyGamesGrid">
-          <WordGame key={`word-${activeDay}`} day={day} savedScore={dayState.scores.word} onScore={saveScore}/>
-          <OrderGame key={`order-${activeDay}`} day={day} savedScore={dayState.scores.order} onScore={saveScore}/>
-          <PhotoPuzzle key={`puzzle-${activeDay}`} day={activeDay} photo={dayPhotos[0]} savedScore={dayState.scores.puzzle} onScore={saveScore}/>
-        </div>
-      )}
+      <div className="dailyGamesGrid">
+        <WordGame key={`word-${activeDay}`} day={day} savedScore={dayState.scores.word} onScore={saveScore}/>
+        <OrderGame key={`order-${activeDay}`} day={day} savedScore={dayState.scores.order} onScore={saveScore}/>
+        <PhotoPuzzle key={`puzzle-${activeDay}-${puzzlePhoto.id}`} day={activeDay} photo={puzzlePhoto} savedScore={dayState.scores.puzzle} onScore={saveScore}/>
+      </div>
 
       {error && <p className="gamesError" role="alert">{error}</p>}
 

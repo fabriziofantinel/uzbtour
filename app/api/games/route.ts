@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
-import { gameDays, isGameUnlocked } from "@/lib/game-data";
+import { gameDays } from "@/lib/game-data";
 import { ensureGameScoresTable } from "@/lib/games";
 import { getSql } from "@/lib/db";
 import { getTripUsers } from "@/lib/trip-users";
@@ -32,7 +32,7 @@ function buildResponse(
     isAdmin: user.initials.toUpperCase() === "FF",
     days: gameDays.map((day) => ({
       day: day.day,
-      unlocked: isGameUnlocked(day, user),
+      unlocked: true,
       scores: ownScores.get(day.day) ?? { word: 0, order: 0, puzzle: 0, total: 0 },
       ranking: rows
         .filter((row) => Number(row.day) === day.day)
@@ -96,10 +96,6 @@ export async function POST(request: Request) {
   ) {
     return NextResponse.json({ error: "Punteggio non valido" }, { status: 400 });
   }
-  if (!isGameUnlocked(day, user)) {
-    return NextResponse.json({ error: "I giochi non sono ancora sbloccati" }, { status: 403 });
-  }
-
   const column = game === "word"
     ? "word_score"
     : game === "order" ? "order_score" : "puzzle_score";
