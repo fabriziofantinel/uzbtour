@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Award, Camera, CheckCircle2, Clock3, ImagePlus, LoaderCircle,
-  Sparkles, Trash2, Trophy, Upload
+  Sparkles, Trash2, Trophy, Upload, X
 } from "lucide-react";
 
 type ContestType = "free" | "theme";
@@ -145,7 +145,25 @@ function WinnerCard({ day, kind, compact = false }: {
   kind: ContestKind;
   compact?: boolean;
 }) {
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const contest = kind.contest;
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsFullscreen(false);
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isFullscreen]);
+
   if (!contest || contest.status !== "completed" || !contest.winnerContentUrl) return null;
   const winner = contest.rankings.find(
     (ranking) => ranking.photoId === contest.winnerPhotoId
@@ -153,8 +171,14 @@ function WinnerCard({ day, kind, compact = false }: {
   const winnerName = winner?.addedBy;
 
   return (
-    <article className={`photoWinnerCard ${compact ? "compact" : ""}`}>
-      <div className="photoWinnerImage">
+    <>
+      <article className={`photoWinnerCard ${compact ? "compact" : ""}`}>
+      <button
+        type="button"
+        className="photoWinnerImage"
+        aria-label={`Apri a schermo intero la foto vincitrice di ${kind.title}`}
+        onClick={() => setIsFullscreen(true)}
+      >
         <Image
           src={contest.winnerContentUrl}
           alt={`Foto vincitrice di ${kind.title}, giorno ${day.day}`}
@@ -166,7 +190,7 @@ function WinnerCard({ day, kind, compact = false }: {
           <Trophy size={14}/>
           {winnerName ? `Vincitore: ${winnerName}` : "Foto vincitrice"} · {kind.title}
         </span>
-      </div>
+      </button>
       <div className="photoWinnerCopy">
         <small>{day.label} · {day.date}</small>
         <h3>{kind.title}</h3>
@@ -183,7 +207,35 @@ function WinnerCard({ day, kind, compact = false }: {
           </div>
         )}
       </div>
-    </article>
+      </article>
+      {isFullscreen && (
+        <div
+          className="photoWinnerLightbox"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Foto vincitrice di ${kind.title}`}
+          onClick={() => setIsFullscreen(false)}
+        >
+          <button
+            type="button"
+            className="photoWinnerLightboxClose"
+            aria-label="Chiudi foto"
+            onClick={() => setIsFullscreen(false)}
+          >
+            <X size={26}/>
+          </button>
+          <Image
+            src={contest.winnerContentUrl}
+            alt={`Foto vincitrice di ${kind.title}, giorno ${day.day}`}
+            width={1800}
+            height={1800}
+            sizes="100vw"
+            unoptimized
+            onClick={(event) => event.stopPropagation()}
+          />
+        </div>
+      )}
+    </>
   );
 }
 
