@@ -455,51 +455,59 @@ async function judgeOnePhoto(input: {
   } satisfies PhotoScore;
 }
 
-async function judgePhotosWithModel(
-  inputs: Array<Parameters<typeof judgeOnePhoto>[0]>,
-  model: string
-) {
-  const scores: PhotoScore[] = [];
-  const batchSize = 2;
+export async function judgePhotos(inputs: Array<Parameters<typeof judgeOnePhoto>[0]>) {
+  const rankings: PhotoScore[] = [];
+  let usedFallback = false;
 
-  for (let index = 0; index < inputs.length; index += batchSize) {
-    scores.push(...await Promise.all(
-      inputs.slice(index, index + batchSize).map((input) => judgeOnePhoto(input, model))
-    ));
+  // Quotas are enforced per project. Sequential requests avoid the 429 bursts
+  // caused by judging multiple image entries at the same time.
+  for (const input of inputs) {
+    try {
+      rankings.push(await judgeOnePhoto(input, GEMINI_PHOTO_MODEL));
+    } catch (error) {
+      if (
+        !(error instanceof GeminiRequestError) ||
+        !error.transient ||
+        GEMINI_PHOTO_FALLBACK_MODEL === GEMINI_PHOTO_MODEL
+      ) {
+        throw new Error(
+          `Impossibile valutare “${input.originalName}”: ${
+            error instanceof Error ? error.message : "errore sconosciuto"
+          }`
+        );
+      }
+
+      console.warn("Gemini photo judge switching model for one photo", {
+        photoId: input.id,
+        from: GEMINI_PHOTO_MODEL,
+        to: GEMINI_PHOTO_FALLBACK_MODEL,
+        status: error.status
+      });
+      try {
+        rankings.push(await judgeOnePhoto(input, GEMINI_PHOTO_FALLBACK_MODEL));
+        usedFallback = true;
+      } catch (fallbackError) {
+        throw new Error(
+          `Impossibile valutare “${input.originalName}”: ${
+            fallbackError instanceof Error ? fallbackError.message : "errore sconosciuto"
+          }`
+        );
+      }
+    }
   }
 
-  return scores.sort((left, right) =>
+  rankings.sort((left, right) =>
     right.total - left.total ||
     right.storytelling - left.storytelling ||
     right.composition - left.composition ||
     right.originality - left.originality ||
     Number(left.photoId) - Number(right.photoId)
   );
-}
 
-export async function judgePhotos(inputs: Array<Parameters<typeof judgeOnePhoto>[0]>) {
-  try {
-    return {
-      rankings: await judgePhotosWithModel(inputs, GEMINI_PHOTO_MODEL),
-      model: GEMINI_PHOTO_MODEL
-    };
-  } catch (error) {
-    if (
-      !(error instanceof GeminiRequestError) ||
-      !error.transient ||
-      GEMINI_PHOTO_FALLBACK_MODEL === GEMINI_PHOTO_MODEL
-    ) {
-      throw error;
-    }
-
-    console.warn("Gemini photo judge switching model", {
-      from: GEMINI_PHOTO_MODEL,
-      to: GEMINI_PHOTO_FALLBACK_MODEL,
-      status: error.status
-    });
-    return {
-      rankings: await judgePhotosWithModel(inputs, GEMINI_PHOTO_FALLBACK_MODEL),
-      model: GEMINI_PHOTO_FALLBACK_MODEL
-    };
-  }
+  return {
+    rankings,
+    model: usedFallback
+      ? `${GEMINI_PHOTO_MODEL} + ${GEMINI_PHOTO_FALLBACK_MODEL}`
+      : GEMINI_PHOTO_MODEL
+  };
 }
