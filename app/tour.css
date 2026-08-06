@@ -1036,7 +1036,14 @@
 .photoWinnerImage {
   position: relative;
   min-height: 230px;
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  color: inherit;
+  border: 0;
   background: #dfd8cc;
+  cursor: zoom-in;
+  text-align: left;
 }
 
 .photoWinnerImage img {
@@ -1057,6 +1064,42 @@
   color: #3f3218;
   font-size: 9px;
   font-weight: 900;
+}
+
+.photoWinnerLightbox {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(8, 15, 15, .94);
+  cursor: zoom-out;
+}
+
+.photoWinnerLightbox > img {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: calc(100dvh - 36px);
+  object-fit: contain;
+  border-radius: 6px;
+  cursor: default;
+}
+
+.photoWinnerLightboxClose {
+  position: fixed;
+  z-index: 1;
+  top: max(16px, env(safe-area-inset-top));
+  right: max(16px, env(safe-area-inset-right));
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, .35);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .55);
 }
 
 .photoWinnerCopy {
