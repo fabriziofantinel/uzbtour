@@ -147,7 +147,10 @@ function WinnerCard({ day, kind, compact = false }: {
 }) {
   const contest = kind.contest;
   if (!contest || contest.status !== "completed" || !contest.winnerContentUrl) return null;
-  const winner = contest.rankings[0];
+  const winner = contest.rankings.find(
+    (ranking) => ranking.photoId === contest.winnerPhotoId
+  ) ?? contest.rankings[0];
+  const winnerName = winner?.addedBy;
 
   return (
     <article className={`photoWinnerCard ${compact ? "compact" : ""}`}>
@@ -159,14 +162,17 @@ function WinnerCard({ day, kind, compact = false }: {
           sizes={compact ? "(max-width: 700px) 100vw, 300px" : "(max-width: 700px) 100vw, 420px"}
           unoptimized
         />
-        <span><Trophy size={14}/> Vincitrice · {kind.title}</span>
+        <span>
+          <Trophy size={14}/>
+          {winnerName ? `Vincitore: ${winnerName}` : "Foto vincitrice"} · {kind.title}
+        </span>
       </div>
       <div className="photoWinnerCopy">
         <small>{day.label} · {day.date}</small>
         <h3>{kind.title}</h3>
         <strong>{contest.winnerScore}/100 punti</strong>
         <p>{contest.winnerReason}</p>
-        {winner && <span>Scatto di {winner.addedBy}</span>}
+        {winnerName && <span>Scatto vincitore di <b>{winnerName}</b></span>}
         {!compact && winner && (
           <div className="photoScoreGrid" aria-label="Dettaglio del punteggio">
             <span><b>{winner.composition}</b>/25 Composizione</span>
@@ -308,7 +314,10 @@ function ContestCard({
               <p><Clock3 size={15}/> Fabrizio può avviare la valutazione in qualsiasi momento.</p>
             )}
             {kind.contest?.status === "failed" && isAdmin && (
-              <small>Il tentativo precedente non è riuscito: puoi riprovare.</small>
+              <small>
+                Il tentativo precedente non è riuscito
+                {kind.contest.errorMessage ? `: ${kind.contest.errorMessage}` : "."} Puoi riprovare.
+              </small>
             )}
           </div>
         </>
