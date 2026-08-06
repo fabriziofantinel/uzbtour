@@ -268,6 +268,43 @@ class GeminiRequestError extends Error {
   }
 }
 
+function geminiErrorDetail(rawDetail: string, status: number) {
+  const fallback = rawDetail.trim().replace(/\s+/g, " ");
+
+  try {
+    const payload = JSON.parse(rawDetail) as {
+      error?: {
+        code?: number;
+        message?: string;
+        status?: string;
+        details?: Array<Record<string, unknown>>;
+      };
+    };
+    const apiError = payload.error;
+    const reasons = (apiError?.details ?? [])
+      .flatMap((detail) => {
+        const violations = detail.violations;
+        if (!Array.isArray(violations)) return [];
+        return violations.flatMap((violation) => {
+          if (!violation || typeof violation !== "object") return [];
+          const reason = (violation as Record<string, unknown>).quotaMetric;
+          return typeof reason === "string" ? [reason] : [];
+        });
+      });
+    const parts = [
+      `HTTP ${apiError?.code ?? status}`,
+      apiError?.status,
+      apiError?.message,
+      ...reasons
+    ].filter((part): part is string => typeof part === "string" && Boolean(part.trim()));
+    if (parts.length > 1) return [...new Set(parts)].join(" — ").slice(0, 700);
+  } catch {
+    // Some upstream errors are plain text rather than JSON.
+  }
+
+  return [`HTTP ${status}`, fallback].filter(Boolean).join(" — ").slice(0, 700);
+}
+
 function retryDelay(attempt: number) {
   const exponentialDelay = 1_000 * (2 ** attempt);
   const jitter = Math.floor(Math.random() * 500);
@@ -296,6 +333,7 @@ async function requestGemini(model: string, apiKey: string, body: string) {
       if (response.ok) return response;
 
       const detail = await response.text().catch(() => "");
+      const diagnosticDetail = geminiErrorDetail(detail, response.status);
       const transient = GEMINI_RETRYABLE_STATUS.has(response.status);
       const lastAttempt = attempt === GEMINI_MAX_ATTEMPTS - 1;
 
@@ -317,9 +355,7 @@ async function requestGemini(model: string, apiKey: string, body: string) {
         detail: detail.slice(0, 500)
       });
       throw new GeminiRequestError(
-        transient
-          ? "Gemini è temporaneamente sovraccarico. Riprova tra qualche minuto."
-          : `Gemini non disponibile (${response.status})`,
+        `Errore Gemini: ${diagnosticDetail}`,
         transient,
         response.status
       );
@@ -340,7 +376,9 @@ async function requestGemini(model: string, apiKey: string, body: string) {
       }
 
       throw new GeminiRequestError(
-        "Gemini non è raggiungibile. Riprova tra qualche minuto.",
+        `Gemini non raggiungibile: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
         true
       );
     }
