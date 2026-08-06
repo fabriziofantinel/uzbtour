@@ -457,8 +457,17 @@ async function judgeOnePhoto(input: {
   } satisfies PhotoScore;
 }
 
-export async function judgePhotos(inputs: Array<Parameters<typeof judgeOnePhoto>[0]>) {
-  const rankings: PhotoScore[] = [];
+export async function judgePhotos(
+  inputs: Array<Parameters<typeof judgeOnePhoto>[0]>,
+  options: {
+    existingRankings?: PhotoScore[];
+    onProgress?: (rankings: PhotoScore[], model: string) => Promise<void>;
+  } = {}
+) {
+  const inputIds = new Set(inputs.map((input) => input.id));
+  const rankings = (options.existingRankings ?? [])
+    .filter((score) => inputIds.has(String(score.photoId)));
+  const completedPhotoIds = new Set(rankings.map((score) => String(score.photoId)));
   const usedModels = new Set<string>();
   const models = [
     GEMINI_PHOTO_MODEL,
@@ -469,13 +478,18 @@ export async function judgePhotos(inputs: Array<Parameters<typeof judgeOnePhoto>
   // Quotas are enforced per project. Sequential requests avoid the 429 bursts
   // caused by judging multiple image entries at the same time.
   for (const input of inputs) {
+    if (completedPhotoIds.has(input.id)) continue;
+
     let lastError: unknown;
     let scored = false;
 
     for (const [modelIndex, model] of models.entries()) {
       try {
-        rankings.push(await judgeOnePhoto(input, model));
+        const score = await judgeOnePhoto(input, model);
+        rankings.push(score);
+        completedPhotoIds.add(input.id);
         usedModels.add(model);
+        await options.onProgress?.([...rankings], [...usedModels].join(" + "));
         scored = true;
         break;
       } catch (error) {
@@ -503,7 +517,7 @@ export async function judgePhotos(inputs: Array<Parameters<typeof judgeOnePhoto>
         throw new Error(
           `Impossibile valutare “${input.originalName}”: ${
             lastError instanceof Error ? lastError.message : "errore sconosciuto"
-          }`
+          }. I punteggi già completati sono stati salvati: premi Riprova per continuare da questa foto.`
         );
     }
   }
@@ -518,6 +532,6 @@ export async function judgePhotos(inputs: Array<Parameters<typeof judgeOnePhoto>
 
   return {
     rankings,
-    model: [...usedModels].join(" + ")
+    model: [...usedModels].join(" + ") || GEMINI_PHOTO_MODEL
   };
 }
