@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Award, Brain, Camera, Check, CheckCircle2, Compass, Crown, Gamepad2,
   Grid3X3, Languages, LoaderCircle, LockKeyhole, Medal,
-  ShieldCheck, Sparkles, Target, ThumbsDown, ThumbsUp, Trophy
+  ShieldCheck, Sparkles, Target, ThumbsDown, ThumbsUp, Trophy, Upload
 } from "lucide-react";
 import TripQuiz from "./trip-quiz";
 import TripGames from "./trip-games";
@@ -133,32 +133,48 @@ function EvidenceState({ submission }: { submission: Submission }) {
 }
 
 function EvidencePicker({
-  label,
   disabled,
   busy,
   onFile
 }: {
-  label: string;
   disabled: boolean;
   busy: boolean;
   onFile: (file: File) => void;
 }) {
+  const handleFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (file) onFile(file);
+  };
+
   return (
-    <label className={`evidencePicker ${disabled ? "disabled" : ""}`}>
-      {busy ? <LoaderCircle className="spin" size={17}/> : <Camera size={17}/>}
-      {label}
-      <input
-        type="file"
-        accept="image/*,.heic,.heif"
-        capture="environment"
-        disabled={disabled}
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          event.target.value = "";
-          if (file) onFile(file);
-        }}
-      />
-    </label>
+    <div className={`evidencePickerGroup ${disabled ? "disabled" : ""}`}>
+      {busy ? (
+        <span className="evidencePicker busy"><LoaderCircle className="spin" size={17}/> Caricamento…</span>
+      ) : (
+        <>
+          <label className="evidencePicker">
+            <Camera size={17}/> Scatta foto
+            <input
+              type="file"
+              accept="image/*,.heic,.heif"
+              capture="environment"
+              disabled={disabled}
+              onChange={handleFile}
+            />
+          </label>
+          <label className="evidencePicker secondary">
+            <Upload size={17}/> Carica foto
+            <input
+              type="file"
+              accept="image/*,.heic,.heif"
+              disabled={disabled}
+              onChange={handleFile}
+            />
+          </label>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -247,7 +263,6 @@ function MissionBoard({
                   </div>
                   {canSubmit ? (
                     <EvidencePicker
-                      label={submission?.status === "rejected" ? "Nuova foto" : "Aggiungi foto"}
                       disabled={Boolean(uploadingKey)}
                       busy={uploadingKey === key}
                       onFile={(file) => void uploadEvidence({
@@ -319,7 +334,6 @@ function BingoBoard({
                     aria-label={`Nota per ${item.title}`}
                   />
                   <EvidencePicker
-                    label={submission?.status === "rejected" ? "Nuova foto" : "Fotografa"}
                     disabled={Boolean(uploadingKey)}
                     busy={uploadingKey === key}
                     onFile={(file) => void uploadEvidence({
