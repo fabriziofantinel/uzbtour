@@ -7,11 +7,9 @@ export const MAX_CONTEST_PHOTOS = 12;
 export const MAX_PHOTOS_PER_PARTICIPANT = 3;
 export const PHOTO_CONTEST_TYPES = ["free", "theme"] as const;
 export type PhotoContestType = typeof PHOTO_CONTEST_TYPES[number];
-export const GEMINI_PHOTO_MODEL = process.env.GEMINI_PHOTO_MODEL || "gemini-2.5-flash";
+export const GEMINI_PHOTO_MODEL = process.env.GEMINI_PHOTO_MODEL || "gemini-3.6-flash";
 export const GEMINI_PHOTO_FALLBACK_MODEL =
-  process.env.GEMINI_PHOTO_FALLBACK_MODEL || "gemini-2.5-flash-lite";
-export const GEMINI_PHOTO_EMERGENCY_MODEL =
-  process.env.GEMINI_PHOTO_EMERGENCY_MODEL || "gemini-2.5-pro";
+  process.env.GEMINI_PHOTO_FALLBACK_MODEL || "gemini-3.5-flash";
 
 const GEMINI_MAX_ATTEMPTS = 4;
 const GEMINI_RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
@@ -268,43 +266,6 @@ class GeminiRequestError extends Error {
   }
 }
 
-function geminiErrorDetail(rawDetail: string, status: number) {
-  const fallback = rawDetail.trim().replace(/\s+/g, " ");
-
-  try {
-    const payload = JSON.parse(rawDetail) as {
-      error?: {
-        code?: number;
-        message?: string;
-        status?: string;
-        details?: Array<Record<string, unknown>>;
-      };
-    };
-    const apiError = payload.error;
-    const reasons = (apiError?.details ?? [])
-      .flatMap((detail) => {
-        const violations = detail.violations;
-        if (!Array.isArray(violations)) return [];
-        return violations.flatMap((violation) => {
-          if (!violation || typeof violation !== "object") return [];
-          const reason = (violation as Record<string, unknown>).quotaMetric;
-          return typeof reason === "string" ? [reason] : [];
-        });
-      });
-    const parts = [
-      `HTTP ${apiError?.code ?? status}`,
-      apiError?.status,
-      apiError?.message,
-      ...reasons
-    ].filter((part): part is string => typeof part === "string" && Boolean(part.trim()));
-    if (parts.length > 1) return [...new Set(parts)].join(" — ").slice(0, 700);
-  } catch {
-    // Some upstream errors are plain text rather than JSON.
-  }
-
-  return [`HTTP ${status}`, fallback].filter(Boolean).join(" — ").slice(0, 700);
-}
-
 function retryDelay(attempt: number) {
   const exponentialDelay = 1_000 * (2 ** attempt);
   const jitter = Math.floor(Math.random() * 500);
@@ -333,7 +294,6 @@ async function requestGemini(model: string, apiKey: string, body: string) {
       if (response.ok) return response;
 
       const detail = await response.text().catch(() => "");
-      const diagnosticDetail = geminiErrorDetail(detail, response.status);
       const transient = GEMINI_RETRYABLE_STATUS.has(response.status);
       const lastAttempt = attempt === GEMINI_MAX_ATTEMPTS - 1;
 
@@ -355,7 +315,9 @@ async function requestGemini(model: string, apiKey: string, body: string) {
         detail: detail.slice(0, 500)
       });
       throw new GeminiRequestError(
-        `Errore Gemini: ${diagnosticDetail}`,
+        transient
+          ? "Gemini è temporaneamente sovraccarico. Riprova tra qualche minuto."
+          : `Gemini non disponibile (${response.status})`,
         transient,
         response.status
       );
@@ -376,9 +338,7 @@ async function requestGemini(model: string, apiKey: string, body: string) {
       }
 
       throw new GeminiRequestError(
-        `Gemini non raggiungibile: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        "Gemini non è raggiungibile. Riprova tra qualche minuto.",
         true
       );
     }
@@ -495,81 +455,51 @@ async function judgeOnePhoto(input: {
   } satisfies PhotoScore;
 }
 
-export async function judgePhotos(
+async function judgePhotosWithModel(
   inputs: Array<Parameters<typeof judgeOnePhoto>[0]>,
-  options: {
-    existingRankings?: PhotoScore[];
-    onProgress?: (rankings: PhotoScore[], model: string) => Promise<void>;
-  } = {}
+  model: string
 ) {
-  const inputIds = new Set(inputs.map((input) => input.id));
-  const rankings = (options.existingRankings ?? [])
-    .filter((score) => inputIds.has(String(score.photoId)));
-  const completedPhotoIds = new Set(rankings.map((score) => String(score.photoId)));
-  const usedModels = new Set<string>();
-  const models = [
-    GEMINI_PHOTO_MODEL,
-    GEMINI_PHOTO_FALLBACK_MODEL,
-    GEMINI_PHOTO_EMERGENCY_MODEL
-  ].filter((model, index, allModels) => allModels.indexOf(model) === index);
+  const scores: PhotoScore[] = [];
+  const batchSize = 2;
 
-  // Quotas are enforced per project. Sequential requests avoid the 429 bursts
-  // caused by judging multiple image entries at the same time.
-  for (const input of inputs) {
-    if (completedPhotoIds.has(input.id)) continue;
-
-    let lastError: unknown;
-    let scored = false;
-
-    for (const [modelIndex, model] of models.entries()) {
-      try {
-        const score = await judgeOnePhoto(input, model);
-        rankings.push(score);
-        completedPhotoIds.add(input.id);
-        usedModels.add(model);
-        await options.onProgress?.([...rankings], [...usedModels].join(" + "));
-        scored = true;
-        break;
-      } catch (error) {
-        lastError = error;
-        const nextModel = models[modelIndex + 1];
-        const modelUnavailable =
-          error instanceof GeminiRequestError && error.status === 404;
-        if (
-          !(error instanceof GeminiRequestError) ||
-          (!error.transient && !modelUnavailable) ||
-          !nextModel
-        ) {
-          break;
-        }
-        console.warn("Gemini photo judge switching model for one photo", {
-          photoId: input.id,
-          from: model,
-          to: nextModel,
-          status: error.status
-        });
-      }
-    }
-
-    if (!scored) {
-        throw new Error(
-          `Impossibile valutare “${input.originalName}”: ${
-            lastError instanceof Error ? lastError.message : "errore sconosciuto"
-          }. I punteggi già completati sono stati salvati: premi Riprova per continuare da questa foto.`
-        );
-    }
+  for (let index = 0; index < inputs.length; index += batchSize) {
+    scores.push(...await Promise.all(
+      inputs.slice(index, index + batchSize).map((input) => judgeOnePhoto(input, model))
+    ));
   }
 
-  rankings.sort((left, right) =>
+  return scores.sort((left, right) =>
     right.total - left.total ||
     right.storytelling - left.storytelling ||
     right.composition - left.composition ||
     right.originality - left.originality ||
     Number(left.photoId) - Number(right.photoId)
   );
+}
 
-  return {
-    rankings,
-    model: [...usedModels].join(" + ") || GEMINI_PHOTO_MODEL
-  };
+export async function judgePhotos(inputs: Array<Parameters<typeof judgeOnePhoto>[0]>) {
+  try {
+    return {
+      rankings: await judgePhotosWithModel(inputs, GEMINI_PHOTO_MODEL),
+      model: GEMINI_PHOTO_MODEL
+    };
+  } catch (error) {
+    if (
+      !(error instanceof GeminiRequestError) ||
+      !error.transient ||
+      GEMINI_PHOTO_FALLBACK_MODEL === GEMINI_PHOTO_MODEL
+    ) {
+      throw error;
+    }
+
+    console.warn("Gemini photo judge switching model", {
+      from: GEMINI_PHOTO_MODEL,
+      to: GEMINI_PHOTO_FALLBACK_MODEL,
+      status: error.status
+    });
+    return {
+      rankings: await judgePhotosWithModel(inputs, GEMINI_PHOTO_FALLBACK_MODEL),
+      model: GEMINI_PHOTO_FALLBACK_MODEL
+    };
+  }
 }

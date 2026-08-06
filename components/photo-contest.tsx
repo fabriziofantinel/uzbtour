@@ -308,10 +308,7 @@ function ContestCard({
               <p><Clock3 size={15}/> Fabrizio può avviare la valutazione in qualsiasi momento.</p>
             )}
             {kind.contest?.status === "failed" && isAdmin && (
-              <small>
-                Il tentativo precedente non è riuscito
-                {kind.contest.errorMessage ? `: ${kind.contest.errorMessage}` : "."} Puoi riprovare.
-              </small>
+              <small>Il tentativo precedente non è riuscito: puoi riprovare.</small>
             )}
           </div>
         </>
