@@ -434,39 +434,6 @@ export function PhotoContestShowcase() {
     ) ?? [],
     [data]
   );
-  const participantStandings = useMemo(() => {
-    const standings = new Map<string, Omit<ParticipantStanding, "average">>();
-
-    for (const { kind } of winners) {
-      const contest = kind.contest!;
-      for (const ranking of contest.rankings) {
-        const current = standings.get(ranking.addedBy) ?? {
-          name: ranking.addedBy,
-          points: 0,
-          wins: 0,
-          photos: 0
-        };
-        current.points += ranking.total;
-        current.photos += 1;
-        if (ranking.photoId === contest.winnerPhotoId) current.wins += 1;
-        standings.set(ranking.addedBy, current);
-      }
-    }
-
-    return Array.from(standings.values())
-      .map((participant) => ({
-        ...participant,
-        average: participant.photos > 0
-          ? Math.round((participant.points / participant.photos) * 10) / 10
-          : 0
-      }))
-      .sort((a, b) =>
-        b.points - a.points ||
-        b.wins - a.wins ||
-        b.average - a.average ||
-        a.name.localeCompare(b.name, "it")
-      );
-  }, [winners]);
 
   return (
     <section className="photoContestShowcase">
@@ -486,7 +453,54 @@ export function PhotoContestShowcase() {
       <div className="photoWinnerList">
         {winners.map(({ day, kind }) => <WinnerCard key={`${day.day}-${kind.type}`} day={day} kind={kind}/>)}
       </div>
-      {!loading && participantStandings.length > 0 && (
+    </section>
+  );
+}
+
+export function PhotoContestParticipantRanking() {
+  const { data, loading, error } = usePhotoContests();
+  const participantStandings = useMemo(() => {
+    const standings = new Map<string, Omit<ParticipantStanding, "average">>();
+
+    for (const day of data?.days ?? []) {
+      for (const contestType of ["free", "theme"] as const) {
+        const contest = day.contests[contestType].contest;
+        if (contest?.status !== "completed") continue;
+        for (const ranking of contest.rankings) {
+        const current = standings.get(ranking.addedBy) ?? {
+          name: ranking.addedBy,
+          points: 0,
+          wins: 0,
+          photos: 0
+        };
+        current.points += ranking.total;
+        current.photos += 1;
+        if (ranking.photoId === contest.winnerPhotoId) current.wins += 1;
+        standings.set(ranking.addedBy, current);
+        }
+      }
+    }
+
+    return Array.from(standings.values())
+      .map((participant) => ({
+        ...participant,
+        average: participant.photos > 0
+          ? Math.round((participant.points / participant.photos) * 10) / 10
+          : 0
+      }))
+      .sort((a, b) =>
+        b.points - a.points ||
+        b.wins - a.wins ||
+        b.average - a.average ||
+        a.name.localeCompare(b.name, "it")
+      );
+  }, [data]);
+
+  return (
+    <>
+      {loading && <p className="photoContestLoading"><LoaderCircle className="spin" size={17}/> Caricamento della classifica…</p>}
+      {error && <p className="photoContestError" role="alert">{error}</p>}
+      {!loading && (
         <section className="photoParticipantRanking" aria-labelledby="photo-participant-ranking-title">
           <div className="photoParticipantRankingHead">
             <span><Trophy size={20}/></span>
@@ -496,7 +510,7 @@ export function PhotoContestShowcase() {
               <p>Somma dei punti ottenuti da tutte le foto nei contest già conclusi.</p>
             </div>
           </div>
-          <div className="photoParticipantRankingList">
+          {participantStandings.length > 0 ? <div className="photoParticipantRankingList">
             {participantStandings.map((participant, index) => (
               <div key={participant.name} className={index < 3 ? `podium place-${index + 1}` : ""}>
                 <strong>{index + 1}</strong>
@@ -508,10 +522,10 @@ export function PhotoContestShowcase() {
                 <b>{participant.points} pt</b>
               </div>
             ))}
-          </div>
+          </div> : <p className="photoContestEmpty">La classifica apparirà dopo il primo contest concluso.</p>}
         </section>
       )}
-    </section>
+    </>
   );
 }
 
