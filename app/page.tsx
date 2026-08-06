@@ -12,7 +12,7 @@ import TripOverviewMap, { type TripMapDay } from "@/components/trip-overview-map
 import UsefulInfo from "@/components/useful-info";
 import InsuranceInfo from "@/components/insurance-info";
 import Phrasebook from "@/components/phrasebook";
-import { PhotoContestPanel, PhotoContestShowcase } from "@/components/photo-contest";
+import { PhotoContestPanel, PhotoContestParticipantRanking, PhotoContestShowcase } from "@/components/photo-contest";
 import ExpenseDialog from "@/components/expense-dialog";
 import TodayDashboard from "@/components/today-dashboard";
 import TripChallenges from "@/components/trip-challenges";
@@ -678,6 +678,7 @@ export default function Home() {
             </div>
             <figcaption>Giorno {d} · {photo.addedBy}</figcaption>
           </figure>))}</div>}
+        <PhotoContestParticipantRanking/>
       </section>}
 
       {tab === "spese" && <section className="collection expensesPage">
