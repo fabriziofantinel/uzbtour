@@ -265,7 +265,7 @@ export async function POST(request: Request) {
     console.error("Giuria fotografica non riuscita", error);
     await sql`
       UPDATE trip_daily_photo_contests
-      SET status = 'failed', error_message = ${message.slice(0, 300)}
+      SET status = 'failed', error_message = ${message.slice(0, 1000)}
       WHERE day = ${tripDay.day}
         AND contest_type = ${contestType}
         AND status = 'processing'
