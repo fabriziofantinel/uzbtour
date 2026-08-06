@@ -938,6 +938,126 @@
   gap: 16px;
 }
 
+.photoParticipantRanking {
+  margin-top: 28px;
+  overflow: hidden;
+  border: 1px solid #e4d8c4;
+  border-radius: 14px;
+  background: white;
+}
+
+.photoParticipantRankingHead {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 18px;
+  color: white;
+  background: linear-gradient(135deg, #123f3f, #0b6462);
+}
+
+.photoParticipantRankingHead > span {
+  display: grid;
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 50%;
+  color: #533f1d;
+  background: #e6b767;
+}
+
+.photoParticipantRankingHead small {
+  color: #f0c97e;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 1.6px;
+}
+
+.photoParticipantRankingHead h2 {
+  margin: 2px 0 3px;
+  font: 700 23px/1.1 var(--font-serif);
+}
+
+.photoParticipantRankingHead p {
+  margin: 0;
+  color: rgba(255, 255, 255, .72);
+  font-size: 9px;
+}
+
+.photoParticipantRankingList {
+  padding: 8px 18px 14px;
+}
+
+.photoParticipantRankingList > div {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto 66px;
+  align-items: center;
+  gap: 10px;
+  min-height: 58px;
+  border-bottom: 1px solid var(--line);
+}
+
+.photoParticipantRankingList > div:last-child {
+  border-bottom: 0;
+}
+
+.photoParticipantRankingList > div > strong {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--rust);
+  background: var(--cream);
+  font-family: var(--font-serif);
+  font-size: 14px;
+}
+
+.photoParticipantRankingList > div.place-1 > strong {
+  color: #5b4214;
+  background: #e6b767;
+}
+
+.photoParticipantRankingList > div.place-2 > strong {
+  color: #455252;
+  background: #d7dddd;
+}
+
+.photoParticipantRankingList > div.place-3 > strong {
+  color: #683d25;
+  background: #d8a17e;
+}
+
+.photoParticipantRankingList span,
+.photoParticipantRankingList span > b,
+.photoParticipantRankingList span > small {
+  display: block;
+}
+
+.photoParticipantRankingList span > b {
+  color: var(--ink);
+  font-size: 11px;
+}
+
+.photoParticipantRankingList span > small {
+  margin-top: 3px;
+  color: #7f8987;
+  font-size: 8px;
+}
+
+.photoParticipantRankingList em {
+  color: var(--rust);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.photoParticipantRankingList > div > b {
+  color: var(--teal);
+  font-size: 12px;
+  text-align: right;
+}
+
 .photoWinnerCard {
   display: grid;
   grid-template-columns: minmax(220px, 42%) minmax(0, 1fr);
@@ -2641,6 +2761,35 @@
 
   .photoContestIntro h2 {
     font-size: 22px;
+  }
+
+  .photoParticipantRankingHead {
+    align-items: flex-start;
+    padding: 16px;
+  }
+
+  .photoParticipantRankingHead h2 {
+    font-size: 21px;
+  }
+
+  .photoParticipantRankingList {
+    padding: 6px 14px 12px;
+  }
+
+  .photoParticipantRankingList > div {
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 8px 0;
+  }
+
+  .photoParticipantRankingList em {
+    grid-column: 2;
+    margin-top: -8px;
+  }
+
+  .photoParticipantRankingList > div > b {
+    grid-column: 3;
+    grid-row: 1 / span 2;
   }
 
   .photoWinnerCard {
