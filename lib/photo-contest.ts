@@ -10,6 +10,8 @@ export type PhotoContestType = typeof PHOTO_CONTEST_TYPES[number];
 export const GEMINI_PHOTO_MODEL = process.env.GEMINI_PHOTO_MODEL || "gemini-3.6-flash";
 export const GEMINI_PHOTO_FALLBACK_MODEL =
   process.env.GEMINI_PHOTO_FALLBACK_MODEL || "gemini-3.5-flash";
+export const GEMINI_PHOTO_EMERGENCY_MODEL =
+  process.env.GEMINI_PHOTO_EMERGENCY_MODEL || "gemini-2.5-flash";
 
 const GEMINI_MAX_ATTEMPTS = 4;
 const GEMINI_RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
@@ -457,42 +459,46 @@ async function judgeOnePhoto(input: {
 
 export async function judgePhotos(inputs: Array<Parameters<typeof judgeOnePhoto>[0]>) {
   const rankings: PhotoScore[] = [];
-  let usedFallback = false;
+  const usedModels = new Set<string>();
+  const models = [
+    GEMINI_PHOTO_MODEL,
+    GEMINI_PHOTO_FALLBACK_MODEL,
+    GEMINI_PHOTO_EMERGENCY_MODEL
+  ].filter((model, index, allModels) => allModels.indexOf(model) === index);
 
   // Quotas are enforced per project. Sequential requests avoid the 429 bursts
   // caused by judging multiple image entries at the same time.
   for (const input of inputs) {
-    try {
-      rankings.push(await judgeOnePhoto(input, GEMINI_PHOTO_MODEL));
-    } catch (error) {
-      if (
-        !(error instanceof GeminiRequestError) ||
-        !error.transient ||
-        GEMINI_PHOTO_FALLBACK_MODEL === GEMINI_PHOTO_MODEL
-      ) {
-        throw new Error(
-          `Impossibile valutare “${input.originalName}”: ${
-            error instanceof Error ? error.message : "errore sconosciuto"
-          }`
-        );
-      }
+    let lastError: unknown;
+    let scored = false;
 
-      console.warn("Gemini photo judge switching model for one photo", {
-        photoId: input.id,
-        from: GEMINI_PHOTO_MODEL,
-        to: GEMINI_PHOTO_FALLBACK_MODEL,
-        status: error.status
-      });
+    for (const [modelIndex, model] of models.entries()) {
       try {
-        rankings.push(await judgeOnePhoto(input, GEMINI_PHOTO_FALLBACK_MODEL));
-        usedFallback = true;
-      } catch (fallbackError) {
+        rankings.push(await judgeOnePhoto(input, model));
+        usedModels.add(model);
+        scored = true;
+        break;
+      } catch (error) {
+        lastError = error;
+        const nextModel = models[modelIndex + 1];
+        if (!(error instanceof GeminiRequestError) || !error.transient || !nextModel) {
+          break;
+        }
+        console.warn("Gemini photo judge switching model for one photo", {
+          photoId: input.id,
+          from: model,
+          to: nextModel,
+          status: error.status
+        });
+      }
+    }
+
+    if (!scored) {
         throw new Error(
           `Impossibile valutare “${input.originalName}”: ${
-            fallbackError instanceof Error ? fallbackError.message : "errore sconosciuto"
+            lastError instanceof Error ? lastError.message : "errore sconosciuto"
           }`
         );
-      }
     }
   }
 
@@ -506,8 +512,6 @@ export async function judgePhotos(inputs: Array<Parameters<typeof judgeOnePhoto>
 
   return {
     rankings,
-    model: usedFallback
-      ? `${GEMINI_PHOTO_MODEL} + ${GEMINI_PHOTO_FALLBACK_MODEL}`
-      : GEMINI_PHOTO_MODEL
+    model: [...usedModels].join(" + ")
   };
 }
