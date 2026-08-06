@@ -7,11 +7,11 @@ export const MAX_CONTEST_PHOTOS = 12;
 export const MAX_PHOTOS_PER_PARTICIPANT = 3;
 export const PHOTO_CONTEST_TYPES = ["free", "theme"] as const;
 export type PhotoContestType = typeof PHOTO_CONTEST_TYPES[number];
-export const GEMINI_PHOTO_MODEL = process.env.GEMINI_PHOTO_MODEL || "gemini-3.6-flash";
+export const GEMINI_PHOTO_MODEL = process.env.GEMINI_PHOTO_MODEL || "gemini-2.5-flash";
 export const GEMINI_PHOTO_FALLBACK_MODEL =
-  process.env.GEMINI_PHOTO_FALLBACK_MODEL || "gemini-3.5-flash";
+  process.env.GEMINI_PHOTO_FALLBACK_MODEL || "gemini-2.5-flash-lite";
 export const GEMINI_PHOTO_EMERGENCY_MODEL =
-  process.env.GEMINI_PHOTO_EMERGENCY_MODEL || "gemini-2.5-flash";
+  process.env.GEMINI_PHOTO_EMERGENCY_MODEL || "gemini-2.5-pro";
 
 const GEMINI_MAX_ATTEMPTS = 4;
 const GEMINI_RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
@@ -481,7 +481,13 @@ export async function judgePhotos(inputs: Array<Parameters<typeof judgeOnePhoto>
       } catch (error) {
         lastError = error;
         const nextModel = models[modelIndex + 1];
-        if (!(error instanceof GeminiRequestError) || !error.transient || !nextModel) {
+        const modelUnavailable =
+          error instanceof GeminiRequestError && error.status === 404;
+        if (
+          !(error instanceof GeminiRequestError) ||
+          (!error.transient && !modelUnavailable) ||
+          !nextModel
+        ) {
           break;
         }
         console.warn("Gemini photo judge switching model for one photo", {
