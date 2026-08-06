@@ -10,6 +10,7 @@ import {
   photoContestDay,
   photoContestDays,
   photoContestDefinition,
+  type PhotoScore,
   type PhotoContestType,
   validPhotoContestType
 } from "@/lib/photo-contest";
@@ -152,17 +153,24 @@ export async function POST(request: Request) {
 
   try {
     await ensurePhotoContestsTable();
-    await sql`
-      DELETE FROM trip_daily_photo_contests
+    const resumed = await sql`
+      UPDATE trip_daily_photo_contests
+      SET status = 'processing',
+          judged_by_id = ${user.id},
+          judged_by_name = ${user.name},
+          error_message = NULL,
+          started_at = NOW(),
+          completed_at = NULL
       WHERE day = ${tripDay.day}
         AND contest_type = ${contestType}
         AND (
           status = 'failed'
           OR (status = 'processing' AND started_at < NOW() - INTERVAL '15 minutes')
         )
+      RETURNING day, started_at, rankings, model
     `;
 
-    const inserted = await sql`
+    const inserted = resumed.length > 0 ? resumed : await sql`
       INSERT INTO trip_daily_photo_contests (
         day, contest_type, status, judged_by_id, judged_by_name, model, started_at
       )
@@ -171,7 +179,7 @@ export async function POST(request: Request) {
         ${user.id}, ${user.name}, ${GEMINI_PHOTO_MODEL}, NOW()
       )
       ON CONFLICT (day, contest_type) DO NOTHING
-      RETURNING day, started_at
+      RETURNING day, started_at, rankings, model
     `;
     if (inserted.length === 0) {
       const existing = await sql`
@@ -205,6 +213,10 @@ export async function POST(request: Request) {
       throw new Error(`Il contest può valutare al massimo ${MAX_CONTEST_PHOTOS} foto`);
     }
 
+    const previousRankings = Array.isArray(inserted[0].rankings)
+      ? inserted[0].rankings as PhotoScore[]
+      : [];
+    const previousModel = String(inserted[0].model ?? GEMINI_PHOTO_MODEL);
     const judgment = await judgePhotos(photos.map((photo) => ({
       id: String(photo.id),
       pathname: String(photo.pathname),
@@ -215,8 +227,24 @@ export async function POST(request: Request) {
       highlights: tripDay.highlights,
       themeTitle: definition.title,
       themeDescription: definition.description
-    })));
+    })), {
+      existingRankings: previousRankings,
+      onProgress: async (rankings, model) => {
+        const models = [previousModel, model].filter(Boolean).join(" + ");
+        await sql`
+          UPDATE trip_daily_photo_contests
+          SET rankings = CAST(${JSON.stringify(rankings)} AS JSONB),
+              model = ${models}
+          WHERE day = ${tripDay.day}
+            AND contest_type = ${contestType}
+            AND status = 'processing'
+        `;
+      }
+    });
     const winner = judgment.rankings[0];
+    const completedModels = [previousModel, judgment.model]
+      .filter((model, index, models) => model && models.indexOf(model) === index)
+      .join(" + ");
 
     await sql`
       UPDATE trip_daily_photo_contests
@@ -225,7 +253,7 @@ export async function POST(request: Request) {
           winner_score = ${winner.total},
           winner_reason = ${winner.rationale},
           rankings = CAST(${JSON.stringify(judgment.rankings)} AS JSONB),
-          model = ${judgment.model},
+          model = ${completedModels},
           error_message = NULL,
           completed_at = NOW()
       WHERE day = ${tripDay.day} AND contest_type = ${contestType}
