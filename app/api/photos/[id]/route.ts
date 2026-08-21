@@ -1,9 +1,9 @@
-import { del } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { getSql } from "@/lib/db";
 import { ensurePhotoContestsTable } from "@/lib/photo-contest";
 import { ensurePhotosTable, isPhotoAdmin } from "@/lib/photos";
+import { getObjectStorage } from "@/lib/platform/object-storage";
 
 export const runtime = "nodejs";
 export const preferredRegion = "fra1";
@@ -50,7 +50,7 @@ export async function DELETE(
       );
     }
 
-    await del(String(photo.pathname));
+    await getObjectStorage().delete(String(photo.pathname));
     await sql`DELETE FROM trip_photos WHERE id = ${id}`;
     return NextResponse.json({ deleted: true });
   } catch (error) {

@@ -27,7 +27,7 @@ Nelle impostazioni CORS del bucket inserire:
       "https://smf-travel.vercel.app",
       "http://localhost:3000"
     ],
-    "AllowedMethods": ["PUT"],
+    "AllowedMethods": ["GET", "PUT", "HEAD"],
     "AllowedHeaders": ["Content-Type"],
     "ExposeHeaders": ["ETag"],
     "MaxAgeSeconds": 3600

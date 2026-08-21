@@ -1,6 +1,6 @@
 "use client";
 
-import { upload as uploadBlob } from "@vercel/blob/client";
+import { uploadPrivateFile } from "@/lib/private-upload-client";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -415,25 +415,19 @@ export function PhotoContestHub() {
     try {
       for (let index = 0; index < selectedFiles.length; index += 1) {
         const file = selectedFiles[index];
-        const extension = photoExtension(file)!;
         setUploadProgress({ key, current: index + 1, total: selectedFiles.length, percent: 0 });
-        const pathname = `uzbekistan-2026/contest/giorno-${day}/${kind.type}/${crypto.randomUUID()}.${extension}`;
-        const blob = await uploadBlob(pathname, file, {
-          access: "private",
-          handleUploadUrl: "/api/photo-contest/upload",
-          clientPayload: JSON.stringify({
-            day,
-            contestType: kind.type,
-            originalName: file.name
-          }),
-          onUploadProgress: ({ percentage }) => {
+        const uploaded = await uploadPrivateFile({
+          endpoint: "/api/photo-contest/upload",
+          file,
+          payload: { day, contestType: kind.type },
+          onProgress: (percentage) => {
             setUploadProgress({
               key,
               current: index + 1,
               total: selectedFiles.length,
               percent: Math.round(percentage)
             });
-          }
+          },
         });
         await readJson<{ photo: ContestPhoto }>(await fetch("/api/photo-contest/photos", {
           method: "POST",
@@ -441,7 +435,7 @@ export function PhotoContestHub() {
           body: JSON.stringify({
             day,
             contestType: kind.type,
-            pathname: blob.pathname,
+            objectKey: uploaded.key,
             originalName: file.name
           })
         }));

@@ -1,19 +1,14 @@
 import { NextResponse } from "next/server";
-import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
-import { head } from "@vercel/blob";
 import { getCurrentUser } from "@/lib/current-user";
-import {
-  type ChallengeEvidenceType,
-  saveChallengeEvidence,
-  validChallengeEvidencePath
-} from "@/lib/challenges";
+import type { ChallengeEvidenceType } from "@/lib/challenges";
 import { bingoItems, isMissionUnlocked, missionDays } from "@/lib/challenge-data";
 import {
   MAX_PHOTO_SIZE_BYTES,
-  PHOTO_CONTENT_TYPES,
+  photoExtensionForUpload,
   safeOriginalName,
   validPhotoDay
 } from "@/lib/photos";
+import { getObjectStorage } from "@/lib/platform/object-storage";
 
 export const runtime = "nodejs";
 export const preferredRegion = "fra1";
@@ -24,6 +19,8 @@ type UploadPayload = {
   challengeId?: string;
   originalName?: string;
   note?: string;
+  contentType?: string;
+  sizeBytes?: number;
 };
 
 function validChallenge(payload: UploadPayload) {
@@ -37,82 +34,36 @@ function validChallenge(payload: UploadPayload) {
 }
 
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => null) as HandleUploadBody | null;
+  const body = await request.json().catch(() => null) as UploadPayload | null;
   if (!body) return NextResponse.json({ error: "Richiesta non valida" }, { status: 400 });
-
-  const user = body.type === "blob.generate-client-token"
-    ? await getCurrentUser()
-    : null;
-  if (body.type === "blob.generate-client-token" && !user) {
-    return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
-  }
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
 
   try {
-    const response = await handleUpload({
-      request,
-      body,
-      onBeforeGenerateToken: async (pathname, clientPayload) => {
-        if (!user) throw new Error("Non autenticato");
-        const payload = JSON.parse(clientPayload ?? "{}") as UploadPayload;
-        if (
-          !payload.type ||
-          !validPhotoDay(payload.day) ||
-          !validChallenge(payload) ||
-          !validChallengeEvidencePath(pathname, payload.type, payload.day)
-        ) {
-          throw new Error("Percorso della prova non valido");
-        }
-        if (payload.type === "mission") {
-          const day = missionDays.find((entry) => entry.day === payload.day)!;
-          if (!isMissionUnlocked(day, user)) throw new Error("Missione non ancora sbloccata");
-        }
-        return {
-          allowedContentTypes: [...PHOTO_CONTENT_TYPES],
-          maximumSizeInBytes: MAX_PHOTO_SIZE_BYTES,
-          addRandomSuffix: false,
-          allowOverwrite: false,
-          tokenPayload: JSON.stringify({
-            type: payload.type,
-            day: payload.day,
-            challengeId: payload.challengeId,
-            originalName: safeOriginalName(payload.originalName),
-            note: typeof payload.note === "string" ? payload.note.slice(0, 240) : "",
-            user: { id: user.id, name: user.name }
-          })
-        };
-      },
-      onUploadCompleted: async ({ blob, tokenPayload }) => {
-        const payload = JSON.parse(tokenPayload ?? "{}") as UploadPayload & {
-          user?: { id?: string; name?: string };
-        };
-        if (
-          !payload.type ||
-          !validPhotoDay(payload.day) ||
-          !validChallenge(payload) ||
-          !validChallengeEvidencePath(blob.pathname, payload.type, payload.day) ||
-          !payload.user?.id ||
-          !payload.user.name ||
-          !payload.challengeId
-        ) {
-          throw new Error("Metadati della prova non validi");
-        }
-        const metadata = await head(blob.pathname).catch(() => null);
-        await saveChallengeEvidence({
-          type: payload.type,
-          day: payload.day,
-          challengeId: payload.challengeId,
-          pathname: blob.pathname,
-          originalName: safeOriginalName(payload.originalName),
-          contentType: blob.contentType,
-          sizeBytes: metadata?.size ?? null,
-          note: payload.note,
-          user: { id: payload.user.id, name: payload.user.name }
-        });
+    const originalName = safeOriginalName(body.originalName);
+    const contentType = typeof body.contentType === "string" ? body.contentType : "";
+    const extension = photoExtensionForUpload(originalName, contentType);
+    const sizeBytes = Number(body.sizeBytes);
+    if (!body.type || !validPhotoDay(body.day) || !validChallenge(body)
+      || !extension || !Number.isSafeInteger(sizeBytes) || sizeBytes <= 0
+      || sizeBytes > MAX_PHOTO_SIZE_BYTES) {
+      return NextResponse.json({ error: "Foto-prova non valida o superiore a 25 MB" }, { status: 400 });
+    }
+    if (body.type === "mission") {
+      const day = missionDays.find((entry) => entry.day === body.day)!;
+      if (!isMissionUnlocked(day, user)) {
+        return NextResponse.json({ error: "Missione non ancora sbloccata" }, { status: 403 });
       }
-    });
-    return NextResponse.json(response);
+    }
+    const folder = body.type === "mission" ? "missione" : "bingo";
+    const key = `uzbekistan-2026/prove/${folder}/giorno-${body.day}/${crypto.randomUUID()}.${extension}`;
+    return NextResponse.json(await getObjectStorage().createUploadAuthorization(
+      key,
+      contentType,
+      10 * 60
+    ));
   } catch (error) {
-    console.error("Caricamento prova Blob non riuscito", error);
+    console.error("Preparazione caricamento prova R2 non riuscita", error);
     return NextResponse.json({ error: "Foto-prova non caricata" }, { status: 503 });
   }
 }

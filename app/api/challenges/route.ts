@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { head } from "@vercel/blob";
 import { getCurrentUser } from "@/lib/current-user";
 import { getSql } from "@/lib/db";
 import {
@@ -17,7 +16,14 @@ import {
   missionDays
 } from "@/lib/challenge-data";
 import { getTripUsers } from "@/lib/trip-users";
-import { isPhotoAdmin, safeOriginalName, validPhotoDay } from "@/lib/photos";
+import {
+  isPhotoAdmin,
+  MAX_PHOTO_SIZE_BYTES,
+  PHOTO_CONTENT_TYPES,
+  safeOriginalName,
+  validPhotoDay
+} from "@/lib/photos";
+import { getObjectStorage } from "@/lib/platform/object-storage";
 
 export const runtime = "nodejs";
 export const preferredRegion = "fra1";
@@ -244,7 +250,7 @@ export async function POST(request: Request) {
     type?: ChallengeEvidenceType;
     day?: number;
     id?: string;
-    pathname?: string;
+    objectKey?: string;
     originalName?: string;
     note?: string;
     evidenceId?: number;
@@ -298,18 +304,24 @@ export async function POST(request: Request) {
       if (!isMissionUnlocked(day, user)) {
         return NextResponse.json({ error: "Le missioni non sono ancora sbloccate" }, { status: 403 });
       }
-      if (!body.pathname || !validChallengeEvidencePath(body.pathname, "mission", day.day)) {
+      if (!body.objectKey || !validChallengeEvidencePath(body.objectKey, "mission", day.day)) {
         return NextResponse.json({ error: "Foto-prova obbligatoria" }, { status: 400 });
       }
-      const metadata = await head(body.pathname);
+      const storage = getObjectStorage();
+      const metadata = await storage.head(body.objectKey);
+      if (!PHOTO_CONTENT_TYPES.includes(metadata.contentType as typeof PHOTO_CONTENT_TYPES[number])
+        || metadata.sizeBytes <= 0 || metadata.sizeBytes > MAX_PHOTO_SIZE_BYTES) {
+        await storage.delete(body.objectKey).catch(() => undefined);
+        return NextResponse.json({ error: "La foto-prova non è valida" }, { status: 400 });
+      }
       await saveChallengeEvidence({
         type: "mission",
         day: day.day,
         challengeId: mission.id,
-        pathname: body.pathname,
+        pathname: body.objectKey,
         originalName: safeOriginalName(body.originalName),
         contentType: metadata.contentType,
-        sizeBytes: metadata.size,
+        sizeBytes: metadata.sizeBytes,
         note,
         user
       });
@@ -318,20 +330,26 @@ export async function POST(request: Request) {
       if (!item) return NextResponse.json({ error: "Casella Bingo non valida" }, { status: 400 });
       if (
         !validPhotoDay(body.day) ||
-        !body.pathname ||
-        !validChallengeEvidencePath(body.pathname, "bingo", body.day)
+        !body.objectKey ||
+        !validChallengeEvidencePath(body.objectKey, "bingo", body.day)
       ) {
         return NextResponse.json({ error: "Foto-prova obbligatoria" }, { status: 400 });
       }
-      const metadata = await head(body.pathname);
+      const storage = getObjectStorage();
+      const metadata = await storage.head(body.objectKey);
+      if (!PHOTO_CONTENT_TYPES.includes(metadata.contentType as typeof PHOTO_CONTENT_TYPES[number])
+        || metadata.sizeBytes <= 0 || metadata.sizeBytes > MAX_PHOTO_SIZE_BYTES) {
+        await storage.delete(body.objectKey).catch(() => undefined);
+        return NextResponse.json({ error: "La foto-prova non è valida" }, { status: 400 });
+      }
       await saveChallengeEvidence({
         type: "bingo",
         day: body.day,
         challengeId: item.id,
-        pathname: body.pathname,
+        pathname: body.objectKey,
         originalName: safeOriginalName(body.originalName),
         contentType: metadata.contentType,
-        sizeBytes: metadata.size,
+        sizeBytes: metadata.sizeBytes,
         note,
         user
       });

@@ -1,4 +1,3 @@
-import { head } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { getSql } from "@/lib/db";
@@ -10,7 +9,13 @@ import {
   validContestPhotoPath,
   validPhotoContestType
 } from "@/lib/photo-contest";
-import { isPhotoAdmin, safeOriginalName } from "@/lib/photos";
+import {
+  isPhotoAdmin,
+  MAX_PHOTO_SIZE_BYTES,
+  PHOTO_CONTENT_TYPES,
+  safeOriginalName
+} from "@/lib/photos";
+import { getObjectStorage } from "@/lib/platform/object-storage";
 
 export const runtime = "nodejs";
 export const preferredRegion = "fra1";
@@ -39,20 +44,21 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null) as {
     day?: number;
     contestType?: PhotoContestType;
-    pathname?: string;
+    objectKey?: string;
     originalName?: string;
   } | null;
   if (
     !body ||
     !photoContestDay(body.day) ||
     !validPhotoContestType(body.contestType) ||
-    !validContestPhotoPath(body.pathname, Number(body.day), body.contestType)
+    !validContestPhotoPath(body.objectKey, Number(body.day), body.contestType)
   ) {
     return NextResponse.json({ error: "Foto non valida" }, { status: 400 });
   }
 
   try {
     await ensurePhotoContestsTable();
+    const storage = getObjectStorage();
     const sql = getSql();
     const closed = await sql`
       SELECT status
@@ -63,6 +69,7 @@ export async function POST(request: Request) {
       LIMIT 1
     `;
     if (closed.length > 0) {
+      await storage.delete(String(body.objectKey)).catch(() => undefined);
       return NextResponse.json(
         {
           error: String(closed[0].status) === "processing"
@@ -73,14 +80,19 @@ export async function POST(request: Request) {
       );
     }
 
-    const metadata = await head(String(body.pathname));
+    const metadata = await storage.head(String(body.objectKey));
+    if (!PHOTO_CONTENT_TYPES.includes(metadata.contentType as typeof PHOTO_CONTENT_TYPES[number])
+      || metadata.sizeBytes <= 0 || metadata.sizeBytes > MAX_PHOTO_SIZE_BYTES) {
+      await storage.delete(String(body.objectKey)).catch(() => undefined);
+      return NextResponse.json({ error: "Il file caricato non è una foto valida" }, { status: 400 });
+    }
     const row = await saveContestPhotoMetadata({
       day: Number(body.day),
       contestType: body.contestType,
-      pathname: String(body.pathname),
+      pathname: String(body.objectKey),
       originalName: safeOriginalName(body.originalName),
       contentType: metadata.contentType,
-      sizeBytes: metadata.size,
+      sizeBytes: metadata.sizeBytes,
       user
     });
     return NextResponse.json({ photo: photoFromRow(row, user) });

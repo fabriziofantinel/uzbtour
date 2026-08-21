@@ -120,12 +120,21 @@ export class R2ObjectStorage implements ObjectStorage {
     };
   }
 
-  async createDownloadUrl(key: string, expiresInSeconds: number) {
+  async createDownloadUrl(
+    key: string,
+    expiresInSeconds: number,
+    options?: { contentDisposition?: string; contentType?: string }
+  ) {
     validKey(key);
     validExpiry(expiresInSeconds);
     return getSignedUrl(
       this.client,
-      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+      new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        ResponseContentDisposition: options?.contentDisposition,
+        ResponseContentType: options?.contentType,
+      }),
       { expiresIn: expiresInSeconds }
     );
   }

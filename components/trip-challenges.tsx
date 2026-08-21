@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { upload as uploadBlob } from "@vercel/blob/client";
+import { uploadPrivateFile } from "@/lib/private-upload-client";
 import { useEffect, useMemo, useState } from "react";
 import {
   Award, Brain, Camera, Check, CheckCircle2, Compass, Crown, Gamepad2,
@@ -496,28 +496,25 @@ export default function TripChallenges() {
       return;
     }
     const key = `${input.type}-${input.day}-${input.id}`;
-    const folder = input.type === "mission" ? "missione" : "bingo";
-    const pathname = `uzbekistan-2026/prove/${folder}/giorno-${input.day}/${crypto.randomUUID()}.${extension}`;
     setUploadingKey(key);
     setError("");
     try {
-      const blob = await uploadBlob(pathname, input.file, {
-        access: "private",
-        handleUploadUrl: "/api/challenges/upload",
-        clientPayload: JSON.stringify({
+      const uploaded = await uploadPrivateFile({
+        endpoint: "/api/challenges/upload",
+        file: input.file,
+        payload: {
           type: input.type,
           day: input.day,
           challengeId: input.id,
-          originalName: input.file.name,
           note: input.note
-        })
+        }
       });
       await post({
         action: "submit",
         type: input.type,
         day: input.day,
         id: input.id,
-        pathname: blob.pathname,
+        objectKey: uploaded.key,
         originalName: input.file.name,
         note: input.note
       });

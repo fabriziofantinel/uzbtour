@@ -1,8 +1,8 @@
-import { get } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { getSql } from "@/lib/db";
 import { ensurePhotoContestsTable } from "@/lib/photo-contest";
+import { getObjectStorage } from "@/lib/platform/object-storage";
 
 export const runtime = "nodejs";
 export const preferredRegion = "fra1";
@@ -31,19 +31,11 @@ export async function GET(
     const photo = rows[0];
     if (!photo) return NextResponse.json({ error: "Foto non trovata" }, { status: 404 });
 
-    const result = await get(String(photo.pathname), { access: "private" });
-    if (!result || result.statusCode !== 200) {
-      return NextResponse.json({ error: "File non trovato" }, { status: 404 });
-    }
-    return new Response(result.stream, {
-      headers: {
-        "Cache-Control": "private, max-age=300",
-        "Content-Disposition": "inline",
-        "Content-Length": String(result.blob.size),
-        "Content-Type": result.blob.contentType,
-        ETag: result.blob.etag
-      }
+    const filename = encodeURIComponent(String(photo.original_name ?? "foto"));
+    const url = await getObjectStorage().createDownloadUrl(String(photo.pathname), 5 * 60, {
+      contentDisposition: `inline; filename*=UTF-8''${filename}`
     });
+    return NextResponse.redirect(url, 307);
   } catch (error) {
     console.error("Lettura foto contest non riuscita", error);
     return NextResponse.json({ error: "Foto temporaneamente non disponibile" }, { status: 503 });

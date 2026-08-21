@@ -1,10 +1,12 @@
-import { head } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { getSql } from "@/lib/db";
+import { getObjectStorage } from "@/lib/platform/object-storage";
 import {
   ensurePhotosTable,
   isPhotoAdmin,
+  MAX_PHOTO_SIZE_BYTES,
+  PHOTO_CONTENT_TYPES,
   safeOriginalName,
   savePhotoMetadata,
   validPhotoDay,
@@ -56,27 +58,33 @@ export async function POST(request: Request) {
 
   const body = (await request.json().catch(() => null)) as {
     day?: number;
-    pathname?: string;
+    objectKey?: string;
     originalName?: string;
   } | null;
 
   if (
     !body ||
     !validPhotoDay(body.day) ||
-    typeof body.pathname !== "string" ||
-    !validPhotoPath(body.pathname, body.day)
+    typeof body.objectKey !== "string" ||
+    !validPhotoPath(body.objectKey, body.day)
   ) {
     return NextResponse.json({ error: "Foto non valida" }, { status: 400 });
   }
 
   try {
-    const metadata = await head(body.pathname);
+    const storage = getObjectStorage();
+    const metadata = await storage.head(body.objectKey);
+    if (!PHOTO_CONTENT_TYPES.includes(metadata.contentType as typeof PHOTO_CONTENT_TYPES[number])
+      || metadata.sizeBytes <= 0 || metadata.sizeBytes > MAX_PHOTO_SIZE_BYTES) {
+      await storage.delete(body.objectKey).catch(() => undefined);
+      return NextResponse.json({ error: "Il file caricato non è una foto valida" }, { status: 400 });
+    }
     const row = await savePhotoMetadata({
       day: body.day,
-      pathname: body.pathname,
+      pathname: body.objectKey,
       originalName: safeOriginalName(body.originalName),
       contentType: metadata.contentType,
-      sizeBytes: metadata.size,
+      sizeBytes: metadata.sizeBytes,
       user
     });
     return NextResponse.json({ photo: photoFromRow(row, user) });

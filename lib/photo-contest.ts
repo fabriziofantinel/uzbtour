@@ -1,7 +1,7 @@
-import { get } from "@vercel/blob";
 import sharp from "sharp";
 import { getSql } from "./db";
 import { quizDays } from "./quiz-data";
+import { getObjectStorage } from "./platform/object-storage";
 
 export const MAX_CONTEST_PHOTOS = 12;
 export const MAX_PHOTOS_PER_PARTICIPANT = 3;
@@ -348,12 +348,8 @@ async function requestGemini(model: string, apiKey: string, body: string) {
 }
 
 async function loadPrivatePhoto(pathname: string) {
-  const result = await get(pathname, { access: "private" });
-  if (!result || result.statusCode !== 200) {
-    throw new Error("Una foto del concorso non è più disponibile");
-  }
-  const bytes = await new Response(result.stream).arrayBuffer();
-  const optimized = await sharp(Buffer.from(bytes), { limitInputPixels: 80_000_000 })
+  const result = await getObjectStorage().get(pathname);
+  const optimized = await sharp(Buffer.from(result.bytes), { limitInputPixels: 80_000_000 })
     .rotate()
     .resize({
       width: 1600,

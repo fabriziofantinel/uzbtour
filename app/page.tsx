@@ -7,7 +7,7 @@ import {
   MessageCircle, House, Info, Languages, Navigation, Plane, Plus, ReceiptText, ShieldCheck,
   Sparkles, Trash2, TrainFront, Utensils, Wallet
 } from "lucide-react";
-import { upload as uploadBlob } from "@vercel/blob/client";
+import { uploadPrivateFile } from "@/lib/private-upload-client";
 import TripOverviewMap, { type TripMapDay } from "@/components/trip-overview-map";
 import UsefulInfo from "@/components/useful-info";
 import InsuranceInfo from "@/components/insurance-info";
@@ -387,21 +387,19 @@ export default function Home() {
     try {
       for (let index = 0; index < files.length; index++) {
         const file = files[index];
-        const extension = photoExtension(file)!;
         setPhotoUpload({ day: uploadDay, current: index + 1, total: files.length, progress: 0 });
-        const pathname = `uzbekistan-2026/giorno-${uploadDay}/${crypto.randomUUID()}.${extension}`;
-        const blob = await uploadBlob(pathname, file, {
-          access: "private",
-          handleUploadUrl: "/api/photos/upload",
-          clientPayload: JSON.stringify({ day: uploadDay, originalName: file.name }),
-          onUploadProgress: ({ percentage }) => {
+        const uploaded = await uploadPrivateFile({
+          endpoint: "/api/photos/upload",
+          file,
+          payload: { day: uploadDay },
+          onProgress: (percentage) => {
             setPhotoUpload({
               day: uploadDay,
               current: index + 1,
               total: files.length,
               progress: Math.round(percentage)
             });
-          }
+          },
         });
 
         const result = await readJson<{ photo: PhotoEntry }>(await fetch("/api/photos", {
@@ -409,7 +407,7 @@ export default function Home() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             day: uploadDay,
-            pathname: blob.pathname,
+            objectKey: uploaded.key,
             originalName: file.name
           })
         }));
