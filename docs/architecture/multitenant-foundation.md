@@ -44,3 +44,19 @@ evita una riscrittura quando l'agenzia passa al piano a pagamento.
 3. Implementare upload PDF, estrazione asincrona e revisione.
 4. Migrare foto, spese, giochi e risultati aggiungendo partenza e famiglia.
 5. Sostituire il login legacy, applicare RLS e migrare definitivamente la UI viaggio.
+
+## Importazione PDF nella demo
+
+Il pannello agenzia carica il PDF come Blob privato e crea un job
+`travel-programme.import` nella coda Neon. L'elaborazione viene avviata manualmente
+dal pannello, così durante la demo non servono processi sempre accesi o costi fissi.
+
+Il worker acquisisce il job in modo atomico, legge il Blob privato, invia il PDF a
+Gemini come documento nativo e valida la risposta con uno schema Zod. La bozza rimane
+in `import_jobs.result` finché un amministratore non la corregge e pubblica. Solo la
+pubblicazione trasferisce giorni, attività, alberghi e informazioni utili nelle tabelle
+normalizzate, all'interno di un'unica transazione Neon.
+
+In caso di errore il job e l'importazione passano a `failed` e possono essere ritentati.
+Quando il volume richiederà worker indipendenti, la porta `JobQueue` permetterà di
+sostituire la coda database con SQS senza cambiare il formato del job o l'editor.

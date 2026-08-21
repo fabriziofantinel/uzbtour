@@ -3,7 +3,7 @@
 import { upload } from "@vercel/blob/client";
 import {
   ArrowLeft, Building2, CalendarDays, CheckCircle2, ChevronDown, CircleAlert,
-  Clock3, FileText, LoaderCircle, LogOut, MapPinned, Plus, Sparkles, UploadCloud,
+  Clock3, Eye, FileText, LoaderCircle, LogOut, MapPinned, Play, Plus, Sparkles, UploadCloud,
   UsersRound,
 } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
@@ -128,6 +128,25 @@ export default function AgencyDashboard({ initialOverview }: Props) {
     }
   }
 
+  async function processImport(importId: string) {
+    setBusy(`process-${importId}`);
+    setError("");
+    setNotice("");
+    try {
+      const result = await responseJson<{ import: { days: number } }>(await fetch(
+        `/api/admin/platform/imports/${importId}/process`,
+        { method: "POST" }
+      ));
+      await refresh();
+      setNotice(`PDF elaborato: ${result.import.days} giornate pronte per la revisione.`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Elaborazione non riuscita");
+      await refresh().catch(() => undefined);
+    } finally {
+      setBusy("");
+    }
+  }
+
   return (
     <main className="agencyPage">
       <header className="agencyTopbar">
@@ -229,6 +248,8 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                   <span><b>{item.fileName}</b><small>{item.tripTitle}</small></span>
                   <time><Clock3 size={13}/>{new Date(item.createdAt).toLocaleString("it-IT")}</time>
                   <em className={`status ${item.status}`}>{statusLabels[item.status] ?? item.status}</em>
+                  {(item.status === "queued" || item.status === "failed") && <button className="importAction" disabled={Boolean(busy)} onClick={() => void processImport(item.id)}>{busy === `process-${item.id}` ? <LoaderCircle className="spin"/> : <Play/>}<span>{item.status === "failed" ? "Riprova" : "Elabora"}</span></button>}
+                  {item.status === "ready_for_review" && <a className="importAction review" href={`/agenzia/importazioni/${item.id}`}><Eye/><span>Revisiona</span></a>}
                 </article>
               ))}
               {overview.recentImports.filter((item) => item.agencyId === agency?.id).length === 0 && <div className="agencyEmpty compact"><FileText/><p>Nessun programma importato.</p></div>}

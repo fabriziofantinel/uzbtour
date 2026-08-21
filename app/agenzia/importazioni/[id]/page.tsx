@@ -1,0 +1,24 @@
+import { redirect } from "next/navigation";
+import { PlatformAuthorizationError, requireAgencyAdmin } from "@/lib/platform/authorization";
+import { getImportAgency, getImportForReview } from "@/lib/platform/import-repository";
+import ImportReview from "./review-client";
+import "./review.css";
+
+export const dynamic = "force-dynamic";
+
+export default async function ImportReviewPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  try {
+    const agencyId = await getImportAgency(id);
+    await requireAgencyAdmin(agencyId);
+    const imported = await getImportForReview(id);
+    return <ImportReview initialImport={imported} />;
+  } catch (error) {
+    if (error instanceof PlatformAuthorizationError) redirect("/");
+    throw error;
+  }
+}

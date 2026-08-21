@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { PlatformAuthorizationError, requirePlatformAdmin } from "@/lib/platform/authorization";
 import { getPlatformOverview } from "@/lib/platform/repository";
 import AgencyDashboard from "./agency-dashboard";
-import "./agency.css";
 
 export const dynamic = "force-dynamic";
 

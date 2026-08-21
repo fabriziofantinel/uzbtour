@@ -44,3 +44,16 @@ export type PlatformOverview = {
     errorMessage: string | null;
   }>;
 };
+
+export type PlatformImportReview = {
+  id: string;
+  agencyId: string;
+  templateId: string;
+  status: string;
+  draft: import("./import-schema").TravelProgrammeDraft | null;
+  errorMessage: string | null;
+  model: string | null;
+  createdAt: string;
+  tripTitle: string;
+  fileName: string;
+};
