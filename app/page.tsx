@@ -450,7 +450,7 @@ export default function Home() {
   return (
     <main>
       <header className="topbar">
-        <div className="brand"><span className="brandMark">UZ</span><div><strong>Via della Seta</strong><small>UZBEKISTAN · 2026</small></div></div>
+        <div className="brand"><span className="brandMark">SMF</span><div><strong>SMF Travel</strong><small>DEMO · UZBEKISTAN 2026</small></div></div>
         <div className="tripDates"><CalendarDays size={17}/><span>1 — 13 agosto</span><i>11 gg tour</i></div>
         <div className="people">
           {currentUser && <span className="currentUser"><i>{currentUser.initials}</i><b>{currentUser.name}</b></span>}

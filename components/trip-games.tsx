@@ -26,7 +26,7 @@ const APP_ICON_PHOTO: Photo = {
   id: "app-icon",
   day: 0,
   contentUrl: "/app-icon.svg",
-  originalName: "Icona UZB Tour"
+  originalName: "Icona SMF Travel"
 };
 
 async function readResponse<T>(response: Response) {

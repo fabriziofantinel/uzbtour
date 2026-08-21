@@ -1,4 +1,4 @@
-# Via della Seta — Uzbekistan
+# SMF Travel
 
 MVP di un diario di viaggio condiviso per un tour di 11 giorni.
 

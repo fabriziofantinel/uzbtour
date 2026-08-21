@@ -37,16 +37,16 @@ function LoginContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, code })
       });
-      const result = (await response.json()) as { error?: string };
+      const result = (await response.json()) as { error?: string; destination?: string };
       if (!response.ok) {
         setError(result.error ?? "Non è stato possibile accedere.");
         return;
       }
 
-      const destination = searchParams.get("next");
-      const safeDestination = destination?.startsWith("/") && !destination.startsWith("//")
-        ? destination
-        : "/";
+      const requestedDestination = searchParams.get("next");
+      const destination = requestedDestination ?? result.destination ?? "/";
+      const safeDestination = destination.startsWith("/") && !destination.startsWith("//")
+        ? destination : "/";
       window.location.href = safeDestination;
     } catch {
       setError("Connessione non disponibile. Riprova tra poco.");
@@ -59,21 +59,21 @@ function LoginContent() {
     <main className="loginPage">
       <section className="loginStory">
         <div className="loginPattern" />
-        <div className="loginBrand"><span>UZ</span> Via della Seta</div>
+        <div className="loginBrand"><span>SMF</span> SMF Travel</div>
         <div className="loginStoryCopy">
-          <p>UZBEKISTAN · 1–13 AGOSTO 2026</p>
-          <h1>Il viaggio è già<br/><em>iniziato qui.</em></h1>
-          <span><Plane size={17}/> Torino · Istanbul · Tashkent</span>
+          <p>LA PIATTAFORMA PER LE AGENZIE DI VIAGGIO</p>
+          <h1>Ogni viaggio,<br/><em>in un unico spazio.</em></h1>
+          <span><Plane size={17}/> Agenzie · famiglie · viaggiatori</span>
         </div>
-        <small>Un diario privato per i nostri tre viaggiatori</small>
+        <small>Programmi, documenti, ricordi e attività sempre con te.</small>
       </section>
 
       <section className="loginPanel">
         <div className="loginBox">
           <span className="loginLock"><LockKeyhole size={24}/></span>
           <p className="loginEyebrow">AREA RISERVATA</p>
-          <h2>Chi sta viaggiando?</h2>
-          <p className="loginIntro">Seleziona il tuo profilo e inserisci il codice personale. Le tue attività saranno attribuite a te.</p>
+          <h2>Accedi al tuo spazio</h2>
+          <p className="loginIntro">Seleziona il profilo e inserisci il codice personale. Verrai indirizzato automaticamente al tuo ambiente.</p>
           <form onSubmit={submit}>
             <span className="fieldLabel">Il tuo profilo</span>
             <div className="userChoices">

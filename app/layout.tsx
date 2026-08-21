@@ -9,13 +9,13 @@ const manrope = Manrope({ subsets: ["latin"], variable: "--font-sans" });
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-serif" });
 
 export const metadata: Metadata = {
-  title: "Via della Seta — Uzbekistan, 1–13 agosto 2026",
-  description: "Il diario condiviso del nostro viaggio in Uzbekistan",
+  title: "SMF Travel — ogni viaggio in un unico spazio",
+  description: "La piattaforma per agenzie, famiglie e viaggiatori.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "UZB Tour"
+    title: "SMF Travel"
   }
 };
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { upload } from "@vercel/blob/client";
+import Link from "next/link";
 import {
   ArrowLeft, Building2, CalendarDays, CheckCircle2, ChevronDown, CircleAlert,
   Clock3, Eye, FileText, LoaderCircle, LogOut, MapPinned, Play, Plus, Sparkles, UploadCloud,
@@ -150,9 +151,9 @@ export default function AgencyDashboard({ initialOverview }: Props) {
   return (
     <main className="agencyPage">
       <header className="agencyTopbar">
-        <a className="agencyBrand" href="/">
-          <span>VT</span><div><strong>Voyage Toolkit</strong><small>PANNELLO AGENZIA</small></div>
-        </a>
+        <Link className="agencyBrand" href="/">
+          <span>SMF</span><div><strong>SMF Travel</strong><small>PANNELLO AGENZIA</small></div>
+        </Link>
         <div className="agencyUser">
           <i>{overview.actor.name.slice(0, 2).toUpperCase()}</i>
           <span><small>Amministratore</small><b>{overview.actor.name}</b></span>
@@ -166,7 +167,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
           <h1>Buongiorno, {overview.actor.name}.</h1>
           <span>Configura programmi, partenze e famiglie da un unico spazio.</span>
         </div>
-        <a href="/"><ArrowLeft size={16}/> Apri la demo viaggiatore</a>
+        <Link href="/"><ArrowLeft size={16}/> Apri la demo viaggiatore</Link>
       </section>
 
       <div className="agencyShell">

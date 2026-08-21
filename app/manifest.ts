@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Via della Seta · Uzbekistan 2026",
-    short_name: "UZB Tour",
-    description: "Programma, ricordi, spese e giochi del viaggio in Uzbekistan.",
+    name: "SMF Travel",
+    short_name: "SMF Travel",
+    description: "Programmi, documenti, ricordi e attività per ogni viaggio.",
     start_url: "/",
     display: "standalone",
     background_color: "#f7f3eb",

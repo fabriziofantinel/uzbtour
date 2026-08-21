@@ -74,7 +74,7 @@ export default function PwaInstaller() {
       <div className="pwaCardIcon">{installed ? <CheckCircle2 size={23}/> : <Smartphone size={23}/>}</div>
       <div className="pwaCardCopy">
         <small>APP DEL VIAGGIO</small>
-        <h3>{installed ? "UZB Tour è installata" : "Porta UZB Tour sul telefono"}</h3>
+        <h3>{installed ? "SMF Travel è installata" : "Porta SMF Travel sul telefono"}</h3>
         <p>{installed ? "Si apre come un’app e conserva un promemoria offline con programma e contatti." : "Installala sulla schermata Home per aprirla a tutto schermo e avere le informazioni essenziali anche offline."}</p>
         <div className="pwaStatus">
           <span className={online ? "ready" : "offline"}>{online ? <Wifi size={13}/> : <WifiOff size={13}/>} {online ? "Online" : "Offline"}</span>

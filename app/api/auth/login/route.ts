@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { getSql } from "@/lib/db";
 import { codesMatch, createSessionToken, SESSION_COOKIE, SESSION_DURATION_SECONDS } from "@/lib/session";
 import { getTripUsers, publicTripUser } from "@/lib/trip-users";
 
@@ -22,6 +23,14 @@ export async function POST(request: Request) {
   }
 
   const user = publicTripUser(selectedUser);
+  const sql = getSql();
+  const memberships = await sql`
+    SELECT 1
+    FROM agency_memberships
+    WHERE user_id = ${user.id} AND role IN ('owner', 'admin')
+    LIMIT 1
+  `;
+  const destination = memberships.length > 0 ? "/agenzia" : "/";
   const token = await createSessionToken(authSecret, user);
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, token, {
@@ -31,5 +40,5 @@ export async function POST(request: Request) {
     path: "/",
     maxAge: SESSION_DURATION_SECONDS
   });
-  return NextResponse.json({ ok: true, user });
+  return NextResponse.json({ ok: true, user, destination });
 }
