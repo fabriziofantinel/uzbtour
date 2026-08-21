@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireAgencyAdmin } from "@/lib/platform/authorization";
 import { platformApiError } from "@/lib/platform/http";
-import { getImportAgency } from "@/lib/platform/import-repository";
+import { getImportAgency, getImportQueueRecord } from "@/lib/platform/import-repository";
+import { getJobQueue } from "@/lib/platform/job-queue";
+import { getPlatformProviderConfig } from "@/lib/platform/provider-config";
 import { processTravelImport } from "@/lib/platform/process-import";
 
 export const runtime = "nodejs";
@@ -19,6 +21,16 @@ export async function POST(
     }
     const agencyId = await getImportAgency(id);
     await requireAgencyAdmin(agencyId);
+    if (getPlatformProviderConfig().jobQueue === "sqs") {
+      const queued = await getImportQueueRecord(id, agencyId);
+      const job = await getJobQueue().enqueue({
+        agencyId,
+        type: queued.type,
+        payload: queued.payload,
+        idempotencyKey: queued.idempotencyKey,
+      });
+      return NextResponse.json({ import: { status: job.status }, job });
+    }
     const result = await processTravelImport(id);
     return NextResponse.json({ import: result });
   } catch (error) {

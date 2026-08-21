@@ -29,7 +29,30 @@ export async function getImportAgency(importId: string) {
   return String(rows[0].agency_id);
 }
 
-export async function claimImportJob(importId: string) {
+export async function getImportQueueRecord(importId: string, agencyId: string) {
+  const sql = getSql();
+  const rows = await sql`
+    SELECT pj.job_type, pj.payload, pj.idempotency_key
+    FROM platform_jobs pj
+    JOIN import_jobs ij
+      ON ij.id::text = pj.payload->>'importId' AND ij.agency_id = pj.agency_id
+    WHERE ij.id = ${importId} AND ij.agency_id = ${agencyId}
+      AND pj.job_type = 'travel-programme.import'
+    ORDER BY pj.created_at DESC
+    LIMIT 1
+  `;
+  if (!rows[0]) throw new PlatformRequestError("Lavoro di importazione non trovato");
+  return {
+    type: String(rows[0].job_type),
+    payload: rows[0].payload as Record<string, unknown>,
+    idempotencyKey: String(rows[0].idempotency_key),
+  };
+}
+
+export async function claimImportJob(
+  importId: string,
+  expected?: { jobId?: string; agencyId?: string }
+) {
   const sql = getSql();
   const rows = await sql`
     WITH claimed_job AS (
@@ -40,7 +63,12 @@ export async function claimImportJob(importId: string) {
         SELECT id FROM platform_jobs
         WHERE payload->>'importId' = ${importId}
           AND job_type = 'travel-programme.import'
-          AND status IN ('queued', 'failed')
+          AND (
+            status IN ('queued', 'failed')
+            OR (status = 'processing' AND locked_at < NOW() - INTERVAL '10 minutes')
+          )
+          AND (${expected?.jobId ?? null}::text IS NULL OR id::text = ${expected?.jobId ?? null})
+          AND (${expected?.agencyId ?? null}::text IS NULL OR agency_id::text = ${expected?.agencyId ?? null})
         ORDER BY created_at
         LIMIT 1
       )
@@ -66,6 +94,17 @@ export async function claimImportJob(importId: string) {
   return rows[0] as ImportSourceRow;
 }
 
+export async function getPlatformJobStatus(jobId: string, agencyId: string) {
+  const sql = getSql();
+  const rows = await sql`
+    SELECT status
+    FROM platform_jobs
+    WHERE id = ${jobId} AND agency_id = ${agencyId}
+    LIMIT 1
+  `;
+  return rows[0]?.status ? String(rows[0].status) : null;
+}
+
 export async function markImportGenerating(importId: string) {
   const sql = getSql();
   await sql`
@@ -77,6 +116,7 @@ export async function completeImport(input: {
   importId: string;
   draft: TravelProgrammeDraft;
   model: string;
+  provider: string;
   usage: unknown;
 }) {
   const sql = getSql();
@@ -84,7 +124,7 @@ export async function completeImport(input: {
     txn`
       UPDATE import_jobs
       SET status = 'ready_for_review', result = ${JSON.stringify(input.draft)}::jsonb,
-          extraction_provider = 'gemini-native-pdf', ai_provider = ${input.model},
+          extraction_provider = ${input.provider}, ai_provider = ${input.model},
           completed_at = NOW(), updated_at = NOW()
       WHERE id = ${input.importId}
     `,

@@ -1,4 +1,4 @@
-import { extractTravelProgramme } from "./gemini-travel-ai";
+import { extractTravelProgramme } from "./travel-ai";
 import {
   claimImportJob,
   completeImport,
@@ -7,8 +7,11 @@ import {
 } from "./import-repository";
 import { getObjectStorage } from "./object-storage";
 
-export async function processTravelImport(importId: string) {
-  const source = await claimImportJob(importId);
+export async function processTravelImport(
+  importId: string,
+  expected?: { jobId?: string; agencyId?: string }
+) {
+  const source = await claimImportJob(importId, expected);
   try {
     const storage = getObjectStorage(source.provider === "r2" ? "r2" : "vercel-blob");
     if (storage.bucket !== source.bucket) throw new Error("Bucket del documento non valido");

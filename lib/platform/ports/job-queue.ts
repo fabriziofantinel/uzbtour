@@ -9,7 +9,7 @@ export type EnqueueJobInput = {
 export type EnqueuedJob = {
   id: string;
   provider: "database" | "sqs";
-  status: "queued";
+  status: "queued" | "processing" | "completed" | "failed" | "dead_letter";
 };
 
 export interface JobQueue {

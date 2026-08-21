@@ -18,10 +18,10 @@ REGOLE DI SICUREZZA E QUALITÀ:
 - Se un trasferimento è un treno o un volo, usa rispettivamente type train o flight.
 `;
 
-export async function extractTravelProgramme(
+export async function extractTravelProgrammeWithGemini(
   pdf: Uint8Array,
   filename: string
-): Promise<{ draft: TravelProgrammeDraft; model: string; usage: unknown }> {
+): Promise<{ draft: TravelProgrammeDraft; model: string; provider: string; usage: unknown }> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY non configurata");
 
@@ -49,5 +49,5 @@ export async function extractTravelProgramme(
     }],
   });
 
-  return { draft: result.output, model, usage: result.usage };
+  return { draft: result.output, model, provider: "gemini-native-pdf", usage: result.usage };
 }

@@ -1,0 +1,108 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: SMF Travel - worker asincrono SQS, Lambda e Amazon Bedrock
+
+Parameters:
+  DatabaseUrl:
+    Type: String
+    NoEcho: true
+  R2AccountId:
+    Type: String
+  R2Jurisdiction:
+    Type: String
+    Default: eu
+    AllowedValues: [eu, us, fedramp, none]
+  R2AccessKeyId:
+    Type: String
+    NoEcho: true
+  R2SecretAccessKey:
+    Type: String
+    NoEcho: true
+  R2Bucket:
+    Type: String
+  BedrockTextModel:
+    Type: String
+    Default: eu.amazon.nova-lite-v1:0
+
+Resources:
+  ImportDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: smf-travel-import-dead-letter
+      MessageRetentionPeriod: 1209600
+      SqsManagedSseEnabled: true
+
+  ImportQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: smf-travel-import
+      VisibilityTimeout: 1800
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 20
+      SqsManagedSseEnabled: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ImportDeadLetterQueue.Arn
+        maxReceiveCount: 4
+
+  ImportWorker:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: smf-travel-import-worker
+      Description: Estrae i programmi PDF da R2 con Amazon Bedrock e salva la bozza su Neon
+      CodeUri: ../../
+      Handler: workers/import-handler.handler
+      Runtime: nodejs22.x
+      Architectures: [arm64]
+      MemorySize: 2048
+      Timeout: 300
+      ReservedConcurrentExecutions: 2
+      Environment:
+        Variables:
+          DATABASE_URL: !Ref DatabaseUrl
+          PLATFORM_OBJECT_STORAGE_PROVIDER: r2
+          PLATFORM_JOB_QUEUE_PROVIDER: sqs
+          PLATFORM_AI_PROVIDER: bedrock
+          AWS_BEDROCK_TEXT_MODEL: !Ref BedrockTextModel
+          AWS_BEDROCK_MAX_DOCUMENT_BYTES: "4500000"
+          R2_ACCOUNT_ID: !Ref R2AccountId
+          R2_JURISDICTION: !If [UseDefaultR2Endpoint, "", !Ref R2Jurisdiction]
+          R2_ACCESS_KEY_ID: !Ref R2AccessKeyId
+          R2_SECRET_ACCESS_KEY: !Ref R2SecretAccessKey
+          R2_BUCKET: !Ref R2Bucket
+      Policies:
+        - SQSPollerPolicy:
+            QueueName: !GetAtt ImportQueue.QueueName
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: "*"
+      Events:
+        ImportQueueEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt ImportQueue.Arn
+            BatchSize: 1
+            FunctionResponseTypes: [ReportBatchItemFailures]
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints: [workers/import-handler.ts]
+        Minify: true
+        Sourcemap: true
+        Target: es2022
+        Format: esm
+        OutExtension:
+          - .js=.mjs
+
+Conditions:
+  UseDefaultR2Endpoint: !Equals [!Ref R2Jurisdiction, none]
+
+Outputs:
+  ImportQueueUrl:
+    Description: Valore AWS_SQS_IMPORT_QUEUE_URL da configurare su Vercel
+    Value: !Ref ImportQueue
+  ImportQueueArn:
+    Value: !GetAtt ImportQueue.Arn
+  ImportWorkerName:
+    Value: !Ref ImportWorker

@@ -22,12 +22,12 @@ export function getPlatformProviderConfig(): PlatformProviderConfig {
     ),
     jobQueue: oneOf<JobQueueProvider>(
       process.env.PLATFORM_JOB_QUEUE_PROVIDER,
-      "database",
+      "sqs",
       ["database", "sqs"]
     ),
     travelAi: oneOf<TravelAiProvider>(
       process.env.PLATFORM_AI_PROVIDER,
-      "gemini",
+      "bedrock",
       ["gemini", "bedrock"]
     ),
   };

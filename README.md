@@ -17,7 +17,8 @@ Aprire `http://localhost:3000`.
 - **Frontend e API:** Next.js App Router su Vercel
 - **Database:** Neon Postgres dal Vercel Marketplace
 - **Documenti e foto:** bucket privato Cloudflare R2
-- **Importazione programma:** Gemini, eseguita tramite job persistiti su Neon
+- **Elaborazione asincrona:** Amazon SQS e AWS Lambda
+- **Importazione programma:** Amazon Bedrock (Nova Lite), con stato e risultati su Neon
 - **Autenticazione demo:** codici personali e sessioni firmate `HttpOnly`
 - **Mappe:** OpenStreetMap nell'MVP; Mapbox se servono percorsi e mappe offline più evolute
 
@@ -48,6 +49,19 @@ npm run db:migrate
 ```
 
 Le foto restano al momento locali al browser e non vengono salvate nel database.
+
+## Worker AWS
+
+Il caricamento del PDF crea un record idempotente su Neon e invia a SQS soltanto gli
+identificativi del lavoro. Lambda scarica il documento privato da R2, lo elabora con
+Bedrock e salva la bozza su Neon. La configurazione completa è descritta in
+[`docs/aws-sqs-lambda-bedrock.md`](docs/aws-sqs-lambda-bedrock.md).
+
+```bash
+npm run aws:validate
+npm run aws:build
+npm run aws:deploy
+```
 
 ## Modello dati attuale
 

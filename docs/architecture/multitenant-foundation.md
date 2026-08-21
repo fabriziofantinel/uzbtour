@@ -30,9 +30,10 @@ con l'unico ruolo database usato dall'app interromperebbe le API esistenti.
 
 Il codice applicativo dipende da porte, non direttamente dai servizi esterni:
 
-- coda: database Neon nella demo, SQS quando aumentano importazioni e concorrenza;
-- file: Vercel Blob nella demo, Cloudflare R2 quando volume e traffico foto crescono;
-- AI: Gemini nella demo, Bedrock o altro provider nel piano enterprise.
+- coda: Amazon SQS Standard con dead-letter queue;
+- worker: AWS Lambda ARM64 senza VPC o capacità riservata;
+- file: Cloudflare R2 privato;
+- AI: Amazon Bedrock on-demand, inizialmente Amazon Nova Lite.
 
 Le variabili `PLATFORM_*_PROVIDER` selezionano l'implementazione. Questa separazione
 evita una riscrittura quando l'agenzia passa al piano a pagamento.
@@ -45,18 +46,19 @@ evita una riscrittura quando l'agenzia passa al piano a pagamento.
 4. Migrare foto, spese, giochi e risultati aggiungendo partenza e famiglia.
 5. Sostituire il login legacy, applicare RLS e migrare definitivamente la UI viaggio.
 
-## Importazione PDF nella demo
+## Importazione PDF asincrona
 
-Il pannello agenzia carica il PDF come Blob privato e crea un job
-`travel-programme.import` nella coda Neon. L'elaborazione viene avviata manualmente
-dal pannello, così durante la demo non servono processi sempre accesi o costi fissi.
+Il pannello agenzia carica il PDF in R2 come oggetto privato e crea un job
+`travel-programme.import` su Neon, poi pubblica su SQS un messaggio contenente soltanto
+gli identificativi necessari. Non vengono inseriti documenti o credenziali nella coda.
 
-Il worker acquisisce il job in modo atomico, legge il Blob privato, invia il PDF a
-Gemini come documento nativo e valida la risposta con uno schema Zod. La bozza rimane
+Il worker Lambda acquisisce il job in modo atomico, legge l'oggetto privato, invia il PDF a
+Amazon Bedrock come documento nativo e valida la risposta con uno schema Zod. La bozza rimane
 in `import_jobs.result` finché un amministratore non la corregge e pubblica. Solo la
 pubblicazione trasferisce giorni, attività, alberghi e informazioni utili nelle tabelle
 normalizzate, all'interno di un'unica transazione Neon.
 
 In caso di errore il job e l'importazione passano a `failed` e possono essere ritentati.
-Quando il volume richiederà worker indipendenti, la porta `JobQueue` permetterà di
-sostituire la coda database con SQS senza cambiare il formato del job o l'editor.
+La dead-letter queue conserva i messaggi che falliscono quattro volte. I job rimasti
+in elaborazione per oltre dieci minuti possono essere acquisiti nuovamente, evitando
+che un arresto improvviso della Lambda blocchi definitivamente un'importazione.

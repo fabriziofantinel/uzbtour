@@ -272,7 +272,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                   <span><b>{item.fileName}</b><small>{item.tripTitle}</small></span>
                   <time><Clock3 size={13}/>{new Date(item.createdAt).toLocaleString("it-IT")}</time>
                   <em className={`status ${item.status}`}>{statusLabels[item.status] ?? item.status}</em>
-                  {(item.status === "queued" || item.status === "failed") && <button className="importAction" disabled={Boolean(busy)} onClick={() => void processImport(item.id)}>{busy === `process-${item.id}` ? <LoaderCircle className="spin"/> : <Play/>}<span>{item.status === "failed" ? "Riprova" : "Elabora"}</span></button>}
+                  {(item.status === "failed" || (overview.providers.jobQueue === "database" && item.status === "queued")) && <button className="importAction" disabled={Boolean(busy)} onClick={() => void processImport(item.id)}>{busy === `process-${item.id}` ? <LoaderCircle className="spin"/> : <Play/>}<span>{item.status === "failed" ? "Riprova" : "Elabora"}</span></button>}
                   {item.status === "ready_for_review" && <a className="importAction review" href={`/agenzia/importazioni/${item.id}`}><Eye/><span>Revisiona</span></a>}
                 </article>
               ))}
