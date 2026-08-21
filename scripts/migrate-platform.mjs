@@ -19,7 +19,6 @@ const alreadyApplied = await sql`
 
 if (alreadyApplied.length > 0) {
   console.log(`${migrationVersion}: già applicata`);
-  process.exit(0);
 }
 
 await sql`
@@ -448,6 +447,22 @@ await sql`CREATE INDEX IF NOT EXISTS audit_events_entity_idx ON audit_events (ag
 
 await sql`
   INSERT INTO platform_schema_migrations (version) VALUES (${migrationVersion})
+  ON CONFLICT (version) DO NOTHING
 `;
 
-console.log(`${migrationVersion}: applicata`);
+if (alreadyApplied.length === 0) console.log(`${migrationVersion}: applicata`);
+
+const adminImportMigration = "002_admin_import_flow";
+await sql`
+  CREATE UNIQUE INDEX IF NOT EXISTS travel_documents_media_asset_unique
+  ON travel_documents (media_asset_id)
+`;
+await sql`
+  CREATE UNIQUE INDEX IF NOT EXISTS import_jobs_document_unique
+  ON import_jobs (document_id)
+`;
+await sql`
+  INSERT INTO platform_schema_migrations (version) VALUES (${adminImportMigration})
+  ON CONFLICT (version) DO NOTHING
+`;
+console.log(`${adminImportMigration}: verificata`);

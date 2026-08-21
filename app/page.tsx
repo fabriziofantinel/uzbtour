@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft, ArrowRight, ArrowRightLeft, Banknote, Bus, CalendarDays, Camera, ChevronRight,
+  ArrowLeft, ArrowRight, ArrowRightLeft, Banknote, Building2, Bus, CalendarDays, Camera, ChevronRight,
   CircleUserRound, Clock3, Download, ExternalLink, LoaderCircle, LogOut, Map, MapPin,
   MessageCircle, House, Info, Languages, Navigation, Plane, Plus, ReceiptText, ShieldCheck,
   Sparkles, Trash2, TrainFront, Utensils, Wallet
@@ -455,6 +455,7 @@ export default function Home() {
         <div className="people">
           {currentUser && <span className="currentUser"><i>{currentUser.initials}</i><b>{currentUser.name}</b></span>}
           <div className="avatars"><i>FF</i><i>SI</i><i>MA</i></div>
+          {currentUser?.id === "FF" && <a className="agencyButton" href="/agenzia" aria-label="Pannello agenzia" title="Pannello agenzia"><Building2 size={17}/><span>Agenzia</span></a>}
           <form action="/api/auth/logout" method="post">
             <button className="logoutButton" type="submit" aria-label="Esci" title="Esci">
               <LogOut size={17}/><span>Esci</span>

@@ -33,4 +33,14 @@ export type PlatformOverview = {
       }>;
     }>;
   }>;
+  recentImports: Array<{
+    id: string;
+    agencyId: string;
+    templateId: string;
+    tripTitle: string;
+    fileName: string;
+    status: string;
+    createdAt: string;
+    errorMessage: string | null;
+  }>;
 };

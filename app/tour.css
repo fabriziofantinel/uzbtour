@@ -690,6 +690,19 @@
   font-weight: 800;
 }
 
+.agencyButton {
+  align-items: center;
+  border: 1px solid rgba(11, 100, 98, 0.18);
+  border-radius: 8px;
+  color: var(--teal);
+  display: flex;
+  font-size: 10px;
+  font-weight: 800;
+  gap: 6px;
+  padding: 8px 10px;
+  text-decoration: none;
+}
+
 .currentUser {
   display: flex;
   align-items: center;
