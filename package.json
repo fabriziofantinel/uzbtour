@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "db:migrate": "node --env-file=.env.local scripts/migrate.mjs"
+    "db:migrate": "node --env-file=.env.local scripts/migrate.mjs",
+    "db:migrate:platform": "node --env-file=.env.local scripts/migrate-platform.mjs",
+    "db:seed:demo": "node --env-file=.env.local scripts/seed-platform-demo.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

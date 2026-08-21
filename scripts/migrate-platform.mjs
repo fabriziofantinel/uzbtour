@@ -1,0 +1,453 @@
+import { neon } from "@neondatabase/serverless";
+
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) throw new Error("DATABASE_URL non configurata");
+
+const sql = neon(databaseUrl);
+
+await sql`
+  CREATE TABLE IF NOT EXISTS platform_schema_migrations (
+    version TEXT PRIMARY KEY,
+    applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )
+`;
+
+const migrationVersion = "001_multitenant_foundation";
+const alreadyApplied = await sql`
+  SELECT 1 FROM platform_schema_migrations WHERE version = ${migrationVersion} LIMIT 1
+`;
+
+if (alreadyApplied.length > 0) {
+  console.log(`${migrationVersion}: già applicata`);
+  process.exit(0);
+}
+
+await sql`
+  CREATE TABLE IF NOT EXISTS platform_users (
+    id TEXT PRIMARY KEY,
+    display_name TEXT NOT NULL CHECK (char_length(display_name) BETWEEN 1 AND 160),
+    initials TEXT NOT NULL DEFAULT '',
+    email TEXT,
+    auth_provider TEXT NOT NULL DEFAULT 'legacy',
+    auth_subject TEXT,
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('invited', 'active', 'disabled')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (auth_provider, auth_subject)
+  )
+`;
+
+await sql`
+  CREATE TABLE IF NOT EXISTS agencies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    slug TEXT NOT NULL UNIQUE CHECK (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$'),
+    name TEXT NOT NULL CHECK (char_length(name) BETWEEN 1 AND 200),
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('trial', 'active', 'suspended', 'closed')),
+    default_locale TEXT NOT NULL DEFAULT 'it-IT',
+    default_timezone TEXT NOT NULL DEFAULT 'Europe/Rome',
+    branding JSONB NOT NULL DEFAULT '{}'::jsonb,
+    settings JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )
+`;
+
+await sql`
+  CREATE TABLE IF NOT EXISTS agency_memberships (
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL REFERENCES platform_users(id) ON DELETE CASCADE,
+    role TEXT NOT NULL CHECK (role IN ('owner', 'admin', 'editor', 'viewer')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (agency_id, user_id)
+  )
+`;
+
+await sql`
+  CREATE TABLE IF NOT EXISTS trip_templates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    slug TEXT NOT NULL,
+    title TEXT NOT NULL CHECK (char_length(title) BETWEEN 1 AND 240),
+    destination_country TEXT,
+    description TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'active', 'archived')),
+    default_locale TEXT NOT NULL DEFAULT 'it-IT',
+    default_timezone TEXT NOT NULL DEFAULT 'UTC',
+    created_by_user_id TEXT REFERENCES platform_users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (agency_id, slug),
+    UNIQUE (agency_id, id)
+  )
+`;
+
+await sql`
+  CREATE TABLE IF NOT EXISTS trip_template_versions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agency_id UUID NOT NULL,
+    template_id UUID NOT NULL,
+    version_number INTEGER NOT NULL CHECK (version_number > 0),
+    status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),
+    revision_note TEXT NOT NULL DEFAULT '',
+    published_at TIMESTAMPTZ,
+    created_by_user_id TEXT REFERENCES platform_users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (agency_id, template_id) REFERENCES trip_templates(agency_id, id) ON DELETE CASCADE,
+    UNIQUE (template_id, version_number),
+    UNIQUE (agency_id, id)
+  )
+`;
+
+await sql`
+  CREATE TABLE IF NOT EXISTS trip_days (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agency_id UUID NOT NULL,
+    template_version_id UUID NOT NULL,
+    day_number SMALLINT NOT NULL CHECK (day_number > 0),
+    day_offset SMALLINT NOT NULL CHECK (day_offset >= 0),
+    label TEXT NOT NULL DEFAULT '',
+    title TEXT NOT NULL DEFAULT '',
+    city TEXT NOT NULL DEFAULT '',
+    description TEXT NOT NULL DEFAULT '',
+    source_date DATE,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    FOREIGN KEY (agency_id, template_version_id)
+      REFERENCES trip_template_versions(agency_id, id) ON DELETE CASCADE,
+    UNIQUE (template_version_id, day_number),
+    UNIQUE (template_version_id, day_offset),
+    UNIQUE (agency_id, id)
+  )
+`;
+
+await sql`
+  CREATE TABLE IF NOT EXISTS places (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    place_type TEXT NOT NULL DEFAULT 'attraction'
+      CHECK (place_type IN ('city', 'attraction', 'hotel', 'restaurant', 'airport', 'station', 'other')),
+    city TEXT NOT NULL DEFAULT '',
+    country TEXT NOT NULL DEFAULT '',
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
+    information_url TEXT,
+    map_url TEXT,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (agency_id, id)
+  )
+`;
+
+await sql`
+  CREATE TABLE IF NOT EXISTS itinerary_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agency_id UUID NOT NULL,
+    trip_day_id UUID NOT NULL,
+    place_id UUID,
+    item_type TEXT NOT NULL CHECK (item_type IN (
+      'visit', 'transport', 'flight', 'train', 'hotel', 'meal', 'free_time', 'meeting', 'other'
+    )),
+    title TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    starts_at TIME,
+    ends_at TIME,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    source_page INTEGER CHECK (source_page IS NULL OR source_page > 0),
+    extraction_confidence NUMERIC(4,3)
+      CHECK (extraction_confidence IS NULL OR extraction_confidence BETWEEN 0 AND 1),
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    FOREIGN KEY (agency_id, trip_day_id) REFERENCES trip_days(agency_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (agency_id, place_id) REFERENCES places(agency_id, id) ON DELETE SET NULL (place_id),
+    UNIQUE (agency_id, id)
+  )
+`;
+
+await sql`
+  CREATE TABLE IF NOT EXISTS accommodations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agency_id UUID NOT NULL,
+    trip_day_id UUID NOT NULL,
+    place_id UUID,
+    name TEXT NOT NULL,
+    information_url TEXT,
+    notes TEXT NOT NULL DEFAULT '',
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    FOREIGN KEY (agency_id, trip_day_id) REFERENCES trip_days(agency_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (agency_id, place_id) REFERENCES places(agency_id, id) ON DELETE SET NULL (place_id),
+    UNIQUE (agency_id, id)
+  )
+`;
+
+await sql`
+  CREATE TABLE IF NOT EXISTS departures (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agency_id UUID NOT NULL,
+    template_id UUID NOT NULL,
+    template_version_id UUID NOT NULL,
+    code TEXT NOT NULL,
+    title TEXT NOT NULL,
+    starts_on DATE NOT NULL,
+    ends_on DATE NOT NULL CHECK (ends_on >= starts_on),
+    timezone TEXT NOT NULL DEFAULT 'UTC',
+    status TEXT NOT NULL DEFAULT 'draft'
+      CHECK (status IN ('draft', 'open', 'confirmed', 'in_progress', 'completed', 'cancelled', 'archived')),
+    settings JSONB NOT NULL DEFAULT '{}'::jsonb,
+    published_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (agency_id, template_id) REFERENCES trip_templates(agency_id, id) ON DELETE RESTRICT,
+    FOREIGN KEY (agency_id, template_version_id)
+      REFERENCES trip_template_versions(agency_id, id) ON DELETE RESTRICT,
+    UNIQUE (agency_id, code),
+    UNIQUE (agency_id, id)
+  )
+`;
+
+await sql`
+  CREATE TABLE IF NOT EXISTS departure_item_overrides (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agency_id UUID NOT NULL,
+    departure_id UUID NOT NULL,
+    itinerary_item_id UUID,
+    operation TEXT NOT NULL CHECK (operation IN ('add', 'update', 'remove')),
+    payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+    reason TEXT NOT NULL DEFAULT '',
+    created_by_user_id TEXT REFERENCES platform_users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (agency_id, departure_id) REFERENCES departures(agency_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (agency_id, itinerary_item_id) REFERENCES itinerary_items(agency_id, id) ON DELETE CASCADE
+  )
+`;
+
+await sql`
+  CREATE TABLE IF NOT EXISTS travel_parties (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agency_id UUID NOT NULL,
+    departure_id UUID NOT NULL,
+    code TEXT NOT NULL,
+    name TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('invited', 'active', 'completed', 'archived')),
+    settings JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (agency_id, departure_id) REFERENCES departures(agency_id, id) ON DELETE CASCADE,
+    UNIQUE (departure_id, code),
+    UNIQUE (agency_id, id)
+  )
+`;
+
+await sql`
+  CREATE TABLE IF NOT EXISTS traveler_profiles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    user_id TEXT REFERENCES platform_users(id) ON DELETE SET NULL,
+    display_name TEXT NOT NULL,
+    email TEXT,
+    phone TEXT,
+    birth_date DATE,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (agency_id, user_id),
+    UNIQUE (agency_id, id)
+  )
+`;
+
+await sql`
+  CREATE TABLE IF NOT EXISTS party_memberships (
+    agency_id UUID NOT NULL,
+    party_id UUID NOT NULL,
+    traveler_id UUID NOT NULL,
+    role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('organizer', 'member')),
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('invited', 'active', 'removed')),
+    joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (agency_id, party_id) REFERENCES travel_parties(agency_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (agency_id, traveler_id) REFERENCES traveler_profiles(agency_id, id) ON DELETE CASCADE,
+    PRIMARY KEY (party_id, traveler_id)
+  )
+`;
+
+await sql`
+  CREATE TABLE IF NOT EXISTS useful_information (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agency_id UUID NOT NULL,
+    template_version_id UUID NOT NULL,
+    category TEXT NOT NULL,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    phone TEXT,
+    url TEXT,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    FOREIGN KEY (agency_id, template_version_id)
+      REFERENCES trip_template_versions(agency_id, id) ON DELETE CASCADE
+  )
+`;
+
+await sql`
+  CREATE TABLE IF NOT EXISTS phrasebook_entries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agency_id UUID NOT NULL,
+    template_version_id UUID NOT NULL,
+    language_code TEXT NOT NULL,
+    category TEXT NOT NULL DEFAULT 'general',
+    term TEXT NOT NULL,
+    pronunciation TEXT NOT NULL DEFAULT '',
+    translation TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (agency_id, template_version_id)
+      REFERENCES trip_template_versions(agency_id, id) ON DELETE CASCADE
+  )
+`;
+
+await sql`
+  CREATE TABLE IF NOT EXISTS generated_content (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agency_id UUID NOT NULL,
+    template_version_id UUID NOT NULL,
+    trip_day_id UUID,
+    content_type TEXT NOT NULL CHECK (content_type IN (
+      'quiz_question', 'mission', 'bingo_item', 'word_game', 'order_game', 'photo_contest'
+    )),
+    title TEXT NOT NULL DEFAULT '',
+    content JSONB NOT NULL,
+    status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'approved', 'archived')),
+    source TEXT NOT NULL DEFAULT 'manual' CHECK (source IN ('manual', 'import', 'ai')),
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (agency_id, template_version_id)
+      REFERENCES trip_template_versions(agency_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (agency_id, trip_day_id) REFERENCES trip_days(agency_id, id) ON DELETE CASCADE
+  )
+`;
+
+await sql`
+  CREATE TABLE IF NOT EXISTS media_assets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    departure_id UUID,
+    party_id UUID,
+    uploaded_by_user_id TEXT REFERENCES platform_users(id) ON DELETE SET NULL,
+    provider TEXT NOT NULL CHECK (provider IN ('vercel_blob', 'r2', 's3')),
+    bucket TEXT NOT NULL DEFAULT '',
+    object_key TEXT NOT NULL,
+    original_name TEXT NOT NULL,
+    content_type TEXT NOT NULL,
+    size_bytes BIGINT CHECK (size_bytes IS NULL OR size_bytes >= 0),
+    checksum_sha256 TEXT,
+    purpose TEXT NOT NULL DEFAULT 'photo',
+    visibility TEXT NOT NULL DEFAULT 'party'
+      CHECK (visibility IN ('private', 'party', 'departure', 'agency')),
+    status TEXT NOT NULL DEFAULT 'pending'
+      CHECK (status IN ('pending', 'ready', 'quarantined', 'deleted')),
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (agency_id, departure_id) REFERENCES departures(agency_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (agency_id, party_id) REFERENCES travel_parties(agency_id, id) ON DELETE CASCADE,
+    UNIQUE (provider, bucket, object_key),
+    UNIQUE (agency_id, id)
+  )
+`;
+
+await sql`
+  CREATE TABLE IF NOT EXISTS travel_documents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    template_id UUID,
+    departure_id UUID,
+    media_asset_id UUID NOT NULL,
+    document_type TEXT NOT NULL DEFAULT 'programme',
+    title TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'uploaded'
+      CHECK (status IN ('uploaded', 'processing', 'ready', 'failed', 'archived')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (agency_id, template_id) REFERENCES trip_templates(agency_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (agency_id, departure_id) REFERENCES departures(agency_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (agency_id, media_asset_id) REFERENCES media_assets(agency_id, id) ON DELETE CASCADE,
+    UNIQUE (agency_id, id)
+  )
+`;
+
+await sql`
+  CREATE TABLE IF NOT EXISTS import_jobs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    template_id UUID NOT NULL,
+    document_id UUID NOT NULL,
+    status TEXT NOT NULL DEFAULT 'uploaded' CHECK (status IN (
+      'uploaded', 'queued', 'extracting', 'generating', 'ready_for_review', 'published', 'failed'
+    )),
+    extraction_provider TEXT,
+    ai_provider TEXT,
+    attempt_count SMALLINT NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
+    result JSONB,
+    error_message TEXT,
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    created_by_user_id TEXT REFERENCES platform_users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (agency_id, template_id) REFERENCES trip_templates(agency_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (agency_id, document_id) REFERENCES travel_documents(agency_id, id) ON DELETE CASCADE
+  )
+`;
+
+await sql`
+  CREATE TABLE IF NOT EXISTS platform_jobs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    job_type TEXT NOT NULL,
+    provider TEXT NOT NULL DEFAULT 'database' CHECK (provider IN ('database', 'sqs')),
+    status TEXT NOT NULL DEFAULT 'queued'
+      CHECK (status IN ('queued', 'processing', 'completed', 'failed', 'dead_letter')),
+    payload JSONB NOT NULL,
+    external_id TEXT,
+    idempotency_key TEXT NOT NULL,
+    attempt_count SMALLINT NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
+    available_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    locked_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    error_message TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (agency_id, idempotency_key)
+  )
+`;
+
+await sql`
+  CREATE TABLE IF NOT EXISTS audit_events (
+    id BIGSERIAL PRIMARY KEY,
+    agency_id UUID NOT NULL REFERENCES agencies(id) ON DELETE CASCADE,
+    actor_user_id TEXT REFERENCES platform_users(id) ON DELETE SET NULL,
+    departure_id UUID,
+    party_id UUID,
+    entity_type TEXT NOT NULL,
+    entity_id TEXT NOT NULL,
+    action TEXT NOT NULL,
+    changes JSONB NOT NULL DEFAULT '{}'::jsonb,
+    request_id TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (agency_id, departure_id) REFERENCES departures(agency_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (agency_id, party_id) REFERENCES travel_parties(agency_id, id) ON DELETE CASCADE
+  )
+`;
+
+await sql`CREATE INDEX IF NOT EXISTS agency_memberships_user_idx ON agency_memberships (user_id, agency_id)`;
+await sql`CREATE INDEX IF NOT EXISTS trip_templates_agency_status_idx ON trip_templates (agency_id, status, updated_at DESC)`;
+await sql`CREATE INDEX IF NOT EXISTS departures_agency_dates_idx ON departures (agency_id, starts_on, ends_on)`;
+await sql`CREATE INDEX IF NOT EXISTS travel_parties_departure_idx ON travel_parties (departure_id, status)`;
+await sql`CREATE INDEX IF NOT EXISTS itinerary_items_day_sort_idx ON itinerary_items (trip_day_id, sort_order)`;
+await sql`CREATE INDEX IF NOT EXISTS generated_content_day_type_idx ON generated_content (trip_day_id, content_type, sort_order)`;
+await sql`CREATE INDEX IF NOT EXISTS media_assets_scope_idx ON media_assets (agency_id, departure_id, party_id, created_at DESC)`;
+await sql`CREATE INDEX IF NOT EXISTS import_jobs_status_idx ON import_jobs (agency_id, status, created_at)`;
+await sql`CREATE INDEX IF NOT EXISTS platform_jobs_available_idx ON platform_jobs (status, available_at, created_at)`;
+await sql`CREATE INDEX IF NOT EXISTS audit_events_entity_idx ON audit_events (agency_id, entity_type, entity_id, created_at DESC)`;
+
+await sql`
+  INSERT INTO platform_schema_migrations (version) VALUES (${migrationVersion})
+`;
+
+console.log(`${migrationVersion}: applicata`);
