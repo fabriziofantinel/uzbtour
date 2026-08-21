@@ -6,6 +6,10 @@ Creare un bucket R2, ad esempio `smf-travel-private`, e lasciare disabilitato
 l’accesso pubblico. Documenti e foto vengono letti solo dal server o tramite URL
 firmati con scadenza breve.
 
+Per un prodotto rivolto ad agenzie italiane è consigliabile selezionare
+`Specify jurisdiction` → `European Union` al momento della creazione. La
+giurisdizione non può essere cambiata successivamente.
+
 ## 2. Token API
 
 Creare un token R2 limitato al solo bucket con permessi `Object Read & Write`.
@@ -41,6 +45,7 @@ Configurare per Production e Preview:
 ```text
 PLATFORM_OBJECT_STORAGE_PROVIDER=r2
 R2_ACCOUNT_ID=...
+R2_JURISDICTION=eu
 R2_ACCESS_KEY_ID=...
 R2_SECRET_ACCESS_KEY=...
 R2_BUCKET=smf-travel-private

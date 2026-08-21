@@ -23,6 +23,15 @@ function requiredEnvironment(name: string) {
   return value;
 }
 
+function r2Endpoint(accountId: string) {
+  const jurisdiction = process.env.R2_JURISDICTION?.trim().toLowerCase();
+  if (!jurisdiction) return `https://${accountId}.r2.cloudflarestorage.com`;
+  if (!["eu", "us", "fedramp"].includes(jurisdiction)) {
+    throw new PlatformRequestError("R2_JURISDICTION non valida");
+  }
+  return `https://${accountId}.${jurisdiction}.r2.cloudflarestorage.com`;
+}
+
 function validKey(key: string) {
   if (
     !key || key.length > 700 || key.startsWith("/") || key.endsWith("/") ||
@@ -50,7 +59,7 @@ export class R2ObjectStorage implements ObjectStorage {
     this.bucket = requiredEnvironment("R2_BUCKET");
     this.client = new S3Client({
       region: "auto",
-      endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+      endpoint: r2Endpoint(accountId),
       credentials: {
         accessKeyId: requiredEnvironment("R2_ACCESS_KEY_ID"),
         secretAccessKey: requiredEnvironment("R2_SECRET_ACCESS_KEY"),
