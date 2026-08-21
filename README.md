@@ -1,6 +1,7 @@
 # SMF Travel
 
-MVP di un diario di viaggio condiviso per un tour di 11 giorni.
+Piattaforma multi-agenzia per creare viaggi da un programma PDF e condividerli con
+famiglie e viaggiatori. Il tour Uzbekistan resta disponibile come contenuto demo.
 
 ## Avvio locale
 
@@ -11,15 +12,17 @@ npm run dev
 
 Aprire `http://localhost:3000`.
 
-## Architettura cloud consigliata
+## Architettura della demo SaaS
 
 - **Frontend e API:** Next.js App Router su Vercel
 - **Database:** Neon Postgres dal Vercel Marketplace
-- **Foto:** Vercel Blob
-- **Autenticazione:** Auth.js con magic link o Google
+- **Documenti e foto:** bucket privato Cloudflare R2
+- **Importazione programma:** Gemini, eseguita tramite job persistiti su Neon
+- **Autenticazione demo:** codici personali e sessioni firmate `HttpOnly`
 - **Mappe:** OpenStreetMap nell'MVP; Mapbox se servono percorsi e mappe offline più evolute
 
-La demo salva lo stato durante la sessione del browser. Il passaggio alla persistenza cloud richiede la creazione del progetto Vercel e delle relative integrazioni.
+Il caricamento dei file usa URL `PUT` firmati e temporanei: il browser invia il file
+direttamente a R2, mentre le chiavi R2 rimangono esclusivamente nelle API server-side.
 
 ## Accesso privato
 
@@ -52,8 +55,16 @@ Le foto restano al momento locali al browser e non vengono salvate nel database.
 - `trip_restaurants`: locali associati al giorno e all'utente che li ha inseriti
 - `trip_expenses`: importi, descrizione e partecipante che ha pagato
 
-## Storage fotografico
+## Cloudflare R2
 
-La scelta dello storage delle foto è intenzionalmente rimandata. Gmail non è adatto
-come storage applicativo; Vercel Blob, Amazon S3 e Google Drive verranno valutati
-separatamente prima di collegare il caricamento permanente.
+Creare un bucket privato e un token R2 limitato a lettura/scrittura di quel bucket,
+quindi configurare su Vercel:
+
+- `PLATFORM_OBJECT_STORAGE_PROVIDER=r2`
+- `R2_ACCOUNT_ID`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- `R2_BUCKET`
+
+Per gli upload diretti dal browser serve anche la policy CORS descritta in
+[`docs/cloudflare-r2.md`](docs/cloudflare-r2.md).

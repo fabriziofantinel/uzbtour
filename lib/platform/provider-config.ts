@@ -17,7 +17,7 @@ export function getPlatformProviderConfig(): PlatformProviderConfig {
   return {
     objectStorage: oneOf<ObjectStorageProvider>(
       process.env.PLATFORM_OBJECT_STORAGE_PROVIDER,
-      "vercel-blob",
+      "r2",
       ["vercel-blob", "r2"]
     ),
     jobQueue: oneOf<JobQueueProvider>(

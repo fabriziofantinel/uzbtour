@@ -6,8 +6,30 @@ export type StoredObject = {
   contentType: string;
 };
 
+export type UploadAuthorization = {
+  provider: StoredObject["provider"];
+  bucket: string;
+  key: string;
+  url: string;
+  method: "PUT";
+  headers: Record<string, string>;
+  expiresAt: string;
+};
+
+export type DownloadedObject = StoredObject & {
+  bytes: Uint8Array;
+};
+
 export interface ObjectStorage {
-  put(key: string, body: Blob, contentType: string): Promise<StoredObject>;
+  readonly provider: StoredObject["provider"];
+  readonly bucket: string;
+  createUploadAuthorization(
+    key: string,
+    contentType: string,
+    expiresInSeconds: number
+  ): Promise<UploadAuthorization>;
+  head(key: string): Promise<StoredObject>;
+  get(key: string): Promise<DownloadedObject>;
   createDownloadUrl(key: string, expiresInSeconds: number): Promise<string>;
   delete(key: string): Promise<void>;
 }

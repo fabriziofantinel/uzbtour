@@ -1,6 +1,5 @@
 "use client";
 
-import { upload } from "@vercel/blob/client";
 import Link from "next/link";
 import {
   ArrowLeft, Building2, CalendarDays, CheckCircle2, ChevronDown, CircleAlert,
@@ -11,6 +10,14 @@ import { FormEvent, useMemo, useState } from "react";
 import type { PlatformOverview } from "@/lib/platform/types";
 
 type Props = { initialOverview: PlatformOverview };
+
+type UploadAuthorization = {
+  key: string;
+  url: string;
+  method: "PUT";
+  headers: Record<string, string>;
+  expiresAt: string;
+};
 
 const statusLabels: Record<string, string> = {
   draft: "Bozza",
@@ -100,24 +107,40 @@ export default function AgencyDashboard({ initialOverview }: Props) {
     setError("");
     setNotice("");
     try {
-      const pathname = `agencies/${agency.id}/documents/${crypto.randomUUID()}.pdf`;
-      const blob = await upload(pathname, file, {
-        access: "private",
-        handleUploadUrl: "/api/admin/platform/documents/upload",
-        clientPayload: JSON.stringify({
-          agencyId: agency.id,
-          templateId,
-          originalName: file.name,
-        }),
+      const authorization = await responseJson<UploadAuthorization>(await fetch(
+        "/api/admin/platform/documents/upload",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            agencyId: agency.id,
+            templateId,
+            originalName: file.name,
+            contentType: "application/pdf",
+            sizeBytes: file.size,
+          }),
+        }
+      ));
+      const uploaded = await fetch(authorization.url, {
+        method: authorization.method,
+        headers: authorization.headers,
+        body: file,
       });
+      if (!uploaded.ok) {
+        throw new Error(
+          uploaded.status === 403
+            ? "R2 ha rifiutato il caricamento. Controlla CORS o riprova con un nuovo URL."
+            : "Caricamento del PDF su R2 non riuscito."
+        );
+      }
       await responseJson(await fetch("/api/admin/platform/documents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           agencyId: agency.id,
           templateId,
-          pathname: blob.pathname,
           originalName: file.name,
+          objectKey: authorization.key,
         }),
       }));
       await refresh();

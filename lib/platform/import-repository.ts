@@ -8,8 +8,12 @@ type ImportSourceRow = {
   agency_id: string;
   template_id: string;
   document_id: string;
+  provider: "vercel_blob" | "r2";
+  bucket: string;
   object_key: string;
   original_name: string;
+  content_type: string;
+  size_bytes: number | null;
   status: string;
 };
 
@@ -50,7 +54,8 @@ export async function claimImportJob(importId: string) {
     )
     SELECT
       ci.id::text, ci.agency_id::text, ci.template_id::text, ci.document_id::text,
-      ma.object_key, ma.original_name, ci.status
+      ma.provider, ma.bucket, ma.object_key, ma.original_name,
+      ma.content_type, ma.size_bytes, ci.status
     FROM changed_import ci
     JOIN travel_documents td ON td.id = ci.document_id AND td.agency_id = ci.agency_id
     JOIN media_assets ma ON ma.id = td.media_asset_id AND ma.agency_id = ci.agency_id

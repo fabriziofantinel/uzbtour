@@ -216,7 +216,9 @@ export async function registerImportedDocument(input: {
   agencyId: string;
   templateId: string;
   actorId: string;
-  pathname: string;
+  provider: "vercel_blob" | "r2";
+  bucket: string;
+  objectKey: string;
   originalName: string;
   contentType: string;
   sizeBytes: number | null;
@@ -231,7 +233,7 @@ export async function registerImportedDocument(input: {
         id, agency_id, uploaded_by_user_id, provider, bucket, object_key,
         original_name, content_type, size_bytes, purpose, visibility, status
       ) VALUES (
-        ${mediaId}, ${input.agencyId}, ${input.actorId}, 'vercel_blob', '', ${input.pathname},
+        ${mediaId}, ${input.agencyId}, ${input.actorId}, ${input.provider}, ${input.bucket}, ${input.objectKey},
         ${input.originalName}, ${input.contentType}, ${input.sizeBytes}, 'travel_programme',
         'agency', 'ready'
       )
@@ -261,7 +263,7 @@ export async function registerImportedDocument(input: {
       )
       SELECT
         ${input.agencyId}, ${input.actorId}, 'import_job', imported.id::text, 'queued',
-        ${JSON.stringify({ pathname: input.pathname, originalName: input.originalName })}::jsonb
+        ${JSON.stringify({ objectKey: input.objectKey, originalName: input.originalName })}::jsonb
       FROM imported
     )
     SELECT id::text, document_id::text, status, created_at::text FROM imported
