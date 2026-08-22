@@ -32,6 +32,12 @@ const statusLabels: Record<string, string> = {
   failed: "Errore",
 };
 
+const agencyDateTimeFormatter = new Intl.DateTimeFormat("it-IT", {
+  dateStyle: "short",
+  timeStyle: "short",
+  timeZone: "Europe/Rome",
+});
+
 async function responseJson<T>(response: Response): Promise<T> {
   const result = await response.json().catch(() => ({})) as T & { error?: string };
   if (!response.ok) throw new Error(result.error || "Operazione non riuscita");
@@ -270,7 +276,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                 <article key={item.id}>
                   <FileText size={20}/>
                   <span><b>{item.fileName}</b><small>{item.tripTitle}</small></span>
-                  <time><Clock3 size={13}/>{new Date(item.createdAt).toLocaleString("it-IT")}</time>
+                  <time><Clock3 size={13}/>{agencyDateTimeFormatter.format(new Date(item.createdAt))}</time>
                   <em className={`status ${item.status}`}>{statusLabels[item.status] ?? item.status}</em>
                   {(item.status === "failed" || (overview.providers.jobQueue === "database" && item.status === "queued")) && <button className="importAction" disabled={Boolean(busy)} onClick={() => void processImport(item.id)}>{busy === `process-${item.id}` ? <LoaderCircle className="spin"/> : <Play/>}<span>{item.status === "failed" ? "Riprova" : "Elabora"}</span></button>}
                   {item.status === "ready_for_review" && <a className="importAction review" href={`/agenzia/importazioni/${item.id}`}><Eye/><span>Revisiona</span></a>}

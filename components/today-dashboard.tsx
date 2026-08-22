@@ -34,9 +34,10 @@ function weatherLabel(code = 0) {
   return "Temporali";
 }
 
-function countdownLabel(timestamp?: string) {
+function countdownLabel(timestamp: string | undefined, now: Date | null) {
   if (!timestamp) return "Orario da confermare";
-  const difference = new Date(timestamp).getTime() - Date.now();
+  if (!now) return "Orario programmato";
+  const difference = new Date(timestamp).getTime() - now.getTime();
   if (difference <= 0) return "In programma";
   const hours = Math.floor(difference / 3_600_000);
   const days = Math.floor(hours / 24);
@@ -58,12 +59,16 @@ export default function TodayDashboard({
   onOpenDay: (day: number) => void;
   onOpenChallenges: () => void;
 }) {
-  const [now, setNow] = useState(() => new Date());
-  const detail = useMemo(() => selectedTripDay(now), [now]);
+  const [now, setNow] = useState<Date | null>(null);
+  const detail = useMemo(
+    () => selectedTripDay(now ?? new Date("2026-08-01T00:00:00+05:00")),
+    [now]
+  );
   const day = days.find((entry) => entry.n === detail.day) ?? days[0];
   const [weather, setWeather] = useState<Weather | null>(null);
 
   useEffect(() => {
+    setNow(new Date());
     const timer = window.setInterval(() => setNow(new Date()), 60_000);
     return () => window.clearInterval(timer);
   }, []);
@@ -80,7 +85,7 @@ export default function TodayDashboard({
 
   const nextEvent = useMemo(() => {
     const timed = detail.schedule
-      .filter((entry) => entry.timestamp && new Date(entry.timestamp).getTime() > now.getTime());
+      .filter((entry) => entry.timestamp && new Date(entry.timestamp).getTime() > (now?.getTime() ?? 0));
     return timed[0]
       ?? detail.schedule.find((entry) => !entry.timestamp)
       ?? detail.schedule[detail.schedule.length - 1];
@@ -118,7 +123,7 @@ export default function TodayDashboard({
 
       <section className="nextAppointment">
         <span><CalendarClock size={24}/></span>
-        <div><small>PROSSIMO APPUNTAMENTO · {countdownLabel(nextEvent?.timestamp)}</small><h3>{nextEvent?.label ?? "Giornata libera"}</h3><p>{nextEvent?.time} · {detail.meetingPoint}</p></div>
+        <div><small>PROSSIMO APPUNTAMENTO · {countdownLabel(nextEvent?.timestamp, now)}</small><h3>{nextEvent?.label ?? "Giornata libera"}</h3><p>{nextEvent?.time} · {detail.meetingPoint}</p></div>
         <button type="button" onClick={() => onOpenDay(day.n)} aria-label="Apri il programma della giornata"><ChevronRight size={21}/></button>
       </section>
 
