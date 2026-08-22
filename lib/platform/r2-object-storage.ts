@@ -60,6 +60,8 @@ export class R2ObjectStorage implements ObjectStorage {
     this.client = new S3Client({
       region: "auto",
       endpoint: r2Endpoint(accountId),
+      requestChecksumCalculation: "WHEN_REQUIRED",
+      responseChecksumValidation: "WHEN_REQUIRED",
       credentials: {
         accessKeyId: requiredEnvironment("R2_ACCESS_KEY_ID"),
         secretAccessKey: requiredEnvironment("R2_SECRET_ACCESS_KEY"),

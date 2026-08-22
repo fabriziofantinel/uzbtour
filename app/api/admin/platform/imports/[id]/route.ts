@@ -3,10 +3,13 @@ import { requireAgencyAdmin } from "@/lib/platform/authorization";
 import { platformApiError } from "@/lib/platform/http";
 import { travelProgrammeDraftSchema } from "@/lib/platform/import-schema";
 import {
+  deleteImportDraftRecords,
   getImportAgency,
+  getImportDeletionTarget,
   getImportForReview,
   saveImportDraft,
 } from "@/lib/platform/import-repository";
+import { getObjectStorage } from "@/lib/platform/object-storage";
 
 export const runtime = "nodejs";
 
@@ -44,5 +47,31 @@ export async function PATCH(
     return NextResponse.json({ ok: true });
   } catch (error) {
     return platformApiError(error, "Salvataggio della revisione non riuscito");
+  }
+}
+
+export async function DELETE(
+  _request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await context.params;
+    const agencyId = await getImportAgency(id);
+    await requireAgencyAdmin(agencyId);
+    const target = await getImportDeletionTarget(id, agencyId);
+    const storage = getObjectStorage(target.provider);
+    if (storage.bucket !== target.bucket) {
+      return NextResponse.json({ error: "Bucket del documento non valido" }, { status: 409 });
+    }
+    await storage.delete(target.objectKey);
+    await deleteImportDraftRecords({
+      importId: id,
+      agencyId,
+      documentId: target.documentId,
+      mediaAssetId: target.mediaAssetId,
+    });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    return platformApiError(error, "Eliminazione della bozza non riuscita");
   }
 }

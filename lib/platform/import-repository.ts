@@ -196,6 +196,66 @@ export async function getImportForReview(
   };
 }
 
+export async function getImportDeletionTarget(importId: string, agencyId: string) {
+  const sql = getSql();
+  const rows = await sql`
+    SELECT
+      ij.status, ij.document_id::text, td.media_asset_id::text,
+      ma.provider, ma.bucket, ma.object_key
+    FROM import_jobs ij
+    JOIN travel_documents td ON td.id = ij.document_id AND td.agency_id = ij.agency_id
+    JOIN media_assets ma ON ma.id = td.media_asset_id AND ma.agency_id = ij.agency_id
+    WHERE ij.id = ${importId} AND ij.agency_id = ${agencyId}
+      AND ij.status IN ('ready_for_review', 'failed')
+      AND ma.provider = 'r2'
+    LIMIT 1
+  `;
+  if (!rows[0]) throw new PlatformRequestError("La bozza non può essere eliminata");
+  return {
+    status: String(rows[0].status),
+    documentId: String(rows[0].document_id),
+    mediaAssetId: String(rows[0].media_asset_id),
+    provider: "r2" as const,
+    bucket: String(rows[0].bucket),
+    objectKey: String(rows[0].object_key),
+  };
+}
+
+export async function deleteImportDraftRecords(input: {
+  importId: string;
+  agencyId: string;
+  documentId: string;
+  mediaAssetId: string;
+}) {
+  const sql = getSql();
+  const results = await sql.transaction((transaction) => [
+    transaction`
+      DELETE FROM audit_events
+      WHERE agency_id = ${input.agencyId}
+        AND entity_type = 'import_job' AND entity_id = ${input.importId}
+    `,
+    transaction`
+      DELETE FROM platform_jobs
+      WHERE agency_id = ${input.agencyId} AND payload->>'importId' = ${input.importId}
+    `,
+    transaction`
+      DELETE FROM import_jobs
+      WHERE id = ${input.importId} AND agency_id = ${input.agencyId}
+        AND status IN ('ready_for_review', 'failed')
+      RETURNING id
+    `,
+    transaction`
+      DELETE FROM travel_documents
+      WHERE id = ${input.documentId} AND agency_id = ${input.agencyId}
+    `,
+    transaction`
+      DELETE FROM media_assets
+      WHERE id = ${input.mediaAssetId} AND agency_id = ${input.agencyId}
+    `,
+  ]);
+  if (results[2].length !== 1) throw new PlatformRequestError("Eliminazione della bozza non riuscita");
+}
+
 export async function saveImportDraft(input: {
   importId: string;
   agencyId: string;

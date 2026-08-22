@@ -78,6 +78,20 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
     }
   }
 
+  async function removeDraft() {
+    if (!confirm("Eliminare questa bozza e il PDF privato associato? L’operazione non è reversibile.")) return;
+    setBusy("delete"); setError(""); setNotice("");
+    try {
+      await jsonResponse(await fetch(`/api/admin/platform/imports/${initialImport.id}`, {
+        method: "DELETE",
+      }));
+      window.location.href = "/agenzia";
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Eliminazione non riuscita");
+      setBusy("");
+    }
+  }
+
   if (!draft) {
     return <main className="reviewPage"><section className="reviewUnavailable"><CircleAlert/><h1>Bozza non disponibile</h1><p>Stato: {initialImport.status}. Avvia o riprova l’elaborazione dal pannello.</p><a href="/agenzia"><ArrowLeft/> Torna al pannello</a></section></main>;
   }
@@ -145,7 +159,7 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
           {draft.usefulInformation.map((info, index) => <article key={index}><input value={info.category} onChange={(event) => setDraft({ ...draft, usefulInformation: draft.usefulInformation.map((item, position) => position === index ? { ...item, category: event.target.value } : item) })}/><input value={info.title} onChange={(event) => setDraft({ ...draft, usefulInformation: draft.usefulInformation.map((item, position) => position === index ? { ...item, title: event.target.value } : item) })}/><textarea value={info.body} onChange={(event) => setDraft({ ...draft, usefulInformation: draft.usefulInformation.map((item, position) => position === index ? { ...item, body: event.target.value } : item) })}/><button aria-label="Rimuovi informazione" onClick={() => setDraft({ ...draft, usefulInformation: draft.usefulInformation.filter((_, position) => position !== index) })}><Trash2/></button></article>)}
         </section>
 
-        <footer className="reviewActions"><div><BedDouble/><span><b>Pronto per la pubblicazione?</b><small>Verranno create {draft.days.length} giornate modificabili anche successivamente.</small></span></div><button className="secondary" onClick={save} disabled={Boolean(busy)}><Save/> Salva bozza</button><button onClick={publish} disabled={Boolean(busy)}>{busy === "publish" ? <LoaderCircle className="spin"/> : <Send/>} Pubblica programma</button></footer>
+        <footer className="reviewActions"><div><BedDouble/><span><b>Pronto per la pubblicazione?</b><small>Verranno create {draft.days.length} giornate modificabili anche successivamente.</small></span></div><button className="secondary" onClick={removeDraft} disabled={Boolean(busy)}>{busy === "delete" ? <LoaderCircle className="spin"/> : <Trash2/>} Elimina bozza</button><button className="secondary" onClick={save} disabled={Boolean(busy)}><Save/> Salva bozza</button><button onClick={publish} disabled={Boolean(busy)}>{busy === "publish" ? <LoaderCircle className="spin"/> : <Send/>} Pubblica programma</button></footer>
       </div>
     </main>
   );
