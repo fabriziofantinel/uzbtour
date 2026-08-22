@@ -124,9 +124,7 @@ Resources:
         Minify: true
         Sourcemap: true
         Target: es2022
-        Format: esm
-        OutExtension:
-          - .js=.mjs
+        Format: cjs
 
 Conditions:
   UseDefaultR2Endpoint: !Equals [!Ref R2Jurisdiction, none]
