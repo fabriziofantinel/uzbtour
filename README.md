@@ -19,7 +19,7 @@ Aprire `http://localhost:3000`.
 - **Documenti e foto:** bucket privato Cloudflare R2
 - **Elaborazione asincrona:** Amazon SQS e AWS Lambda
 - **Importazione programma:** Amazon Bedrock (Nova Lite), con stato e risultati su Neon
-- **Autenticazione demo:** codici personali e sessioni firmate `HttpOnly`
+- **Autenticazione:** Neon Auth con sessioni `HttpOnly` e ruoli applicativi su Neon
 - **Mappe:** OpenStreetMap nell'MVP; Mapbox se servono percorsi e mappe offline più evolute
 
 Il caricamento dei file usa URL `PUT` firmati e temporanei: il browser invia il file
@@ -27,12 +27,12 @@ direttamente a R2, mentre le chiavi R2 rimangono esclusivamente nelle API server
 
 ## Accesso privato
 
-L'intera applicazione è protetta da tre codici personali e da sessioni firmate in cookie `HttpOnly` che identificano il partecipante.
+L'intera applicazione è protetta da Neon Auth. Identità e sessioni sono gestite nello schema `neon_auth`; agenzie, famiglie, viaggiatori e relativi permessi restano nelle tabelle applicative.
 
 Configurare in Vercel, per Production, Preview e Development:
 
-- `TRIP_USERS_B64`: configurazione Base64 dei tre utenti e relativi codici
-- `AUTH_SECRET`: stringa casuale di almeno 32 byte
+- `NEON_AUTH_BASE_URL`: endpoint Auth della branch Neon
+- `NEON_AUTH_COOKIE_SECRET`: stringa casuale di almeno 32 caratteri per la sessione firmata
 - `DATABASE_URL`: connessione al database Neon Postgres collegato al progetto
 
 Per lo sviluppo locale, sincronizzare le variabili con `vercel env pull .env.local`.
@@ -40,7 +40,7 @@ Per lo sviluppo locale, sincronizzare le variabili con `vercel env pull .env.loc
 ## Database
 
 Note giornaliere, locali e spese sono persistiti su Neon Postgres. Ogni scrittura
-registra l'identificativo e il nome dell'utente ricavati dalla sessione firmata.
+registra l'identificativo e il nome dell'utente ricavati dalla sessione Neon Auth.
 
 Per creare o aggiornare le tabelle:
 

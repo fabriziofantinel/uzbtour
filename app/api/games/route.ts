@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/current-user";
 import { gameDays } from "@/lib/game-data";
 import { ensureGameScoresTable } from "@/lib/games";
 import { getSql } from "@/lib/db";
-import { getTripUsers } from "@/lib/trip-users";
+import { getTravelCompanions, type TravelCompanion } from "@/lib/platform/travel-companions";
 
 export const runtime = "nodejs";
 export const preferredRegion = "fra1";
@@ -18,18 +18,17 @@ function scoreFromRow(row: Record<string, unknown>) {
 }
 
 function buildResponse(
-  user: { id: string; name: string; initials: string },
-  rows: Record<string, unknown>[]
+  user: { id: string; name: string; initials: string; isAgencyAdmin: boolean },
+  rows: Record<string, unknown>[],
+  users: TravelCompanion[]
 ) {
   const ownScores = new Map(
     rows.filter((row) => String(row.user_id) === user.id)
       .map((row) => [Number(row.day), scoreFromRow(row)])
   );
-  const users = getTripUsers();
-
   return {
     currentUser: user,
-    isAdmin: user.initials.toUpperCase() === "FF",
+    isAdmin: user.isAgencyAdmin,
     days: gameDays.map((day) => ({
       day: day.day,
       unlocked: true,
@@ -65,7 +64,11 @@ export async function GET() {
 
   try {
     await ensureGameScoresTable();
-    return NextResponse.json(buildResponse(user, await readRows()));
+    return NextResponse.json(buildResponse(
+      user,
+      await readRows(),
+      await getTravelCompanions(user.id)
+    ));
   } catch (error) {
     console.error("Impossibile leggere i giochi", error);
     return NextResponse.json({ error: "Giochi temporaneamente non disponibili" }, { status: 503 });
@@ -131,7 +134,11 @@ export async function POST(request: Request) {
           updated_at = NOW()
       `;
     }
-    return NextResponse.json(buildResponse(user, await readRows()));
+    return NextResponse.json(buildResponse(
+      user,
+      await readRows(),
+      await getTravelCompanions(user.id)
+    ));
   } catch (error) {
     console.error("Salvataggio del gioco non riuscito", error);
     return NextResponse.json({ error: "Punteggio non salvato" }, { status: 503 });

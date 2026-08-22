@@ -185,6 +185,6 @@ export function getQuizQuestions(dayNumber: number) {
   );
 }
 
-export function isQuizUnlocked(day: QuizDay, user: { initials: string }, now = new Date()) {
-  return user.initials.toUpperCase() === "FF" || now.getTime() >= new Date(day.unlockAt).getTime();
+export function isQuizUnlocked(day: QuizDay, user: { isAgencyAdmin?: boolean }, now = new Date()) {
+  return user.isAgencyAdmin === true || now.getTime() >= new Date(day.unlockAt).getTime();
 }

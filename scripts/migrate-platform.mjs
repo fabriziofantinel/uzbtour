@@ -466,3 +466,19 @@ await sql`
   ON CONFLICT (version) DO NOTHING
 `;
 console.log(`${adminImportMigration}: verificata`);
+
+const neonAuthMigration = "003_neon_auth_identity";
+await sql`
+  CREATE UNIQUE INDEX IF NOT EXISTS platform_users_normalized_email_unique
+  ON platform_users (LOWER(email))
+  WHERE email IS NOT NULL
+`;
+await sql`
+  CREATE INDEX IF NOT EXISTS platform_users_auth_subject_idx
+  ON platform_users (auth_provider, auth_subject)
+`;
+await sql`
+  INSERT INTO platform_schema_migrations (version) VALUES (${neonAuthMigration})
+  ON CONFLICT (version) DO NOTHING
+`;
+console.log(`${neonAuthMigration}: verificata`);

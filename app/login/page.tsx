@@ -1,30 +1,19 @@
 "use client";
 
-import { FormEvent, Suspense, useEffect, useState } from "react";
-import { CircleUserRound, Eye, EyeOff, KeyRound, LoaderCircle, LockKeyhole, Plane } from "lucide-react";
+import { FormEvent, Suspense, useState } from "react";
+import { CircleUserRound, Eye, EyeOff, LoaderCircle, LockKeyhole, Mail, Plane } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import { authClient } from "@/lib/auth/client";
 import "./login.css";
 import "./login-fix.css";
 
 function LoginContent() {
   const searchParams = useSearchParams();
-  const [users, setUsers] = useState<{ id: string; name: string; initials: string }[]>([]);
-  const [userId, setUserId] = useState("");
-  const [code, setCode] = useState("");
-  const [showCode, setShowCode] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/auth/users")
-      .then((response) => response.json())
-      .then((result: { users?: { id: string; name: string; initials: string }[] }) => {
-        const availableUsers = result.users ?? [];
-        setUsers(availableUsers);
-        setUserId(availableUsers[0]?.id ?? "");
-      })
-      .catch(() => setError("Non è stato possibile caricare i partecipanti."));
-  }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -32,19 +21,23 @@ function LoginContent() {
     setError("");
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, code })
-      });
-      const result = (await response.json()) as { error?: string; destination?: string };
-      if (!response.ok) {
-        setError(result.error ?? "Non è stato possibile accedere.");
+      const result = await authClient.signIn.email({ email: email.trim(), password });
+      if (result.error) {
+        setError("Email o password non corrette.");
         return;
       }
 
       const requestedDestination = searchParams.get("next");
-      const destination = requestedDestination ?? result.destination ?? "/";
+      const meResponse = await fetch("/api/auth/me", { cache: "no-store" });
+      const me = await meResponse.json().catch(() => null) as {
+        user?: { isAgencyAdmin?: boolean };
+      } | null;
+      if (!meResponse.ok || !me?.user) {
+        await authClient.signOut();
+        setError("Account non abilitato a questa applicazione.");
+        return;
+      }
+      const destination = requestedDestination ?? (me?.user?.isAgencyAdmin ? "/agenzia" : "/");
       const safeDestination = destination.startsWith("/") && !destination.startsWith("//")
         ? destination : "/";
       window.location.href = safeDestination;
@@ -73,46 +66,48 @@ function LoginContent() {
           <span className="loginLock"><LockKeyhole size={24}/></span>
           <p className="loginEyebrow">AREA RISERVATA</p>
           <h2>Accedi al tuo spazio</h2>
-          <p className="loginIntro">Seleziona il profilo e inserisci il codice personale. Verrai indirizzato automaticamente al tuo ambiente.</p>
+          <p className="loginIntro">Inserisci le credenziali ricevute dall’agenzia. Verrai indirizzato automaticamente al tuo ambiente.</p>
           <form onSubmit={submit}>
-            <span className="fieldLabel">Il tuo profilo</span>
-            <div className="userChoices">
-              {users.map((user) => (
-                <button
-                  className={userId === user.id ? "selected" : ""}
-                  key={user.id}
-                  type="button"
-                  onClick={() => { setUserId(user.id); setError(""); }}
-                >
-                  <i>{user.initials}</i>
-                  <span>{user.name}</span>
-                </button>
-              ))}
-            </div>
-            <label htmlFor="access-code">Il tuo codice personale</label>
+            <label htmlFor="email">Email</label>
             <div className="codeInput">
-              <KeyRound size={18}/>
+              <Mail size={18}/>
               <input
-                id="access-code"
-                type={showCode ? "text" : "password"}
-                value={code}
-                onChange={(event) => setCode(event.target.value)}
-                placeholder="Inserisci il codice"
-                autoComplete="current-password"
+                id="email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="nome@esempio.it"
+                autoComplete="email"
                 autoFocus
                 required
               />
-              <button type="button" onClick={() => setShowCode(!showCode)} aria-label={showCode ? "Nascondi codice" : "Mostra codice"}>
-                {showCode ? <EyeOff size={17}/> : <Eye size={17}/>}
+            </div>
+            <label htmlFor="password">Password</label>
+            <div className="codeInput">
+              <LockKeyhole size={18}/>
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Inserisci la password"
+                autoComplete="current-password"
+                required
+              />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Nascondi password" : "Mostra password"}>
+                {showPassword ? <EyeOff size={17}/> : <Eye size={17}/>}
               </button>
             </div>
+            {searchParams.get("configuration") === "missing" && (
+              <p className="loginError" role="alert">Autenticazione in configurazione. Riprova tra poco.</p>
+            )}
             {error && <p className="loginError" role="alert">{error}</p>}
-            <button className="loginSubmit" type="submit" disabled={loading || !userId || !code.trim()}>
+            <button className="loginSubmit" type="submit" disabled={loading || !email.trim() || !password}>
               {loading ? <LoaderCircle className="spin" size={18}/> : <LockKeyhole size={17}/>}
-              {loading ? "Accesso in corso…" : "Entra nel viaggio"}
+              {loading ? "Accesso in corso…" : "Accedi"}
             </button>
           </form>
-          <p className="loginHelp"><CircleUserRound size={13}/> Ogni partecipante dispone di un codice diverso.</p>
+          <p className="loginHelp"><CircleUserRound size={13}/> <a href="/auth/forgot-password">Password dimenticata?</a></p>
         </div>
       </section>
     </main>

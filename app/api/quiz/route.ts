@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/current-user";
 import { getSql } from "@/lib/db";
 import { getQuizQuestions, isQuizUnlocked, quizDays } from "@/lib/quiz-data";
 import { ensureQuizTable } from "@/lib/quiz";
-import { getTripUsers } from "@/lib/trip-users";
+import { getTravelCompanions, type TravelCompanion } from "@/lib/platform/travel-companions";
 
 export const runtime = "nodejs";
 export const preferredRegion = "fra1";
@@ -15,8 +15,9 @@ function publicQuestions(day: number) {
 }
 
 function buildQuizResponse(
-  user: { id: string; name: string; initials: string },
-  rows: Record<string, unknown>[]
+  user: { id: string; name: string; initials: string; isAgencyAdmin: boolean },
+  rows: Record<string, unknown>[],
+  users: TravelCompanion[]
 ) {
   const attempts = rows.map((row) => ({
     day: Number(row.day),
@@ -29,12 +30,6 @@ function buildQuizResponse(
   const ownAttempts = new Map(
     attempts.filter((attempt) => attempt.userId === user.id).map((attempt) => [attempt.day, attempt])
   );
-  const users = getTripUsers().map((tripUser) => ({
-    id: tripUser.id,
-    name: tripUser.name,
-    initials: tripUser.initials
-  }));
-
   const dailyRankings = quizDays.map((day) => ({
     day: day.day,
     entries: attempts
@@ -55,7 +50,7 @@ function buildQuizResponse(
 
   return {
     currentUser: user,
-    isAdmin: user.initials.toUpperCase() === "FF",
+    isAdmin: user.isAgencyAdmin,
     days: quizDays.map((day) => {
       const unlocked = isQuizUnlocked(day, user);
       const attempt = ownAttempts.get(day.day);
@@ -98,7 +93,7 @@ export async function GET() {
       FROM trip_quiz_attempts
       ORDER BY day, score DESC, submitted_at
     `;
-    return NextResponse.json(buildQuizResponse(user, rows));
+    return NextResponse.json(buildQuizResponse(user, rows, await getTravelCompanions(user.id)));
   } catch (error) {
     console.error("Impossibile leggere i quiz", error);
     return NextResponse.json({ error: "Quiz temporaneamente non disponibile" }, { status: 503 });
@@ -138,7 +133,7 @@ export async function POST(request: Request) {
       WHERE day = ${day.day} AND user_id = ${user.id}
       LIMIT 1
     `;
-    const isAdmin = user.initials.toUpperCase() === "FF";
+    const isAdmin = user.isAgencyAdmin;
     if (existing.length > 0 && !isAdmin) {
       return NextResponse.json({ error: "Hai già confermato questo quiz" }, { status: 409 });
     }
@@ -175,10 +170,9 @@ export async function POST(request: Request) {
       FROM trip_quiz_attempts
       ORDER BY day, score DESC, submitted_at
     `;
-    return NextResponse.json(buildQuizResponse(user, rows));
+    return NextResponse.json(buildQuizResponse(user, rows, await getTravelCompanions(user.id)));
   } catch (error) {
     console.error("Salvataggio del quiz non riuscito", error);
     return NextResponse.json({ error: "Punteggio non salvato" }, { status: 503 });
   }
 }
-

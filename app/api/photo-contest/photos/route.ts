@@ -22,7 +22,7 @@ export const preferredRegion = "fra1";
 
 function photoFromRow(
   row: Record<string, unknown>,
-  user: { id: string; initials: string }
+  user: { id: string; isAgencyAdmin: boolean }
 ) {
   const id = String(row.id);
   return {

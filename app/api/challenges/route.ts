@@ -15,7 +15,7 @@ import {
   isMissionUnlocked,
   missionDays
 } from "@/lib/challenge-data";
-import { getTripUsers } from "@/lib/trip-users";
+import { getTravelCompanions } from "@/lib/platform/travel-companions";
 import {
   isPhotoAdmin,
   MAX_PHOTO_SIZE_BYTES,
@@ -102,7 +102,7 @@ function photoWinsByName(rows: CompletionRow[]) {
   return wins;
 }
 
-async function buildResponse(user: { id: string; name: string; initials: string }) {
+async function buildResponse(user: { id: string; name: string; initials: string; isAgencyAdmin: boolean }) {
   const rows = await readChallengeRows();
   const photoWins = photoWinsByName(rows.photoContests);
   const quizScores = new Map(rows.quizzes.map((row) => [String(row.user_id), Number(row.score)]));
@@ -110,7 +110,7 @@ async function buildResponse(user: { id: string; name: string; initials: string 
   const ownMissions = rows.missions.filter((row) => String(row.user_id) === user.id);
   const ownBingo = rows.bingo.filter((row) => String(row.user_id) === user.id);
 
-  const totals = getTripUsers().map((tripUser) => {
+  const totals = (await getTravelCompanions(user.id)).map((tripUser) => {
     const missions = rows.missions.filter((row) =>
       String(row.user_id) === tripUser.id && String(row.status) === "approved"
     );

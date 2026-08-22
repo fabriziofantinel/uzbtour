@@ -110,10 +110,10 @@ const MISSION_UNLOCK_LEAD_MS = 2 * 24 * 60 * 60 * 1000;
 
 export function isMissionUnlocked(
   day: { unlockAt: string },
-  user: { initials: string },
+  user: { isAgencyAdmin?: boolean },
   now = new Date()
 ) {
-  if (user.initials.toUpperCase() === "FF") return true;
+  if (user.isAgencyAdmin === true) return true;
   const unlockTime = new Date(day.unlockAt).getTime() - MISSION_UNLOCK_LEAD_MS;
   return now.getTime() >= unlockTime;
 }

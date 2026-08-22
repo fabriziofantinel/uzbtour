@@ -40,7 +40,7 @@ function contestFromRow(row: Record<string, unknown>) {
 
 function photoFromRow(
   row: Record<string, unknown>,
-  user: { id: string; initials: string }
+  user: { id: string; isAgencyAdmin: boolean }
 ) {
   const id = String(row.id);
   return {
@@ -55,7 +55,7 @@ function photoFromRow(
   };
 }
 
-async function buildResponse(user: { id: string; initials: string }) {
+async function buildResponse(user: { id: string; isAgencyAdmin: boolean }) {
   const sql = getSql();
   const [contestRows, photoRows] = await Promise.all([
     sql`

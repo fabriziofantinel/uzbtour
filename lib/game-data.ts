@@ -154,6 +154,6 @@ export function normalizeGameAnswer(value: string) {
     .toLocaleUpperCase("it");
 }
 
-export function isGameUnlocked(day: GameDay, user: { initials: string }, now = new Date()) {
-  return user.initials.toUpperCase() === "FF" || now.getTime() >= new Date(day.unlockAt).getTime();
+export function isGameUnlocked(day: GameDay, user: { isAgencyAdmin?: boolean }, now = new Date()) {
+  return user.isAgencyAdmin === true || now.getTime() >= new Date(day.unlockAt).getTime();
 }

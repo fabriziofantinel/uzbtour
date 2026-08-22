@@ -104,6 +104,6 @@ export async function savePhotoMetadata(input: {
   return rows[0];
 }
 
-export function isPhotoAdmin(user: { initials: string }) {
-  return user.initials.toUpperCase() === "FF";
+export function isPhotoAdmin(user: { isAgencyAdmin?: boolean }) {
+  return user.isAgencyAdmin === true;
 }
