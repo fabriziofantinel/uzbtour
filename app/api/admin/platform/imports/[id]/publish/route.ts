@@ -17,7 +17,7 @@ export async function POST(
     const { id } = await context.params;
     const agencyId = await getImportAgency(id);
     const actor = await requireAgencyAdmin(agencyId);
-    const imported = await getImportForReview(id);
+    const imported = await getImportForReview(id, agencyId);
     if (!imported.draft) {
       return NextResponse.json({ error: "Nessuna bozza da pubblicare" }, { status: 400 });
     }

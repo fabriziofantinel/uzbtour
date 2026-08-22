@@ -18,7 +18,7 @@ export async function GET(
     const { id } = await context.params;
     const agencyId = await getImportAgency(id);
     await requireAgencyAdmin(agencyId);
-    return NextResponse.json({ import: await getImportForReview(id) });
+    return NextResponse.json({ import: await getImportForReview(id, agencyId) });
   } catch (error) {
     return platformApiError(error, "Lettura dell’importazione non riuscita");
   }

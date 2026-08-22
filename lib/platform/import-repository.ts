@@ -163,7 +163,10 @@ export async function failImport(importId: string, error: unknown) {
   ]);
 }
 
-export async function getImportForReview(importId: string): Promise<PlatformImportReview> {
+export async function getImportForReview(
+  importId: string,
+  agencyId: string
+): Promise<PlatformImportReview> {
   const sql = getSql();
   const rows = await sql`
     SELECT
@@ -174,7 +177,7 @@ export async function getImportForReview(importId: string): Promise<PlatformImpo
     JOIN trip_templates tt ON tt.id = ij.template_id AND tt.agency_id = ij.agency_id
     JOIN travel_documents td ON td.id = ij.document_id AND td.agency_id = ij.agency_id
     JOIN media_assets ma ON ma.id = td.media_asset_id AND ma.agency_id = ij.agency_id
-    WHERE ij.id = ${importId}
+    WHERE ij.id = ${importId} AND ij.agency_id = ${agencyId}
     LIMIT 1
   `;
   if (!rows[0]) throw new PlatformRequestError("Importazione non trovata");

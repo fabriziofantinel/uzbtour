@@ -29,7 +29,10 @@ export async function processTravelImport(
     await completeImport({ importId, ...extraction });
     return { status: "ready_for_review", model: extraction.model, days: extraction.draft.days.length };
   } catch (error) {
-    await failImport(importId, error).catch((failure) => console.error("Salvataggio errore import", failure));
+    await failImport(importId, error).catch((failure) => console.error("Import failure persistence failed", {
+      importId,
+      error: failure instanceof Error ? failure.message : String(failure),
+    }));
     throw error;
   }
 }

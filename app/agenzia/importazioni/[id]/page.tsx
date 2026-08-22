@@ -15,7 +15,7 @@ export default async function ImportReviewPage({
   try {
     const agencyId = await getImportAgency(id);
     await requireAgencyAdmin(agencyId);
-    const imported = await getImportForReview(id);
+    const imported = await getImportForReview(id, agencyId);
     return <ImportReview initialImport={imported} />;
   } catch (error) {
     if (error instanceof PlatformAuthorizationError) redirect("/");

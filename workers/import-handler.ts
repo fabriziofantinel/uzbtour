@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { getPlatformJobStatus } from "@/lib/platform/import-repository";
 import { processTravelImport } from "@/lib/platform/process-import";
+import { loadWorkerParameters } from "@/lib/platform/worker-parameters";
 
 const messageSchema = z.object({
   version: z.literal(1),
@@ -17,22 +18,60 @@ type SqsBatchResponse = { batchItemFailures: Array<{ itemIdentifier: string }> }
 export async function handler(event: SqsEvent): Promise<SqsBatchResponse> {
   const batchItemFailures: SqsBatchResponse["batchItemFailures"] = [];
 
+  try {
+    await loadWorkerParameters();
+  } catch (error) {
+    console.error("Worker parameter loading failed", {
+      error: error instanceof Error ? error.message : String(error),
+      errorType: error instanceof Error ? error.name : "UnknownError",
+    });
+    return {
+      batchItemFailures: event.Records.map((record) => ({ itemIdentifier: record.messageId })),
+    };
+  }
+
   for (const record of event.Records) {
+    const startedAt = Date.now();
     try {
       const message = messageSchema.parse(JSON.parse(record.body));
+      console.info("Import job started", {
+        messageId: record.messageId,
+        jobId: message.jobId,
+        agencyId: message.agencyId,
+        importId: message.payload.importId,
+      });
       try {
-        await processTravelImport(message.payload.importId, {
+        const result = await processTravelImport(message.payload.importId, {
           jobId: message.jobId,
           agencyId: message.agencyId,
+        });
+        console.info("Import job completed", {
+          messageId: record.messageId,
+          jobId: message.jobId,
+          agencyId: message.agencyId,
+          importId: message.payload.importId,
+          status: result.status,
+          model: result.model,
+          days: result.days,
+          durationMs: Date.now() - startedAt,
         });
       } catch (error) {
         const status = await getPlatformJobStatus(message.jobId, message.agencyId).catch(() => null);
         if (status !== "completed") throw error;
+        console.info("Duplicate import job acknowledged", {
+          messageId: record.messageId,
+          jobId: message.jobId,
+          agencyId: message.agencyId,
+          importId: message.payload.importId,
+          durationMs: Date.now() - startedAt,
+        });
       }
     } catch (error) {
-      console.error("Elaborazione messaggio import non riuscita", {
+      console.error("Import job failed", {
         messageId: record.messageId,
         error: error instanceof Error ? error.message : String(error),
+        errorType: error instanceof Error ? error.name : "UnknownError",
+        durationMs: Date.now() - startedAt,
       });
       batchItemFailures.push({ itemIdentifier: record.messageId });
     }

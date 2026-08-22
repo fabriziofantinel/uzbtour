@@ -1,41 +1,67 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Transform: AWS::Serverless-2016-10-31
-Description: SMF Travel - worker asincrono SQS, Lambda e Amazon Bedrock
-
+Description: >-
+  SMF Travel import pipeline - decouples PDF extraction with SQS, Lambda and
+  Amazon Bedrock while keeping idle cost near zero
+Metadata:
+  AWSToolsMetrics:
+    AWSAgentToolkit: aws-cloudformation@2
+  com.aws.cloudformation.Context:
+    arch: Vercel OIDC -> SQS -> Lambda -> SSM + R2 + Bedrock + Neon; DLQ + CloudWatch alarms
+    must:
+      - SQS visibility >= 6x Lambda timeout
+      - Vercel role may only send to this stack import queue
+      - worker concurrency <= 2 to protect Neon and AI spend
+    ref:
+      - at: docs/aws-sqs-lambda-bedrock.md
+        has: architecture, operations, deploy and recovery runbook
+        scope: stack
 Parameters:
-  DatabaseUrl:
+  DatabaseParameterName:
     Type: String
-    NoEcho: true
+    Default: /smf-travel/production/database-url
+    AllowedPattern: "^/[A-Za-z0-9_.\\-/]+$"
   R2AccountId:
     Type: String
   R2Jurisdiction:
     Type: String
     Default: eu
     AllowedValues: [eu, us, fedramp, none]
-  R2AccessKeyId:
+  R2ParameterName:
     Type: String
-    NoEcho: true
-  R2SecretAccessKey:
-    Type: String
-    NoEcho: true
+    Default: /smf-travel/production/r2-credentials
+    AllowedPattern: "^/[A-Za-z0-9_.\\-/]+$"
   R2Bucket:
     Type: String
   BedrockTextModel:
     Type: String
     Default: eu.amazon.nova-lite-v1:0
+  BedrockFoundationModelId:
+    Type: String
+    Default: amazon.nova-lite-v1:0
+    AllowedPattern: "^[A-Za-z0-9._:-]+$"
+  AlarmEmail:
+    Type: String
+    Default: ""
+    AllowedPattern: "^$|^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+
+Conditions:
+  UseDefaultR2Endpoint: !Equals [!Ref R2Jurisdiction, none]
+  HasAlarmEmail: !Not [!Equals [!Ref AlarmEmail, ""]]
+
+Transform: AWS::Serverless-2016-10-31
 
 Resources:
   ImportDeadLetterQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: smf-travel-import-dead-letter
+      QueueName: !Sub "${AWS::StackName}-import-dlq"
       MessageRetentionPeriod: 1209600
       SqsManagedSseEnabled: true
 
   ImportQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: smf-travel-import
+      QueueName: !Sub "${AWS::StackName}-import"
       VisibilityTimeout: 1800
       MessageRetentionPeriod: 1209600
       ReceiveMessageWaitTimeSeconds: 20
@@ -43,6 +69,32 @@ Resources:
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt ImportDeadLetterQueue.Arn
         maxReceiveCount: 4
+
+  ImportQueueTlsPolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref ImportQueue
+        - !Ref ImportDeadLetterQueue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyInsecureTransportImportQueue
+            Effect: Deny
+            Principal: "*"
+            Action: sqs:*
+            Resource: !GetAtt ImportQueue.Arn
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+          - Sid: DenyInsecureTransportDeadLetterQueue
+            Effect: Deny
+            Principal: "*"
+            Action: sqs:*
+            Resource: !GetAtt ImportDeadLetterQueue.Arn
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
 
   VercelOidcProvider:
     Type: AWS::IAM::OIDCProvider
@@ -78,8 +130,9 @@ Resources:
 
   ImportWorker:
     Type: AWS::Serverless::Function
+    DependsOn: ImportWorkerLogGroup
     Properties:
-      FunctionName: smf-travel-import-worker
+      FunctionName: !Sub "${AWS::StackName}-import-worker"
       Description: Estrae i programmi PDF da R2 con Amazon Bedrock e salva la bozza su Neon
       CodeUri: ../../
       Handler: workers/import-handler.handler
@@ -87,9 +140,14 @@ Resources:
       Architectures: [arm64]
       MemorySize: 2048
       Timeout: 300
+      Tracing: Active
+      LoggingConfig:
+        LogFormat: JSON
+        ApplicationLogLevel: INFO
+        SystemLogLevel: WARN
       Environment:
         Variables:
-          DATABASE_URL: !Ref DatabaseUrl
+          DATABASE_PARAMETER_NAME: !Ref DatabaseParameterName
           PLATFORM_OBJECT_STORAGE_PROVIDER: r2
           PLATFORM_JOB_QUEUE_PROVIDER: sqs
           PLATFORM_AI_PROVIDER: bedrock
@@ -98,8 +156,7 @@ Resources:
           AWS_BEDROCK_MAX_OUTPUT_TOKENS: "9000"
           R2_ACCOUNT_ID: !Ref R2AccountId
           R2_JURISDICTION: !If [UseDefaultR2Endpoint, "", !Ref R2Jurisdiction]
-          R2_ACCESS_KEY_ID: !Ref R2AccessKeyId
-          R2_SECRET_ACCESS_KEY: !Ref R2SecretAccessKey
+          R2_PARAMETER_NAME: !Ref R2ParameterName
           R2_BUCKET: !Ref R2Bucket
       Policies:
         - SQSPollerPolicy:
@@ -107,8 +164,27 @@ Resources:
         - Statement:
             - Effect: Allow
               Action:
-                - bedrock:InvokeModel
+                - ssm:GetParameters
+              Resource:
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${DatabaseParameterName}"
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${R2ParameterName}"
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
               Resource: "*"
+              Condition:
+                StringEquals:
+                  kms:ViaService: !Sub "ssm.${AWS::Region}.${AWS::URLSuffix}"
+                StringLike:
+                  kms:EncryptionContext:PARAMETER_ARN:
+                    - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${DatabaseParameterName}"
+                    - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${R2ParameterName}"
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource:
+                - !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/${BedrockTextModel}"
+                - !Sub "arn:${AWS::Partition}:bedrock:*::foundation-model/${BedrockFoundationModelId}"
       Events:
         ImportQueueEvent:
           Type: SQS
@@ -127,17 +203,163 @@ Resources:
         Target: es2022
         Format: cjs
 
-Conditions:
-  UseDefaultR2Endpoint: !Equals [!Ref R2Jurisdiction, none]
+  ImportWorkerLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-import-worker"
+      RetentionInDays: 14
+
+  AlarmTopic:
+    Type: AWS::SNS::Topic
+    Condition: HasAlarmEmail
+    Properties:
+      DisplayName: SMF Travel production alerts
+      KmsMasterKeyId: alias/aws/sns
+
+  AlarmEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: HasAlarmEmail
+    Properties:
+      Protocol: email
+      Endpoint: !Ref AlarmEmail
+      TopicArn: !Ref AlarmTopic
+
+  ImportWorkerErrorRateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-import-worker-error-rate"
+      AlarmDescription: Error rate over 5 percent for two of three minutes
+      ComparisonOperator: GreaterThanThreshold
+      Threshold: 5
+      EvaluationPeriods: 3
+      DatapointsToAlarm: 2
+      TreatMissingData: notBreaching
+      Metrics:
+        - Id: errors
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Errors
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref ImportWorker
+            Period: 60
+            Stat: Sum
+        - Id: invocations
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Invocations
+              Dimensions:
+                - Name: FunctionName
+                  Value: !Ref ImportWorker
+            Period: 60
+            Stat: Sum
+        - Id: error_rate
+          Label: Error rate percent
+          Expression: IF(invocations > 0, errors * 100 / invocations, 0)
+          ReturnData: true
+      AlarmActions:
+        - !If [HasAlarmEmail, !Ref AlarmTopic, !Ref AWS::NoValue]
+
+  ImportWorkerThrottleAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-import-worker-throttles"
+      AlarmDescription: Lambda throttling detected
+      Namespace: AWS/Lambda
+      MetricName: Throttles
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ImportWorker
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 2
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !If [HasAlarmEmail, !Ref AlarmTopic, !Ref AWS::NoValue]
+
+  ImportWorkerDurationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-import-worker-duration-p99"
+      AlarmDescription: P99 duration exceeds 80 percent of the Lambda timeout
+      Namespace: AWS/Lambda
+      MetricName: Duration
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ImportWorker
+      ExtendedStatistic: p99
+      Period: 60
+      EvaluationPeriods: 3
+      DatapointsToAlarm: 2
+      Threshold: 240000
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !If [HasAlarmEmail, !Ref AlarmTopic, !Ref AWS::NoValue]
+
+  ImportQueueAgeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-import-queue-age"
+      AlarmDescription: Oldest queued import has waited more than 15 minutes
+      Namespace: AWS/SQS
+      MetricName: ApproximateAgeOfOldestMessage
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt ImportQueue.QueueName
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 2
+      DatapointsToAlarm: 2
+      Threshold: 900
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !If [HasAlarmEmail, !Ref AlarmTopic, !Ref AWS::NoValue]
+
+  ImportDeadLetterQueueAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-import-dlq-not-empty"
+      AlarmDescription: A failed import reached the dead-letter queue
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt ImportDeadLetterQueue.QueueName
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !If [HasAlarmEmail, !Ref AlarmTopic, !Ref AWS::NoValue]
 
 Outputs:
   ImportQueueUrl:
     Description: Valore AWS_SQS_IMPORT_QUEUE_URL da configurare su Vercel
     Value: !Ref ImportQueue
   ImportQueueArn:
+    Description: ARN della coda import usato per policy e diagnostica
     Value: !GetAtt ImportQueue.Arn
   ImportWorkerName:
+    Description: Nome fisico del worker Lambda
     Value: !Ref ImportWorker
   VercelQueuePublisherRoleArn:
     Description: Valore AWS_ROLE_ARN da configurare su Vercel
     Value: !GetAtt VercelQueuePublisherRole.Arn
+  AlarmTopicArn:
+    Condition: HasAlarmEmail
+    Description: Topic SNS delle notifiche operative
+    Value: !Ref AlarmTopic
