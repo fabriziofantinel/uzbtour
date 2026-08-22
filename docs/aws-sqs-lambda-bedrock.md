@@ -90,7 +90,9 @@ per l'applicazione web.
 - retry SQS: 4;
 - PDF inviabile direttamente a Bedrock: 4,5 MB, modificabile con
   `AWS_BEDROCK_MAX_DOCUMENT_BYTES` dopo aver verificato i limiti del modello;
+- risposta Bedrock limitata a 9.000 token, sotto il limite di Nova Lite;
 - nessuna risorsa con tariffazione oraria fissa.
 
-Configurare in AWS Budgets un avviso a 5 USD e uno a 10 USD prima di abilitare il
-servizio in produzione.
+Il progetto demo usa il budget `SMF-Travel-Zero-Spend` con limite mensile di 1 USD.
+La retention del log group `/aws/lambda/smf-travel-import-worker` è impostata a 14
+giorni per evitare accumulo indefinito di log.

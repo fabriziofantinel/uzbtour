@@ -8,6 +8,8 @@ import type { DocumentType } from "@smithy/types";
 import { z } from "zod";
 import { travelProgrammeDraftSchema, type TravelProgrammeDraft } from "./import-schema";
 
+const bedrockClients = new Map<string, BedrockRuntimeClient>();
+
 const extractionPrompt = `
 Analizza il programma di viaggio allegato e restituisci la struttura richiesta tramite lo strumento.
 
@@ -30,6 +32,18 @@ function requiredEnvironment(name: string) {
   return value;
 }
 
+function getBedrockClient(region: string) {
+  const existing = bedrockClients.get(region);
+  if (existing) return existing;
+  const client = new BedrockRuntimeClient({
+    region,
+    maxAttempts: 5,
+    retryMode: "adaptive",
+  });
+  bedrockClients.set(region, client);
+  return client;
+}
+
 function safeDocumentName(filename: string) {
   const withoutExtension = filename.replace(/\.pdf$/i, "");
   return (withoutExtension.replace(/[^a-zA-Z0-9 _\-()[\]]/g, " ").trim() || "programma-viaggio").slice(0, 120);
@@ -45,7 +59,11 @@ export async function extractTravelProgrammeWithBedrock(pdf: Uint8Array, filenam
   const region = requiredEnvironment("AWS_REGION");
   const model = requiredEnvironment("AWS_BEDROCK_TEXT_MODEL");
   const maxBytes = Number(process.env.AWS_BEDROCK_MAX_DOCUMENT_BYTES || 4_500_000);
+  const maxOutputTokens = Number(process.env.AWS_BEDROCK_MAX_OUTPUT_TOKENS || 9_000);
   if (!Number.isFinite(maxBytes) || maxBytes <= 0) throw new Error("AWS_BEDROCK_MAX_DOCUMENT_BYTES non valida");
+  if (!Number.isInteger(maxOutputTokens) || maxOutputTokens <= 0 || maxOutputTokens >= 10_000) {
+    throw new Error("AWS_BEDROCK_MAX_OUTPUT_TOKENS deve essere un intero tra 1 e 9999");
+  }
   if (pdf.byteLength > maxBytes) {
     throw new Error(`Il PDF supera il limite Bedrock configurato di ${Math.floor(maxBytes / 1_000_000)} MB`);
   }
@@ -77,10 +95,10 @@ export async function extractTravelProgrammeWithBedrock(pdf: Uint8Array, filenam
       }],
       toolChoice: { tool: { name: "emit_travel_programme" } },
     },
-    inferenceConfig: { maxTokens: 32_000, temperature: 0 },
+    inferenceConfig: { maxTokens: maxOutputTokens, temperature: 0 },
   };
 
-  const response = await new BedrockRuntimeClient({ region }).send(new ConverseCommand(request));
+  const response = await getBedrockClient(region).send(new ConverseCommand(request));
   const draft = extractToolInput(response.output?.message?.content);
   return {
     draft,
