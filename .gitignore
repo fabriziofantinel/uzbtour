@@ -8,6 +8,8 @@
 # local environment and Vercel metadata
 .env*
 !.env.example
+.aws-sam/
+.sam-cli-data/
 /.vercel
 
 # temporary and generated files

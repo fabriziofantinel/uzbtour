@@ -30,7 +30,8 @@ Il template [`infra/aws/template.yaml`](../infra/aws/template.yaml) crea:
 - `smf-travel-import`;
 - `smf-travel-import-dead-letter`;
 - `smf-travel-import-worker`;
-- ruolo di esecuzione Lambda con accesso limitato a SQS, log e invocazione Bedrock.
+- ruolo di esecuzione Lambda con accesso limitato a SQS, log e invocazione Bedrock;
+- provider OIDC Vercel e ruolo con il solo permesso `sqs:SendMessage`.
 
 ## Validazione e deploy
 
@@ -58,8 +59,10 @@ la rotazione di questi segreti in AWS Secrets Manager.
 
 ## Collegamento Vercel → SQS senza chiavi permanenti
 
-Creare in IAM un provider OpenID Connect per il team Vercel e un ruolo autorizzato
-esclusivamente a `sqs:SendMessage` sull'ARN della coda prodotto dal deploy.
+Il template crea in IAM il provider OpenID Connect del team `smf6` e un ruolo
+autorizzato esclusivamente a `sqs:SendMessage` sull'ARN della coda prodotta dal
+deploy. Se il progetto viene spostato su un altro team, aggiornare team e subject
+nel template prima del deploy.
 
 La relazione di trust deve limitare esattamente:
 
@@ -72,7 +75,7 @@ Configurare quindi su Vercel:
 PLATFORM_JOB_QUEUE_PROVIDER=sqs
 PLATFORM_AI_PROVIDER=bedrock
 AWS_REGION=eu-central-1
-AWS_ROLE_ARN=arn:aws:iam::<ACCOUNT_ID>:role/smf-travel-vercel-sqs
+AWS_ROLE_ARN=<output VercelQueuePublisherRoleArn>
 AWS_SQS_IMPORT_QUEUE_URL=<output ImportQueueUrl>
 AWS_BEDROCK_TEXT_MODEL=<modello scelto>
 ```
@@ -82,7 +85,7 @@ per l'applicazione web.
 
 ## Limiti di costo iniziali
 
-- concorrenza Lambda: 2;
+- concorrenza massima del consumer SQS: 2;
 - batch SQS: 1;
 - retry SQS: 4;
 - PDF inviabile direttamente a Bedrock: 4,5 MB, modificabile con

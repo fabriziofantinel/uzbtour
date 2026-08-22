@@ -44,6 +44,38 @@ Resources:
         deadLetterTargetArn: !GetAtt ImportDeadLetterQueue.Arn
         maxReceiveCount: 4
 
+  VercelOidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: https://oidc.vercel.com/smf6
+      ClientIdList:
+        - https://vercel.com/smf6
+
+  VercelQueuePublisherRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: Consente solo al deployment production di smf-travel di inviare lavori a SQS
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Ref VercelOidcProvider
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                oidc.vercel.com/smf6:aud: https://vercel.com/smf6
+                oidc.vercel.com/smf6:sub: owner:smf6:project:smf-travel:environment:production
+      Policies:
+        - PolicyName: SendImportJobs
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: sqs:SendMessage
+                Resource: !GetAtt ImportQueue.Arn
+
   ImportWorker:
     Type: AWS::Serverless::Function
     Properties:
@@ -55,7 +87,6 @@ Resources:
       Architectures: [arm64]
       MemorySize: 2048
       Timeout: 300
-      ReservedConcurrentExecutions: 2
       Environment:
         Variables:
           DATABASE_URL: !Ref DatabaseUrl
@@ -83,6 +114,8 @@ Resources:
           Properties:
             Queue: !GetAtt ImportQueue.Arn
             BatchSize: 1
+            ScalingConfig:
+              MaximumConcurrency: 2
             FunctionResponseTypes: [ReportBatchItemFailures]
     Metadata:
       BuildMethod: esbuild
@@ -106,3 +139,6 @@ Outputs:
     Value: !GetAtt ImportQueue.Arn
   ImportWorkerName:
     Value: !Ref ImportWorker
+  VercelQueuePublisherRoleArn:
+    Description: Valore AWS_ROLE_ARN da configurare su Vercel
+    Value: !GetAtt VercelQueuePublisherRole.Arn
