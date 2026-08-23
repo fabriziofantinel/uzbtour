@@ -26,7 +26,11 @@ export async function POST(
     const enrichmentJob = await getJobQueue().enqueue({
       agencyId,
       type: "travel-reference.enrich",
-      payload: { importId: id, targets: published.referenceTargets },
+      payload: {
+        importId: id,
+        templateId: published.templateId,
+        targets: published.referenceTargets,
+      },
       idempotencyKey: `travel-reference.enrich:${id}`,
     });
     return NextResponse.json({ ok: true, ...published, enrichmentJob });

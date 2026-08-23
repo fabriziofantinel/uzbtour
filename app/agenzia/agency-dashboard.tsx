@@ -39,6 +39,7 @@ const agencyDateTimeFormatter = new Intl.DateTimeFormat("it-IT", {
 });
 
 const activeImportStatuses = new Set(["queued", "extracting", "generating"]);
+const activeEnrichmentStatuses = new Set(["queued", "processing"]);
 
 function importProgress(status: string) {
   if (status === "queued") return 15;
@@ -57,7 +58,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
   const [overview, setOverview] = useState(initialOverview);
   const [selectedAgencyId, setSelectedAgencyId] = useState(initialOverview.agencies[0]?.id ?? "");
   const [showNewTrip, setShowNewTrip] = useState(false);
-  const [tripPeriod, setTripPeriod] = useState<"all" | "upcoming" | "past">("upcoming");
+  const [tripPeriod, setTripPeriod] = useState<"all" | "upcoming" | "past">("all");
   const [travelerFilter, setTravelerFilter] = useState("");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
@@ -91,9 +92,15 @@ export default function AgencyDashboard({ initialOverview }: Props) {
     .filter((item) => activeImportStatuses.has(item.status))
     .map((item) => `${item.id}:${item.status}`)
     .join("|");
+  const activeEnrichmentKey = overview.agencies
+    .flatMap((item) => item.trips)
+    .filter((trip) => trip.contentGeneration && activeEnrichmentStatuses.has(trip.contentGeneration.status))
+    .map((trip) => `${trip.id}:${trip.contentGeneration?.status}:${trip.contentGeneration?.readySections}`)
+    .join("|");
+  const activeGenerationKey = `${activeImportKey}|${activeEnrichmentKey}`;
 
   useEffect(() => {
-    if (!activeImportKey) return;
+    if (!activeGenerationKey) return;
     let cancelled = false;
     const timer = window.setInterval(async () => {
       try {
@@ -108,7 +115,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [activeImportKey]);
+  }, [activeGenerationKey]);
 
   async function refresh() {
     const result = await responseJson<PlatformOverview>(await fetch("/api/admin/platform/overview", {
@@ -231,6 +238,23 @@ export default function AgencyDashboard({ initialOverview }: Props) {
     }
   }
 
+  async function retryEnrichment(templateId: string) {
+    setBusy(`enrichment-${templateId}`);
+    setError("");
+    setNotice("");
+    try {
+      await responseJson(await fetch(`/api/admin/platform/trips/${templateId}/enrichment`, {
+        method: "POST",
+      }));
+      await refresh();
+      setNotice("Nuovo tentativo di generazione dei contenuti accodato.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Generazione dei contenuti non riuscita");
+    } finally {
+      setBusy("");
+    }
+  }
+
   async function deleteTrip() {
     if (!tripToDelete) return;
     setBusy(`delete-${tripToDelete.id}`);
@@ -334,8 +358,14 @@ export default function AgencyDashboard({ initialOverview }: Props) {
               {filteredTrips.map((trip) => {
                 const latestImport = overview.recentImports.find((item) => item.templateId === trip.id);
                 const importIsActive = latestImport ? activeImportStatuses.has(latestImport.status) : false;
+                const content = trip.contentGeneration;
+                const contentIsActive = content ? activeEnrichmentStatuses.has(content.status) : false;
+                const contentIsComplete = Boolean(
+                  content && content.status !== "failed" && content.expectedSections > 0 &&
+                  content.readySections === content.expectedSections
+                );
                 return (
-                <article className={importIsActive ? "tripAdminCard generating" : "tripAdminCard"} key={trip.id}>
+                <article className={importIsActive || contentIsActive ? "tripAdminCard generating" : "tripAdminCard"} key={trip.id}>
                   <div className="tripCardTop"><span className={`status ${trip.status}`}>{statusLabels[trip.status] ?? trip.status}</span><MapPinned size={22}/></div>
                   <h3>{trip.title}</h3>
                   <p>{trip.destinationCountry || "Destinazione da revisionare"}</p>
@@ -358,6 +388,21 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                       {importIsActive && <i><span style={{ width: `${importProgress(latestImport.status)}%` }}/></i>}
                       {latestImport.status === "failed" && <button disabled={Boolean(busy)} onClick={() => void processImport(latestImport.id)}>{busy === `process-${latestImport.id}` ? <LoaderCircle className="spin"/> : <Play/>} Riprova</button>}
                       {latestImport.status === "ready_for_review" && <a href={`/agenzia/importazioni/${latestImport.id}`}><Eye/> Revisiona programma</a>}
+                    </div>
+                  )}
+                  {content && (
+                    <div className={`tripGeneration ${contentIsComplete ? "published" : content.status}`}>
+                      <div>
+                        {contentIsActive ? <LoaderCircle className="spin"/> : contentIsComplete ? <CheckCircle2/> : <CircleAlert/>}
+                        <span>
+                          <b>{contentIsActive ? "Generazione contenuti del viaggio" : contentIsComplete ? "Viaggio completo" : "Contenuti da completare"}</b>
+                          <small>{content.readySections}/{content.expectedSections} sezioni pronte: info utili, frasario, bingo, quiz, missioni, giochi e contest.</small>
+                          {content.status === "failed" && <small>{content.errorMessage || "La generazione AI non è riuscita."}</small>}
+                          {content.contestTitles.length > 0 && <small title={content.contestTitles.join(" · ")}>Contest: {content.contestTitles.slice(0, 2).join(" · ")}{content.contestTitles.length > 2 ? ` e altri ${content.contestTitles.length - 2}` : ""}</small>}
+                        </span>
+                      </div>
+                      {contentIsActive && content.expectedSections > 0 && <i><span style={{ width: `${Math.max(8, Math.round(content.readySections / content.expectedSections * 100))}%` }}/></i>}
+                      {content.status === "failed" && <button disabled={Boolean(busy)} onClick={() => void retryEnrichment(trip.id)}>{busy === `enrichment-${trip.id}` ? <LoaderCircle className="spin"/> : <Play/>} Riprova contenuti</button>}
                     </div>
                   )}
                   {trip.departures[0] && <Link className="configureTravelers" href={`/agenzia/viaggi/${trip.departures[0].id}`}><UsersRound/> Configura famiglie e viaggiatori</Link>}

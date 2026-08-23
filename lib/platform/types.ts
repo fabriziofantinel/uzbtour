@@ -25,6 +25,14 @@ export type PlatformOverview = {
       destinationCountry: string;
       startsOn: string | null;
       endsOn: string | null;
+      contentGeneration: {
+        status: string;
+        readySections: number;
+        expectedSections: number;
+        contestTitles: string[];
+        errorMessage: string | null;
+        updatedAt: string | null;
+      } | null;
       departures: Array<{
         id: string;
         code: string;
