@@ -2,6 +2,7 @@ import { getSql } from "@/lib/db";
 import { PlatformRequestError } from "./http";
 import { travelProgrammeDraftSchema, type TravelProgrammeDraft } from "./import-schema";
 import type { PlatformImportReview } from "./types";
+import { prepareTravelCatalog } from "./travel-catalog";
 
 type ImportSourceRow = {
   id: string;
@@ -310,15 +311,36 @@ export async function publishImport(input: {
   if (!versionRows[0]) throw new PlatformRequestError("Importazione non pubblicabile");
   const versionId = String(versionRows[0].version_id);
   const templateId = String(versionRows[0].template_id);
+  const startDate = validDate(input.draft.startDate) ?? input.draft.days.map((day) => validDate(day.date)).find(Boolean) ?? null;
+  const endDate = validDate(input.draft.endDate) ?? input.draft.days.map((day) => validDate(day.date)).filter(Boolean).at(-1) ?? null;
+  if (!startDate || !endDate || endDate < startDate) {
+    throw new PlatformRequestError("Controlla data iniziale e finale del viaggio prima di pubblicare");
+  }
+  const catalog = await prepareTravelCatalog(input.draft);
+  const existingDepartures = await sql`
+    SELECT id::text, code FROM departures
+    WHERE agency_id = ${input.agencyId} AND template_id = ${templateId}
+    ORDER BY created_at LIMIT 1
+  `;
+  const departureId = existingDepartures[0]?.id ? String(existingDepartures[0].id) : crypto.randomUUID();
+  const departureCode = existingDepartures[0]?.code
+    ? String(existingDepartures[0].code)
+    : `V-${startDate.slice(0, 4)}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 
   const dayIds = input.draft.days.map(() => crypto.randomUUID());
   await sql.transaction((txn) => {
     const queries = [
       txn`DELETE FROM useful_information WHERE agency_id = ${input.agencyId} AND template_version_id = ${versionId}`,
       txn`DELETE FROM trip_days WHERE agency_id = ${input.agencyId} AND template_version_id = ${versionId}`,
+      txn`DELETE FROM trip_countries WHERE template_id = ${templateId}`,
     ];
+    catalog.countries.forEach((country) => queries.push(txn`
+      INSERT INTO trip_countries (template_id, country_id) VALUES (${templateId}, ${country.id})
+      ON CONFLICT DO NOTHING
+    `));
     input.draft.days.forEach((day, dayIndex) => {
       const dayId = dayIds[dayIndex];
+      const references = catalog.dayReferences[dayIndex];
       queries.push(txn`
         INSERT INTO trip_days (
           id, agency_id, template_version_id, day_number, day_offset, label,
@@ -328,6 +350,18 @@ export async function publishImport(input: {
           ${day.label}, ${day.title}, ${day.city}, ${day.description}, ${validDate(day.date)},
           ${JSON.stringify({ importedDayNumber: day.dayNumber })}::jsonb
         )
+      `);
+      if (references.cityId) queries.push(txn`
+        INSERT INTO trip_day_cities (trip_day_id, city_id) VALUES (${dayId}, ${references.cityId})
+        ON CONFLICT DO NOTHING
+      `);
+      references.siteIds.forEach((siteId) => queries.push(txn`
+        INSERT INTO trip_day_sites (trip_day_id, site_id) VALUES (${dayId}, ${siteId})
+        ON CONFLICT DO NOTHING
+      `));
+      if (references.hotelId) queries.push(txn`
+        INSERT INTO trip_day_hotels (trip_day_id, hotel_id) VALUES (${dayId}, ${references.hotelId})
+        ON CONFLICT DO NOTHING
       `);
       day.activities.forEach((activity, activityIndex) => {
         queries.push(txn`
@@ -366,7 +400,8 @@ export async function publishImport(input: {
       txn`
         UPDATE trip_templates
         SET title = ${input.draft.title}, destination_country = ${input.draft.destinationCountry || null},
-            description = ${input.draft.summary}, status = 'active', updated_at = NOW()
+            description = ${input.draft.summary}, starts_on = ${startDate}, ends_on = ${endDate},
+            primary_country_id = ${catalog.primaryCountry.id}, status = 'active', updated_at = NOW()
         WHERE id = ${templateId} AND agency_id = ${input.agencyId}
       `,
       txn`
@@ -374,6 +409,18 @@ export async function publishImport(input: {
         SET status = 'published', published_at = NOW(),
             revision_note = 'Programma revisionato e pubblicato dall’agenzia.'
         WHERE id = ${versionId} AND agency_id = ${input.agencyId}
+      `,
+      txn`
+        INSERT INTO departures (
+          id, agency_id, template_id, template_version_id, code, title,
+          starts_on, ends_on, timezone, status, published_at
+        ) VALUES (
+          ${departureId}, ${input.agencyId}, ${templateId}, ${versionId}, ${departureCode},
+          ${input.draft.title}, ${startDate}, ${endDate}, 'Europe/Rome', 'confirmed', NOW()
+        )
+        ON CONFLICT (id) DO UPDATE SET
+          title = EXCLUDED.title, starts_on = EXCLUDED.starts_on, ends_on = EXCLUDED.ends_on,
+          template_version_id = EXCLUDED.template_version_id, status = 'confirmed', updated_at = NOW()
       `,
       txn`
         UPDATE import_jobs SET status = 'published', updated_at = NOW()
@@ -390,4 +437,5 @@ export async function publishImport(input: {
     );
     return queries;
   });
+  return { templateId, departureId, referenceTargets: catalog.targets };
 }

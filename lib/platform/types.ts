@@ -22,6 +22,9 @@ export type PlatformOverview = {
       id: string;
       title: string;
       status: string;
+      destinationCountry: string;
+      startsOn: string | null;
+      endsOn: string | null;
       departures: Array<{
         id: string;
         code: string;
@@ -30,6 +33,7 @@ export type PlatformOverview = {
         endsOn: string;
         status: string;
         partyCount: number;
+        travelerNames: string[];
       }>;
     }>;
   }>;

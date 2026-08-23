@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAgencyAdmin } from "@/lib/platform/authorization";
 import { platformApiError } from "@/lib/platform/http";
+import { getJobQueue } from "@/lib/platform/job-queue";
 import {
   getImportAgency,
   getImportForReview,
@@ -21,8 +22,14 @@ export async function POST(
     if (!imported.draft) {
       return NextResponse.json({ error: "Nessuna bozza da pubblicare" }, { status: 400 });
     }
-    await publishImport({ importId: id, agencyId, actorId: actor.id, draft: imported.draft });
-    return NextResponse.json({ ok: true, templateId: imported.templateId });
+    const published = await publishImport({ importId: id, agencyId, actorId: actor.id, draft: imported.draft });
+    const enrichmentJob = await getJobQueue().enqueue({
+      agencyId,
+      type: "travel-reference.enrich",
+      payload: { importId: id, targets: published.referenceTargets },
+      idempotencyKey: `travel-reference.enrich:${id}`,
+    });
+    return NextResponse.json({ ok: true, ...published, enrichmentJob });
   } catch (error) {
     return platformApiError(error, "Pubblicazione del programma non riuscita");
   }

@@ -2,13 +2,14 @@ import { z } from "zod";
 import { getPlatformJobStatus } from "@/lib/platform/import-repository";
 import { processTravelImport } from "@/lib/platform/process-import";
 import { loadWorkerParameters } from "@/lib/platform/worker-parameters";
+import { processReferenceEnrichment } from "@/lib/platform/reference-enrichment";
 
 const messageSchema = z.object({
   version: z.literal(1),
   jobId: z.string().uuid(),
   agencyId: z.string().uuid(),
-  type: z.literal("travel-programme.import"),
-  payload: z.object({ importId: z.string().uuid() }).passthrough(),
+  type: z.enum(["travel-programme.import", "travel-reference.enrich"]),
+  payload: z.record(z.string(), z.unknown()),
 });
 
 type SqsRecord = { messageId: string; body: string };
@@ -41,18 +42,19 @@ export async function handler(event: SqsEvent): Promise<SqsBatchResponse> {
         importId: message.payload.importId,
       });
       try {
-        const result = await processTravelImport(message.payload.importId, {
-          jobId: message.jobId,
-          agencyId: message.agencyId,
-        });
+        const result = message.type === "travel-programme.import"
+          ? await processTravelImport(z.string().uuid().parse(message.payload.importId), { jobId: message.jobId, agencyId: message.agencyId })
+          : await processReferenceEnrichment(
+              message.jobId,
+              message.agencyId,
+              z.array(z.object({ entityType: z.enum(["country", "city", "site"]), entityId: z.string().uuid(), name: z.string().max(240) })).parse(message.payload.targets)
+            );
         console.info("Import job completed", {
           messageId: record.messageId,
           jobId: message.jobId,
           agencyId: message.agencyId,
           importId: message.payload.importId,
-          status: result.status,
-          model: result.model,
-          days: result.days,
+          result,
           durationMs: Date.now() - startedAt,
         });
       } catch (error) {

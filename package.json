@@ -18,6 +18,7 @@
     "aws:build": "sam build --template-file infra/aws/template.yaml",
     "smoke:r2": "node scripts/smoke-r2-cors.mjs",
     "smoke:superadmin": "node --env-file=.env.local scripts/smoke-superadmin-data.mjs",
+    "smoke:travel-catalog": "node --env-file=.env.local scripts/smoke-travel-catalog.mjs",
     "aws:deploy": "sam deploy --guided"
   },
   "dependencies": {

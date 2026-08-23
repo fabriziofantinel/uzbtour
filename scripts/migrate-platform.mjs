@@ -554,3 +554,132 @@ await sql`
   ON CONFLICT (version) DO NOTHING
 `;
 console.log(`${impersonationMigration}: verificata`);
+
+const travelCatalogMigration = "006_shared_travel_catalog";
+await sql`
+  CREATE TABLE IF NOT EXISTS countries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    normalized_name TEXT NOT NULL UNIQUE,
+    iso_code TEXT,
+    google_url TEXT NOT NULL,
+    last_verified_at TIMESTAMPTZ,
+    content_refresh_after TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )
+`;
+await sql`
+  CREATE TABLE IF NOT EXISTS cities (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    country_id UUID NOT NULL REFERENCES countries(id) ON DELETE RESTRICT,
+    name TEXT NOT NULL,
+    normalized_name TEXT NOT NULL,
+    google_url TEXT NOT NULL,
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
+    last_verified_at TIMESTAMPTZ,
+    content_refresh_after TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (country_id, normalized_name)
+  )
+`;
+await sql`
+  CREATE TABLE IF NOT EXISTS visit_sites (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    city_id UUID NOT NULL REFERENCES cities(id) ON DELETE RESTRICT,
+    name TEXT NOT NULL,
+    normalized_name TEXT NOT NULL,
+    google_url TEXT NOT NULL,
+    official_url TEXT,
+    last_verified_at TIMESTAMPTZ,
+    content_refresh_after TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (city_id, normalized_name)
+  )
+`;
+await sql`
+  CREATE TABLE IF NOT EXISTS hotels (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    city_id UUID NOT NULL REFERENCES cities(id) ON DELETE RESTRICT,
+    name TEXT NOT NULL,
+    normalized_name TEXT NOT NULL,
+    google_url TEXT NOT NULL,
+    website_url TEXT,
+    last_verified_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (city_id, normalized_name)
+  )
+`;
+await sql`ALTER TABLE trip_templates ADD COLUMN IF NOT EXISTS starts_on DATE`;
+await sql`ALTER TABLE trip_templates ADD COLUMN IF NOT EXISTS ends_on DATE`;
+await sql`ALTER TABLE trip_templates ADD COLUMN IF NOT EXISTS primary_country_id UUID REFERENCES countries(id) ON DELETE SET NULL`;
+await sql`
+  CREATE TABLE IF NOT EXISTS trip_countries (
+    template_id UUID NOT NULL REFERENCES trip_templates(id) ON DELETE CASCADE,
+    country_id UUID NOT NULL REFERENCES countries(id) ON DELETE RESTRICT,
+    PRIMARY KEY (template_id, country_id)
+  )
+`;
+await sql`
+  CREATE TABLE IF NOT EXISTS trip_day_cities (
+    trip_day_id UUID NOT NULL REFERENCES trip_days(id) ON DELETE CASCADE,
+    city_id UUID NOT NULL REFERENCES cities(id) ON DELETE RESTRICT,
+    PRIMARY KEY (trip_day_id, city_id)
+  )
+`;
+await sql`
+  CREATE TABLE IF NOT EXISTS trip_day_sites (
+    trip_day_id UUID NOT NULL REFERENCES trip_days(id) ON DELETE CASCADE,
+    site_id UUID NOT NULL REFERENCES visit_sites(id) ON DELETE RESTRICT,
+    PRIMARY KEY (trip_day_id, site_id)
+  )
+`;
+await sql`
+  CREATE TABLE IF NOT EXISTS trip_day_hotels (
+    trip_day_id UUID NOT NULL REFERENCES trip_days(id) ON DELETE CASCADE,
+    hotel_id UUID NOT NULL REFERENCES hotels(id) ON DELETE RESTRICT,
+    PRIMARY KEY (trip_day_id, hotel_id)
+  )
+`;
+await sql`
+  CREATE TABLE IF NOT EXISTS reference_contents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    entity_type TEXT NOT NULL CHECK (entity_type IN ('country', 'city', 'site')),
+    entity_id UUID NOT NULL,
+    content_type TEXT NOT NULL CHECK (content_type IN (
+      'useful_info', 'phrasebook', 'bingo', 'quiz', 'mission', 'game', 'photo_contest'
+    )),
+    locale TEXT NOT NULL DEFAULT 'it-IT',
+    content JSONB NOT NULL DEFAULT '{}'::jsonb,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'ready', 'failed', 'archived')),
+    model TEXT,
+    refreshed_at TIMESTAMPTZ,
+    refresh_after TIMESTAMPTZ,
+    error_message TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (entity_type, entity_id, content_type, locale)
+  )
+`;
+await sql`
+  CREATE TABLE IF NOT EXISTS user_invitations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id TEXT NOT NULL REFERENCES platform_users(id) ON DELETE CASCADE,
+    created_by_user_id TEXT REFERENCES platform_users(id) ON DELETE SET NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    used_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )
+`;
+await sql`CREATE INDEX IF NOT EXISTS user_invitations_active_idx ON user_invitations (user_id, expires_at DESC) WHERE used_at IS NULL`;
+await sql`CREATE INDEX IF NOT EXISTS reference_contents_refresh_idx ON reference_contents (status, refresh_after)`;
+await sql`
+  INSERT INTO platform_schema_migrations (version) VALUES (${travelCatalogMigration})
+  ON CONFLICT (version) DO NOTHING
+`;
+console.log(`${travelCatalogMigration}: verificata`);

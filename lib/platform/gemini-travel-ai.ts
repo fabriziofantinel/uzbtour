@@ -11,6 +11,7 @@ REGOLE DI SICUREZZA E QUALITÀ:
 - Non inventare date, orari, hotel, visite o numeri di telefono mancanti.
 - Mantieni l'ordine cronologico e assegna dayNumber consecutivi a partire da 1.
 - date deve essere YYYY-MM-DD solo quando la data è esplicita, altrimenti stringa vuota.
+- startDate ed endDate devono rappresentare la prima e l'ultima data del viaggio; usa stringhe vuote se non ricavabili.
 - startsAt ed endsAt devono essere HH:MM solo quando espliciti, altrimenti stringa vuota.
 - accommodation deve sempre esistere; usa campi vuoti se non è indicato un hotel.
 - description deve sintetizzare fedelmente il testo senza materiale promozionale superfluo.

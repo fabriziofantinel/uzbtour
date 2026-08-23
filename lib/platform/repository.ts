@@ -12,6 +12,9 @@ type OverviewRow = {
   template_id: string | null;
   template_title: string | null;
   template_status: string | null;
+  destination_country: string | null;
+  template_starts_on: string | null;
+  template_ends_on: string | null;
   departure_id: string | null;
   departure_code: string | null;
   departure_title: string | null;
@@ -19,6 +22,7 @@ type OverviewRow = {
   ends_on: string | null;
   departure_status: string | null;
   party_count: string;
+  traveler_names: string | null;
 };
 
 type ImportRow = {
@@ -46,20 +50,27 @@ export async function getPlatformOverview(
       tt.id::text AS template_id,
       tt.title AS template_title,
       tt.status AS template_status,
+      tt.destination_country,
+      tt.starts_on::text AS template_starts_on,
+      tt.ends_on::text AS template_ends_on,
       d.id::text AS departure_id,
       d.code AS departure_code,
       d.title AS departure_title,
       d.starts_on::text AS starts_on,
       d.ends_on::text AS ends_on,
       d.status AS departure_status,
-      COUNT(DISTINCT tp.id)::text AS party_count
+      COUNT(DISTINCT tp.id)::text AS party_count,
+      STRING_AGG(DISTINCT traveler.display_name, '|' ORDER BY traveler.display_name) AS traveler_names
     FROM agency_memberships am
     JOIN agencies a ON a.id = am.agency_id
     LEFT JOIN trip_templates tt ON tt.agency_id = a.id
     LEFT JOIN departures d ON d.template_id = tt.id AND d.agency_id = a.id
     LEFT JOIN travel_parties tp ON tp.departure_id = d.id AND tp.agency_id = a.id
-    WHERE am.user_id = ${actor.id} AND am.role IN ('owner', 'admin')
+    LEFT JOIN party_memberships pm ON pm.party_id = tp.id AND pm.agency_id = a.id AND pm.status <> 'removed'
+    LEFT JOIN traveler_profiles traveler ON traveler.id = pm.traveler_id AND traveler.agency_id = a.id
+    WHERE am.user_id = ${actor.id} AND am.role IN ('owner', 'admin', 'editor')
     GROUP BY a.id, a.slug, a.name, a.status, am.role, tt.id, tt.title, tt.status,
+      tt.destination_country, tt.starts_on, tt.ends_on,
       d.id, d.code, d.title, d.starts_on, d.ends_on, d.status
     ORDER BY a.name, tt.title NULLS LAST, d.starts_on DESC NULLS LAST
   `, sql`
@@ -75,7 +86,7 @@ export async function getPlatformOverview(
     FROM import_jobs ij
     JOIN agency_memberships am
       ON am.agency_id = ij.agency_id AND am.user_id = ${actor.id}
-      AND am.role IN ('owner', 'admin')
+      AND am.role IN ('owner', 'admin', 'editor')
     JOIN trip_templates tt ON tt.id = ij.template_id AND tt.agency_id = ij.agency_id
     JOIN travel_documents td ON td.id = ij.document_id AND td.agency_id = ij.agency_id
     JOIN media_assets ma ON ma.id = td.media_asset_id AND ma.agency_id = ij.agency_id
@@ -106,6 +117,9 @@ export async function getPlatformOverview(
         id: row.template_id,
         title: row.template_title,
         status: row.template_status,
+        destinationCountry: row.destination_country ?? "",
+        startsOn: row.template_starts_on,
+        endsOn: row.template_ends_on,
         departures: [],
       };
       agency.trips.push(trip);
@@ -122,6 +136,7 @@ export async function getPlatformOverview(
         endsOn: row.ends_on,
         status: row.departure_status,
         partyCount: Number(row.party_count),
+        travelerNames: row.traveler_names ? row.traveler_names.split("|") : [],
       });
     }
   }

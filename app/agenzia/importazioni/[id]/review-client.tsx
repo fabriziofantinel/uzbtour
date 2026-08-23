@@ -117,6 +117,8 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
         <section className="reviewGeneral">
           <label>Titolo del viaggio<input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })}/></label>
           <label>Paese<input value={draft.destinationCountry} onChange={(event) => setDraft({ ...draft, destinationCountry: event.target.value })}/></label>
+          <label>Data inizio<input type="date" value={draft.startDate} onChange={(event) => setDraft({ ...draft, startDate: event.target.value })}/></label>
+          <label>Data fine<input type="date" value={draft.endDate} onChange={(event) => setDraft({ ...draft, endDate: event.target.value })}/></label>
           <label className="wide">Descrizione<textarea value={draft.summary} onChange={(event) => setDraft({ ...draft, summary: event.target.value })}/></label>
         </section>
 
@@ -140,6 +142,7 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
                     <GripVertical className="dragHint"/>
                     <label>Tipo<div className="selectWrap"><select value={activity.type} onChange={(event) => updateActivity(dayIndex, activityIndex, { type: event.target.value as typeof activity.type })}>{activityTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><ChevronDown/></div></label>
                     <label className="activityTitle">Attività<input value={activity.title} onChange={(event) => updateActivity(dayIndex, activityIndex, { title: event.target.value })}/></label>
+                    <label className="activityTitle">Sito / luogo<input value={activity.placeName} onChange={(event) => updateActivity(dayIndex, activityIndex, { placeName: event.target.value })}/></label>
                     <label>Inizio<input type="time" value={activity.startsAt} onChange={(event) => updateActivity(dayIndex, activityIndex, { startsAt: event.target.value })}/></label>
                     <label>Fine<input type="time" value={activity.endsAt} onChange={(event) => updateActivity(dayIndex, activityIndex, { endsAt: event.target.value })}/></label>
                     <button className="removeActivity" aria-label="Rimuovi attività" onClick={() => updateDay(dayIndex, { activities: day.activities.filter((_, position) => position !== activityIndex) })}><Trash2/></button>

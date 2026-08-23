@@ -15,7 +15,7 @@ export async function requirePlatformAdmin() {
   const memberships = await sql`
     SELECT 1
     FROM agency_memberships
-    WHERE user_id = ${user.id} AND role IN ('owner', 'admin')
+    WHERE user_id = ${user.id} AND role IN ('owner', 'admin', 'editor')
     LIMIT 1
   `;
   if (memberships.length === 0) {
@@ -50,7 +50,7 @@ export async function requireAgencyAdmin(agencyId: string) {
   const memberships = await sql`
     SELECT role
     FROM agency_memberships
-    WHERE agency_id = ${agencyId} AND user_id = ${user.id} AND role IN ('owner', 'admin')
+    WHERE agency_id = ${agencyId} AND user_id = ${user.id} AND role IN ('owner', 'admin', 'editor')
     LIMIT 1
   `;
   if (memberships.length === 0) {

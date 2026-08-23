@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
   ArrowLeft, Building2, CalendarDays, CheckCircle2, ChevronDown, CircleAlert,
   Clock3, Eye, FileText, LoaderCircle, LogOut, MapPinned, Play, Plus, Sparkles, UploadCloud,
-  UsersRound,
+  Search, SlidersHorizontal, UsersRound,
 } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import type { PlatformOverview } from "@/lib/platform/types";
@@ -48,6 +48,8 @@ export default function AgencyDashboard({ initialOverview }: Props) {
   const [overview, setOverview] = useState(initialOverview);
   const [selectedAgencyId, setSelectedAgencyId] = useState(initialOverview.agencies[0]?.id ?? "");
   const [showNewTrip, setShowNewTrip] = useState(false);
+  const [tripPeriod, setTripPeriod] = useState<"all" | "upcoming" | "past">("upcoming");
+  const [travelerFilter, setTravelerFilter] = useState("");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -62,6 +64,19 @@ export default function AgencyDashboard({ initialOverview }: Props) {
       0
     ) ?? 0,
   }), [agency]);
+  const filteredTrips = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const traveler = travelerFilter.trim().toLocaleLowerCase("it");
+    return (agency?.trips ?? []).filter((trip) => {
+      const endDate = trip.endsOn ?? trip.departures[0]?.endsOn ?? null;
+      const periodMatches = tripPeriod === "all" || !endDate ||
+        (tripPeriod === "past" ? endDate < today : endDate >= today);
+      const peopleMatches = !traveler || trip.departures.some((departure) =>
+        departure.travelerNames.some((name) => name.toLocaleLowerCase("it").includes(traveler))
+      );
+      return periodMatches && peopleMatches;
+    });
+  }, [agency, travelerFilter, tripPeriod]);
 
   async function refresh() {
     const result = await responseJson<PlatformOverview>(await fetch("/api/admin/platform/overview", {
@@ -77,20 +92,25 @@ export default function AgencyDashboard({ initialOverview }: Props) {
     setError("");
     setNotice("");
     const form = new FormData(event.currentTarget);
+    const file = form.get("programme");
+    if (!(file instanceof File) || file.size === 0) {
+      setError("Seleziona il preventivo PDF accettato dal cliente."); setBusy(""); return;
+    }
     try {
-      await responseJson(await fetch("/api/admin/platform/trips", {
+      const title = String(form.get("title") || "").trim() || file.name.replace(/\.pdf$/i, "");
+      const created = await responseJson<{ trip: { id: string } }>(await fetch("/api/admin/platform/trips", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           agencyId: agency.id,
-          title: form.get("title"),
-          destinationCountry: form.get("destinationCountry"),
-          timezone: form.get("timezone"),
+          title,
+          destinationCountry: "",
+          timezone: "Europe/Rome",
         }),
       }));
-      await refresh();
+      await uploadProgramme(created.trip.id, file);
       setShowNewTrip(false);
-      setNotice("Viaggio creato. Ora puoi caricare il programma PDF.");
+      setNotice("Viaggio creato e PDF accodato per l’analisi.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Creazione non riuscita");
     } finally {
@@ -185,7 +205,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
         </Link>
         <div className="agencyUser">
           <i>{overview.actor.name.slice(0, 2).toUpperCase()}</i>
-          <span><small>Amministratore</small><b>{overview.actor.name}</b></span>
+          <span><small>{agency?.role === "editor" ? "Agente" : "Amministratore"}</small><b>{overview.actor.name}</b></span>
           <form action="/api/auth/logout" method="post"><button aria-label="Esci"><LogOut size={17}/></button></form>
         </div>
       </header>
@@ -240,20 +260,30 @@ export default function AgencyDashboard({ initialOverview }: Props) {
 
             {showNewTrip && (
               <form className="newTripForm" onSubmit={createTrip}>
-                <div className="formIntro"><b>Crea un viaggio</b><span>Il programma potrà essere estratto subito dopo da un PDF.</span></div>
-                <label>Titolo<input name="title" placeholder="Es. Giappone classico 2027" required minLength={3}/></label>
-                <label>Paese<input name="destinationCountry" placeholder="Es. Giappone"/></label>
-                <label>Fuso orario<input name="timezone" defaultValue="Europe/Rome" required/></label>
+                <div className="formIntro"><b>Importa il preventivo accettato</b><span>Il PDF creerà testata, itinerario e anagrafiche condivise.</span></div>
+                <label>Nome pratica (facoltativo)<input name="title" placeholder="Se vuoto useremo il nome del PDF"/></label>
+                <label className="pdfField">Preventivo PDF *<input name="programme" type="file" accept="application/pdf,.pdf" required/></label>
                 <div><button type="button" className="secondary" onClick={() => setShowNewTrip(false)}>Annulla</button><button disabled={busy === "new-trip"}>{busy === "new-trip" && <LoaderCircle className="spin"/>} Crea</button></div>
               </form>
             )}
 
+            <div className="tripFilters">
+              <span><SlidersHorizontal/> Stato</span>
+              <button className={tripPeriod === "upcoming" ? "active" : ""} onClick={() => setTripPeriod("upcoming")}>Da fare</button>
+              <button className={tripPeriod === "past" ? "active" : ""} onClick={() => setTripPeriod("past")}>Già fatti</button>
+              <button className={tripPeriod === "all" ? "active" : ""} onClick={() => setTripPeriod("all")}>Tutti</button>
+              <label><Search/><input value={travelerFilter} onChange={(event) => setTravelerFilter(event.target.value)} placeholder="Cerca viaggiatore…"/></label>
+            </div>
+
             <div className="tripAdminGrid">
-              {agency?.trips.map((trip) => (
+              {filteredTrips.map((trip) => (
                 <article className="tripAdminCard" key={trip.id}>
                   <div className="tripCardTop"><span className={`status ${trip.status}`}>{statusLabels[trip.status] ?? trip.status}</span><MapPinned size={22}/></div>
                   <h3>{trip.title}</h3>
-                  <p>{trip.departures.length} partenze · {trip.departures.reduce((sum, item) => sum + item.partyCount, 0)} famiglie</p>
+                  <p>{trip.destinationCountry || "Destinazione da revisionare"}</p>
+                  <p>{trip.startsOn && trip.endsOn ? `${trip.startsOn} → ${trip.endsOn}` : "Date in attesa di estrazione"}</p>
+                  <p>{trip.departures.flatMap((item) => item.travelerNames).join(", ") || "Nessun viaggiatore configurato"}</p>
+                  {trip.departures[0] && <Link className="configureTravelers" href={`/agenzia/viaggi/${trip.departures[0].id}`}><UsersRound/> Configura famiglie e viaggiatori</Link>}
                   <label className={busy === `upload-${trip.id}` ? "uploadAction busy" : "uploadAction"}>
                     {busy === `upload-${trip.id}` ? <LoaderCircle className="spin"/> : <UploadCloud/>}
                     <span><b>{busy === `upload-${trip.id}` ? "Caricamento…" : "Carica programma PDF"}</b><small>PDF privato, massimo 30 MB</small></span>
@@ -265,7 +295,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                   </label>
                 </article>
               ))}
-              {agency?.trips.length === 0 && <div className="agencyEmpty"><MapPinned/><h3>Nessun viaggio</h3><p>Crea il primo viaggio e carica il programma dell’agenzia.</p></div>}
+              {filteredTrips.length === 0 && <div className="agencyEmpty"><MapPinned/><h3>Nessun viaggio</h3><p>Nessun risultato per i filtri selezionati.</p></div>}
             </div>
           </section>
 

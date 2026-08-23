@@ -33,7 +33,7 @@ async function userPermissions(userId: string) {
   const permissions = await sql`
     SELECT EXISTS (
       SELECT 1 FROM agency_memberships
-      WHERE user_id = ${userId} AND role IN ('owner', 'admin')
+      WHERE user_id = ${userId} AND role IN ('owner', 'admin', 'editor')
     ) AS is_agency_admin
   `;
   return Boolean(permissions[0]?.is_agency_admin);
@@ -61,6 +61,7 @@ export async function getAuthenticatedActor(): Promise<CurrentUser | null> {
   let platformUser = existing[0];
   if (platformUser) {
     if (String(platformUser.status) === "disabled") return null;
+    if (String(platformUser.status) === "invited") return null;
     const updated = await sql`
       UPDATE platform_users
       SET auth_provider = 'neon',

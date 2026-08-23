@@ -31,6 +31,8 @@ export const importedDaySchema = z.object({
 export const travelProgrammeDraftSchema = z.object({
   title: z.string().min(1).max(240),
   destinationCountry: z.string().max(120),
+  startDate: z.string().max(10).default("").describe("Data iniziale YYYY-MM-DD oppure stringa vuota"),
+  endDate: z.string().max(10).default("").describe("Data finale YYYY-MM-DD oppure stringa vuota"),
   summary: z.string().max(6000),
   days: z.array(importedDaySchema).min(1).max(90),
   usefulInformation: z.array(z.object({
