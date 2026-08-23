@@ -87,9 +87,8 @@ export default function TripOverviewMap({ days, onSelect }: TripOverviewMapProps
         marker.on("click", () => onSelectRef.current(day.index));
       });
 
-      map.fitBounds(L.latLngBounds([[37.0, 55.5], [46.3, 73.6]]), {
-        padding: [22, 22]
-      });
+      if (route.length === 1) map.setView(route[0], 9);
+      else if (route.length > 1) map.fitBounds(L.latLngBounds(route), { padding: [45, 45] });
     });
 
     return () => {
@@ -100,14 +99,15 @@ export default function TripOverviewMap({ days, onSelect }: TripOverviewMapProps
   }, [days]);
 
   function showWholeRoute() {
-    mapRef.current?.fitBounds([[37.0, 55.5], [46.3, 73.6]], {
-      padding: [22, 22]
-    });
+    if (!mapRef.current || days.length === 0) return;
+    const route = days.map((day) => [day.lat, day.lon] as [number, number]);
+    if (route.length === 1) mapRef.current.setView(route[0], 9);
+    else mapRef.current.fitBounds(route, { padding: [45, 45] });
   }
 
   return (
     <div className="tripMapShell">
-      <div className="tripMapCanvas" ref={containerRef} aria-label="Mappa interattiva dell’itinerario in Uzbekistan"/>
+      <div className="tripMapCanvas" ref={containerRef} aria-label="Mappa interattiva dell’itinerario"/>
       <div className="tripMapZoom" role="group" aria-label="Controlli zoom della mappa">
         <button type="button" onClick={() => mapRef.current?.zoomIn()} aria-label="Ingrandisci la mappa">
           <Plus size={21}/>

@@ -784,3 +784,47 @@ await sql`
   ON CONFLICT (version) DO NOTHING
 `;
 console.log(`${familyActivityIsolationMigration}: verificata`);
+
+const familyJournalMigration = "009_family_journal";
+await sql`
+  CREATE TABLE IF NOT EXISTS party_day_notes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), agency_id UUID NOT NULL,
+    party_id UUID NOT NULL, trip_day_id UUID NOT NULL,
+    text TEXT NOT NULL DEFAULT '', updated_by_user_id TEXT REFERENCES platform_users(id) ON DELETE SET NULL,
+    updated_by_name TEXT NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (agency_id, party_id) REFERENCES travel_parties(agency_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (agency_id, trip_day_id) REFERENCES trip_days(agency_id, id) ON DELETE CASCADE,
+    UNIQUE (party_id, trip_day_id)
+  )
+`;
+await sql`
+  CREATE TABLE IF NOT EXISTS party_restaurants (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), agency_id UUID NOT NULL,
+    party_id UUID NOT NULL, trip_day_id UUID NOT NULL, name TEXT NOT NULL,
+    added_by_user_id TEXT REFERENCES platform_users(id) ON DELETE SET NULL,
+    added_by_name TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (agency_id, party_id) REFERENCES travel_parties(agency_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (agency_id, trip_day_id) REFERENCES trip_days(agency_id, id) ON DELETE CASCADE
+  )
+`;
+await sql`CREATE INDEX IF NOT EXISTS party_restaurants_scope_idx ON party_restaurants (party_id, trip_day_id, created_at DESC)`;
+await sql`
+  CREATE TABLE IF NOT EXISTS party_cash_movements (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), agency_id UUID NOT NULL,
+    party_id UUID NOT NULL, trip_day_id UUID NOT NULL,
+    kind TEXT NOT NULL CHECK (kind IN ('withdrawal', 'exchange')),
+    euro_amount NUMERIC(18,2), local_amount NUMERIC(18,2) NOT NULL CHECK (local_amount > 0),
+    local_currency TEXT NOT NULL DEFAULT 'UZS', fee_euro NUMERIC(18,2),
+    added_by_user_id TEXT REFERENCES platform_users(id) ON DELETE SET NULL,
+    added_by_name TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (agency_id, party_id) REFERENCES travel_parties(agency_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (agency_id, trip_day_id) REFERENCES trip_days(agency_id, id) ON DELETE CASCADE
+  )
+`;
+await sql`CREATE INDEX IF NOT EXISTS party_cash_scope_idx ON party_cash_movements (party_id, trip_day_id, created_at DESC)`;
+await sql`
+  INSERT INTO platform_schema_migrations (version) VALUES (${familyJournalMigration})
+  ON CONFLICT (version) DO NOTHING
+`;
+console.log(`${familyJournalMigration}: verificata`);

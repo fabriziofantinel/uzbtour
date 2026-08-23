@@ -41,7 +41,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
   const versionId = String(selected.template_version_id);
   const partyId = String(selected.party_id);
 
-  const [dayRows, itemRows, cityRows, siteRows, hotelRows, travelerRows, infoRows, phraseRows, challengeRows, expenseRows] = await Promise.all([
+  const [dayRows, itemRows, cityRows, siteRows, hotelRows, travelerRows, infoRows, phraseRows, challengeRows, expenseRows, noteRows, restaurantRows, cashRows, photoRows] = await Promise.all([
     sql`
       SELECT id::text, day_number, day_offset, label, title, city, description,
         source_date::text, metadata
@@ -126,6 +126,42 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       WHERE expense.agency_id = ${agencyId} AND expense.departure_id = ${departureId}
         AND expense.party_id = ${partyId}
       ORDER BY expense.created_at DESC
+    `,
+    sql`
+      SELECT note.id::text, note.trip_day_id::text, day.day_number, note.text,
+        note.updated_by_name, note.updated_at::text
+      FROM party_day_notes note
+      JOIN trip_days day ON day.id = note.trip_day_id AND day.agency_id = note.agency_id
+      WHERE note.agency_id = ${agencyId} AND note.party_id = ${partyId}
+      ORDER BY day.day_number
+    `,
+    sql`
+      SELECT restaurant.id::text, restaurant.trip_day_id::text, day.day_number,
+        restaurant.name, restaurant.added_by_name, restaurant.created_at::text
+      FROM party_restaurants restaurant
+      JOIN trip_days day ON day.id = restaurant.trip_day_id AND day.agency_id = restaurant.agency_id
+      WHERE restaurant.agency_id = ${agencyId} AND restaurant.party_id = ${partyId}
+      ORDER BY restaurant.created_at DESC
+    `,
+    sql`
+      SELECT movement.id::text, movement.trip_day_id::text, day.day_number,
+        movement.kind, movement.euro_amount, movement.local_amount, movement.local_currency,
+        movement.fee_euro, movement.added_by_name, movement.created_at::text
+      FROM party_cash_movements movement
+      JOIN trip_days day ON day.id = movement.trip_day_id AND day.agency_id = movement.agency_id
+      WHERE movement.agency_id = ${agencyId} AND movement.party_id = ${partyId}
+      ORDER BY movement.created_at DESC
+    `,
+    sql`
+      SELECT memory.id::text, memory.trip_day_id::text, day.day_number,
+        asset.id::text AS media_id, asset.original_name, asset.content_type, asset.size_bytes,
+        asset.uploaded_by_user_id, uploader.display_name AS added_by, memory.created_at::text
+      FROM party_memories memory
+      JOIN media_assets asset ON asset.id = memory.media_asset_id AND asset.agency_id = memory.agency_id
+      JOIN trip_days day ON day.id = memory.trip_day_id AND day.agency_id = memory.agency_id
+      LEFT JOIN platform_users uploader ON uploader.id = asset.uploaded_by_user_id
+      WHERE memory.agency_id = ${agencyId} AND memory.party_id = ${partyId} AND asset.status = 'ready'
+      ORDER BY memory.created_at DESC
     `,
   ]);
 
@@ -214,7 +250,54 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       amount: Number(row.amount), currency: String(row.currency), paidBy: String(row.paid_by_name),
       createdAt: String(row.created_at),
     })),
+    notes: (noteRows as Row[]).map((row) => ({
+      id: String(row.id), dayId: String(row.trip_day_id), dayNumber: Number(row.day_number),
+      text: String(row.text), updatedBy: String(row.updated_by_name), updatedAt: String(row.updated_at),
+    })),
+    restaurants: (restaurantRows as Row[]).map((row) => ({
+      id: String(row.id), dayId: String(row.trip_day_id), dayNumber: Number(row.day_number),
+      name: String(row.name), addedBy: String(row.added_by_name), createdAt: String(row.created_at),
+    })),
+    cashMovements: (cashRows as Row[]).map((row) => ({
+      id: String(row.id), dayId: String(row.trip_day_id), dayNumber: Number(row.day_number),
+      kind: String(row.kind), euroAmount: row.euro_amount == null ? null : Number(row.euro_amount),
+      localAmount: Number(row.local_amount), localCurrency: String(row.local_currency),
+      feeEuro: row.fee_euro == null ? null : Number(row.fee_euro),
+      addedBy: String(row.added_by_name), createdAt: String(row.created_at),
+    })),
+    photos: (photoRows as Row[]).map((row) => ({
+      id: String(row.id), mediaId: String(row.media_id), dayId: String(row.trip_day_id),
+      dayNumber: Number(row.day_number), originalName: String(row.original_name),
+      contentType: String(row.content_type), sizeBytes: row.size_bytes == null ? null : Number(row.size_bytes),
+      addedBy: stringValue(row.added_by) || "Viaggiatore", createdAt: String(row.created_at),
+      contentUrl: `/api/traveler/photos/${String(row.id)}/content`,
+      downloadUrl: `/api/traveler/photos/${String(row.id)}/content?download=1`,
+      canDelete: String(row.uploaded_by_user_id) === userId,
+    })),
   };
+}
+
+export async function assertTravelerPartyScope(input: {
+  userId: string; departureId: string; partyId: string; dayId?: string | null;
+}) {
+  const sql = getSql();
+  const rows = await sql`
+    SELECT departure.agency_id::text
+    FROM traveler_profiles profile
+    JOIN party_memberships membership ON membership.traveler_id = profile.id AND membership.status = 'active'
+    JOIN travel_parties party ON party.id = membership.party_id AND party.agency_id = membership.agency_id
+    JOIN departures departure ON departure.id = party.departure_id AND departure.agency_id = party.agency_id
+    WHERE profile.user_id = ${input.userId} AND party.id = ${input.partyId}
+      AND departure.id = ${input.departureId}
+      AND (${input.dayId ?? null}::uuid IS NULL OR EXISTS (
+        SELECT 1 FROM trip_days day WHERE day.id = ${input.dayId ?? null}::uuid
+          AND day.agency_id = departure.agency_id
+          AND day.template_version_id = departure.template_version_id
+      ))
+    LIMIT 1
+  `;
+  if (!rows[0]) throw new PlatformRequestError("Viaggio, famiglia o giornata non disponibili");
+  return String(rows[0].agency_id);
 }
 
 export async function addTravelerExpense(input: {
@@ -259,6 +342,53 @@ export async function addTravelerExpense(input: {
     RETURNING id::text
   `;
   return String(rows[0].id);
+}
+
+export async function saveTravelerNote(input: {
+  userId: string; userName: string; departureId: string; partyId: string; dayId: string; text: string;
+}) {
+  const sql = getSql();
+  const agencyId = await assertTravelerPartyScope(input);
+  const rows = await sql`
+    INSERT INTO party_day_notes (agency_id, party_id, trip_day_id, text, updated_by_user_id, updated_by_name)
+    VALUES (${agencyId}, ${input.partyId}, ${input.dayId}, ${input.text}, ${input.userId}, ${input.userName})
+    ON CONFLICT (party_id, trip_day_id) DO UPDATE SET text = EXCLUDED.text,
+      updated_by_user_id = EXCLUDED.updated_by_user_id, updated_by_name = EXCLUDED.updated_by_name,
+      updated_at = NOW()
+    RETURNING id::text, updated_at::text
+  `;
+  return { id: String(rows[0].id), updatedAt: String(rows[0].updated_at) };
+}
+
+export async function addTravelerRestaurant(input: {
+  userId: string; userName: string; departureId: string; partyId: string; dayId: string; name: string;
+}) {
+  const sql = getSql();
+  const agencyId = await assertTravelerPartyScope(input);
+  const rows = await sql`
+    INSERT INTO party_restaurants (agency_id, party_id, trip_day_id, name, added_by_user_id, added_by_name)
+    VALUES (${agencyId}, ${input.partyId}, ${input.dayId}, ${input.name}, ${input.userId}, ${input.userName})
+    RETURNING id::text, created_at::text
+  `;
+  return { id: String(rows[0].id), createdAt: String(rows[0].created_at) };
+}
+
+export async function addTravelerCashMovement(input: {
+  userId: string; userName: string; departureId: string; partyId: string; dayId: string;
+  kind: "withdrawal" | "exchange"; euroAmount: number | null; localAmount: number; feeEuro: number | null;
+}) {
+  const sql = getSql();
+  const agencyId = await assertTravelerPartyScope(input);
+  const rows = await sql`
+    INSERT INTO party_cash_movements (
+      agency_id, party_id, trip_day_id, kind, euro_amount, local_amount, local_currency,
+      fee_euro, added_by_user_id, added_by_name
+    ) VALUES (
+      ${agencyId}, ${input.partyId}, ${input.dayId}, ${input.kind}, ${input.euroAmount},
+      ${input.localAmount}, 'UZS', ${input.feeEuro}, ${input.userId}, ${input.userName}
+    ) RETURNING id::text, created_at::text
+  `;
+  return { id: String(rows[0].id), createdAt: String(rows[0].created_at) };
 }
 
 export type TravelerExperience = NonNullable<Awaited<ReturnType<typeof getTravelerExperience>>>;

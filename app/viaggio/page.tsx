@@ -28,5 +28,5 @@ export default async function TravelerJourneyPage({
   }
   if (!experience.journey.catalogReady) redirect("/");
 
-  return <TravelExperience initialExperience={experience} userName={user.name}/>;
+  return <TravelExperience initialExperience={experience} userName={user.name} isAgencyAdmin={user.isAgencyAdmin}/>;
 }
