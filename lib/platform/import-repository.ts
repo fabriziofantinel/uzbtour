@@ -1,6 +1,6 @@
 import { getSql } from "@/lib/db";
 import { PlatformRequestError } from "./http";
-import { travelProgrammeDraftSchema, type TravelProgrammeDraft } from "./import-schema";
+import { catalogValidationIssues, travelProgrammeDraftSchema, type TravelProgrammeDraft } from "./import-schema";
 import type { PlatformImportReview } from "./types";
 import { prepareTravelCatalog } from "./travel-catalog";
 
@@ -297,6 +297,12 @@ export async function publishImport(input: {
   actorId: string;
   draft: TravelProgrammeDraft;
 }) {
+  const validationIssues = catalogValidationIssues(input.draft);
+  if (validationIssues.length > 0) {
+    throw new PlatformRequestError(
+      `Completa la validazione delle anagrafiche: ${validationIssues.slice(0, 5).join("; ")}${validationIssues.length > 5 ? `; e altre ${validationIssues.length - 5}` : ""}`
+    );
+  }
   const sql = getSql();
   const versionRows = await sql`
     SELECT tv.id::text AS version_id, ij.template_id::text
@@ -348,13 +354,18 @@ export async function publishImport(input: {
         ) VALUES (
           ${dayId}, ${input.agencyId}, ${versionId}, ${dayIndex + 1}, ${dayIndex},
           ${day.label}, ${day.title}, ${day.city}, ${day.description}, ${validDate(day.date)},
-          ${JSON.stringify({ importedDayNumber: day.dayNumber })}::jsonb
+          ${JSON.stringify({
+            importedDayNumber: day.dayNumber,
+            country: day.country,
+            countryValidation: day.countryValidation,
+            cityValidation: day.cityValidation,
+          })}::jsonb
         )
       `);
-      if (references.cityId) queries.push(txn`
-        INSERT INTO trip_day_cities (trip_day_id, city_id) VALUES (${dayId}, ${references.cityId})
+      references.cityIds.forEach((cityId) => queries.push(txn`
+        INSERT INTO trip_day_cities (trip_day_id, city_id) VALUES (${dayId}, ${cityId})
         ON CONFLICT DO NOTHING
-      `);
+      `));
       references.siteIds.forEach((siteId) => queries.push(txn`
         INSERT INTO trip_day_sites (trip_day_id, site_id) VALUES (${dayId}, ${siteId})
         ON CONFLICT DO NOTHING
@@ -371,7 +382,12 @@ export async function publishImport(input: {
           ) VALUES (
             ${input.agencyId}, ${dayId}, ${activity.type}, ${activity.title},
             ${activity.description}, ${validTime(activity.startsAt)}, ${validTime(activity.endsAt)},
-            ${activityIndex}, ${JSON.stringify({ placeName: activity.placeName })}::jsonb
+            ${activityIndex}, ${JSON.stringify({
+              placeName: activity.placeName,
+              placeCity: activity.placeCity,
+              placeCountry: activity.placeCountry,
+              placeValidation: activity.placeValidation,
+            })}::jsonb
           )
         `);
       });
@@ -381,7 +397,11 @@ export async function publishImport(input: {
             agency_id, trip_day_id, name, notes, metadata
           ) VALUES (
             ${input.agencyId}, ${dayId}, ${day.accommodation.name}, ${day.accommodation.notes},
-            ${JSON.stringify({ city: day.accommodation.city })}::jsonb
+            ${JSON.stringify({
+              city: day.accommodation.city,
+              country: day.accommodation.country,
+              validation: day.accommodation.validation,
+            })}::jsonb
           )
         `);
       }

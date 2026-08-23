@@ -17,6 +17,9 @@ REGOLE DI SICUREZZA E QUALITÀ:
 - description deve sintetizzare fedelmente il testo senza materiale promozionale superfluo.
 - usefulInformation deve contenere solo informazioni realmente presenti nel documento.
 - Se un trasferimento è un treno o un volo, usa rispettivamente type train o flight.
+- Compila country e city di ogni giornata. Per ogni visita compila placeName, placeCity e placeCountry; per ogni hotel name, city e country.
+- Nei giorni di trasferimento associa ogni sito alla località della visita, non alla destinazione serale.
+- Compila tutti i campi di validazione: needsValidation=true per nomi generici, ambigui, dedotti o geograficamente dubbi; false solo per dati espliciti e coerenti nel PDF.
 `;
 
 export async function extractTravelProgrammeWithGemini(

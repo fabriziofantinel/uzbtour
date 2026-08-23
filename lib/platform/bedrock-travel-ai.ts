@@ -28,6 +28,12 @@ REGOLE DI SICUREZZA E QUALITÀ:
 - Se un trasferimento è un treno o un volo, usa rispettivamente type train o flight.
 - destinationCountry deve contenere il paese principale; per viaggi multi-paese separa i nomi con virgole.
 - placeName deve contenere il nome canonico del sito visitato per le attività di tipo visit.
+- Per ogni giornata compila country e city con la località effettiva della giornata, non automaticamente con la destinazione serale.
+- Per ogni visita compila placeName, placeCity e placeCountry della visita stessa. Nei giorni di trasferimento la città del sito può essere diversa dalla città del pernottamento.
+- Per ogni hotel compila name, city e country della struttura.
+- Ogni countryValidation, cityValidation, placeValidation e accommodation.validation deve indicare needsValidation e reason.
+- Imposta needsValidation=true quando il nome è generico, abbreviato, ambiguo, non specificato nel PDF, incoerente con la località o dedotto invece che esplicito.
+- Imposta needsValidation=false soltanto quando nome e associazione geografica sono espliciti e non ambigui nel documento. Non dichiarare verifiche web che non hai eseguito.
 `;
 
 function requiredEnvironment(name: string) {

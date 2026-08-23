@@ -3,6 +3,7 @@ import { PlatformAuthorizationError, requireAgencyAdmin } from "@/lib/platform/a
 import { getImportAgency, getImportForReview } from "@/lib/platform/import-repository";
 import ImportReview from "./review-client";
 import "./review.css";
+import "./validation.css";
 
 export const dynamic = "force-dynamic";
 
