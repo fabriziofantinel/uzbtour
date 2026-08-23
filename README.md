@@ -1,6 +1,6 @@
 # SMF Travel
 
-Piattaforma multi-agenzia per creare viaggi da un programma PDF e condividerli con
+Piattaforma multi-agenzia per creare viaggi da un programma PDF, DOC o DOCX e condividerli con
 famiglie e viaggiatori. Il tour Uzbekistan resta disponibile come contenuto demo.
 
 ## Avvio locale
@@ -52,7 +52,7 @@ Le foto restano al momento locali al browser e non vengono salvate nel database.
 
 ## Worker AWS
 
-Il caricamento del PDF crea un record idempotente su Neon e invia a SQS soltanto gli
+Il caricamento del documento crea un record idempotente su Neon e invia a SQS soltanto gli
 identificativi del lavoro. Lambda scarica il documento privato da R2, lo elabora con
 Bedrock e salva la bozza su Neon. La configurazione completa è descritta in
 [`docs/aws-sqs-lambda-bedrock.md`](docs/aws-sqs-lambda-bedrock.md).

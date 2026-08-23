@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: >-
-  SMF Travel import pipeline - decouples PDF extraction with SQS, Lambda and
+  SMF Travel import pipeline - decouples document extraction with SQS, Lambda and
   Amazon Bedrock while keeping idle cost near zero
 Metadata:
   AWSToolsMetrics:
@@ -133,7 +133,7 @@ Resources:
     DependsOn: ImportWorkerLogGroup
     Properties:
       FunctionName: !Sub "${AWS::StackName}-import-worker"
-      Description: Estrae i programmi PDF da R2 con Amazon Bedrock e salva la bozza su Neon
+      Description: Estrae i programmi PDF o Word da R2 con Amazon Bedrock e salva la bozza su Neon
       CodeUri: ../../
       Handler: workers/import-handler.handler
       Runtime: nodejs22.x

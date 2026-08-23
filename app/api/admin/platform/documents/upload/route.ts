@@ -3,11 +3,15 @@ import { requireAgencyAdmin } from "@/lib/platform/authorization";
 import { cleanText, platformApiError } from "@/lib/platform/http";
 import { getObjectStorage } from "@/lib/platform/object-storage";
 import { assertTripBelongsToAgency } from "@/lib/platform/repository";
+import {
+  isMatchingTravelDocument,
+  TRAVEL_DOCUMENT_MAX_BYTES,
+  travelDocumentType,
+} from "@/lib/platform/travel-document";
 
 export const runtime = "nodejs";
 export const preferredRegion = "fra1";
 
-const MAX_PROGRAMME_BYTES = 30 * 1024 * 1024;
 const UPLOAD_EXPIRY_SECONDS = 10 * 60;
 
 export async function POST(request: Request) {
@@ -19,19 +23,19 @@ export async function POST(request: Request) {
     const contentType = cleanText(body?.contentType, 100).toLowerCase();
     const sizeBytes = Number(body?.sizeBytes);
     if (
-      !agencyId || !templateId || !originalName.toLowerCase().endsWith(".pdf") ||
-      contentType !== "application/pdf" || !Number.isSafeInteger(sizeBytes) ||
-      sizeBytes <= 0 || sizeBytes > MAX_PROGRAMME_BYTES
+      !agencyId || !templateId || !isMatchingTravelDocument(originalName, contentType) ||
+      !Number.isSafeInteger(sizeBytes) || sizeBytes <= 0 || sizeBytes > TRAVEL_DOCUMENT_MAX_BYTES
     ) {
-      return NextResponse.json({ error: "Documento PDF non valido o superiore a 30 MB" }, { status: 400 });
+      return NextResponse.json({ error: "Documento non valido: usa PDF, DOC o DOCX fino a 4,5 MB" }, { status: 400 });
     }
 
     await requireAgencyAdmin(agencyId);
     await assertTripBelongsToAgency(agencyId, templateId);
-    const key = `agencies/${agencyId}/trips/${templateId}/documents/${crypto.randomUUID()}.pdf`;
+    const documentType = travelDocumentType(originalName)!;
+    const key = `agencies/${agencyId}/trips/${templateId}/documents/${crypto.randomUUID()}.${documentType.extension}`;
     const authorization = await getObjectStorage().createUploadAuthorization(
       key,
-      "application/pdf",
+      documentType.contentType,
       UPLOAD_EXPIRY_SECONDS
     );
     return NextResponse.json(authorization);

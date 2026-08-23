@@ -132,7 +132,7 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
   }
 
   async function removeDraft() {
-    if (!confirm("Eliminare questa bozza e il PDF privato associato? L’operazione non è reversibile.")) return;
+    if (!confirm("Eliminare questa bozza e il documento privato associato? L’operazione non è reversibile.")) return;
     setBusy("delete"); setError(""); setNotice("");
     try {
       await jsonResponse(await fetch(`/api/admin/platform/imports/${initialImport.id}`, {

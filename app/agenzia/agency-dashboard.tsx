@@ -8,6 +8,10 @@ import {
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { PlatformOverview } from "@/lib/platform/types";
+import {
+  TRAVEL_DOCUMENT_MAX_BYTES,
+  travelDocumentType,
+} from "@/lib/platform/travel-document";
 
 type Props = { initialOverview: PlatformOverview };
 
@@ -25,7 +29,7 @@ const statusLabels: Record<string, string> = {
   archived: "Archiviato",
   uploaded: "Caricato",
   queued: "In coda",
-  extracting: "Lettura PDF",
+  extracting: "Lettura documento",
   generating: "Generazione contenuti",
   ready_for_review: "Da revisionare",
   published: "Pubblicato",
@@ -133,10 +137,16 @@ export default function AgencyDashboard({ initialOverview }: Props) {
     const form = new FormData(event.currentTarget);
     const file = form.get("programme");
     if (!(file instanceof File) || file.size === 0) {
-      setError("Seleziona il preventivo PDF accettato dal cliente."); setBusy(""); return;
+      setError("Seleziona il preventivo accettato dal cliente in formato PDF, DOC o DOCX."); setBusy(""); return;
+    }
+    if (!travelDocumentType(file.name)) {
+      setError("Il preventivo deve essere in formato PDF, DOC o DOCX."); setBusy(""); return;
+    }
+    if (file.size > TRAVEL_DOCUMENT_MAX_BYTES) {
+      setError("Il documento supera il limite di 4,5 MB."); setBusy(""); return;
     }
     try {
-      const title = String(form.get("title") || "").trim() || file.name.replace(/\.pdf$/i, "");
+      const title = String(form.get("title") || "").trim() || file.name.replace(/\.(pdf|docx?)$/i, "");
       const created = await responseJson<{ trip: { id: string } }>(await fetch("/api/admin/platform/trips", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -149,7 +159,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
       }));
       await uploadProgramme(created.trip.id, file);
       setShowNewTrip(false);
-      setNotice("Viaggio creato e PDF accodato per l’analisi.");
+      setNotice("Viaggio creato e documento accodato per l’analisi.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Creazione non riuscita");
     } finally {
@@ -159,12 +169,13 @@ export default function AgencyDashboard({ initialOverview }: Props) {
 
   async function uploadProgramme(templateId: string, file: File) {
     if (!agency) return;
-    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
-      setError("Seleziona un documento PDF.");
+    const documentType = travelDocumentType(file.name);
+    if (!documentType) {
+      setError("Seleziona un documento PDF, DOC o DOCX.");
       return;
     }
-    if (file.size > 30 * 1024 * 1024) {
-      setError("Il PDF supera il limite di 30 MB.");
+    if (file.size > TRAVEL_DOCUMENT_MAX_BYTES) {
+      setError("Il documento supera il limite di 4,5 MB.");
       return;
     }
 
@@ -181,7 +192,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
             agencyId: agency.id,
             templateId,
             originalName: file.name,
-            contentType: "application/pdf",
+            contentType: documentType.contentType,
             sizeBytes: file.size,
           }),
         }
@@ -195,7 +206,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
         throw new Error(
           uploaded.status === 403
             ? "R2 ha rifiutato il caricamento. Controlla CORS o riprova con un nuovo URL."
-            : "Caricamento del PDF su R2 non riuscito."
+            : "Caricamento del documento su R2 non riuscito."
         );
       }
       await responseJson(await fetch("/api/admin/platform/documents", {
@@ -209,7 +220,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
         }),
       }));
       await refresh();
-      setNotice("PDF caricato e importazione accodata.");
+      setNotice(`${documentType.extension.toUpperCase()} caricato e importazione accodata.`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Caricamento non riuscito");
     } finally {
@@ -228,7 +239,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
       ));
       await refresh();
       setNotice(result.import.days
-        ? `PDF elaborato: ${result.import.days} giornate pronte per la revisione.`
+        ? `Documento elaborato: ${result.import.days} giornate pronte per la revisione.`
         : "Nuovo tentativo accodato. Lo stato si aggiornerà automaticamente.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Elaborazione non riuscita");
@@ -339,9 +350,9 @@ export default function AgencyDashboard({ initialOverview }: Props) {
 
             {showNewTrip && (
               <form className="newTripForm" onSubmit={createTrip}>
-                <div className="formIntro"><b>Importa il preventivo accettato</b><span>Il PDF creerà testata, itinerario e anagrafiche condivise.</span></div>
-                <label>Nome pratica (facoltativo)<input name="title" placeholder="Se vuoto useremo il nome del PDF"/></label>
-                <label className="pdfField">Preventivo PDF *<input name="programme" type="file" accept="application/pdf,.pdf" required/></label>
+                <div className="formIntro"><b>Importa il preventivo accettato</b><span>Il documento creerà testata, itinerario e anagrafiche condivise.</span></div>
+                <label>Nome pratica (facoltativo)<input name="title" placeholder="Se vuoto useremo il nome del file"/></label>
+                <label className="pdfField">Preventivo PDF, DOC o DOCX *<input name="programme" type="file" accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" required/></label>
                 <div><button type="button" className="secondary" onClick={() => setShowNewTrip(false)}>Annulla</button><button disabled={busy === "new-trip"}>{busy === "new-trip" && <LoaderCircle className="spin"/>} Crea</button></div>
               </form>
             )}
@@ -381,7 +392,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                           <small>{latestImport.status === "extracting" && "Sto leggendo testo, date, tappe e alberghi."}</small>
                           <small>{latestImport.status === "generating" && "L’AI sta costruendo il programma da revisionare."}</small>
                           <small>{latestImport.status === "ready_for_review" && "Il programma estratto è pronto per il controllo."}</small>
-                          <small>{latestImport.status === "failed" && "Analisi non riuscita. Il PDF è salvo e puoi riprovare."}</small>
+                          <small>{latestImport.status === "failed" && "Analisi non riuscita. Il documento è salvo e puoi riprovare."}</small>
                           <small>{latestImport.status === "published" && "Programma revisionato e pubblicato."}</small>
                         </span>
                       </div>
@@ -408,8 +419,8 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                   {trip.departures[0] && <Link className="configureTravelers" href={`/agenzia/viaggi/${trip.departures[0].id}`}><UsersRound/> Configura famiglie e viaggiatori</Link>}
                   <label className={busy === `upload-${trip.id}` ? "uploadAction busy" : "uploadAction"}>
                     {busy === `upload-${trip.id}` ? <LoaderCircle className="spin"/> : <UploadCloud/>}
-                    <span><b>{busy === `upload-${trip.id}` ? "Caricamento…" : "Carica programma PDF"}</b><small>PDF privato, massimo 30 MB</small></span>
-                    <input type="file" accept="application/pdf,.pdf" disabled={Boolean(busy)} onChange={(event) => {
+                    <span><b>{busy === `upload-${trip.id}` ? "Caricamento…" : "Carica programma"}</b><small>PDF, DOC o DOCX privato, massimo 4,5 MB</small></span>
+                    <input type="file" accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" disabled={Boolean(busy)} onChange={(event) => {
                       const file = event.target.files?.[0];
                       event.target.value = "";
                       if (file) void uploadProgramme(trip.id, file);

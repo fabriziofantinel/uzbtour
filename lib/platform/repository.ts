@@ -334,7 +334,7 @@ export async function createTripTemplate(input: {
         id, agency_id, template_id, version_number, status, revision_note, created_by_user_id
       ) VALUES (
         ${versionId}, ${input.agencyId}, ${templateId}, 1, 'draft',
-        'Versione iniziale in attesa del programma PDF.', ${input.actorId}
+        'Versione iniziale in attesa del programma di viaggio.', ${input.actorId}
       )
       RETURNING id
     ), audit AS (

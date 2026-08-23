@@ -2,9 +2,9 @@ import { extractTravelProgrammeWithBedrock } from "./bedrock-travel-ai";
 import { extractTravelProgrammeWithGemini } from "./gemini-travel-ai";
 import { getPlatformProviderConfig } from "./provider-config";
 
-export async function extractTravelProgramme(pdf: Uint8Array, filename: string) {
+export async function extractTravelProgramme(documentBytes: Uint8Array, filename: string) {
   if (getPlatformProviderConfig().travelAi === "bedrock") {
-    return extractTravelProgrammeWithBedrock(pdf, filename);
+    return extractTravelProgrammeWithBedrock(documentBytes, filename);
   }
-  return extractTravelProgrammeWithGemini(pdf, filename);
+  return extractTravelProgrammeWithGemini(documentBytes, filename);
 }

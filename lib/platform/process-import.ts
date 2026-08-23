@@ -6,6 +6,12 @@ import {
   markImportGenerating,
 } from "./import-repository";
 import { getObjectStorage } from "./object-storage";
+import {
+  hasTravelDocumentSignature,
+  isMatchingTravelDocument,
+  TRAVEL_DOCUMENT_MAX_BYTES,
+  travelDocumentLabel,
+} from "./travel-document";
 
 export async function processTravelImport(
   importId: string,
@@ -16,14 +22,20 @@ export async function processTravelImport(
     const storage = getObjectStorage(source.provider === "r2" ? "r2" : "vercel-blob");
     if (storage.bucket !== source.bucket) throw new Error("Bucket del documento non valido");
     const object = await storage.get(source.object_key);
-    if (object.contentType !== "application/pdf" || source.content_type !== "application/pdf") {
-      throw new Error("Il documento non è un PDF");
+    if (
+      object.contentType !== source.content_type ||
+      !isMatchingTravelDocument(source.original_name, object.contentType)
+    ) {
+      throw new Error("Il formato del documento non è valido");
     }
-    if (object.sizeBytes > 30 * 1024 * 1024 || (source.size_bytes ?? 0) > 30 * 1024 * 1024) {
-      throw new Error("Il PDF supera il limite di 30 MB");
+    if (object.sizeBytes > TRAVEL_DOCUMENT_MAX_BYTES || (source.size_bytes ?? 0) > TRAVEL_DOCUMENT_MAX_BYTES) {
+      throw new Error(`Il documento ${travelDocumentLabel(source.original_name)} supera il limite di 4,5 MB`);
     }
 
     const bytes = object.bytes;
+    if (!hasTravelDocumentSignature(source.original_name, bytes)) {
+      throw new Error(`Il contenuto del file non corrisponde al formato ${travelDocumentLabel(source.original_name)}`);
+    }
     await markImportGenerating(importId);
     const extraction = await extractTravelProgramme(bytes, source.original_name);
     await completeImport({ importId, ...extraction });

@@ -7,6 +7,11 @@ import {
   assertTripBelongsToAgency,
   registerImportedDocument,
 } from "@/lib/platform/repository";
+import {
+  isMatchingTravelDocument,
+  TRAVEL_DOCUMENT_MAX_BYTES,
+  travelDocumentExtension,
+} from "@/lib/platform/travel-document";
 
 export const runtime = "nodejs";
 export const preferredRegion = "fra1";
@@ -15,7 +20,7 @@ function validDocumentPath(pathname: string, agencyId: string, templateId: strin
   const escapedAgencyId = agencyId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const escapedTemplateId = templateId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return new RegExp(
-    `^agencies/${escapedAgencyId}/trips/${escapedTemplateId}/documents/[0-9a-f-]{36}\\.pdf$`,
+    `^agencies/${escapedAgencyId}/trips/${escapedTemplateId}/documents/[0-9a-f-]{36}\\.(pdf|doc|docx)$`,
     "i"
   ).test(pathname);
 }
@@ -29,7 +34,7 @@ export async function POST(request: Request) {
     const originalName = cleanText(body?.originalName, 240);
     if (
       !agencyId || !templateId || !validDocumentPath(objectKey, agencyId, templateId) ||
-      !originalName.toLowerCase().endsWith(".pdf")
+      !travelDocumentExtension(originalName)
     ) {
       return NextResponse.json({ error: "Documento non valido" }, { status: 400 });
     }
@@ -38,12 +43,12 @@ export async function POST(request: Request) {
     await assertTripBelongsToAgency(agencyId, templateId);
     const storage = getObjectStorage();
     const object = await storage.head(objectKey);
-    if (object.contentType !== "application/pdf") {
-      return NextResponse.json({ error: "Il file caricato non è un PDF" }, { status: 400 });
+    if (!isMatchingTravelDocument(originalName, object.contentType)) {
+      return NextResponse.json({ error: "Il file caricato non è un PDF, DOC o DOCX valido" }, { status: 400 });
     }
-    if (object.sizeBytes <= 0 || object.sizeBytes > 30 * 1024 * 1024) {
+    if (object.sizeBytes <= 0 || object.sizeBytes > TRAVEL_DOCUMENT_MAX_BYTES) {
       await storage.delete(objectKey).catch(() => undefined);
-      return NextResponse.json({ error: "Il PDF è vuoto o supera il limite di 30 MB" }, { status: 400 });
+      return NextResponse.json({ error: "Il documento è vuoto o supera il limite di 4,5 MB" }, { status: 400 });
     }
 
     const imported = await registerImportedDocument({

@@ -17,7 +17,7 @@ sempre utilizzabile la demo pubblica.
 - `media_assets` e `travel_documents`: soli metadati; i file restano nello storage a
   oggetti.
 - `generated_content`: quiz, missioni, bingo, giochi e contest fotografici revisionabili.
-- `import_jobs` + `platform_jobs`: importazione PDF asincrona e rieseguibile.
+- `import_jobs` + `platform_jobs`: importazione PDF o Word asincrona e rieseguibile.
 - `audit_events`: traccia delle modifiche importanti con autore e tenant.
 
 Ogni tabella di dominio contiene `agency_id`; le relazioni composte impediscono di
@@ -42,17 +42,17 @@ evita una riscrittura quando l'agenzia passa al piano a pagamento.
 
 1. Creare il nuovo schema ed eseguire il seed Uzbekistan.
 2. Costruire il pannello agenzia su queste API.
-3. Implementare upload PDF, estrazione asincrona e revisione.
+3. Implementare upload PDF, DOC e DOCX, estrazione asincrona e revisione.
 4. Migrare foto, spese, giochi e risultati aggiungendo partenza e famiglia.
 5. Sostituire il login legacy, applicare RLS e migrare definitivamente la UI viaggio.
 
-## Importazione PDF asincrona
+## Importazione documenti asincrona
 
-Il pannello agenzia carica il PDF in R2 come oggetto privato e crea un job
+Il pannello agenzia carica il documento PDF, DOC o DOCX in R2 come oggetto privato e crea un job
 `travel-programme.import` su Neon, poi pubblica su SQS un messaggio contenente soltanto
 gli identificativi necessari. Non vengono inseriti documenti o credenziali nella coda.
 
-Il worker Lambda acquisisce il job in modo atomico, legge l'oggetto privato, invia il PDF a
+Il worker Lambda acquisisce il job in modo atomico, legge l'oggetto privato, invia il file a
 Amazon Bedrock come documento nativo e valida la risposta con uno schema Zod. La bozza rimane
 in `import_jobs.result` finché un amministratore non la corregge e pubblica. Solo la
 pubblicazione trasferisce giorni, attività, alberghi e informazioni utili nelle tabelle

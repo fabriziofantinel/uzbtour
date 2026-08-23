@@ -4,7 +4,7 @@ Questa configurazione crea l'elaborazione asincrona di produzione di SMF Travel:
 
 1. Vercel registra il job su Neon e invia a SQS solo `jobId`, `agencyId` e `importId`.
 2. SQS attiva una Lambda ARM64 con concorrenza massima pari a 2.
-3. Lambda legge il PDF dal bucket R2 privato.
+3. Lambda legge il documento PDF, DOC o DOCX dal bucket R2 privato.
 4. Amazon Bedrock genera una bozza strutturata con Amazon Nova 2 Lite.
 5. Lambda valida la risposta e salva risultato, consumi e stato su Neon.
 6. Dopo quattro errori SQS sposta il messaggio nella dead-letter queue.
@@ -99,7 +99,7 @@ per l'applicazione web.
 - concorrenza massima del consumer SQS: 2;
 - batch SQS: 1;
 - retry SQS: 4;
-- PDF inviabile direttamente a Bedrock: 4,5 MB, modificabile con
+- documento PDF, DOC o DOCX inviabile direttamente a Bedrock: 4,5 MB, modificabile con
   `AWS_BEDROCK_MAX_DOCUMENT_BYTES` dopo aver verificato i limiti del modello;
 - risposta Bedrock limitata a 12.000 token, sotto il limite di Nova 2 Lite;
 - nessuna risorsa con tariffazione oraria fissa.
@@ -145,7 +145,7 @@ L'architettura è dichiarabile definitiva soltanto quando risultano verificati:
 1. deploy CloudFormation completo e senza drift;
 2. identità di deploy dedicata con credenziali temporanee e MFA;
 3. parametri SecureString letti da Parameter Store e assenti dalla configurazione Lambda;
-4. import PDF end-to-end fino a revisione e pubblicazione;
+4. import PDF, DOC e DOCX end-to-end fino a revisione e pubblicazione;
 5. retry idempotente e passaggio controllato in DLQ;
 6. ricezione della notifica di allarme;
 7. isolamento tra due agenzie e tra due famiglie provato con test negativi;

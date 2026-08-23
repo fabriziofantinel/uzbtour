@@ -34,6 +34,6 @@ export async function POST(
     const result = await processTravelImport(id);
     return NextResponse.json({ import: result });
   } catch (error) {
-    return platformApiError(error, "Elaborazione del PDF non riuscita");
+    return platformApiError(error, "Elaborazione del documento non riuscita");
   }
 }
