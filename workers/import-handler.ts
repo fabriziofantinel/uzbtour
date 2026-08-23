@@ -59,8 +59,8 @@ export async function handler(event: SqsEvent): Promise<SqsBatchResponse> {
         });
       } catch (error) {
         const status = await getPlatformJobStatus(message.jobId, message.agencyId).catch(() => null);
-        if (status !== "completed") throw error;
-        console.info("Duplicate import job acknowledged", {
+        if (status !== "completed" && status !== null) throw error;
+        console.info(status === null ? "Obsolete import job acknowledged" : "Duplicate import job acknowledged", {
           messageId: record.messageId,
           jobId: message.jobId,
           agencyId: message.agencyId,

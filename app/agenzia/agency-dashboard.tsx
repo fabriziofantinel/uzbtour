@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
   ArrowLeft, Building2, CalendarDays, CheckCircle2, ChevronDown, CircleAlert,
   Clock3, Eye, FileText, LoaderCircle, LogOut, MapPinned, Play, Plus, Sparkles, UploadCloud,
-  Search, SlidersHorizontal, UsersRound,
+  Search, SlidersHorizontal, Trash2, UsersRound, X,
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { PlatformOverview } from "@/lib/platform/types";
@@ -62,6 +62,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [tripToDelete, setTripToDelete] = useState<{ id: string; title: string } | null>(null);
   const agency = overview.agencies.find((candidate) => candidate.id === selectedAgencyId)
     ?? overview.agencies[0];
 
@@ -230,6 +231,27 @@ export default function AgencyDashboard({ initialOverview }: Props) {
     }
   }
 
+  async function deleteTrip() {
+    if (!tripToDelete) return;
+    setBusy(`delete-${tripToDelete.id}`);
+    setError("");
+    setNotice("");
+    try {
+      await responseJson<{ ok: true; deletedFiles: number }>(await fetch(
+        `/api/admin/platform/trips/${tripToDelete.id}`,
+        { method: "DELETE" }
+      ));
+      const deletedTitle = tripToDelete.title;
+      setTripToDelete(null);
+      await refresh();
+      setNotice(`Il viaggio “${deletedTitle}” è stato eliminato.`);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Eliminazione non riuscita");
+    } finally {
+      setBusy("");
+    }
+  }
+
   return (
     <main className="agencyPage">
       <header className="agencyTopbar">
@@ -348,6 +370,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                       if (file) void uploadProgramme(trip.id, file);
                     }}/>
                   </label>
+                  <button className="deleteTripButton" disabled={Boolean(busy)} onClick={() => setTripToDelete({ id: trip.id, title: trip.title })}><Trash2/> Elimina viaggio</button>
                 </article>
               )})}
               {filteredTrips.length === 0 && <div className="agencyEmpty"><MapPinned/><h3>Nessun viaggio</h3><p>Nessun risultato per i filtri selezionati.</p></div>}
@@ -373,6 +396,23 @@ export default function AgencyDashboard({ initialOverview }: Props) {
           </section>
         </section>
       </div>
+      {tripToDelete && (
+        <div className="deleteTripBackdrop" role="presentation" onMouseDown={(event) => {
+          if (event.target === event.currentTarget && !busy) setTripToDelete(null);
+        }}>
+          <section className="deleteTripDialog" role="dialog" aria-modal="true" aria-labelledby="delete-trip-title">
+            <button className="deleteTripClose" aria-label="Chiudi" disabled={Boolean(busy)} onClick={() => setTripToDelete(null)}><X/></button>
+            <i><Trash2/></i>
+            <small>OPERAZIONE DEFINITIVA</small>
+            <h2 id="delete-trip-title">Eliminare “{tripToDelete.title}”?</h2>
+            <p>Verranno eliminati programma, importazioni, partenze, famiglie e file collegati. Le anagrafiche condivise e gli utenti resteranno disponibili.</p>
+            <div>
+              <button className="secondary" disabled={Boolean(busy)} onClick={() => setTripToDelete(null)}>Annulla</button>
+              <button className="danger" disabled={Boolean(busy)} onClick={() => void deleteTrip()}>{busy === `delete-${tripToDelete.id}` ? <LoaderCircle className="spin"/> : <Trash2/>} Elimina definitivamente</button>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }

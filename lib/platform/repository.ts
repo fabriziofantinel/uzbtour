@@ -227,6 +227,92 @@ export async function assertTripBelongsToAgency(agencyId: string, templateId: st
   return rows[0] as { id: string; title: string };
 }
 
+export async function getTripDeletionTarget(templateId: string) {
+  const sql = getSql();
+  const trips = await sql`
+    SELECT id::text, agency_id::text, title
+    FROM trip_templates
+    WHERE id = ${templateId}
+    LIMIT 1
+  `;
+  if (!trips[0]) throw new PlatformRequestError("Viaggio non trovato");
+  const agencyId = String(trips[0].agency_id);
+  const assets = await sql`
+    SELECT DISTINCT ma.id::text, ma.provider, ma.bucket, ma.object_key
+    FROM media_assets ma
+    WHERE ma.agency_id = ${agencyId}
+      AND (
+        ma.departure_id IN (
+          SELECT id FROM departures WHERE agency_id = ${agencyId} AND template_id = ${templateId}
+        )
+        OR ma.party_id IN (
+          SELECT tp.id
+          FROM travel_parties tp
+          JOIN departures d ON d.id = tp.departure_id AND d.agency_id = tp.agency_id
+          WHERE tp.agency_id = ${agencyId} AND d.template_id = ${templateId}
+        )
+        OR ma.id IN (
+          SELECT media_asset_id FROM travel_documents
+          WHERE agency_id = ${agencyId} AND template_id = ${templateId}
+        )
+      )
+  `;
+  return {
+    id: String(trips[0].id),
+    agencyId,
+    title: String(trips[0].title),
+    assets: assets.map((row) => ({
+      id: String(row.id),
+      provider: String(row.provider),
+      bucket: String(row.bucket),
+      objectKey: String(row.object_key),
+    })),
+  };
+}
+
+export async function deleteTripRecords(input: {
+  templateId: string;
+  agencyId: string;
+  actorId: string;
+  title: string;
+  mediaAssetIds: string[];
+}) {
+  const sql = getSql();
+  const assetIds = input.mediaAssetIds.length > 0 ? input.mediaAssetIds : [crypto.randomUUID()];
+  const results = await sql.transaction((txn) => [
+    txn`
+      DELETE FROM platform_jobs
+      WHERE agency_id = ${input.agencyId}
+        AND payload->>'importId' IN (
+          SELECT id::text FROM import_jobs
+          WHERE agency_id = ${input.agencyId} AND template_id = ${input.templateId}
+        )
+    `,
+    txn`
+      DELETE FROM departures
+      WHERE agency_id = ${input.agencyId} AND template_id = ${input.templateId}
+    `,
+    txn`
+      DELETE FROM trip_templates
+      WHERE id = ${input.templateId} AND agency_id = ${input.agencyId}
+      RETURNING id
+    `,
+    txn`
+      DELETE FROM media_assets
+      WHERE agency_id = ${input.agencyId} AND id = ANY(${assetIds}::uuid[])
+    `,
+    txn`
+      INSERT INTO audit_events (
+        agency_id, actor_user_id, entity_type, entity_id, action, changes
+      ) VALUES (
+        ${input.agencyId}, ${input.actorId}, 'trip_template', ${input.templateId}, 'deleted',
+        ${JSON.stringify({ title: input.title, deletedAssets: input.mediaAssetIds.length })}::jsonb
+      )
+    `,
+  ]);
+  if (results[2].length !== 1) throw new PlatformRequestError("Eliminazione del viaggio non riuscita");
+}
+
 export async function registerImportedDocument(input: {
   agencyId: string;
   templateId: string;
