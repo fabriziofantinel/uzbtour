@@ -711,3 +711,76 @@ await sql`
   ON CONFLICT (version) DO NOTHING
 `;
 console.log(`${travelerExperienceMigration}: verificata`);
+
+const familyActivityIsolationMigration = "008_family_activity_isolation";
+await sql`
+  CREATE TABLE IF NOT EXISTS party_activity_results (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agency_id UUID NOT NULL,
+    party_id UUID NOT NULL,
+    traveler_id UUID NOT NULL,
+    trip_day_id UUID,
+    generated_content_id UUID NOT NULL,
+    activity_type TEXT NOT NULL CHECK (activity_type IN ('quiz', 'mission', 'bingo', 'word_game', 'order_game', 'puzzle')),
+    score NUMERIC(12,2) NOT NULL DEFAULT 0,
+    max_score NUMERIC(12,2),
+    status TEXT NOT NULL DEFAULT 'submitted' CHECK (status IN ('draft', 'submitted', 'approved', 'rejected')),
+    result JSONB NOT NULL DEFAULT '{}'::jsonb,
+    validated_by_user_id TEXT REFERENCES platform_users(id) ON DELETE SET NULL,
+    submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (agency_id, party_id) REFERENCES travel_parties(agency_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (agency_id, traveler_id) REFERENCES traveler_profiles(agency_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (agency_id, trip_day_id) REFERENCES trip_days(agency_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (generated_content_id) REFERENCES generated_content(id) ON DELETE CASCADE,
+    UNIQUE (party_id, traveler_id, generated_content_id)
+  )
+`;
+await sql`CREATE INDEX IF NOT EXISTS party_activity_ranking_idx ON party_activity_results (party_id, activity_type, score DESC, submitted_at)`;
+await sql`
+  CREATE TABLE IF NOT EXISTS party_memories (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agency_id UUID NOT NULL,
+    party_id UUID NOT NULL,
+    trip_day_id UUID,
+    media_asset_id UUID NOT NULL,
+    created_by_user_id TEXT REFERENCES platform_users(id) ON DELETE SET NULL,
+    caption TEXT NOT NULL DEFAULT '',
+    comment TEXT NOT NULL DEFAULT '',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (agency_id, party_id) REFERENCES travel_parties(agency_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (agency_id, trip_day_id) REFERENCES trip_days(agency_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (agency_id, media_asset_id) REFERENCES media_assets(agency_id, id) ON DELETE CASCADE
+  )
+`;
+await sql`CREATE INDEX IF NOT EXISTS party_memories_scope_idx ON party_memories (party_id, trip_day_id, created_at DESC)`;
+await sql`
+  CREATE TABLE IF NOT EXISTS party_photo_contest_entries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agency_id UUID NOT NULL,
+    party_id UUID NOT NULL,
+    traveler_id UUID NOT NULL,
+    generated_content_id UUID NOT NULL,
+    media_asset_id UUID NOT NULL,
+    participant_slot SMALLINT NOT NULL CHECK (participant_slot BETWEEN 1 AND 3),
+    status TEXT NOT NULL DEFAULT 'submitted' CHECK (status IN ('submitted', 'evaluating', 'ranked', 'rejected')),
+    score NUMERIC(8,3),
+    reason TEXT NOT NULL DEFAULT '',
+    is_winner BOOLEAN NOT NULL DEFAULT FALSE,
+    judged_by_user_id TEXT REFERENCES platform_users(id) ON DELETE SET NULL,
+    submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    judged_at TIMESTAMPTZ,
+    FOREIGN KEY (agency_id, party_id) REFERENCES travel_parties(agency_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (agency_id, traveler_id) REFERENCES traveler_profiles(agency_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (generated_content_id) REFERENCES generated_content(id) ON DELETE CASCADE,
+    FOREIGN KEY (agency_id, media_asset_id) REFERENCES media_assets(agency_id, id) ON DELETE CASCADE,
+    UNIQUE (party_id, traveler_id, generated_content_id, participant_slot)
+  )
+`;
+await sql`CREATE INDEX IF NOT EXISTS party_photo_contest_ranking_idx ON party_photo_contest_entries (party_id, generated_content_id, score DESC, submitted_at)`;
+await sql`
+  INSERT INTO platform_schema_migrations (version) VALUES (${familyActivityIsolationMigration})
+  ON CONFLICT (version) DO NOTHING
+`;
+console.log(`${familyActivityIsolationMigration}: verificata`);

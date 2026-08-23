@@ -3,7 +3,7 @@
 import Link from "next/link";
 import {
   Building2, CalendarDays, CheckCircle2, ChevronDown, CircleAlert,
-  Eye, LayoutGrid, List, LoaderCircle, LogOut, MapPinned, Play, Plus, Sparkles,
+  BookOpen, Eye, LoaderCircle, LogOut, MapPinned, Play, Plus, Sparkles,
   Search, SlidersHorizontal, Trash2, UsersRound, X,
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -14,6 +14,8 @@ import {
 } from "@/lib/platform/travel-document";
 
 type Props = { initialOverview: PlatformOverview };
+type AgencyTrip = PlatformOverview["agencies"][number]["trips"][number];
+type AgencyDeparture = AgencyTrip["departures"][number];
 
 type UploadAuthorization = {
   key: string;
@@ -34,6 +36,11 @@ const statusLabels: Record<string, string> = {
   ready_for_review: "Da revisionare",
   published: "Pubblicato",
   failed: "Errore",
+  open: "Aperto",
+  confirmed: "Confermato",
+  in_progress: "In corso",
+  completed: "Concluso",
+  cancelled: "Annullato",
 };
 
 const activeImportStatuses = new Set(["queued", "extracting", "generating"]);
@@ -69,12 +76,12 @@ export default function AgencyDashboard({ initialOverview }: Props) {
   const [selectedAgencyId, setSelectedAgencyId] = useState(initialOverview.agencies[0]?.id ?? "");
   const [showNewTrip, setShowNewTrip] = useState(false);
   const [tripPeriod, setTripPeriod] = useState<"all" | "upcoming" | "ongoing" | "past">("all");
-  const [tripView, setTripView] = useState<"cards" | "list">("cards");
   const [travelerFilter, setTravelerFilter] = useState("");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [tripToDelete, setTripToDelete] = useState<{ id: string; title: string } | null>(null);
+  const [departureForTrip, setDepartureForTrip] = useState<{ id: string; title: string } | null>(null);
   const agency = overview.agencies.find((candidate) => candidate.id === selectedAgencyId)
     ?? overview.agencies[0];
 
@@ -93,20 +100,25 @@ export default function AgencyDashboard({ initialOverview }: Props) {
     }
     return imports;
   }, [agency?.id, overview.recentImports]);
-  const filteredTrips = useMemo(() => {
+  const filteredDepartures = useMemo(() => {
     const today = todayInRome();
     const traveler = travelerFilter.trim().toLocaleLowerCase("it");
-    return (agency?.trips ?? []).filter((trip) => {
-      const startDate = trip.startsOn ?? trip.departures[0]?.startsOn ?? null;
-      const endDate = trip.endsOn ?? trip.departures[0]?.endsOn ?? null;
+    const rows: Array<{ trip: AgencyTrip; departure: AgencyDeparture | null }> = [];
+    for (const trip of agency?.trips ?? []) {
+      if (trip.departures.length === 0) rows.push({ trip, departure: null });
+      else for (const departure of trip.departures) rows.push({ trip, departure });
+    }
+    return rows.filter(({ trip, departure }) => {
+      const startDate = departure?.startsOn ?? trip.startsOn;
+      const endDate = departure?.endsOn ?? trip.endsOn;
       const periodMatches = tripPeriod === "all" || (
         tripPeriod === "past" ? Boolean(endDate && endDate < today) :
         tripPeriod === "ongoing" ? Boolean(startDate && endDate && startDate <= today && endDate >= today) :
         !startDate || startDate > today
       );
-      const peopleMatches = !traveler || trip.departures.some((departure) =>
-        departure.travelerNames.some((name) => name.toLocaleLowerCase("it").includes(traveler))
-      );
+      const peopleMatches = !traveler || Boolean(departure?.travelerNames.some(
+        (name) => name.toLocaleLowerCase("it").includes(traveler)
+      ));
       return periodMatches && peopleMatches;
     });
   }, [agency, travelerFilter, tripPeriod]);
@@ -305,6 +317,26 @@ export default function AgencyDashboard({ initialOverview }: Props) {
     }
   }
 
+  async function createDeparture(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!departureForTrip) return;
+    const form = new FormData(event.currentTarget);
+    setBusy(`departure-${departureForTrip.id}`); setError(""); setNotice("");
+    try {
+      await responseJson(await fetch(`/api/admin/platform/trips/${departureForTrip.id}/departures`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: String(form.get("title") || ""), startsOn: String(form.get("startsOn") || ""),
+          endsOn: String(form.get("endsOn") || ""),
+        }),
+      }));
+      setDepartureForTrip(null); await refresh();
+      setNotice("Nuova partenza creata sullo stesso programma e sugli stessi contenuti.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Creazione della partenza non riuscita");
+    } finally { setBusy(""); }
+  }
+
   return (
     <main className="agencyPage">
       <header className="agencyTopbar">
@@ -373,14 +405,13 @@ export default function AgencyDashboard({ initialOverview }: Props) {
               <button aria-pressed={tripPeriod === "past"} className={tripPeriod === "past" ? "active" : ""} onClick={() => setTripPeriod("past")}>Fatti</button>
               <button aria-pressed={tripPeriod === "all"} className={tripPeriod === "all" ? "active" : ""} onClick={() => setTripPeriod("all")}>Tutti</button>
               <label><Search/><input value={travelerFilter} onChange={(event) => setTravelerFilter(event.target.value)} placeholder="Cerca viaggiatore…"/></label>
-              <div className="tripViewToggle" aria-label="Visualizzazione viaggi">
-                <button aria-pressed={tripView === "cards"} className={tripView === "cards" ? "active" : ""} onClick={() => setTripView("cards")} aria-label="Visualizzazione a schede" title="Schede"><LayoutGrid/></button>
-                <button aria-pressed={tripView === "list"} className={tripView === "list" ? "active" : ""} onClick={() => setTripView("list")} aria-label="Visualizzazione a lista" title="Lista"><List/></button>
-              </div>
             </div>
 
-            <div className={`tripAdminGrid ${tripView}`}>
-              {filteredTrips.map((trip) => {
+            <div className="tripTableWrap">
+              <table className="tripTable">
+                <thead><tr><th>Stato</th><th>Viaggio / preventivo</th><th>Partenza</th><th>Rientro</th><th>Famiglie</th><th>Viaggiatori</th><th>Contenuti</th><th>Azioni</th></tr></thead>
+                <tbody>
+              {filteredDepartures.map(({ trip, departure }) => {
                 const latestImport = latestImportByTrip.get(trip.id);
                 const importIsActive = latestImport ? activeImportStatuses.has(latestImport.status) : false;
                 const content = trip.contentGeneration;
@@ -389,21 +420,20 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                   content && content.status !== "failed" && content.expectedSections > 0 &&
                   content.readySections === content.expectedSections
                 );
-                const startsOn = trip.startsOn ?? trip.departures[0]?.startsOn ?? null;
-                const endsOn = trip.endsOn ?? trip.departures[0]?.endsOn ?? null;
+                const startsOn = departure?.startsOn ?? trip.startsOn;
+                const endsOn = departure?.endsOn ?? trip.endsOn;
                 const validationStatus = trip.status === "active" ? "validated" : "draft";
                 return (
-                <article className={importIsActive || contentIsActive ? "tripAdminCard generating" : "tripAdminCard"} key={trip.id}>
-                  <div className="tripCardTop"><span className={`status ${validationStatus}`}>{validationStatus === "validated" ? "Validato" : "Bozza"}</span><MapPinned size={22}/></div>
-                  <h3>{trip.title}</h3>
-                  <p>{trip.destinationCountry || "Destinazione da revisionare"}</p>
-                  <div className="tripDates">
-                    <span><small>INIZIO</small><b>{formatTravelDate(startsOn)}</b></span>
-                    <span><small>FINE</small><b>{formatTravelDate(endsOn)}</b></span>
-                  </div>
-                  <p>{trip.departures.flatMap((item) => item.travelerNames).join(", ") || "Nessun viaggiatore configurato"}</p>
+                <tr className={importIsActive || contentIsActive ? "generating" : ""} key={`${trip.id}-${departure?.id ?? "draft"}`}>
+                  <td><span className={`status ${validationStatus}`}>{validationStatus === "validated" ? "Validato" : "Bozza"}</span><small className="departureStatus">{departure ? (statusLabels[departure.status] ?? departure.status) : "Senza partenza"}</small></td>
+                  <td className="tripNameCell"><b>{departure?.title || trip.title}</b><span>{trip.destinationCountry || "Destinazione da revisionare"}</span><small>Programma: {trip.title}</small></td>
+                  <td className="dateCell">{formatTravelDate(startsOn)}</td>
+                  <td className="dateCell">{formatTravelDate(endsOn)}</td>
+                  <td className="numberCell">{departure?.partyCount ?? 0}</td>
+                  <td className="travelerCell">{departure?.travelerNames.join(", ") || "—"}</td>
+                  <td className="contentCell">
                   {latestImport && (
-                    <div className={`tripGeneration ${latestImport.status}`}>
+                    <div className={`tripGeneration compact ${latestImport.status}`}>
                       <div>
                         {importIsActive ? <LoaderCircle className="spin"/> : latestImport.status === "failed" ? <CircleAlert/> : <CheckCircle2/>}
                         <span>
@@ -418,11 +448,11 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                       </div>
                       {importIsActive && <i><span style={{ width: `${importProgress(latestImport.status)}%` }}/></i>}
                       {latestImport.status === "failed" && <button disabled={Boolean(busy)} onClick={() => void processImport(latestImport.id)}>{busy === `process-${latestImport.id}` ? <LoaderCircle className="spin"/> : <Play/>} Riprova</button>}
-                      {latestImport.status === "ready_for_review" && <a href={`/agenzia/importazioni/${latestImport.id}`}><Eye/> Revisiona programma</a>}
+                      {latestImport.status === "ready_for_review" && <a href={`/agenzia/importazioni/${latestImport.id}`}><Eye/> Revisiona</a>}
                     </div>
                   )}
                   {content && (
-                    <div className={`tripGeneration ${contentIsComplete ? "published" : content.status}`}>
+                    <div className={`tripGeneration compact ${contentIsComplete ? "published" : content.status}`}>
                       <div>
                         {contentIsActive ? <LoaderCircle className="spin"/> : contentIsComplete ? <CheckCircle2/> : <CircleAlert/>}
                         <span>
@@ -436,11 +466,19 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                       {content.status === "failed" && <button disabled={Boolean(busy)} onClick={() => void retryEnrichment(trip.id)}>{busy === `enrichment-${trip.id}` ? <LoaderCircle className="spin"/> : <Play/>} Riprova contenuti</button>}
                     </div>
                   )}
-                  {trip.departures[0] && <Link className="configureTravelers" href={`/agenzia/viaggi/${trip.departures[0].id}`}><UsersRound/> Configura famiglie e viaggiatori</Link>}
-                  <button className="deleteTripButton" disabled={Boolean(busy)} onClick={() => setTripToDelete({ id: trip.id, title: trip.title })}><Trash2/> Elimina viaggio</button>
-                </article>
+                  {!latestImport && !content && <span>—</span>}
+                  </td>
+                  <td><div className="tableActions">
+                    {departure && <Link className="primary" href={`/agenzia/viaggi/${departure.id}/programma`}><BookOpen/> Apri programma</Link>}
+                    {departure && <Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Famiglie</Link>}
+                    {trip.status === "active" && <button onClick={() => setDepartureForTrip({ id: trip.id, title: trip.title })}><Plus/> Nuova partenza</button>}
+                    <button className="danger" disabled={Boolean(busy)} onClick={() => setTripToDelete({ id: trip.id, title: trip.title })}><Trash2/> Elimina</button>
+                  </div></td>
+                </tr>
               )})}
-              {filteredTrips.length === 0 && <div className="agencyEmpty"><MapPinned/><h3>Nessun viaggio</h3><p>Nessun risultato per i filtri selezionati.</p></div>}
+                </tbody>
+              </table>
+              {filteredDepartures.length === 0 && <div className="agencyEmpty"><MapPinned/><h3>Nessun viaggio</h3><p>Nessun risultato per i filtri selezionati.</p></div>}
             </div>
           </section>
 
@@ -461,6 +499,18 @@ export default function AgencyDashboard({ initialOverview }: Props) {
               <button className="danger" disabled={Boolean(busy)} onClick={() => void deleteTrip()}>{busy === `delete-${tripToDelete.id}` ? <LoaderCircle className="spin"/> : <Trash2/>} Elimina definitivamente</button>
             </div>
           </section>
+        </div>
+      )}
+      {departureForTrip && (
+        <div className="deleteTripBackdrop" role="presentation">
+          <form className="newDepartureDialog" onSubmit={createDeparture}>
+            <button type="button" className="deleteTripClose" aria-label="Chiudi" onClick={() => setDepartureForTrip(null)}><X/></button>
+            <small>STESSO PROGRAMMA, NUOVE DATE</small><h2>Nuova partenza</h2>
+            <p>Itinerario, quiz, missioni, giochi e contest saranno gli stessi di “{departureForTrip.title}”. Famiglie e dati dei viaggiatori partiranno vuoti.</p>
+            <label>Nome partenza<input name="title" placeholder={departureForTrip.title}/></label>
+            <div><label>Data inizio<input name="startsOn" type="date" required/></label><label>Data fine<input name="endsOn" type="date" required/></label></div>
+            <footer><button type="button" className="secondary" onClick={() => setDepartureForTrip(null)}>Annulla</button><button disabled={Boolean(busy)}>{busy === `departure-${departureForTrip.id}` ? <LoaderCircle className="spin"/> : <Plus/>} Crea partenza</button></footer>
+          </form>
         </div>
       )}
     </main>

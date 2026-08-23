@@ -161,7 +161,11 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
         id,
         number: Number(row.day_number),
         offset: Number(row.day_offset),
-        date: stringValue(row.source_date),
+        date: (() => {
+          const date = new Date(`${String(selected.starts_on)}T12:00:00Z`);
+          date.setUTCDate(date.getUTCDate() + Number(row.day_offset));
+          return date.toISOString().slice(0, 10);
+        })(),
         label: stringValue(row.label),
         title: stringValue(row.title),
         city: stringValue(row.city),
