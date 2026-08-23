@@ -6,6 +6,7 @@ export type CurrentUser = {
   name: string;
   initials: string;
   email: string;
+  isSuperAdmin: boolean;
   isAgencyAdmin: boolean;
 };
 
@@ -29,7 +30,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   const displayName = String(session.user.name || email.split("@")[0] || "Viaggiatore").trim();
   const sql = getSql();
   const existing = await sql`
-    SELECT id, display_name, initials, status
+    SELECT id, display_name, initials, status, platform_role
     FROM platform_users
     WHERE (auth_provider = 'neon' AND auth_subject = ${authSubject})
        OR LOWER(email) = ${email}
@@ -50,7 +51,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
           status = 'active',
           updated_at = NOW()
       WHERE id = ${String(platformUser.id)}
-      RETURNING id, display_name, initials
+      RETURNING id, display_name, initials, platform_role
     `;
     platformUser = updated[0];
   } else return null;
@@ -69,6 +70,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     name: String(platformUser.display_name),
     initials: String(platformUser.initials),
     email,
+    isSuperAdmin: String(platformUser.platform_role) === "superadmin",
     isAgencyAdmin: Boolean(permissions[0]?.is_agency_admin)
   };
 }

@@ -12,6 +12,7 @@
     "db:migrate": "node --env-file=.env.local scripts/migrate.mjs",
     "db:migrate:platform": "node --env-file=.env.local scripts/migrate-platform.mjs",
     "db:link-neon-user": "node --env-file=.env.local scripts/link-neon-auth-user.mjs",
+    "db:set-platform-role": "node --env-file=.env.local scripts/set-platform-role.mjs",
     "db:seed:demo": "node --env-file=.env.local scripts/seed-platform-demo.mjs",
     "aws:validate": "sam validate --template-file infra/aws/template.yaml --lint",
     "aws:build": "sam build --template-file infra/aws/template.yaml",

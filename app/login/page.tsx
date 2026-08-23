@@ -30,14 +30,16 @@ function LoginContent() {
       const requestedDestination = searchParams.get("next");
       const meResponse = await fetch("/api/auth/me", { cache: "no-store" });
       const me = await meResponse.json().catch(() => null) as {
-        user?: { isAgencyAdmin?: boolean };
+        user?: { isSuperAdmin?: boolean; isAgencyAdmin?: boolean };
       } | null;
       if (!meResponse.ok || !me?.user) {
         await authClient.signOut();
         setError("Account non abilitato a questa applicazione.");
         return;
       }
-      const destination = requestedDestination ?? (me?.user?.isAgencyAdmin ? "/agenzia" : "/");
+      const destination = requestedDestination ?? (
+        me.user.isSuperAdmin ? "/admin" : me.user.isAgencyAdmin ? "/agenzia" : "/"
+      );
       const safeDestination = destination.startsWith("/") && !destination.startsWith("//")
         ? destination : "/";
       window.location.href = safeDestination;

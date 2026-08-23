@@ -48,17 +48,27 @@ for (const user of users) {
   `;
 }
 
+const fabrizio = users.find((user) => user?.id === "FF") ?? users[0];
+
 await sql`
-  INSERT INTO agencies (id, slug, name, status, default_locale, default_timezone, branding, settings)
+  INSERT INTO agencies (
+    id, slug, name, status, default_locale, default_timezone, branding, settings,
+    reference_name, reference_email, reference_phone
+  )
   VALUES (
     ${ids.agency}, 'uzb-tour-demo', 'UZB Tour Demo', 'trial', 'it-IT', 'Europe/Rome',
     ${JSON.stringify({ primaryColor: "#0f766e" })}::jsonb,
-    ${JSON.stringify({ demo: true })}::jsonb
+    ${JSON.stringify({ demo: true })}::jsonb,
+    ${fabrizio.name}, ${String(fabrizio.email ?? "demo@smf-travel.local")},
+    ${String(fabrizio.phone ?? "Non disponibile")}
   )
   ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, updated_at = NOW()
 `;
 
-const fabrizio = users.find((user) => user?.id === "FF") ?? users[0];
+await sql`
+  UPDATE platform_users SET platform_role = 'superadmin', updated_at = NOW()
+  WHERE id = ${fabrizio.id}
+`;
 await sql`
   INSERT INTO agency_memberships (agency_id, user_id, role)
   VALUES (${ids.agency}, ${fabrizio.id}, 'owner')

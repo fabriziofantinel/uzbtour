@@ -27,8 +27,10 @@ await sql`
     display_name TEXT NOT NULL CHECK (char_length(display_name) BETWEEN 1 AND 160),
     initials TEXT NOT NULL DEFAULT '',
     email TEXT,
+    phone TEXT,
     auth_provider TEXT NOT NULL DEFAULT 'legacy',
     auth_subject TEXT,
+    platform_role TEXT NOT NULL DEFAULT 'user' CHECK (platform_role IN ('superadmin', 'user')),
     status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('invited', 'active', 'disabled')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -46,6 +48,22 @@ await sql`
     default_timezone TEXT NOT NULL DEFAULT 'Europe/Rome',
     branding JSONB NOT NULL DEFAULT '{}'::jsonb,
     settings JSONB NOT NULL DEFAULT '{}'::jsonb,
+    legal_name TEXT,
+    vat_number TEXT,
+    tax_code TEXT,
+    registered_address TEXT,
+    registered_city TEXT,
+    registered_postal_code TEXT,
+    registered_province TEXT,
+    registered_country TEXT,
+    pec TEXT,
+    sdi_code TEXT,
+    phone TEXT,
+    email TEXT,
+    website TEXT,
+    reference_name TEXT NOT NULL DEFAULT '',
+    reference_email TEXT NOT NULL DEFAULT '',
+    reference_phone TEXT NOT NULL DEFAULT '',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )
@@ -482,3 +500,32 @@ await sql`
   ON CONFLICT (version) DO NOTHING
 `;
 console.log(`${neonAuthMigration}: verificata`);
+
+const superadminMigration = "004_superadmin_agency_registry";
+await sql`ALTER TABLE platform_users ADD COLUMN IF NOT EXISTS phone TEXT`;
+await sql`
+  ALTER TABLE platform_users
+  ADD COLUMN IF NOT EXISTS platform_role TEXT NOT NULL DEFAULT 'user'
+  CHECK (platform_role IN ('superadmin', 'user'))
+`;
+await sql`ALTER TABLE agencies ADD COLUMN IF NOT EXISTS legal_name TEXT`;
+await sql`ALTER TABLE agencies ADD COLUMN IF NOT EXISTS vat_number TEXT`;
+await sql`ALTER TABLE agencies ADD COLUMN IF NOT EXISTS tax_code TEXT`;
+await sql`ALTER TABLE agencies ADD COLUMN IF NOT EXISTS registered_address TEXT`;
+await sql`ALTER TABLE agencies ADD COLUMN IF NOT EXISTS registered_city TEXT`;
+await sql`ALTER TABLE agencies ADD COLUMN IF NOT EXISTS registered_postal_code TEXT`;
+await sql`ALTER TABLE agencies ADD COLUMN IF NOT EXISTS registered_province TEXT`;
+await sql`ALTER TABLE agencies ADD COLUMN IF NOT EXISTS registered_country TEXT`;
+await sql`ALTER TABLE agencies ADD COLUMN IF NOT EXISTS pec TEXT`;
+await sql`ALTER TABLE agencies ADD COLUMN IF NOT EXISTS sdi_code TEXT`;
+await sql`ALTER TABLE agencies ADD COLUMN IF NOT EXISTS phone TEXT`;
+await sql`ALTER TABLE agencies ADD COLUMN IF NOT EXISTS email TEXT`;
+await sql`ALTER TABLE agencies ADD COLUMN IF NOT EXISTS website TEXT`;
+await sql`ALTER TABLE agencies ADD COLUMN IF NOT EXISTS reference_name TEXT NOT NULL DEFAULT ''`;
+await sql`ALTER TABLE agencies ADD COLUMN IF NOT EXISTS reference_email TEXT NOT NULL DEFAULT ''`;
+await sql`ALTER TABLE agencies ADD COLUMN IF NOT EXISTS reference_phone TEXT NOT NULL DEFAULT ''`;
+await sql`
+  INSERT INTO platform_schema_migrations (version) VALUES (${superadminMigration})
+  ON CONFLICT (version) DO NOTHING
+`;
+console.log(`${superadminMigration}: verificata`);

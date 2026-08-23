@@ -24,6 +24,15 @@ export async function requirePlatformAdmin() {
   return user;
 }
 
+export async function requireSuperAdmin() {
+  const user = await getCurrentUser();
+  if (!user) throw new PlatformAuthorizationError("Autenticazione richiesta", 401);
+  if (!user.isSuperAdmin) {
+    throw new PlatformAuthorizationError("Accesso riservato al superadmin", 403);
+  }
+  return user;
+}
+
 export async function requireAgencyAdmin(agencyId: string) {
   const user = await getCurrentUser();
   if (!user) throw new PlatformAuthorizationError("Autenticazione richiesta", 401);
