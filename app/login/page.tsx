@@ -39,7 +39,7 @@ function LoginContent() {
       }
       const destination = me.user.isAgencyAdmin && !me.user.isSuperAdmin
         ? "/agenzia"
-        : requestedDestination ?? (me.user.isSuperAdmin ? "/admin" : "/");
+        : requestedDestination ?? (me.user.isSuperAdmin ? "/admin" : "/viaggio");
       const safeDestination = destination.startsWith("/") && !destination.startsWith("//")
         ? destination : "/";
       window.location.href = safeDestination;

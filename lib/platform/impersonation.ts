@@ -48,7 +48,7 @@ export async function startImpersonation(input: {
   `;
   const redirectUrl = String(target.platform_role) === "superadmin"
     ? "/admin"
-    : Boolean(hasAgencyAccess[0]?.value) ? "/agenzia" : "/";
+    : Boolean(hasAgencyAccess[0]?.value) ? "/agenzia" : "/viaggio";
   return { token, expiresAt, redirectUrl };
 }
 

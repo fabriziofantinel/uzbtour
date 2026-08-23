@@ -8,6 +8,7 @@ import {
   destinationReferenceSchema,
   normalizeReferenceContent,
 } from "./reference-content-normalizer";
+import { materializeTripExperience } from "./trip-content-materializer";
 
 let client: BedrockRuntimeClient | null = null;
 function bedrockClient() {
@@ -116,7 +117,7 @@ async function needsRefresh(target: ReferenceTarget) {
     ? ["useful_info", "phrasebook", "bingo"]
     : ["quiz", "mission", "game", "photo_contest"];
   const rows = await sql`
-    SELECT content_type, status, refresh_after > NOW() AS fresh
+    SELECT content_type, status, refreshed_at > NOW() - INTERVAL '180 days' AS fresh
     FROM reference_contents
     WHERE entity_type = ${target.entityType} AND entity_id = ${target.entityId}
       AND locale = 'it-IT'
@@ -129,7 +130,7 @@ async function save(target: ReferenceTarget, generated: Awaited<ReturnType<typeo
   const sections: Array<[string, unknown]> = generated.kind === "country"
     ? [["useful_info", generated.data.usefulInfo], ["phrasebook", generated.data.phrasebook], ["bingo", generated.data.bingo]]
     : [["quiz", generated.data.quiz], ["mission", generated.data.missions], ["game", generated.data.games], ["photo_contest", generated.data.photoContests]];
-  const refreshDays = target.entityType === "country" ? 90 : 365;
+  const refreshDays = 180;
   await sql.transaction((txn) => sections.map(([contentType, content]) => txn`
     INSERT INTO reference_contents (
       entity_type, entity_id, content_type, locale, content, status, model, refreshed_at, refresh_after
@@ -143,7 +144,7 @@ async function save(target: ReferenceTarget, generated: Awaited<ReturnType<typeo
   `));
 }
 
-export async function processReferenceEnrichment(jobId: string, agencyId: string, targets: ReferenceTarget[]) {
+export async function processReferenceEnrichment(jobId: string, agencyId: string, templateId: string, targets: ReferenceTarget[]) {
   const sql = getSql();
   const claimed = await sql`
     UPDATE platform_jobs SET status = 'processing', locked_at = NOW(), attempt_count = attempt_count + 1, updated_at = NOW()
@@ -169,8 +170,9 @@ export async function processReferenceEnrichment(jobId: string, agencyId: string
         refreshed,
       });
     }
+    const materialized = await materializeTripExperience(templateId, agencyId);
     await sql`UPDATE platform_jobs SET status = 'completed', completed_at = NOW(), locked_at = NULL, updated_at = NOW() WHERE id = ${jobId}`;
-    return { refreshed };
+    return { refreshed, ...materialized };
   } catch (error) {
     const message = (error instanceof Error ? error.message : String(error)).slice(0, 1200);
     await sql`UPDATE platform_jobs SET status = 'failed', error_message = ${message}, locked_at = NULL, updated_at = NOW() WHERE id = ${jobId}`;

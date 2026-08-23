@@ -1,0 +1,27 @@
+import { NextResponse } from "next/server";
+import { z } from "zod";
+import { getCurrentUser } from "@/lib/current-user";
+import { platformApiError } from "@/lib/platform/http";
+import { addTravelerExpense } from "@/lib/platform/traveler-experience";
+
+const expenseSchema = z.object({
+  departureId: z.string().uuid(),
+  partyId: z.string().uuid(),
+  dayId: z.string().uuid().nullable().optional(),
+  label: z.string().trim().min(1).max(240),
+  amount: z.number().positive().max(100_000_000_000),
+  currency: z.enum(["EUR", "USD", "UZS", "GBP"]),
+});
+
+export async function POST(request: Request) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
+    const parsed = expenseSchema.safeParse(await request.json().catch(() => null));
+    if (!parsed.success) return NextResponse.json({ error: "Spesa non valida" }, { status: 400 });
+    const id = await addTravelerExpense({ userId: user.id, userName: user.name, ...parsed.data });
+    return NextResponse.json({ ok: true, id });
+  } catch (error) {
+    return platformApiError(error, "Salvataggio della spesa non riuscito");
+  }
+}

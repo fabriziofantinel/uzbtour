@@ -683,3 +683,31 @@ await sql`
   ON CONFLICT (version) DO NOTHING
 `;
 console.log(`${travelCatalogMigration}: verificata`);
+
+const travelerExperienceMigration = "007_traveler_experience";
+await sql`ALTER TABLE phrasebook_entries ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'manual' CHECK (source IN ('manual', 'import', 'ai'))`;
+await sql`
+  CREATE TABLE IF NOT EXISTS party_expenses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    agency_id UUID NOT NULL,
+    departure_id UUID NOT NULL,
+    party_id UUID NOT NULL,
+    trip_day_id UUID,
+    label TEXT NOT NULL CHECK (char_length(label) BETWEEN 1 AND 240),
+    amount NUMERIC(18,2) NOT NULL CHECK (amount > 0),
+    currency TEXT NOT NULL CHECK (currency IN ('EUR', 'USD', 'UZS', 'GBP')),
+    paid_by_user_id TEXT REFERENCES platform_users(id) ON DELETE SET NULL,
+    paid_by_name TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (agency_id, departure_id) REFERENCES departures(agency_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (agency_id, party_id) REFERENCES travel_parties(agency_id, id) ON DELETE CASCADE,
+    FOREIGN KEY (agency_id, trip_day_id) REFERENCES trip_days(agency_id, id) ON DELETE SET NULL (trip_day_id)
+  )
+`;
+await sql`CREATE INDEX IF NOT EXISTS party_expenses_scope_idx ON party_expenses (party_id, created_at DESC)`;
+await sql`
+  INSERT INTO platform_schema_migrations (version) VALUES (${travelerExperienceMigration})
+  ON CONFLICT (version) DO NOTHING
+`;
+console.log(`${travelerExperienceMigration}: verificata`);

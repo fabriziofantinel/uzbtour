@@ -36,7 +36,7 @@ export default function ActivateAccountPage() {
       const activated = await fetch("/api/auth/invitation", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "activate", token }) });
       const body = await activated.json().catch(() => ({})) as { error?: string };
       if (!activated.ok) throw new Error(body.error || "Attivazione non riuscita");
-      window.location.replace("/");
+      window.location.replace("/viaggio");
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Attivazione non riuscita"); setBusy(false); }
   }
 

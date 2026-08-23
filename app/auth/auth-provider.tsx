@@ -33,7 +33,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     <NeonAuthUIProvider
       authClient={authClient}
       basePath="/auth"
-      redirectTo="/"
+      redirectTo="/viaggio"
       navigate={router.push}
       replace={router.replace}
       onSessionChange={() => router.refresh()}
