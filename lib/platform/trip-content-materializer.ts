@@ -69,6 +69,7 @@ export async function materializeTripExperience(templateId: string, agencyId: st
     content: Record<string, unknown>;
     sortOrder: number;
   }> = [];
+  let bingoCount = 0;
 
   for (const row of countries) {
     const entries = arrayContent(row.content);
@@ -88,17 +89,22 @@ export async function materializeTripExperience(templateId: string, agencyId: st
         sortOrder: index,
       }));
     } else if (row.content_type === "bingo") {
-      entries.forEach((entry, index) => generatedEntries.push({
-        tripDayId: null,
-        contentType: "bingo_item",
-        title: text(entry.title),
-        content: entry,
-        sortOrder: index,
-      }));
+      entries.forEach((entry, index) => {
+        if (bingoCount >= 25) return;
+        generatedEntries.push({
+          tripDayId: null,
+          contentType: "bingo_item",
+          title: text(entry.title),
+          content: entry,
+          sortOrder: index,
+        });
+        bingoCount += 1;
+      });
     }
   }
 
   let sortOrder = 0;
+  const dayContentCounts = new Map<string, number>();
   for (const row of days) {
     const mappedType = row.content_type === "quiz" ? "quiz_question"
       : row.content_type === "mission" ? "mission"
@@ -107,6 +113,14 @@ export async function materializeTripExperience(templateId: string, agencyId: st
     for (const entry of arrayContent(row.content)) {
       const gameType = text(entry.type) === "order" ? "order_game" : "word_game";
       const contentType = mappedType ?? gameType;
+      const contentGroup = row.content_type === "game" ? "game" : row.content_type;
+      const limit = contentGroup === "quiz" ? 15
+        : contentGroup === "mission" ? 10
+          : contentGroup === "game" ? 6 : 2;
+      const countKey = `${row.trip_day_id}:${contentGroup}`;
+      const currentCount = dayContentCounts.get(countKey) ?? 0;
+      if (currentCount >= limit) continue;
+      dayContentCounts.set(countKey, currentCount + 1);
       const title = text(entry.title) || text(entry.question) || "Sfida del giorno";
       generatedEntries.push({
         tripDayId: row.trip_day_id,
