@@ -59,20 +59,29 @@ function extractToolInput(content: ContentBlock[] | undefined): TravelProgrammeD
   return travelProgrammeDraftSchema.parse(toolUse.input);
 }
 
+function novaToolSchema() {
+  const generated = z.toJSONSchema(travelProgrammeDraftSchema, { target: "draft-7" }) as Record<string, unknown>;
+  return {
+    type: generated.type,
+    properties: generated.properties,
+    required: generated.required,
+  } as unknown as DocumentType;
+}
+
 export async function extractTravelProgrammeWithBedrock(pdf: Uint8Array, filename: string) {
   const region = requiredEnvironment("AWS_REGION");
   const model = requiredEnvironment("AWS_BEDROCK_TEXT_MODEL");
   const maxBytes = Number(process.env.AWS_BEDROCK_MAX_DOCUMENT_BYTES || 4_500_000);
-  const maxOutputTokens = Number(process.env.AWS_BEDROCK_MAX_OUTPUT_TOKENS || 9_000);
+  const maxOutputTokens = Number(process.env.AWS_BEDROCK_MAX_OUTPUT_TOKENS || 12_000);
   if (!Number.isFinite(maxBytes) || maxBytes <= 0) throw new Error("AWS_BEDROCK_MAX_DOCUMENT_BYTES non valida");
-  if (!Number.isInteger(maxOutputTokens) || maxOutputTokens <= 0 || maxOutputTokens >= 10_000) {
-    throw new Error("AWS_BEDROCK_MAX_OUTPUT_TOKENS deve essere un intero tra 1 e 9999");
+  if (!Number.isInteger(maxOutputTokens) || maxOutputTokens <= 0 || maxOutputTokens > 64_000) {
+    throw new Error("AWS_BEDROCK_MAX_OUTPUT_TOKENS deve essere un intero tra 1 e 64000");
   }
   if (pdf.byteLength > maxBytes) {
     throw new Error(`Il PDF supera il limite Bedrock configurato di ${Math.floor(maxBytes / 1_000_000)} MB`);
   }
 
-  const schema = z.toJSONSchema(travelProgrammeDraftSchema, { target: "draft-7" }) as unknown as DocumentType;
+  const schema = novaToolSchema();
   const request: ConverseCommandInput = {
     modelId: model,
     system: [{ text: "Sei un esperto di programmi turistici. Rispondi in italiano e usa sempre lo strumento disponibile." }],
@@ -100,6 +109,7 @@ export async function extractTravelProgrammeWithBedrock(pdf: Uint8Array, filenam
       toolChoice: { tool: { name: "emit_travel_programme" } },
     },
     inferenceConfig: { maxTokens: maxOutputTokens, temperature: 0 },
+    additionalModelRequestFields: { inferenceConfig: { topK: 1 } },
   };
 
   const response = await getBedrockClient(region).send(new ConverseCommand(request));
