@@ -6,8 +6,9 @@ import {
 } from "@aws-sdk/client-bedrock-runtime";
 import type { DocumentType } from "@smithy/types";
 import { z } from "zod";
-import { travelProgrammeDraftSchema, type TravelProgrammeDraft } from "./import-schema";
+import { travelProgrammeDraftSchema } from "./import-schema";
 import { travelDocumentType } from "./travel-document";
+import { normalizeTravelProgramme } from "./travel-programme-normalizer";
 
 const bedrockClients = new Map<string, BedrockRuntimeClient>();
 
@@ -25,6 +26,8 @@ REGOLE DI SICUREZZA E QUALITÀ:
 - accommodation deve sempre esistere; usa campi vuoti se non è indicato un hotel.
 - description deve sintetizzare fedelmente il testo senza materiale promozionale superfluo.
 - usefulInformation deve contenere solo informazioni realmente presenti nel documento.
+- usefulInformation deve essere sempre presente come array; usa un array vuoto se il documento non contiene informazioni utili.
+- label deve essere una breve etichetta della giornata e non deve superare 120 caratteri.
 - Per phone e url usa una stringa vuota quando il dato non è presente; non inventare recapiti o collegamenti.
 - Se un trasferimento è un treno o un volo, usa rispettivamente type train o flight.
 - destinationCountry deve contenere il paese principale; per viaggi multi-paese separa i nomi con virgole.
@@ -60,10 +63,10 @@ function safeDocumentName(filename: string) {
   return (withoutExtension.replace(/[^a-zA-Z0-9 _\-()[\]]/g, " ").trim() || "programma-viaggio").slice(0, 120);
 }
 
-function extractToolInput(content: ContentBlock[] | undefined): TravelProgrammeDraft {
+function extractToolInput(content: ContentBlock[] | undefined) {
   const toolUse = content?.find((block) => "toolUse" in block)?.toolUse;
   if (!toolUse?.input) throw new Error("Bedrock non ha restituito il programma strutturato");
-  return travelProgrammeDraftSchema.parse(toolUse.input);
+  return toolUse.input;
 }
 
 function novaToolSchema() {
@@ -121,12 +124,33 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
     additionalModelRequestFields: { inferenceConfig: { topK: 1 } },
   };
 
-  const response = await getBedrockClient(region).send(new ConverseCommand(request));
-  const draft = extractToolInput(response.output?.message?.content);
-  return {
-    draft,
-    model,
-    provider: `amazon-bedrock-native-${documentType.extension}`,
-    usage: response.usage ?? null,
-  };
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const response = await getBedrockClient(region).send(new ConverseCommand(request));
+    try {
+      const normalized = normalizeTravelProgramme(
+        extractToolInput(response.output?.message?.content),
+        { fallbackTitle: safeDocumentName(filename) }
+      );
+      if (normalized.changes.length > 0) {
+        console.warn("Bedrock travel programme normalized", { attempt, changes: normalized.changes });
+      }
+      const draft = travelProgrammeDraftSchema.parse(normalized.value);
+      return {
+        draft,
+        model,
+        provider: `amazon-bedrock-native-${documentType.extension}`,
+        usage: response.usage ?? null,
+      };
+    } catch (error) {
+      lastError = error;
+      if (attempt === 2) throw error;
+      console.warn("Bedrock travel extraction response rejected, retrying", {
+        attempt,
+        stopReason: response.stopReason,
+        error: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500),
+      });
+    }
+  }
+  throw lastError;
 }
