@@ -41,7 +41,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
   const versionId = String(selected.template_version_id);
   const partyId = String(selected.party_id);
 
-  const [dayRows, itemRows, cityRows, siteRows, hotelRows, travelerRows, infoRows, phraseRows, challengeRows, expenseRows, noteRows, restaurantRows, cashRows, photoRows] = await Promise.all([
+  const [dayRows, itemRows, cityRows, siteRows, hotelRows, travelerRows, infoRows, phraseRows, challengeRows, expenseRows, noteRows, restaurantRows, cashRows, photoRows, resultRows, contestRows] = await Promise.all([
     sql`
       SELECT id::text, day_number, day_offset, label, title, city, description,
         source_date::text, metadata
@@ -163,6 +163,26 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       WHERE memory.agency_id = ${agencyId} AND memory.party_id = ${partyId} AND asset.status = 'ready'
       ORDER BY memory.created_at DESC
     `,
+    sql`
+      SELECT result.id::text, result.traveler_id::text, profile.display_name,
+        result.trip_day_id::text, result.generated_content_id::text, result.activity_type,
+        result.score, result.max_score, result.status, result.result, result.submitted_at::text
+      FROM party_activity_results result
+      JOIN traveler_profiles profile ON profile.id = result.traveler_id AND profile.agency_id = result.agency_id
+      WHERE result.agency_id = ${agencyId} AND result.party_id = ${partyId}
+      ORDER BY result.submitted_at DESC
+    `,
+    sql`
+      SELECT entry.id::text, entry.traveler_id::text, profile.display_name,
+        entry.generated_content_id::text, entry.media_asset_id::text, entry.participant_slot,
+        entry.status, entry.score, entry.reason, entry.is_winner, entry.submitted_at::text,
+        memory.id::text AS memory_id
+      FROM party_photo_contest_entries entry
+      JOIN traveler_profiles profile ON profile.id = entry.traveler_id AND profile.agency_id = entry.agency_id
+      LEFT JOIN party_memories memory ON memory.media_asset_id = entry.media_asset_id AND memory.party_id = entry.party_id
+      WHERE entry.agency_id = ${agencyId} AND entry.party_id = ${partyId}
+      ORDER BY entry.submitted_at DESC
+    `,
   ]);
 
   const items = itemRows as Row[];
@@ -273,6 +293,21 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       contentUrl: `/api/traveler/photos/${String(row.id)}/content`,
       downloadUrl: `/api/traveler/photos/${String(row.id)}/content?download=1`,
       canDelete: String(row.uploaded_by_user_id) === userId,
+    })),
+    challengeResults: (resultRows as Row[]).map((row) => ({
+      id: String(row.id), travelerId: String(row.traveler_id), travelerName: String(row.display_name),
+      dayId: row.trip_day_id ? String(row.trip_day_id) : null,
+      contentId: String(row.generated_content_id), type: String(row.activity_type),
+      score: Number(row.score), maxScore: row.max_score == null ? null : Number(row.max_score),
+      status: String(row.status), result: row.result, submittedAt: String(row.submitted_at),
+    })),
+    contestEntries: (contestRows as Row[]).map((row) => ({
+      id: String(row.id), travelerId: String(row.traveler_id), travelerName: String(row.display_name),
+      contentId: String(row.generated_content_id), mediaId: String(row.media_asset_id),
+      slot: Number(row.participant_slot), status: String(row.status),
+      score: row.score == null ? null : Number(row.score), reason: String(row.reason),
+      isWinner: Boolean(row.is_winner), submittedAt: String(row.submitted_at),
+      contentUrl: row.memory_id ? `/api/traveler/photos/${String(row.memory_id)}/content` : "",
     })),
   };
 }
