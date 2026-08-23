@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAgencyAdmin } from "@/lib/platform/authorization";
 import { cleanText, platformApiError } from "@/lib/platform/http";
 import { getObjectStorage } from "@/lib/platform/object-storage";
-import { assertTripBelongsToAgency } from "@/lib/platform/repository";
+import { assertTripBelongsToAgency, assertTripHasNoProgramme } from "@/lib/platform/repository";
 import {
   isMatchingTravelDocument,
   TRAVEL_DOCUMENT_MAX_BYTES,
@@ -31,6 +31,7 @@ export async function POST(request: Request) {
 
     await requireAgencyAdmin(agencyId);
     await assertTripBelongsToAgency(agencyId, templateId);
+    await assertTripHasNoProgramme(agencyId, templateId);
     const documentType = travelDocumentType(originalName)!;
     const key = `agencies/${agencyId}/trips/${templateId}/documents/${crypto.randomUUID()}.${documentType.extension}`;
     const authorization = await getObjectStorage().createUploadAuthorization(

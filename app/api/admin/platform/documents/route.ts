@@ -5,6 +5,7 @@ import { getJobQueue } from "@/lib/platform/job-queue";
 import { getObjectStorage } from "@/lib/platform/object-storage";
 import {
   assertTripBelongsToAgency,
+  assertTripHasNoProgramme,
   registerImportedDocument,
 } from "@/lib/platform/repository";
 import {
@@ -41,6 +42,7 @@ export async function POST(request: Request) {
 
     const actor = await requireAgencyAdmin(agencyId);
     await assertTripBelongsToAgency(agencyId, templateId);
+    await assertTripHasNoProgramme(agencyId, templateId);
     const storage = getObjectStorage();
     const object = await storage.head(objectKey);
     if (!isMatchingTravelDocument(originalName, object.contentType)) {

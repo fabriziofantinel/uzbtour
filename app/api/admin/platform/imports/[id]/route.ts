@@ -13,6 +13,12 @@ import { getObjectStorage } from "@/lib/platform/object-storage";
 
 export const runtime = "nodejs";
 
+const timedActivityTypes = new Set(["transport", "flight", "train"]);
+
+function validTime(value: string) {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(value) ? value : "";
+}
+
 export async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> }
@@ -50,8 +56,8 @@ export async function PATCH(
         activities: day.activities.map((activity) => ({
           ...activity,
           title: activity.type === "visit" ? activity.placeName : activity.title,
-          startsAt: "",
-          endsAt: "",
+          startsAt: timedActivityTypes.has(activity.type) ? validTime(activity.startsAt) : "",
+          endsAt: timedActivityTypes.has(activity.type) ? validTime(activity.endsAt) : "",
         })),
       })),
     };

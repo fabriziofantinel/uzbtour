@@ -377,6 +377,19 @@ export async function assertTripBelongsToAgency(agencyId: string, templateId: st
   return rows[0] as { id: string; title: string };
 }
 
+export async function assertTripHasNoProgramme(agencyId: string, templateId: string) {
+  const sql = getSql();
+  const rows = await sql`
+    SELECT EXISTS (
+      SELECT 1 FROM travel_documents
+      WHERE agency_id = ${agencyId} AND template_id = ${templateId}
+    ) AS value
+  `;
+  if (Boolean(rows[0]?.value)) {
+    throw new PlatformRequestError("Il viaggio ha già un programma: eliminalo per caricare un nuovo preventivo");
+  }
+}
+
 export async function getTripEnrichmentQueueRecord(templateId: string) {
   const sql = getSql();
   const rows = await sql`

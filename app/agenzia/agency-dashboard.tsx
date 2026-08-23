@@ -3,7 +3,7 @@
 import Link from "next/link";
 import {
   Building2, CalendarDays, CheckCircle2, ChevronDown, CircleAlert,
-  Eye, LayoutGrid, List, LoaderCircle, LogOut, MapPinned, Play, Plus, Sparkles, UploadCloud,
+  Eye, LayoutGrid, List, LoaderCircle, LogOut, MapPinned, Play, Plus, Sparkles,
   Search, SlidersHorizontal, Trash2, UsersRound, X,
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -437,15 +437,6 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                     </div>
                   )}
                   {trip.departures[0] && <Link className="configureTravelers" href={`/agenzia/viaggi/${trip.departures[0].id}`}><UsersRound/> Configura famiglie e viaggiatori</Link>}
-                  <label className={busy === `upload-${trip.id}` ? "uploadAction busy" : "uploadAction"}>
-                    {busy === `upload-${trip.id}` ? <LoaderCircle className="spin"/> : <UploadCloud/>}
-                    <span><b>{busy === `upload-${trip.id}` ? "Caricamento…" : "Carica programma"}</b><small>PDF, DOC o DOCX privato, massimo 4,5 MB</small></span>
-                    <input type="file" accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" disabled={Boolean(busy)} onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      event.target.value = "";
-                      if (file) void uploadProgramme(trip.id, file);
-                    }}/>
-                  </label>
                   <button className="deleteTripButton" disabled={Boolean(busy)} onClick={() => setTripToDelete({ id: trip.id, title: trip.title })}><Trash2/> Elimina viaggio</button>
                 </article>
               )})}

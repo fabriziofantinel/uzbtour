@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  ArrowLeft, BedDouble, CalendarDays, Check, ChevronDown, CircleAlert, FileText,
-  ExternalLink, GripVertical, Hotel, LoaderCircle, MapPin, Plus, Save, Send,
+  ArrowDown, ArrowLeft, ArrowUp, BedDouble, CalendarDays, Check, ChevronDown, CircleAlert, FileText,
+  ExternalLink, Hotel, LoaderCircle, MapPin, Plus, Save, Send,
   ShieldCheck, Sparkles, Trash2,
 } from "lucide-react";
 import { useState } from "react";
@@ -14,6 +14,10 @@ const activityTypes = [
   ["train", "Treno"], ["hotel", "Hotel"], ["meal", "Pasto"],
   ["free_time", "Tempo libero"], ["meeting", "Incontro"], ["other", "Altro"],
 ] as const;
+
+const timedActivityTypes = new Set<TravelProgrammeDraft["days"][number]["activities"][number]["type"]>([
+  "transport", "flight", "train",
+]);
 
 async function jsonResponse<T>(response: Response): Promise<T> {
   const result = await response.json().catch(() => ({})) as T & { error?: string };
@@ -89,6 +93,15 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
         position === activityIndex ? { ...activity, ...changes } : activity
       ),
     });
+  }
+
+  function moveActivity(dayIndex: number, activityIndex: number, direction: -1 | 1) {
+    if (!draft) return;
+    const destination = activityIndex + direction;
+    const activities = [...draft.days[dayIndex].activities];
+    if (destination < 0 || destination >= activities.length) return;
+    [activities[activityIndex], activities[destination]] = [activities[destination], activities[activityIndex]];
+    updateDay(dayIndex, { activities });
   }
 
   async function save() {
@@ -195,16 +208,21 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
                 <div className="subheading"><b>Visite e trasferimenti</b><button onClick={() => updateDay(dayIndex, { activities: [...day.activities, emptyActivity()] })}><Plus/> Aggiungi</button></div>
                 {day.activities.map((activity, activityIndex) => (
                   <div className="activityEditor" key={activityIndex}>
-                    <GripVertical className="dragHint"/>
-                    <label>Tipo<div className="selectWrap"><select value={activity.type} onChange={(event) => updateActivity(dayIndex, activityIndex, { type: event.target.value as typeof activity.type })}>{activityTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><ChevronDown/></div></label>
+                    <div className="activityOrder" aria-label={`Ordine attività ${activityIndex + 1}`}><button aria-label="Sposta attività in alto" title="Sposta in alto" disabled={activityIndex === 0} onClick={() => moveActivity(dayIndex, activityIndex, -1)}><ArrowUp/></button><span>{activityIndex + 1}</span><button aria-label="Sposta attività in basso" title="Sposta in basso" disabled={activityIndex === day.activities.length - 1} onClick={() => moveActivity(dayIndex, activityIndex, 1)}><ArrowDown/></button></div>
+                    <label>Tipo<div className="selectWrap"><select value={activity.type} onChange={(event) => {
+                      const type = event.target.value as typeof activity.type;
+                      updateActivity(dayIndex, activityIndex, { type, ...(!timedActivityTypes.has(type) ? { startsAt: "", endsAt: "" } : {}) });
+                    }}>{activityTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><ChevronDown/></div></label>
                     {activity.type !== "visit" && <label className="activityTitle">Attività<input value={activity.title} onChange={(event) => updateActivity(dayIndex, activityIndex, { title: event.target.value })}/></label>}
                     {activity.type === "visit" && <>
                       <label className="activityTitle">Sito / luogo<input value={activity.placeName} onChange={(event) => updateActivity(dayIndex, activityIndex, { title: event.target.value, placeName: event.target.value, placeValidation: changedValidation("Sito") })}/></label>
                       <label>Paese del sito<input value={activity.placeCountry} onChange={(event) => updateActivity(dayIndex, activityIndex, { placeCountry: event.target.value, placeValidation: changedValidation("Località del sito") })}/></label>
                       <label>Città del sito<input value={activity.placeCity} onChange={(event) => updateActivity(dayIndex, activityIndex, { placeCity: event.target.value, placeValidation: changedValidation("Località del sito") })}/></label>
-                      <div className="siteValidation"><ValidationControl validation={activity.placeValidation} searchParts={[activity.placeName, activity.placeCity, activity.placeCountry]} onChange={(placeValidation) => updateActivity(dayIndex, activityIndex, { placeValidation })}/></div>
                     </>}
+                    {timedActivityTypes.has(activity.type) && <><label className="activityTime">Ora inizio<input type="time" value={activity.startsAt} onChange={(event) => updateActivity(dayIndex, activityIndex, { startsAt: event.target.value })}/></label><label className="activityTime">Ora fine<input type="time" value={activity.endsAt} onChange={(event) => updateActivity(dayIndex, activityIndex, { endsAt: event.target.value })}/></label></>}
                     <button className="removeActivity" aria-label="Rimuovi attività" onClick={() => updateDay(dayIndex, { activities: day.activities.filter((_, position) => position !== activityIndex) })}><Trash2/></button>
+                    <label className="activityNotes">Note<textarea placeholder="Informazioni operative, riferimenti o indicazioni per l’agente" value={activity.description} onChange={(event) => updateActivity(dayIndex, activityIndex, { description: event.target.value })}/></label>
+                    {activity.type === "visit" && <div className="siteValidation"><ValidationControl validation={activity.placeValidation} searchParts={[activity.placeName, activity.placeCity, activity.placeCountry]} onChange={(placeValidation) => updateActivity(dayIndex, activityIndex, { placeValidation })}/></div>}
                   </div>
                 ))}
               </div>
