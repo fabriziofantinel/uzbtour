@@ -160,7 +160,7 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
       <section className="reviewHero">
         <p><Sparkles size={14}/> BOZZA GENERATA CON {initialImport.model ?? "GEMINI"}</p>
         <h1>Controlla prima di pubblicare.</h1>
-        <span>Correggi interpretazioni, orari e nomi. Paesi, città, siti e hotel devono risultare validati prima della pubblicazione.</span>
+        <span>Correggi interpretazioni e nomi. Paesi, città, siti e hotel devono risultare validati prima della pubblicazione.</span>
       </section>
 
       <div className="reviewShell">
@@ -192,20 +192,18 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
               </div>
 
               <div className="activitiesEditor">
-                <div className="subheading"><b>Attività e trasferimenti</b><button onClick={() => updateDay(dayIndex, { activities: [...day.activities, emptyActivity()] })}><Plus/> Aggiungi</button></div>
+                <div className="subheading"><b>Visite e trasferimenti</b><button onClick={() => updateDay(dayIndex, { activities: [...day.activities, emptyActivity()] })}><Plus/> Aggiungi</button></div>
                 {day.activities.map((activity, activityIndex) => (
                   <div className="activityEditor" key={activityIndex}>
                     <GripVertical className="dragHint"/>
                     <label>Tipo<div className="selectWrap"><select value={activity.type} onChange={(event) => updateActivity(dayIndex, activityIndex, { type: event.target.value as typeof activity.type })}>{activityTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><ChevronDown/></div></label>
-                    <label className="activityTitle">Attività<input value={activity.title} onChange={(event) => updateActivity(dayIndex, activityIndex, { title: event.target.value })}/></label>
+                    {activity.type !== "visit" && <label className="activityTitle">Attività<input value={activity.title} onChange={(event) => updateActivity(dayIndex, activityIndex, { title: event.target.value })}/></label>}
                     {activity.type === "visit" && <>
-                      <label className="activityTitle">Sito / luogo<input value={activity.placeName} onChange={(event) => updateActivity(dayIndex, activityIndex, { placeName: event.target.value, placeValidation: changedValidation("Sito") })}/></label>
+                      <label className="activityTitle">Sito / luogo<input value={activity.placeName} onChange={(event) => updateActivity(dayIndex, activityIndex, { title: event.target.value, placeName: event.target.value, placeValidation: changedValidation("Sito") })}/></label>
                       <label>Paese del sito<input value={activity.placeCountry} onChange={(event) => updateActivity(dayIndex, activityIndex, { placeCountry: event.target.value, placeValidation: changedValidation("Località del sito") })}/></label>
                       <label>Città del sito<input value={activity.placeCity} onChange={(event) => updateActivity(dayIndex, activityIndex, { placeCity: event.target.value, placeValidation: changedValidation("Località del sito") })}/></label>
                       <div className="siteValidation"><ValidationControl validation={activity.placeValidation} searchParts={[activity.placeName, activity.placeCity, activity.placeCountry]} onChange={(placeValidation) => updateActivity(dayIndex, activityIndex, { placeValidation })}/></div>
                     </>}
-                    <label>Inizio<input type="time" value={activity.startsAt} onChange={(event) => updateActivity(dayIndex, activityIndex, { startsAt: event.target.value })}/></label>
-                    <label>Fine<input type="time" value={activity.endsAt} onChange={(event) => updateActivity(dayIndex, activityIndex, { endsAt: event.target.value })}/></label>
                     <button className="removeActivity" aria-label="Rimuovi attività" onClick={() => updateDay(dayIndex, { activities: day.activities.filter((_, position) => position !== activityIndex) })}><Trash2/></button>
                   </div>
                 ))}

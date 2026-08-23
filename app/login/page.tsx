@@ -37,9 +37,9 @@ function LoginContent() {
         setError("Account non abilitato a questa applicazione.");
         return;
       }
-      const destination = requestedDestination ?? (
-        me.user.isSuperAdmin ? "/admin" : me.user.isAgencyAdmin ? "/agenzia" : "/"
-      );
+      const destination = me.user.isAgencyAdmin && !me.user.isSuperAdmin
+        ? "/agenzia"
+        : requestedDestination ?? (me.user.isSuperAdmin ? "/admin" : "/");
       const safeDestination = destination.startsWith("/") && !destination.startsWith("//")
         ? destination : "/";
       window.location.href = safeDestination;

@@ -26,13 +26,21 @@ function validation(value: unknown, field: string, changes: string[]) {
 function activity(value: unknown, path: string, changes: string[]) {
   const item = recordValue(value);
   if (!item) return value;
+  const placeName = text(item.placeName, 240, `${path}.placeName`, changes);
+  const originalTitle = text(item.title, 240, `${path}.title`, changes);
+  const title = item.type === "visit" && typeof placeName === "string" && placeName.trim()
+    ? placeName
+    : originalTitle;
+  if (item.type === "visit" && title !== item.title) changes.push(`${path}.title: uniformato al sito`);
+  if (item.startsAt) changes.push(`${path}.startsAt: orario rimosso`);
+  if (item.endsAt) changes.push(`${path}.endsAt: orario rimosso`);
   return {
     ...item,
-    title: text(item.title, 240, `${path}.title`, changes),
+    title,
     description: text(item.description, 3000, `${path}.description`, changes),
-    startsAt: text(item.startsAt, 5, `${path}.startsAt`, changes),
-    endsAt: text(item.endsAt, 5, `${path}.endsAt`, changes),
-    placeName: text(item.placeName, 240, `${path}.placeName`, changes),
+    startsAt: "",
+    endsAt: "",
+    placeName,
     placeCity: text(item.placeCity, 240, `${path}.placeCity`, changes),
     placeCountry: text(item.placeCountry, 120, `${path}.placeCountry`, changes),
     placeValidation: validation(item.placeValidation, `${path}.placeValidation`, changes),

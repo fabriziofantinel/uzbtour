@@ -43,7 +43,19 @@ export async function PATCH(
         { status: 400 }
       );
     }
-    await saveImportDraft({ importId: id, agencyId, actorId: actor.id, draft: parsed.data });
+    const draft = {
+      ...parsed.data,
+      days: parsed.data.days.map((day) => ({
+        ...day,
+        activities: day.activities.map((activity) => ({
+          ...activity,
+          title: activity.type === "visit" ? activity.placeName : activity.title,
+          startsAt: "",
+          endsAt: "",
+        })),
+      })),
+    };
+    await saveImportDraft({ importId: id, agencyId, actorId: actor.id, draft });
     return NextResponse.json({ ok: true });
   } catch (error) {
     return platformApiError(error, "Salvataggio della revisione non riuscito");

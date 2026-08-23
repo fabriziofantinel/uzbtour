@@ -13,12 +13,13 @@ REGOLE DI SICUREZZA E QUALITÀ:
 - Mantieni l'ordine cronologico e assegna dayNumber consecutivi a partire da 1.
 - date deve essere YYYY-MM-DD solo quando la data è esplicita, altrimenti stringa vuota.
 - startDate ed endDate devono rappresentare la prima e l'ultima data del viaggio; usa stringhe vuote se non ricavabili.
-- startsAt ed endsAt devono essere HH:MM solo quando espliciti, altrimenti stringa vuota.
+- Non estrarre né proporre mai orari: startsAt ed endsAt devono essere sempre stringhe vuote, anche se il documento contiene orari.
 - accommodation deve sempre esistere; usa campi vuoti se non è indicato un hotel.
 - description deve sintetizzare fedelmente il testo senza materiale promozionale superfluo.
 - usefulInformation deve contenere solo informazioni realmente presenti nel documento.
 - Se un trasferimento è un treno o un volo, usa rispettivamente type train o flight.
 - Compila country e city di ogni giornata. Per ogni visita compila placeName, placeCity e placeCountry; per ogni hotel name, city e country.
+- Per le visite non creare un titolo attività distinto: usa lo stesso nome canonico del sito sia in title sia in placeName.
 - Nei giorni di trasferimento associa ogni sito alla località della visita, non alla destinazione serale.
 - Compila tutti i campi di validazione: needsValidation=true per nomi generici, ambigui, dedotti o geograficamente dubbi; false solo per dati espliciti e coerenti nel documento.
 `;
