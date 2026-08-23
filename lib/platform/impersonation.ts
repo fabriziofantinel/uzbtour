@@ -40,15 +40,15 @@ export async function startImpersonation(input: {
     )
   `;
 
-  const isAgencyAdmin = await sql`
+  const hasAgencyAccess = await sql`
     SELECT EXISTS (
       SELECT 1 FROM agency_memberships
-      WHERE user_id = ${input.targetId} AND role IN ('owner', 'admin')
+      WHERE user_id = ${input.targetId} AND role IN ('owner', 'admin', 'editor')
     ) AS value
   `;
   const redirectUrl = String(target.platform_role) === "superadmin"
     ? "/admin"
-    : Boolean(isAgencyAdmin[0]?.value) ? "/agenzia" : "/";
+    : Boolean(hasAgencyAccess[0]?.value) ? "/agenzia" : "/";
   return { token, expiresAt, redirectUrl };
 }
 

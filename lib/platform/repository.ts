@@ -63,6 +63,16 @@ export async function getPlatformOverview(
 ): Promise<PlatformOverview> {
   const sql = getSql();
   const [overviewRows, importRows, referenceRows, enrichmentRows] = await Promise.all([sql`
+    WITH latest_imports AS (
+      SELECT DISTINCT ON (agency_id, template_id)
+        agency_id,
+        template_id,
+        result
+      FROM import_jobs
+      WHERE result IS NOT NULL
+        AND status IN ('ready_for_review', 'published')
+      ORDER BY agency_id, template_id, created_at DESC
+    )
     SELECT
       a.id::text AS agency_id,
       a.slug AS agency_slug,
@@ -72,9 +82,9 @@ export async function getPlatformOverview(
       tt.id::text AS template_id,
       tt.title AS template_title,
       tt.status AS template_status,
-      tt.destination_country,
-      tt.starts_on::text AS template_starts_on,
-      tt.ends_on::text AS template_ends_on,
+      COALESCE(NULLIF(li.result->>'destinationCountry', ''), tt.destination_country) AS destination_country,
+      COALESCE(NULLIF(li.result->>'startDate', ''), tt.starts_on::text) AS template_starts_on,
+      COALESCE(NULLIF(li.result->>'endDate', ''), tt.ends_on::text) AS template_ends_on,
       d.id::text AS departure_id,
       d.code AS departure_code,
       d.title AS departure_title,
@@ -86,13 +96,14 @@ export async function getPlatformOverview(
     FROM agency_memberships am
     JOIN agencies a ON a.id = am.agency_id
     LEFT JOIN trip_templates tt ON tt.agency_id = a.id
+    LEFT JOIN latest_imports li ON li.agency_id = a.id AND li.template_id = tt.id
     LEFT JOIN departures d ON d.template_id = tt.id AND d.agency_id = a.id
     LEFT JOIN travel_parties tp ON tp.departure_id = d.id AND tp.agency_id = a.id
     LEFT JOIN party_memberships pm ON pm.party_id = tp.id AND pm.agency_id = a.id AND pm.status <> 'removed'
     LEFT JOIN traveler_profiles traveler ON traveler.id = pm.traveler_id AND traveler.agency_id = a.id
     WHERE am.user_id = ${actor.id} AND am.role IN ('owner', 'admin', 'editor')
     GROUP BY a.id, a.slug, a.name, a.status, am.role, tt.id, tt.title, tt.status,
-      tt.destination_country, tt.starts_on, tt.ends_on,
+      tt.destination_country, tt.starts_on, tt.ends_on, li.result,
       d.id, d.code, d.title, d.starts_on, d.ends_on, d.status
     ORDER BY a.name, tt.title NULLS LAST, d.starts_on DESC NULLS LAST
   `, sql`
