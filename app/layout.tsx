@@ -5,6 +5,7 @@ import "@neondatabase/auth-ui/css";
 import "./tour.css";
 import "./challenges.css";
 import "leaflet/dist/leaflet.css";
+import ImpersonationBanner from "@/components/impersonation-banner";
 
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-sans" });
 const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-serif" });
@@ -30,7 +31,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="it">
-      <body className={`${manrope.variable} ${playfair.variable}`}>{children}</body>
+      <body className={`${manrope.variable} ${playfair.variable}`}>
+        <ImpersonationBanner/>
+        {children}
+      </body>
     </html>
   );
 }

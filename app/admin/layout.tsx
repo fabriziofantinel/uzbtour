@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Building2, Gauge, LogOut, ShieldCheck } from "lucide-react";
+import { Building2, Gauge, LogIn, LogOut, ShieldCheck } from "lucide-react";
 import { PlatformAuthorizationError, requireSuperAdmin } from "@/lib/platform/authorization";
 import "./superadmin.css";
 
@@ -25,6 +25,7 @@ export default async function SuperadminLayout({ children }: { children: React.R
         <nav aria-label="Navigazione superadmin">
           <Link href="/admin"><Gauge size={17}/> Riepilogo</Link>
           <Link href="/admin/agenzie"><Building2 size={17}/> Agenzie</Link>
+          <Link href="/admin/utenti"><LogIn size={17}/> Login come</Link>
         </nav>
         <div className="superadminActor">
           <ShieldCheck size={17}/><b>{actor.name}</b>

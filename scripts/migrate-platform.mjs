@@ -529,3 +529,28 @@ await sql`
   ON CONFLICT (version) DO NOTHING
 `;
 console.log(`${superadminMigration}: verificata`);
+
+const impersonationMigration = "005_superadmin_impersonation";
+await sql`
+  CREATE TABLE IF NOT EXISTS impersonation_sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    actor_user_id TEXT NOT NULL REFERENCES platform_users(id) ON DELETE CASCADE,
+    target_user_id TEXT NOT NULL REFERENCES platform_users(id) ON DELETE CASCADE,
+    token_hash TEXT NOT NULL UNIQUE,
+    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMPTZ NOT NULL,
+    ended_at TIMESTAMPTZ,
+    user_agent TEXT,
+    CHECK (actor_user_id <> target_user_id)
+  )
+`;
+await sql`
+  CREATE INDEX IF NOT EXISTS impersonation_sessions_active_idx
+  ON impersonation_sessions (actor_user_id, expires_at DESC)
+  WHERE ended_at IS NULL
+`;
+await sql`
+  INSERT INTO platform_schema_migrations (version) VALUES (${impersonationMigration})
+  ON CONFLICT (version) DO NOTHING
+`;
+console.log(`${impersonationMigration}: verificata`);

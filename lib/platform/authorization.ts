@@ -1,4 +1,4 @@
-import { getCurrentUser } from "@/lib/current-user";
+import { getAuthenticatedActor, getCurrentUser } from "@/lib/current-user";
 import { getSql } from "@/lib/db";
 
 export class PlatformAuthorizationError extends Error {
@@ -26,6 +26,15 @@ export async function requirePlatformAdmin() {
 
 export async function requireSuperAdmin() {
   const user = await getCurrentUser();
+  if (!user) throw new PlatformAuthorizationError("Autenticazione richiesta", 401);
+  if (!user.isSuperAdmin) {
+    throw new PlatformAuthorizationError("Accesso riservato al superadmin", 403);
+  }
+  return user;
+}
+
+export async function requireSuperAdminActor() {
+  const user = await getAuthenticatedActor();
   if (!user) throw new PlatformAuthorizationError("Autenticazione richiesta", 401);
   if (!user.isSuperAdmin) {
     throw new PlatformAuthorizationError("Accesso riservato al superadmin", 403);

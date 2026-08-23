@@ -42,6 +42,19 @@ export type AgencyRegistryItem = {
   agents: AgencyAgent[];
 };
 
+export type ImpersonationUser = {
+  id: string;
+  name: string;
+  initials: string;
+  email: string;
+  phone: string;
+  status: string;
+  platformRole: "superadmin" | "user";
+  agencyNames: string[];
+  agencyRoles: string[];
+  isTraveler: boolean;
+};
+
 function textValue(value: unknown) {
   return value == null ? "" : String(value);
 }
@@ -127,6 +140,42 @@ export async function getAgencyRegistry(): Promise<AgencyRegistryItem[]> {
         role: String(agent.role) as AgencyAgent["role"],
         status: String(agent.status),
       })),
+  }));
+}
+
+export async function getImpersonationUsers(actorId: string): Promise<ImpersonationUser[]> {
+  const sql = getSql();
+  const rows = await sql`
+    SELECT users.id, users.display_name, users.initials, users.email, users.phone,
+           users.status, users.platform_role,
+           COALESCE(
+             ARRAY_AGG(DISTINCT agencies.name) FILTER (WHERE agencies.id IS NOT NULL),
+             ARRAY[]::TEXT[]
+           ) AS agency_names,
+           COALESCE(
+             ARRAY_AGG(DISTINCT memberships.role) FILTER (WHERE memberships.role IS NOT NULL),
+             ARRAY[]::TEXT[]
+           ) AS agency_roles,
+           EXISTS (SELECT 1 FROM traveler_profiles WHERE user_id = users.id) AS is_traveler
+    FROM platform_users users
+    LEFT JOIN agency_memberships memberships ON memberships.user_id = users.id
+    LEFT JOIN agencies ON agencies.id = memberships.agency_id
+    WHERE users.id <> ${actorId}
+      AND users.status <> 'disabled'
+    GROUP BY users.id
+    ORDER BY users.display_name, users.email
+  `;
+  return rows.map((row) => ({
+    id: String(row.id),
+    name: String(row.display_name),
+    initials: String(row.initials || ""),
+    email: textValue(row.email),
+    phone: textValue(row.phone),
+    status: String(row.status),
+    platformRole: String(row.platform_role) as ImpersonationUser["platformRole"],
+    agencyNames: Array.isArray(row.agency_names) ? row.agency_names.map(String) : [],
+    agencyRoles: Array.isArray(row.agency_roles) ? row.agency_roles.map(String) : [],
+    isTraveler: Boolean(row.is_traveler),
   }));
 }
 

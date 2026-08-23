@@ -1,5 +1,9 @@
 import { getNeonAuth, isNeonAuthConfigured } from "./auth/server";
 import { getSql } from "./db";
+import { cookies } from "next/headers";
+import { createHash } from "node:crypto";
+
+export const IMPERSONATION_COOKIE = "smf_impersonation";
 
 export type CurrentUser = {
   id: string;
@@ -8,6 +12,11 @@ export type CurrentUser = {
   email: string;
   isSuperAdmin: boolean;
   isAgencyAdmin: boolean;
+  impersonation: {
+    actorId: string;
+    actorName: string;
+    expiresAt: string;
+  } | null;
 };
 
 function initialsFor(name: string) {
@@ -19,7 +28,18 @@ function initialsFor(name: string) {
     .join("");
 }
 
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+async function userPermissions(userId: string) {
+  const sql = getSql();
+  const permissions = await sql`
+    SELECT EXISTS (
+      SELECT 1 FROM agency_memberships
+      WHERE user_id = ${userId} AND role IN ('owner', 'admin')
+    ) AS is_agency_admin
+  `;
+  return Boolean(permissions[0]?.is_agency_admin);
+}
+
+export async function getAuthenticatedActor(): Promise<CurrentUser | null> {
   if (!isNeonAuthConfigured()) return null;
 
   const { data: session, error } = await getNeonAuth().getSession();
@@ -58,12 +78,6 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
   if (!platformUser) return null;
   const platformUserId = String(platformUser.id);
-  const permissions = await sql`
-    SELECT EXISTS (
-      SELECT 1 FROM agency_memberships
-      WHERE user_id = ${platformUserId} AND role IN ('owner', 'admin')
-    ) AS is_agency_admin
-  `;
 
   return {
     id: platformUserId,
@@ -71,6 +85,47 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     initials: String(platformUser.initials),
     email,
     isSuperAdmin: String(platformUser.platform_role) === "superadmin",
-    isAgencyAdmin: Boolean(permissions[0]?.is_agency_admin)
+    isAgencyAdmin: await userPermissions(platformUserId),
+    impersonation: null
+  };
+}
+
+export async function getCurrentUser(): Promise<CurrentUser | null> {
+  const actor = await getAuthenticatedActor();
+  if (!actor) return null;
+
+  const token = (await cookies()).get(IMPERSONATION_COOKIE)?.value;
+  if (!token || !actor.isSuperAdmin) return actor;
+
+  const tokenHash = createHash("sha256").update(token).digest("hex");
+  const sql = getSql();
+  const rows = await sql`
+    SELECT sessions.target_user_id, sessions.expires_at,
+           users.display_name, users.initials, users.email,
+           users.platform_role, users.status
+    FROM impersonation_sessions sessions
+    JOIN platform_users users ON users.id = sessions.target_user_id
+    WHERE sessions.token_hash = ${tokenHash}
+      AND sessions.actor_user_id = ${actor.id}
+      AND sessions.ended_at IS NULL
+      AND sessions.expires_at > NOW()
+    LIMIT 1
+  `;
+  const target = rows[0];
+  if (!target || String(target.status) === "disabled") return actor;
+
+  const targetId = String(target.target_user_id);
+  return {
+    id: targetId,
+    name: String(target.display_name),
+    initials: String(target.initials || initialsFor(String(target.display_name))),
+    email: String(target.email || ""),
+    isSuperAdmin: String(target.platform_role) === "superadmin",
+    isAgencyAdmin: await userPermissions(targetId),
+    impersonation: {
+      actorId: actor.id,
+      actorName: actor.name,
+      expiresAt: new Date(String(target.expires_at)).toISOString()
+    }
   };
 }
