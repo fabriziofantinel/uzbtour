@@ -153,7 +153,7 @@ async function recoverAccommodations(input: {
           },
         },
         {
-          text: `Il primo passaggio non ha trovato alcun hotel. Riesamina l'intero documento, soprattutto tabelle o allegati esterni al programma giornaliero, e associa gli hotel alle giornate elencate qui sotto:\n${JSON.stringify(input.days)}\n\nNon inventare strutture. Usa date, numero di notti e località per l'associazione. Se tabella alberghi e programma giornaliero sono incoerenti, conserva i dati espliciti della tabella e imposta needsValidation=true spiegando il conflitto. Restituisci solo giornate con una sistemazione esplicitamente ricavabile.`,
+          text: `Il primo passaggio non ha trovato alcun hotel. Riesamina l'intero documento, soprattutto tabelle o allegati esterni al programma giornaliero, e associa gli hotel alle giornate elencate qui sotto:\n${JSON.stringify(input.days)}\n\nNon inventare strutture. Usa date, numero di notti e località per l'associazione. Se tabella alberghi e programma giornaliero sono incoerenti, conserva i dati espliciti della tabella e imposta needsValidation=true spiegando il conflitto. Imposta needsValidation=true anche quando la grafia del nome sembra incompleta, non canonica o potenzialmente errata. Restituisci solo giornate con una sistemazione esplicitamente ricavabile.`,
         },
       ],
     }],
