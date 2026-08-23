@@ -24,6 +24,7 @@ REGOLE DI SICUREZZA E QUALITÀ:
 - accommodation deve sempre esistere; usa campi vuoti se non è indicato un hotel.
 - description deve sintetizzare fedelmente il testo senza materiale promozionale superfluo.
 - usefulInformation deve contenere solo informazioni realmente presenti nel documento.
+- Per phone e url usa una stringa vuota quando il dato non è presente; non inventare recapiti o collegamenti.
 - Se un trasferimento è un treno o un volo, usa rispettivamente type train o flight.
 - destinationCountry deve contenere il paese principale; per viaggi multi-paese separa i nomi con virgole.
 - placeName deve contenere il nome canonico del sito visitato per le attività di tipo visit.

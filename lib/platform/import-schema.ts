@@ -39,8 +39,8 @@ export const travelProgrammeDraftSchema = z.object({
     category: z.string().min(1).max(80),
     title: z.string().min(1).max(240),
     body: z.string().min(1).max(6000),
-    phone: z.string().max(100),
-    url: z.string().max(500),
+    phone: z.string().max(100).default(""),
+    url: z.string().max(500).default(""),
   })).max(80),
 });
 

@@ -6,7 +6,7 @@ import {
   Clock3, Eye, FileText, LoaderCircle, LogOut, MapPinned, Play, Plus, Sparkles, UploadCloud,
   Search, SlidersHorizontal, UsersRound,
 } from "lucide-react";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { PlatformOverview } from "@/lib/platform/types";
 
 type Props = { initialOverview: PlatformOverview };
@@ -37,6 +37,15 @@ const agencyDateTimeFormatter = new Intl.DateTimeFormat("it-IT", {
   timeStyle: "short",
   timeZone: "Europe/Rome",
 });
+
+const activeImportStatuses = new Set(["queued", "extracting", "generating"]);
+
+function importProgress(status: string) {
+  if (status === "queued") return 15;
+  if (status === "extracting") return 45;
+  if (status === "generating") return 75;
+  return 100;
+}
 
 async function responseJson<T>(response: Response): Promise<T> {
   const result = await response.json().catch(() => ({})) as T & { error?: string };
@@ -77,6 +86,28 @@ export default function AgencyDashboard({ initialOverview }: Props) {
       return periodMatches && peopleMatches;
     });
   }, [agency, travelerFilter, tripPeriod]);
+  const activeImportKey = overview.recentImports
+    .filter((item) => activeImportStatuses.has(item.status))
+    .map((item) => `${item.id}:${item.status}`)
+    .join("|");
+
+  useEffect(() => {
+    if (!activeImportKey) return;
+    let cancelled = false;
+    const timer = window.setInterval(async () => {
+      try {
+        const response = await fetch("/api/admin/platform/overview", { cache: "no-store" });
+        const result = await responseJson<PlatformOverview>(response);
+        if (!cancelled) setOverview(result);
+      } catch {
+        // Il prossimo polling riproverà senza interrompere l'elaborazione in corso.
+      }
+    }, 3000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [activeImportKey]);
 
   async function refresh() {
     const result = await responseJson<PlatformOverview>(await fetch("/api/admin/platform/overview", {
@@ -183,12 +214,14 @@ export default function AgencyDashboard({ initialOverview }: Props) {
     setError("");
     setNotice("");
     try {
-      const result = await responseJson<{ import: { days: number } }>(await fetch(
+      const result = await responseJson<{ import: { status: string; days?: number } }>(await fetch(
         `/api/admin/platform/imports/${importId}/process`,
         { method: "POST" }
       ));
       await refresh();
-      setNotice(`PDF elaborato: ${result.import.days} giornate pronte per la revisione.`);
+      setNotice(result.import.days
+        ? `PDF elaborato: ${result.import.days} giornate pronte per la revisione.`
+        : "Nuovo tentativo accodato. Lo stato si aggiornerà automaticamente.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Elaborazione non riuscita");
       await refresh().catch(() => undefined);
@@ -276,13 +309,35 @@ export default function AgencyDashboard({ initialOverview }: Props) {
             </div>
 
             <div className="tripAdminGrid">
-              {filteredTrips.map((trip) => (
-                <article className="tripAdminCard" key={trip.id}>
+              {filteredTrips.map((trip) => {
+                const latestImport = overview.recentImports.find((item) => item.templateId === trip.id);
+                const importIsActive = latestImport ? activeImportStatuses.has(latestImport.status) : false;
+                return (
+                <article className={importIsActive ? "tripAdminCard generating" : "tripAdminCard"} key={trip.id}>
                   <div className="tripCardTop"><span className={`status ${trip.status}`}>{statusLabels[trip.status] ?? trip.status}</span><MapPinned size={22}/></div>
                   <h3>{trip.title}</h3>
                   <p>{trip.destinationCountry || "Destinazione da revisionare"}</p>
                   <p>{trip.startsOn && trip.endsOn ? `${trip.startsOn} → ${trip.endsOn}` : "Date in attesa di estrazione"}</p>
                   <p>{trip.departures.flatMap((item) => item.travelerNames).join(", ") || "Nessun viaggiatore configurato"}</p>
+                  {latestImport && (
+                    <div className={`tripGeneration ${latestImport.status}`}>
+                      <div>
+                        {importIsActive ? <LoaderCircle className="spin"/> : latestImport.status === "failed" ? <CircleAlert/> : <CheckCircle2/>}
+                        <span>
+                          <b>{importIsActive ? "Viaggio in generazione" : statusLabels[latestImport.status] ?? latestImport.status}</b>
+                          <small>{latestImport.status === "queued" && "Il preventivo è in attesa del worker."}</small>
+                          <small>{latestImport.status === "extracting" && "Sto leggendo testo, date, tappe e alberghi."}</small>
+                          <small>{latestImport.status === "generating" && "L’AI sta costruendo il programma da revisionare."}</small>
+                          <small>{latestImport.status === "ready_for_review" && "Il programma estratto è pronto per il controllo."}</small>
+                          <small>{latestImport.status === "failed" && "Analisi non riuscita. Il PDF è salvo e puoi riprovare."}</small>
+                          <small>{latestImport.status === "published" && "Programma revisionato e pubblicato."}</small>
+                        </span>
+                      </div>
+                      {importIsActive && <i><span style={{ width: `${importProgress(latestImport.status)}%` }}/></i>}
+                      {latestImport.status === "failed" && <button disabled={Boolean(busy)} onClick={() => void processImport(latestImport.id)}>{busy === `process-${latestImport.id}` ? <LoaderCircle className="spin"/> : <Play/>} Riprova</button>}
+                      {latestImport.status === "ready_for_review" && <a href={`/agenzia/importazioni/${latestImport.id}`}><Eye/> Revisiona programma</a>}
+                    </div>
+                  )}
                   {trip.departures[0] && <Link className="configureTravelers" href={`/agenzia/viaggi/${trip.departures[0].id}`}><UsersRound/> Configura famiglie e viaggiatori</Link>}
                   <label className={busy === `upload-${trip.id}` ? "uploadAction busy" : "uploadAction"}>
                     {busy === `upload-${trip.id}` ? <LoaderCircle className="spin"/> : <UploadCloud/>}
@@ -294,7 +349,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                     }}/>
                   </label>
                 </article>
-              ))}
+              )})}
               {filteredTrips.length === 0 && <div className="agencyEmpty"><MapPinned/><h3>Nessun viaggio</h3><p>Nessun risultato per i filtri selezionati.</p></div>}
             </div>
           </section>
@@ -308,6 +363,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                   <span><b>{item.fileName}</b><small>{item.tripTitle}</small></span>
                   <time><Clock3 size={13}/>{agencyDateTimeFormatter.format(new Date(item.createdAt))}</time>
                   <em className={`status ${item.status}`}>{statusLabels[item.status] ?? item.status}</em>
+                  {item.status === "failed" && <p className="importError">Analisi non riuscita. Il documento è salvo: riprova dopo la correzione.</p>}
                   {(item.status === "failed" || (overview.providers.jobQueue === "database" && item.status === "queued")) && <button className="importAction" disabled={Boolean(busy)} onClick={() => void processImport(item.id)}>{busy === `process-${item.id}` ? <LoaderCircle className="spin"/> : <Play/>}<span>{item.status === "failed" ? "Riprova" : "Elabora"}</span></button>}
                   {item.status === "ready_for_review" && <a className="importAction review" href={`/agenzia/importazioni/${item.id}`}><Eye/><span>Revisiona</span></a>}
                 </article>
