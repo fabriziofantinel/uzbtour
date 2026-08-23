@@ -54,7 +54,7 @@ export async function materializeTripExperience(templateId: string, agencyId: st
         AND rc.locale = 'it-IT' AND rc.status = 'ready'
       WHERE td.template_version_id = ${versionId} AND td.agency_id = ${agencyId}
         AND rc.content_type IN ('quiz', 'mission', 'game', 'photo_contest')
-      ORDER BY td.id, entity_order, rc.content_type
+      ORDER BY trip_day_id, entity_order, content_type
     `,
   ]);
   const countries = countryRows as ReferenceRow[];
