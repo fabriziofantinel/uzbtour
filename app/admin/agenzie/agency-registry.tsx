@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import {
   Building2, ChevronDown, CircleAlert, LoaderCircle, Mail, MapPinned,
-  Phone, Plus, Save, UserPlus, UsersRound, X,
+  Phone, Plus, Save, Trash2, UserPlus, UsersRound, X,
 } from "lucide-react";
 import type { AgencyRegistryItem } from "@/lib/platform/superadmin-repository";
 
@@ -27,6 +27,7 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [agencyToDelete, setAgencyToDelete] = useState<AgencyRegistryItem | null>(null);
 
   async function createAgency(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -83,6 +84,31 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
     }
   }
 
+  async function deleteAgency() {
+    if (!agencyToDelete) return;
+    setBusy(`delete-${agencyToDelete.id}`); setError(""); setNotice("");
+    try {
+      const result = await readJson<{
+        agencies: AgencyRegistryItem[];
+        deletedAgency: string;
+        deletedFiles: number;
+        deletedUsers: number;
+      }>(await fetch(`/api/admin/platform/agencies/${agencyToDelete.id}`, { method: "DELETE" }));
+      setAgencies(result.agencies);
+      setExpandedAgencyId("");
+      setAgentAgencyId("");
+      setAgencyToDelete(null);
+      setNotice(
+        `Agenzia “${result.deletedAgency}” eliminata con tutti i viaggi e i viaggiatori. ` +
+        `${result.deletedFiles} file rimossi e ${result.deletedUsers} account non più utilizzati cancellati.`
+      );
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Eliminazione non riuscita");
+    } finally {
+      setBusy("");
+    }
+  }
+
   return (
     <div className="superadminShell">
       <section className="registryHead">
@@ -130,7 +156,7 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
             <article key={agency.id} className={expanded ? "expanded" : ""}>
               <button className="agencyRegistrySummary" onClick={() => setExpandedAgencyId(expanded ? "" : agency.id)}>
                 <span className="agencyMark"><Building2/></span>
-                <span className="agencyIdentity"><small>{agency.status === "trial" ? "DEMO" : agency.status.toUpperCase()}</small><strong>{agency.name}</strong><em>{agency.referenceName} · {agency.referenceEmail}</em></span>
+                <span className="agencyIdentity">{agency.status !== "trial" && <small>{agency.status.toUpperCase()}</small>}<strong>{agency.name}</strong><em>{agency.referenceName} · {agency.referenceEmail}</em></span>
                 <span className="registryCounters"><b><MapPinned/> {agency.tripCount} viaggi</b><b><UsersRound/> {agency.travelerCount} viaggiatori</b><b><UserPlus/> {agency.agents.length} agenti</b></span>
                 <ChevronDown className={expanded ? "rotated" : ""}/>
               </button>
@@ -156,6 +182,10 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
                     {agency.agents.map((agent) => <div key={agent.id}><i>{agent.initials || agent.name.slice(0, 2).toUpperCase()}</i><span><b>{agent.name}</b><small>{agent.email} · {agent.phone || "telefono non indicato"}</small></span><em>{roleLabels[agent.role]}</em><strong className={agent.status}>{agent.status === "invited" ? "Invitato" : "Attivo"}</strong></div>)}
                     {agency.agents.length === 0 && <p>Nessun agente censito.</p>}
                   </div>
+                  <div className="agencyDangerZone">
+                    <span><small>ZONA PERICOLO</small><b>Elimina definitivamente l’agenzia</b><p>Verranno rimossi tutti i viaggi, le famiglie, i viaggiatori e i file collegati.</p></span>
+                    <button disabled={Boolean(busy)} onClick={() => setAgencyToDelete(agency)}><Trash2/> Elimina agenzia</button>
+                  </div>
                 </div>
               )}
             </article>
@@ -163,6 +193,23 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
         })}
         {agencies.length === 0 && <div className="registryEmpty"><Building2/><h2>Nessuna agenzia</h2><p>Inserisci la prima anagrafica per iniziare.</p></div>}
       </section>
+      {agencyToDelete && (
+        <div className="agencyDeleteBackdrop" role="presentation" onMouseDown={(event) => {
+          if (event.target === event.currentTarget && !busy) setAgencyToDelete(null);
+        }}>
+          <section className="agencyDeleteDialog" role="dialog" aria-modal="true" aria-labelledby="delete-agency-title">
+            <button className="agencyDeleteClose" aria-label="Chiudi" disabled={Boolean(busy)} onClick={() => setAgencyToDelete(null)}><X/></button>
+            <i><Trash2/></i>
+            <small>OPERAZIONE DEFINITIVA</small>
+            <h2 id="delete-agency-title">Eliminare “{agencyToDelete.name}”?</h2>
+            <p>La cancellazione comprende {agencyToDelete.tripCount} viaggi, {agencyToDelete.travelerCount} viaggiatori, famiglie, importazioni, documenti e foto. Non sarà possibile recuperare i dati.</p>
+            <div>
+              <button className="secondary" disabled={Boolean(busy)} onClick={() => setAgencyToDelete(null)}>Annulla</button>
+              <button className="danger" disabled={Boolean(busy)} onClick={() => void deleteAgency()}>{busy === `delete-${agencyToDelete.id}` ? <LoaderCircle className="spin"/> : <Trash2/>} Elimina definitivamente</button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

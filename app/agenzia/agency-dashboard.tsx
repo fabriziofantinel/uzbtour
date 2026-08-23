@@ -306,7 +306,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
           <h1>Buongiorno, {overview.actor.name}.</h1>
           <span>Configura programmi, partenze e famiglie da un unico spazio.</span>
         </div>
-        <Link href="/"><ArrowLeft size={16}/> Apri la demo viaggiatore</Link>
+        <Link href="/"><ArrowLeft size={16}/> Apri area viaggiatore</Link>
       </section>
 
       <div className="agencyShell">
@@ -324,7 +324,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
             <a href="#importazioni"><FileText size={18}/> Importazioni</a>
           </nav>
           <div className="providerCard">
-            <small>CONFIGURAZIONE DEMO</small>
+            <small>CONFIGURAZIONE SISTEMA</small>
             <span>Database <b>Neon</b></span>
             <span>File <b>{overview.providers.objectStorage}</b></span>
             <span>Coda <b>{overview.providers.jobQueue}</b></span>
