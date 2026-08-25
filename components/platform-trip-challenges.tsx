@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useMemo, useState } from "react";
 import {
   Award, Brain, Camera, Check, CheckCircle2, ChevronRight, Compass, Crown,
-  Gamepad2, Grid3X3, LoaderCircle, Medal, Send, Sparkles, Trophy, Upload, XCircle,
+  Gamepad2, Grid3X3, LoaderCircle, Medal, RotateCcw, Send, Sparkles, Trophy, Upload, XCircle,
 } from "lucide-react";
 import PlatformTripRankings from "@/components/platform-trip-rankings";
 import { uploadPrivateFile } from "@/lib/private-upload-client";
@@ -34,6 +34,82 @@ function bingoMilestone(completed: number) {
   return null;
 }
 
+function puzzleNeighbors(blank: number) {
+  const row = Math.floor(blank / 3);
+  const column = blank % 3;
+  return [
+    row > 0 ? blank - 3 : -1,
+    row < 2 ? blank + 3 : -1,
+    column > 0 ? blank - 1 : -1,
+    column < 2 ? blank + 1 : -1,
+  ].filter((index) => index >= 0);
+}
+
+function puzzleStart(seed: number) {
+  const board = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+  let blank = 8;
+  let previousBlank = -1;
+  for (let step = 0; step < 35; step += 1) {
+    const candidates = puzzleNeighbors(blank).filter((index) => index !== previousBlank);
+    const selected = candidates[(seed * 11 + step * 7) % candidates.length];
+    previousBlank = blank;
+    [board[blank], board[selected]] = [board[selected], board[blank]];
+    blank = selected;
+  }
+  return board;
+}
+
+function PhotoPuzzle({ dayNumber, photo, score, busy, onComplete }: {
+  dayNumber: number;
+  photo: { contentUrl: string; originalName: string };
+  score: number;
+  busy: boolean;
+  onComplete: () => void;
+}) {
+  const [board, setBoard] = useState(() => puzzleStart(dayNumber));
+  const [moves, setMoves] = useState(0);
+  const [completed, setCompleted] = useState(false);
+
+  function reset() {
+    setBoard(puzzleStart(dayNumber));
+    setMoves(0);
+    setCompleted(false);
+  }
+
+  function move(position: number) {
+    if (completed || busy) return;
+    const blank = board.indexOf(8);
+    if (!puzzleNeighbors(blank).includes(position)) return;
+    const next = [...board];
+    [next[blank], next[position]] = [next[position], next[blank]];
+    setBoard(next);
+    setMoves((current) => current + 1);
+    if (next.every((tile, index) => tile === index)) {
+      setCompleted(true);
+      onComplete();
+    }
+  }
+
+  return <article className={`dailyGameCard interactiveGame photoPuzzleCard ${completed ? "solved" : ""}`}>
+    <header><span><Grid3X3/></span><div><small>PUZZLE FOTOGRAFICO</small><h3>Ricostruisci l’immagine</h3></div><b>{score}/10</b></header>
+    <p>Sposta le tessere vicine allo spazio vuoto fino a ricomporre la fotografia.</p>
+    <div className="photoPuzzle" aria-label={`Puzzle fotografico 3 per 3: ${photo.originalName}`}>
+      {board.map((tile, position) => <button
+        key={tile}
+        type="button"
+        className={tile === 8 ? "blank" : ""}
+        aria-label={tile === 8 ? "Spazio vuoto" : `Tessera ${tile + 1}`}
+        onClick={() => move(position)}
+        style={tile === 8 ? undefined : {
+          backgroundImage: `url("${photo.contentUrl}")`,
+          backgroundPosition: `${(tile % 3) * 50}% ${Math.floor(tile / 3) * 50}%`,
+        }}
+      />)}
+    </div>
+    <div className="puzzleStatus"><span><b>{moves}</b> mosse</span>{completed && <strong><Trophy/> Completato!</strong>}<button type="button" onClick={reset}><RotateCcw/> Mescola</button></div>
+  </article>;
+}
+
 export default function PlatformTripChallenges({ experience, userName, isAdmin, onResultsChange }: {
   experience: Experience; userName: string; isAdmin: boolean;
   onResultsChange?: (results: Experience["challengeResults"]) => void;
@@ -55,6 +131,14 @@ export default function PlatformTripChallenges({ experience, userName, isAdmin, 
   const contests = experience.challenges.filter((entry) => entry.type === "photo_contest" && entry.dayId === day?.id);
   const questions = experience.challenges.filter((entry) => entry.type === "quiz_question" && entry.dayId === day?.id);
   const games = experience.challenges.filter((entry) => ["word_game", "order_game"].includes(entry.type) && entry.dayId === day?.id).slice(0, 3);
+  const puzzleGame = games[0];
+  const cityGame = games[1];
+  const visitCountGame = games[2];
+  const dayPhotos = experience.photos.filter((photo) => photo.dayId === day?.id);
+  const puzzleCandidates = dayPhotos.length > 0 ? dayPhotos : experience.photos;
+  const puzzlePhoto = puzzleCandidates.length > 0
+    ? puzzleCandidates[(day?.number || 0) % puzzleCandidates.length]
+    : { contentUrl: "/app-icon.svg", originalName: "Icona SMF Travel" };
   const approved = new Set(challengeResults.filter((item) => item.travelerName === userName && item.status === "approved").map((item) => item.contentId));
   const bingoRows = [bingo.slice(0, 5), bingo.slice(5, 10), bingo.slice(10, 15)];
   const bingoPositions = [[0, 2, 4, 6, 8], [1, 2, 5, 6, 7], [0, 3, 4, 7, 8]];
@@ -126,15 +210,15 @@ export default function PlatformTripChallenges({ experience, userName, isAdmin, 
     finally { setBusy(""); }
   }
 
-  async function submitGame(game: Challenge) {
+  async function submitGame(game: Challenge, action: "puzzle" | "city" | "visitCount", suppliedAnswer = "") {
     if (!day) return;
-    const answer = gameAnswers[game.id]?.trim();
-    if (!answer) { setError("Inserisci una risposta prima di verificare."); return; }
+    const answer = suppliedAnswer || gameAnswers[game.id]?.trim() || "";
+    if (action !== "puzzle" && !answer) { setError("Inserisci una risposta prima di verificare."); return; }
     const key = `game-${game.id}`;
     setBusy(key); setError("");
     try {
       const response = await fetch("/api/traveler/challenges", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
-        action: "game", departureId: experience.journey.departureId, partyId: experience.journey.partyId,
+        action, departureId: experience.journey.departureId, partyId: experience.journey.partyId,
         dayId: day.id, contentId: game.id, answer,
       }) });
       const result = await response.json() as { id?: string; correct?: boolean; score?: number; answer?: string; error?: string };
@@ -189,7 +273,35 @@ export default function PlatformTripChallenges({ experience, userName, isAdmin, 
 
     {tab === "quiz" && <section className="quizPage"><div className="quizHero"><div><span>SFIDA DELLA GIORNATA</span><h2>Il quiz della giornata</h2><p>{questions.length} domande, un punto per ogni risposta corretta.</p></div><Trophy/></div><div className="quizLayout"><aside className="quizDays"><div className="quizSectionHead"><div><span>LE SFIDE</span><h3>Scegli la giornata</h3></div></div><div className="quizDayList">{experience.days.map((entry) => <button className={entry.id === day.id ? "active" : ""} onClick={() => { setActiveDayId(entry.id); setAnswers({}); setQuizResult(null); }} key={entry.id}><span className="quizDayNumber">{entry.number}</span><span><small>{dateLabel(entry.date)}</small><strong>{entry.city}</strong></span><ChevronRight/></button>)}</div></aside><div className="quizPlay"><div className="quizPlayHead"><div><span>GIORNO {day.number} · {dateLabel(day.date).toUpperCase()}</span><h3>{day.city}</h3></div>{quizResult && <div className="quizScoreBadge"><Medal/><strong>{quizResult.score}/{quizResult.maximum}</strong></div>}</div>{quizResult ? <div className="quizResultBanner"><span className={quizResult.score >= Math.ceil(quizResult.maximum * .8) ? "great" : ""}><Trophy/></span><div><small>RISULTATO CONFERMATO</small><strong>{quizResult.score} risposte corrette su {quizResult.maximum}</strong></div></div> : <><div className="quizProgress"><span><b style={{ width: `${questions.length ? Object.keys(answers).length / questions.length * 100 : 0}%` }}/></span><small>{Object.keys(answers).length} di {questions.length} risposte</small></div><div className="quizQuestions">{questions.map((question, questionIndex) => { const item = data(question.content); const options = Array.isArray(item.options) ? item.options.map(String) : []; return <fieldset key={question.id}><legend><span>{questionIndex + 1}</span>{text(question.content, "question") || question.title}</legend><div>{options.map((option, optionIndex) => <label className={answers[question.id] === optionIndex ? "selected" : ""} key={option}><input type="radio" checked={answers[question.id] === optionIndex} onChange={() => setAnswers((current) => ({ ...current, [question.id]: optionIndex }))}/><span>{String.fromCharCode(65 + optionIndex)}</span><strong>{option}</strong></label>)}</div></fieldset>; })}</div><div className="quizSubmitBar"><span><CheckCircle2/> {Object.keys(answers).length}/{questions.length} completate</span><button disabled={busy === "quiz" || Object.keys(answers).length !== questions.length || questions.length === 0} onClick={() => void submitQuiz()}>{busy === "quiz" ? <LoaderCircle className="spin"/> : <Send/>} Conferma risposte</button></div></>}</div></div></section>}
 
-    {tab === "giochi" && <section className="gamesPage"><div className="gamesHero"><div><span>SEMPRE SBLOCCATI · 3 GIOCHI</span><h2>Giochi della giornata</h2><p>Un rebus, una parola misteriosa e un gioco di ordinamento legati alle tappe visitate.</p></div><Gamepad2/></div><DayPicker days={experience.days} activeDayId={day.id} onDay={(id) => { setActiveDayId(id); setGameAnswers({}); setGameFeedback({}); }} count={(entry) => Math.min(3, experience.challenges.filter((item) => ["word_game", "order_game"].includes(item.type) && item.dayId === entry.id).length)}/><section className="gamesDayHead"><div><span>GIORNO {day.number} · {dateLabel(day.date)}</span><h3>{day.city}</h3></div><strong>{currentGameScore}<small>pt</small></strong></section><div className="dailyGamesGrid">{games.map((game, index) => { const generatedType = text(game.content, "type"); const label = generatedType === "rebus" ? "Rebus" : generatedType === "order" || game.type === "order_game" ? "Metti in ordine" : "Parola misteriosa"; const feedback = gameFeedback[game.id]; return <article className={`dailyGameCard interactiveGame ${feedback?.correct ? "solved" : ""}`} key={game.id}><header><span>{index + 1}</span><div><small>{label}</small><h3>{game.title}</h3></div><b>10 pt</b></header><p>{text(game.content, "instructions")}</p><div className="gameAnswerBox"><label htmlFor={`game-${game.id}`}>La tua risposta</label><div><input id={`game-${game.id}`} value={gameAnswers[game.id] || ""} disabled={feedback?.correct} placeholder={label === "Metti in ordine" ? "Scrivi gli elementi nell’ordine corretto" : "Scrivi la soluzione"} onChange={(event) => setGameAnswers((current) => ({ ...current, [game.id]: event.target.value }))}/><button disabled={busy === `game-${game.id}` || feedback?.correct} onClick={() => void submitGame(game)}>{busy === `game-${game.id}` ? <LoaderCircle className="spin"/> : <CheckCircle2/>} Verifica</button></div></div>{feedback && <p className={`gameFeedback ${feedback.correct ? "correct" : "wrong"}`}>{feedback.correct ? `Corretto: +${feedback.score} punti!` : `Non è corretto. Soluzione: ${feedback.answer}`}</p>}</article>; })}</div>{games.length < 3 && <p className="gamesNotice">I tre giochi saranno disponibili dopo il completamento dei contenuti della giornata.</p>}</section>}
+    {tab === "giochi" && <section className="gamesPage">
+      <div className="gamesHero"><div><span>SEMPRE SBLOCCATI · 3 GIOCHI FACILI</span><h2>Giochi della giornata</h2><p>Un puzzle fotografico e due domande semplici sul programma del giorno.</p></div><Gamepad2/></div>
+      <DayPicker days={experience.days} activeDayId={day.id} onDay={(id) => { setActiveDayId(id); setGameAnswers({}); setGameFeedback({}); }} count={(entry) => Math.min(3, experience.challenges.filter((item) => ["word_game", "order_game"].includes(item.type) && item.dayId === entry.id).length)}/>
+      <section className="gamesDayHead"><div><span>GIORNO {day.number} · {dateLabel(day.date)}</span><h3>{day.city}</h3></div><strong>{currentGameScore}<small>pt</small></strong></section>
+      <div className="dailyGamesGrid easyGamesGrid">
+        {puzzleGame && <PhotoPuzzle
+          key={`puzzle-${day.id}-${puzzlePhoto.contentUrl}`}
+          dayNumber={day.number}
+          photo={puzzlePhoto}
+          score={gameFeedback[puzzleGame.id]?.score ?? challengeResults.find((result) => result.travelerName === userName && result.contentId === puzzleGame.id && result.status === "approved")?.score ?? 0}
+          busy={busy === `game-${puzzleGame.id}`}
+          onComplete={() => void submitGame(puzzleGame, "puzzle")}
+        />}
+        {cityGame && <article className={`dailyGameCard interactiveGame ${gameFeedback[cityGame.id]?.correct ? "solved" : ""}`}>
+          <header><span>2</span><div><small>INDOVINA LA CITTÀ</small><h3>Dove siamo oggi?</h3></div><b>10 pt</b></header>
+          <p>Scrivi il nome della città principale della giornata. Aiuto: inizia con <strong>{day.city.charAt(0).toUpperCase()}</strong> e ha {day.city.length} lettere.</p>
+          <div className="gameAnswerBox"><label htmlFor={`game-${cityGame.id}`}>La tua risposta</label><div><input id={`game-${cityGame.id}`} value={gameAnswers[cityGame.id] || ""} disabled={gameFeedback[cityGame.id]?.correct} placeholder="Nome della città" onChange={(event) => setGameAnswers((current) => ({ ...current, [cityGame.id]: event.target.value }))}/><button disabled={busy === `game-${cityGame.id}` || gameFeedback[cityGame.id]?.correct} onClick={() => void submitGame(cityGame, "city")}>{busy === `game-${cityGame.id}` ? <LoaderCircle className="spin"/> : <CheckCircle2/>} Verifica</button></div></div>
+          {gameFeedback[cityGame.id] && <p className={`gameFeedback ${gameFeedback[cityGame.id].correct ? "correct" : "wrong"}`}>{gameFeedback[cityGame.id].correct ? "Corretto: +10 punti!" : `Riprova. Soluzione: ${gameFeedback[cityGame.id].answer}`}</p>}
+        </article>}
+        {visitCountGame && <article className={`dailyGameCard interactiveGame ${gameFeedback[visitCountGame.id]?.correct ? "solved" : ""}`}>
+          <header><span>3</span><div><small>CONTA LE VISITE</small><h3>Occhio al programma</h3></div><b>10 pt</b></header>
+          <p>Quante visite a monumenti o luoghi d’interesse sono previste oggi? Conta soltanto le tappe indicate come “Visita”.</p>
+          <div className="gameVisitHint">Nel programma ci sono <strong>{day.items.length}</strong> tappe complessive.</div>
+          <div className="gameAnswerBox"><label htmlFor={`game-${visitCountGame.id}`}>Numero di visite</label><div><input id={`game-${visitCountGame.id}`} type="number" min="0" max="20" inputMode="numeric" value={gameAnswers[visitCountGame.id] || ""} disabled={gameFeedback[visitCountGame.id]?.correct} placeholder="0" onChange={(event) => setGameAnswers((current) => ({ ...current, [visitCountGame.id]: event.target.value }))}/><button disabled={busy === `game-${visitCountGame.id}` || gameFeedback[visitCountGame.id]?.correct} onClick={() => void submitGame(visitCountGame, "visitCount")}>{busy === `game-${visitCountGame.id}` ? <LoaderCircle className="spin"/> : <CheckCircle2/>} Verifica</button></div></div>
+          {gameFeedback[visitCountGame.id] && <p className={`gameFeedback ${gameFeedback[visitCountGame.id].correct ? "correct" : "wrong"}`}>{gameFeedback[visitCountGame.id].correct ? "Corretto: +10 punti!" : `Riprova. Le visite sono ${gameFeedback[visitCountGame.id].answer}.`}</p>}
+        </article>}
+      </div>
+      {games.length < 3 && <p className="gamesNotice">I tre giochi saranno disponibili dopo il completamento dei contenuti della giornata.</p>}
+    </section>}
 
     {tab === "valida" && isAdmin && <section className="reviewPanel"><div className="reviewHeading"><span><CheckCircle2/></span><div><small>AREA AMMINISTRATORE</small><h3>Valida le foto-prova</h3><p>Controlla le missioni e le caselle della tombola prima di assegnare i punti.</p></div></div>{challengeResults.filter((result) => result.status === "submitted" && ["mission", "bingo"].includes(result.type)).length === 0 ? <div className="reviewEmpty"><CheckCircle2/><h3>Nessuna foto da validare</h3><p>Tutte le prove ricevute sono state esaminate.</p></div> : <div className="reviewList">{challengeResults.filter((result) => result.status === "submitted" && ["mission", "bingo"].includes(result.type)).map((result) => { const challenge = experience.challenges.find((item) => item.id === result.contentId); const challengeDay = experience.days.find((entry) => entry.id === result.dayId); return <article key={result.id}><div className="reviewImage">{result.evidenceUrl ? <Image src={result.evidenceUrl} alt={`Foto-prova di ${result.travelerName}`} fill sizes="(max-width: 800px) 100vw, 380px" unoptimized/> : <Camera/>}</div><div className="reviewCopy"><small>{result.type === "mission" ? "MISSIONE" : "TOMBOLA"} · {challengeDay ? `GIORNO ${challengeDay.number}` : "VIAGGIO"}</small><h4>{challenge?.title || "Foto-prova"}</h4><p>{result.travelerName}</p><blockquote>{challenge ? text(challenge.content, "description", "instructions") : "Verifica che la foto rispetti la richiesta."}</blockquote><div><button className="reject" disabled={busy === `review-${result.id}`} onClick={() => void reviewEvidence(result.id, false)}><XCircle/> Rifiuta</button><button className="approve" disabled={busy === `review-${result.id}`} onClick={() => void reviewEvidence(result.id, true)}>{busy === `review-${result.id}` ? <LoaderCircle className="spin"/> : <Check/>} Valida</button></div></div></article>; })}</div>}</section>}
 

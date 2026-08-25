@@ -104,26 +104,35 @@ export async function POST(request: Request) {
     if (!reviewed[0]) return NextResponse.json({ error: "Foto già valutata o non disponibile" }, { status: 409 });
     return NextResponse.json({ id: String(reviewed[0].id), status: String(reviewed[0].status), score: Number(reviewed[0].score) });
   }
-  if (body?.action === "game") {
-    const contentId = String(body.contentId || "");
-    const answer = String(body.answer || "").trim();
-    if (!/^[0-9a-f-]{36}$/i.test(contentId) || !answer) {
+  const gameAction = String(body?.action || "");
+  if (["game", "puzzle", "city", "visitCount"].includes(gameAction)) {
+    const contentId = String(body?.contentId || "");
+    const answer = String(body?.answer || "").trim();
+    if (!/^[0-9a-f-]{36}$/i.test(contentId) || (gameAction !== "puzzle" && !answer)) {
       return NextResponse.json({ error: "Risposta non valida" }, { status: 400 });
     }
     const rows = await sql`
-      SELECT id::text, content
-      FROM generated_content
-      WHERE id = ${contentId} AND trip_day_id = ${dayId}
-        AND agency_id = ${String(scope[0].agency_id)}
-        AND template_version_id = ${String(scope[0].template_version_id)}
-        AND content_type IN ('word_game', 'order_game') AND status = 'approved'
+      SELECT content.id::text, content.content, day.city,
+        (SELECT COUNT(*)::integer FROM itinerary_items item
+         WHERE item.agency_id = content.agency_id AND item.trip_day_id = day.id
+           AND item.item_type = 'visit') AS visit_count
+      FROM generated_content content
+      JOIN trip_days day ON day.id = content.trip_day_id AND day.agency_id = content.agency_id
+      WHERE content.id = ${contentId} AND content.trip_day_id = ${dayId}
+        AND content.agency_id = ${String(scope[0].agency_id)}
+        AND content.template_version_id = ${String(scope[0].template_version_id)}
+        AND content.content_type IN ('word_game', 'order_game') AND content.status = 'approved'
       LIMIT 1
     `;
     if (!rows[0]) return NextResponse.json({ error: "Gioco non disponibile" }, { status: 404 });
     const content = rows[0].content && typeof rows[0].content === "object" && !Array.isArray(rows[0].content)
       ? rows[0].content as Record<string, unknown> : {};
-    const expected = String(content.answer || "").trim();
-    const correct = Boolean(expected) && normalizedAnswer(answer) === normalizedAnswer(expected);
+    const expected = gameAction === "city" ? String(rows[0].city || "").trim()
+      : gameAction === "visitCount" ? String(rows[0].visit_count ?? "0")
+        : String(content.answer || "").trim();
+    const correct = gameAction === "puzzle"
+      ? true
+      : Boolean(expected) && normalizedAnswer(answer) === normalizedAnswer(expected);
     const score = correct ? 10 : 0;
     const saved = await sql`
       INSERT INTO party_activity_results (
