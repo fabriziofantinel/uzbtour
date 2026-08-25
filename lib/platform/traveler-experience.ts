@@ -443,6 +443,31 @@ export async function addTravelerExpense(input: {
   return String(rows[0].id);
 }
 
+export async function deleteTravelerExpense(input: {
+  userId: string;
+  departureId: string;
+  partyId: string;
+  expenseId: string;
+}) {
+  const sql = getSql();
+  const rows = await sql`
+    DELETE FROM party_expenses expense
+    USING traveler_profiles profile, party_memberships membership, travel_parties party
+    WHERE expense.id = ${input.expenseId}
+      AND expense.departure_id = ${input.departureId}
+      AND expense.party_id = ${input.partyId}
+      AND party.id = expense.party_id
+      AND party.departure_id = expense.departure_id
+      AND membership.party_id = party.id
+      AND membership.agency_id = party.agency_id
+      AND membership.status = 'active'
+      AND profile.id = membership.traveler_id
+      AND profile.user_id = ${input.userId}
+    RETURNING expense.id::text
+  `;
+  if (!rows[0]) throw new PlatformRequestError("Spesa non disponibile");
+}
+
 export async function saveTravelerNote(input: {
   userId: string; userName: string; departureId: string; partyId: string; dayId: string; text: string;
 }) {
@@ -488,6 +513,27 @@ export async function addTravelerCashMovement(input: {
     ) RETURNING id::text, created_at::text
   `;
   return { id: String(rows[0].id), createdAt: String(rows[0].created_at) };
+}
+
+export async function deleteTravelerCashMovement(input: {
+  userId: string; departureId: string; partyId: string; movementId: string;
+}) {
+  const sql = getSql();
+  const rows = await sql`
+    DELETE FROM party_cash_movements movement
+    USING traveler_profiles profile, party_memberships membership, travel_parties party
+    WHERE movement.id = ${input.movementId}
+      AND movement.party_id = ${input.partyId}
+      AND party.id = movement.party_id
+      AND party.departure_id = ${input.departureId}
+      AND membership.party_id = party.id
+      AND membership.agency_id = party.agency_id
+      AND membership.status = 'active'
+      AND profile.id = membership.traveler_id
+      AND profile.user_id = ${input.userId}
+    RETURNING movement.id::text
+  `;
+  if (!rows[0]) throw new PlatformRequestError("Movimento non disponibile");
 }
 
 export type TravelerExperience = NonNullable<Awaited<ReturnType<typeof getTravelerExperience>>>;

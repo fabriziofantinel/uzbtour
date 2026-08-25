@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { cleanText, platformApiError } from "@/lib/platform/http";
-import { addTravelerCashMovement, addTravelerRestaurant, saveTravelerNote } from "@/lib/platform/traveler-experience";
+import { addTravelerCashMovement, addTravelerRestaurant, deleteTravelerCashMovement, saveTravelerNote } from "@/lib/platform/traveler-experience";
 
 export const runtime = "nodejs";
 const uuid = /^[0-9a-f-]{36}$/i;
@@ -45,5 +45,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Operazione non supportata" }, { status: 400 });
   } catch (error) {
     return platformApiError(error, "Aggiornamento del diario non riuscito");
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
+    const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+    const departureId = cleanText(body?.departureId, 64);
+    const partyId = cleanText(body?.partyId, 64);
+    const movementId = cleanText(body?.movementId, 64);
+    if (!uuid.test(departureId) || !uuid.test(partyId) || !uuid.test(movementId)) {
+      return NextResponse.json({ error: "Movimento non valido" }, { status: 400 });
+    }
+    await deleteTravelerCashMovement({ userId: user.id, departureId, partyId, movementId });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    return platformApiError(error, "Eliminazione del movimento non riuscita");
   }
 }
