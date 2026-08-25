@@ -6,10 +6,11 @@ import {
   Award, Brain, Camera, Check, CheckCircle2, ChevronRight, Compass, Crown,
   Gamepad2, Grid3X3, LoaderCircle, Medal, Send, Sparkles, Trophy, Upload, XCircle,
 } from "lucide-react";
+import PlatformTripRankings from "@/components/platform-trip-rankings";
 import { uploadPrivateFile } from "@/lib/private-upload-client";
 import type { TravelerExperience as Experience } from "@/lib/platform/traveler-experience";
 
-type ChallengeTab = "missioni" | "bingo" | "foto" | "quiz" | "giochi" | "profilo" | "valida";
+type ChallengeTab = "missioni" | "bingo" | "foto" | "quiz" | "giochi" | "profilo" | "classifica" | "valida";
 type Challenge = Experience["challenges"][number];
 type Day = Experience["days"][number];
 
@@ -168,13 +169,14 @@ export default function PlatformTripChallenges({ experience, userName, isAdmin, 
   if (!day) return null;
   return <section className="challengesPage">
     <div className="challengesHero"><div><span>GIOCA · ESPLORA · RICORDA</span><h2>Le sfide del viaggio</h2><p>Missioni e Bingo assegnano punti soltanto dopo la validazione fotografica.</p></div><Sparkles size={54}/></div>
-    <nav className="challengeTabs" aria-label="Tipi di sfida">
+    <nav className={`challengeTabs${isAdmin ? " admin" : ""}`} aria-label="Tipi di sfida">
       <button className={tab === "missioni" ? "active" : ""} onClick={() => setTab("missioni")}><Compass/>Missioni</button>
       <button className={tab === "bingo" ? "active" : ""} onClick={() => setTab("bingo")}><Grid3X3/>Bingo</button>
       <button className={tab === "foto" ? "active" : ""} onClick={() => setTab("foto")}><Camera/>Foto</button>
       <button className={tab === "quiz" ? "active" : ""} onClick={() => setTab("quiz")}><Brain/>Quiz</button>
       <button className={tab === "giochi" ? "active" : ""} onClick={() => setTab("giochi")}><Gamepad2/>Giochi</button>
       <button className={tab === "profilo" ? "active" : ""} onClick={() => setTab("profilo")}><Award/>Profilo</button>
+      <button className={tab === "classifica" ? "active" : ""} onClick={() => setTab("classifica")}><Trophy/>Classifica</button>
       {isAdmin && <button className={tab === "valida" ? "active" : ""} onClick={() => setTab("valida")}><CheckCircle2/>Valida <b>{challengeResults.filter((result) => result.status === "submitted" && ["mission", "bingo"].includes(result.type)).length}</b></button>}
     </nav>
     {error && <p className="quizError" role="alert">{error}</p>}
@@ -192,6 +194,7 @@ export default function PlatformTripChallenges({ experience, userName, isAdmin, 
     {tab === "valida" && isAdmin && <section className="reviewPanel"><div className="reviewHeading"><span><CheckCircle2/></span><div><small>AREA AMMINISTRATORE</small><h3>Valida le foto-prova</h3><p>Controlla le missioni e le caselle della tombola prima di assegnare i punti.</p></div></div>{challengeResults.filter((result) => result.status === "submitted" && ["mission", "bingo"].includes(result.type)).length === 0 ? <div className="reviewEmpty"><CheckCircle2/><h3>Nessuna foto da validare</h3><p>Tutte le prove ricevute sono state esaminate.</p></div> : <div className="reviewList">{challengeResults.filter((result) => result.status === "submitted" && ["mission", "bingo"].includes(result.type)).map((result) => { const challenge = experience.challenges.find((item) => item.id === result.contentId); const challengeDay = experience.days.find((entry) => entry.id === result.dayId); return <article key={result.id}><div className="reviewImage">{result.evidenceUrl ? <Image src={result.evidenceUrl} alt={`Foto-prova di ${result.travelerName}`} fill sizes="(max-width: 800px) 100vw, 380px" unoptimized/> : <Camera/>}</div><div className="reviewCopy"><small>{result.type === "mission" ? "MISSIONE" : "TOMBOLA"} · {challengeDay ? `GIORNO ${challengeDay.number}` : "VIAGGIO"}</small><h4>{challenge?.title || "Foto-prova"}</h4><p>{result.travelerName}</p><blockquote>{challenge ? text(challenge.content, "description", "instructions") : "Verifica che la foto rispetti la richiesta."}</blockquote><div><button className="reject" disabled={busy === `review-${result.id}`} onClick={() => void reviewEvidence(result.id, false)}><XCircle/> Rifiuta</button><button className="approve" disabled={busy === `review-${result.id}`} onClick={() => void reviewEvidence(result.id, true)}>{busy === `review-${result.id}` ? <LoaderCircle className="spin"/> : <Check/>} Valida</button></div></div></article>; })}</div>}</section>}
 
     {tab === "profilo" && <section className="travellerProfile"><div className="profileScore"><span>{userName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase()}</span><div><small>PROFILO DI VIAGGIO</small><h3>{userName}</h3><p>{submitted.size} sfide inviate</p></div><strong>{challengeResults.filter((item) => item.travelerName === userName && item.status === "approved").reduce((sum, item) => sum + item.score, 0)}<small>punti validati</small></strong></div><section className="overallRanking"><div><Medal/><span><small>CLASSIFICA COMPLESSIVA</small><h3>{experience.journey.partyName}</h3></span></div>{scores.length === 0 ? <p>Il podio aspetta il primo punteggio.</p> : scores.map(([name, score], index) => <article className={name === userName ? "current" : ""} key={name}><span>{index === 0 ? <Crown/> : index + 1}</span><i>{name.slice(0, 2).toUpperCase()}</i><strong>{name}</strong><b>{score} pt</b></article>)}</section></section>}
+    {tab === "classifica" && <PlatformTripRankings experience={{ ...experience, challengeResults }} userName={userName}/>}
   </section>;
 }
 

@@ -25,7 +25,7 @@
 .pwaCard>button{display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 14px;color:#fff;border:0;border-radius:10px;background:var(--teal);font-size:9px;font-weight:900}.pwaCardCopy .pwaHelp{display:flex;align-items:center;gap:5px;margin-top:9px;padding:8px;color:#684d1f;border-radius:8px;background:#fff2d8;font-size:9px}
 .challengesHero{min-height:185px;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:32px 36px;color:#fff;border-radius:22px;background:linear-gradient(135deg,#4c3c6f,#715c9d)}
 .challengesHero h2{margin:6px 0;font-family:var(--font-serif);font-size:clamp(30px,4vw,43px)}.challengesHero p{max-width:650px;margin:0;color:rgba(255,255,255,.72);font-size:12px}.challengesHero>svg{flex:0 0 auto;color:#efc174}
-.challengeTabs{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:15px 0 22px}.challengeTabs button{display:flex;align-items:center;justify-content:center;gap:7px;padding:12px 8px;color:#6f7878;border:1px solid var(--line);border-radius:11px;background:#fff;font-size:10px;font-weight:800}
+.challengeTabs{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin:15px 0 22px}.challengeTabs button{display:flex;align-items:center;justify-content:center;gap:7px;padding:12px 8px;color:#6f7878;border:1px solid var(--line);border-radius:11px;background:#fff;font-size:10px;font-weight:800}
 .challengeTabs button.active{color:#fff;border-color:var(--teal);background:var(--teal)}
 .challengeLoading,.challengeLocked{display:grid;place-items:center;min-height:260px;padding:30px;color:#7b8484;text-align:center;border-radius:16px;background:var(--cream)}.challengeLocked h3{margin:9px 0 0;font-family:var(--font-serif);font-size:22px}.challengeLocked p{max-width:420px;font-size:11px}.challengeError{padding:12px 14px;color:#8b372d;border-radius:10px;background:#fff0ed}
 .challengeDayPicker{display:flex;gap:9px;padding:3px 0 12px;overflow-x:auto;scrollbar-width:thin}.challengeDayPicker button{min-width:126px;display:grid;grid-template-columns:1fr auto;gap:3px 8px;padding:11px 12px;text-align:left;color:var(--ink);border:1px solid var(--line);border-radius:11px;background:#fff}
@@ -62,7 +62,7 @@
 }
 
 /* Foto-prova e validazione delle sfide */
-.challengeTabs.admin{grid-template-columns:repeat(7,1fr)}
+.challengeTabs.admin{grid-template-columns:repeat(8,1fr)}
 .challengeTabs button b{min-width:18px;height:18px;display:grid;place-items:center;margin-left:2px;color:var(--teal);border-radius:50%;background:#fff;font-size:8px}
 .evidenceIntro{display:flex;align-items:center;gap:8px;margin:0 0 12px;padding:11px 13px;color:#73571f;border-radius:10px;background:#fff6df;font-size:10px;font-weight:700}
 .missionList article.approved{border-color:#9bc9b7;background:#f0f8f4}.missionList article.pending{border-color:#e6c379;background:#fffaf0}.missionList article.rejected{border-color:#df9a90;background:#fff5f3}
