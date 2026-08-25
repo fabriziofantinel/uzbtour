@@ -4,6 +4,11 @@ import { getSql } from "@/lib/db";
 
 export const runtime = "nodejs";
 
+function normalizedAnswer(value: unknown) {
+  return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("it").replace(/[^a-z0-9]+/g, " ").trim();
+}
+
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
@@ -80,6 +85,60 @@ export async function POST(request: Request) {
       RETURNING id::text
     `;
     return NextResponse.json({ id: String(rows[0].id), status: "submitted" });
+  }
+  if (body?.action === "reviewEvidence") {
+    if (!user.isAgencyAdmin) return NextResponse.json({ error: "Solo l’amministratore può validare le foto" }, { status: 403 });
+    const resultId = String(body.resultId || "");
+    const approved = body.approved === true;
+    if (!/^[0-9a-f-]{36}$/i.test(resultId)) return NextResponse.json({ error: "Risultato non valido" }, { status: 400 });
+    const reviewed = await sql`
+      UPDATE party_activity_results result SET
+        status = ${approved ? "approved" : "rejected"},
+        score = CASE WHEN ${approved} AND result.activity_type = 'mission' THEN 10 ELSE 0 END,
+        updated_at = NOW()
+      WHERE result.id = ${resultId} AND result.party_id = ${partyId}
+        AND result.agency_id = ${String(scope[0].agency_id)}
+        AND result.activity_type IN ('mission', 'bingo') AND result.status = 'submitted'
+      RETURNING result.id::text, result.status, result.score
+    `;
+    if (!reviewed[0]) return NextResponse.json({ error: "Foto già valutata o non disponibile" }, { status: 409 });
+    return NextResponse.json({ id: String(reviewed[0].id), status: String(reviewed[0].status), score: Number(reviewed[0].score) });
+  }
+  if (body?.action === "game") {
+    const contentId = String(body.contentId || "");
+    const answer = String(body.answer || "").trim();
+    if (!/^[0-9a-f-]{36}$/i.test(contentId) || !answer) {
+      return NextResponse.json({ error: "Risposta non valida" }, { status: 400 });
+    }
+    const rows = await sql`
+      SELECT id::text, content
+      FROM generated_content
+      WHERE id = ${contentId} AND trip_day_id = ${dayId}
+        AND agency_id = ${String(scope[0].agency_id)}
+        AND template_version_id = ${String(scope[0].template_version_id)}
+        AND content_type IN ('word_game', 'order_game') AND status = 'approved'
+      LIMIT 1
+    `;
+    if (!rows[0]) return NextResponse.json({ error: "Gioco non disponibile" }, { status: 404 });
+    const content = rows[0].content && typeof rows[0].content === "object" && !Array.isArray(rows[0].content)
+      ? rows[0].content as Record<string, unknown> : {};
+    const expected = String(content.answer || "").trim();
+    const correct = Boolean(expected) && normalizedAnswer(answer) === normalizedAnswer(expected);
+    const score = correct ? 10 : 0;
+    const saved = await sql`
+      INSERT INTO party_activity_results (
+        agency_id, party_id, traveler_id, trip_day_id, generated_content_id,
+        activity_type, score, max_score, status, result
+      ) VALUES (
+        ${String(scope[0].agency_id)}, ${partyId}, ${String(scope[0].traveler_id)}, ${dayId},
+        ${contentId}, 'game', ${score}, 10, 'approved',
+        ${JSON.stringify({ answer, correct })}::jsonb
+      ) ON CONFLICT (party_id, traveler_id, generated_content_id) DO UPDATE SET
+        score = GREATEST(party_activity_results.score, EXCLUDED.score), max_score = 10,
+        status = 'approved', result = EXCLUDED.result, submitted_at = NOW(), updated_at = NOW()
+      RETURNING id::text, score
+    `;
+    return NextResponse.json({ id: String(saved[0].id), correct, score: Number(saved[0].score), maximum: 10, answer: correct ? "" : expected });
   }
   const answers = body?.answers && typeof body.answers === "object" && !Array.isArray(body.answers)
     ? body.answers as Record<string, unknown> : null;

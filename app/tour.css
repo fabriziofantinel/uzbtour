@@ -1788,10 +1788,15 @@
 
 .expenseCurrencyTotals {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   max-width: 520px;
   margin: 18px auto 12px;
+}
+
+.expenseCurrencyTotals .grandTotal {
+  border-color: rgba(240, 189, 116, .6);
+  background: rgba(240, 189, 116, .18);
 }
 
 .expenseCurrencyTotals > div {
@@ -4339,7 +4344,7 @@
 
 @media (max-width: 700px) {
   .tabs {
-    grid-template-columns: repeat(9, minmax(0, 1fr));
+    grid-template-columns: repeat(7, minmax(0, 1fr));
   }
 
   .tabs button {

@@ -115,8 +115,8 @@ export async function materializeTripExperience(templateId: string, agencyId: st
       const contentType = mappedType ?? gameType;
       const contentGroup = row.content_type === "game" ? "game" : row.content_type;
       const limit = contentGroup === "quiz" ? 15
-        : contentGroup === "mission" ? 10
-          : contentGroup === "game" ? 6 : 2;
+        : contentGroup === "mission" ? 5
+          : contentGroup === "game" ? 3 : 2;
       const countKey = `${row.trip_day_id}:${contentGroup}`;
       const currentCount = dayContentCounts.get(countKey) ?? 0;
       if (currentCount >= limit) continue;

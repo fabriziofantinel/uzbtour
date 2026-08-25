@@ -169,9 +169,15 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
     sql`
       SELECT result.id::text, result.traveler_id::text, profile.display_name,
         result.trip_day_id::text, result.generated_content_id::text, result.activity_type,
-        result.score, result.max_score, result.status, result.result, result.submitted_at::text
+        result.score, result.max_score, result.status, result.result, result.submitted_at::text,
+        memory.id::text AS evidence_memory_id
       FROM party_activity_results result
       JOIN traveler_profiles profile ON profile.id = result.traveler_id AND profile.agency_id = result.agency_id
+      LEFT JOIN party_memories memory ON memory.party_id = result.party_id
+        AND memory.media_asset_id = CASE
+          WHEN result.result->>'mediaId' ~ '^[0-9a-fA-F-]{36}$' THEN (result.result->>'mediaId')::uuid
+          ELSE NULL
+        END
       WHERE result.agency_id = ${agencyId} AND result.party_id = ${partyId}
       ORDER BY result.submitted_at DESC
     `,
@@ -364,6 +370,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       contentId: String(row.generated_content_id), type: String(row.activity_type),
       score: Number(row.score), maxScore: row.max_score == null ? null : Number(row.max_score),
       status: String(row.status), result: row.result, submittedAt: String(row.submitted_at),
+      evidenceUrl: row.evidence_memory_id ? `/api/traveler/photos/${String(row.evidence_memory_id)}/content` : "",
     })),
     contestEntries: (contestRows as Row[]).map((row) => ({
       id: String(row.id), travelerId: String(row.traveler_id), travelerName: String(row.display_name),

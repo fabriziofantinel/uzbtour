@@ -44,7 +44,7 @@ async function generate(target: ReferenceTarget, context: string) {
   for (let attempt = 1; attempt <= contentAttemptLimit; attempt += 1) {
     const exactQuantities = isCountry
       ? "Genera esattamente 6 informazioni utili, 12 frasi e 16 caselle bingo."
-      : "Genera esattamente 10 domande quiz, 5 missioni, 3 giochi completi e 2 contest fotografici.";
+      : "Genera esattamente 10 domande quiz, 5 missioni, 3 giochi completi (un rebus, un gioco di parole e un gioco di ordinamento) e 2 contest fotografici.";
     const correction = previousValidation
       ? ` Il tentativo precedente non era valido: ${previousValidation}. Correggi tutti questi errori e restituisci nuovamente l'intero contenuto.`
       : "";
