@@ -4,9 +4,9 @@ import { Fragment, useMemo, useState } from "react";
 import {
   ArrowLeft, ArrowRight, ArrowRightLeft, Banknote, BedDouble, Building2, Bus,
   CalendarDays, Camera, ChevronRight, CircleAlert, CircleUserRound, Clock3,
-  Download, ExternalLink, Info, Languages, LoaderCircle, LogOut, Map,
+  Download, ExternalLink, FileText, Info, Languages, LoaderCircle, LogOut, Map,
   MapPin, MessageCircle, Navigation, Plane, Plus, ReceiptText, ShieldCheck,
-  Sparkles, TrainFront, Utensils, Wallet,
+  Sparkles, Star, TrainFront, Utensils, Wallet,
 } from "lucide-react";
 import ExpenseDialog from "@/components/expense-dialog";
 import PlatformTripChallenges from "@/components/platform-trip-challenges";
@@ -97,6 +97,12 @@ function relatedSite(day: Day, item: Day["items"][number]) {
   return visitIndex >= 0 ? day.sites[visitIndex] ?? null : null;
 }
 
+function RatingStars({ value, busy, label, onRate }: {
+  value: number | null; busy: boolean; label: string; onRate: (rating: number) => void;
+}) {
+  return <div className="programmeRating"><span>{value ? "La tua valutazione" : "Valuta questa tappa"}</span><div role="group" aria-label={label}>{[1, 2, 3, 4, 5].map((rating) => <button type="button" key={rating} className={value != null && rating <= value ? "active" : ""} disabled={busy} onClick={() => onRate(rating)} aria-label={`${rating} ${rating === 1 ? "stella" : "stelle"}`} aria-pressed={value === rating}><Star/></button>)}</div>{busy && <LoaderCircle className="spin"/>}</div>;
+}
+
 export default function TravelExperience({ initialExperience, userName, isAgencyAdmin = false }: {
   initialExperience: Experience; userName: string; isAgencyAdmin?: boolean;
 }) {
@@ -134,6 +140,23 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     const result = await response.json() as Record<string, unknown> & { error?: string };
     if (!response.ok) throw new Error(result.error || "Salvataggio non riuscito");
     return result;
+  }
+  async function saveRating(dayId: string, targetType: "itinerary_item" | "hotel", targetId: string, rating: number) {
+    const busyKey = `rating-${targetType}-${targetId}`;
+    setSaving(busyKey); setError("");
+    try {
+      const response = await fetch("/api/traveler/feedback", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ departureId: experience.journey.departureId, partyId: experience.journey.partyId, dayId, targetType, targetId, rating }),
+      });
+      const result = await response.json().catch(() => ({})) as { error?: string };
+      if (!response.ok) throw new Error(result.error || "Valutazione non salvata");
+      setExperience((current) => ({ ...current, days: current.days.map((entry) => entry.id !== dayId ? entry : ({ ...entry,
+        items: targetType === "itinerary_item" ? entry.items.map((item) => item.id === targetId ? { ...item, rating } : item) : entry.items,
+        hotels: targetType === "hotel" ? entry.hotels.map((hotel) => hotel.id === targetId ? { ...hotel, rating } : hotel) : entry.hotels,
+      })) }));
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "Valutazione non salvata"); }
+    finally { setSaving(""); }
   }
   async function saveNote() {
     if (!day) return;
@@ -228,7 +251,29 @@ export default function TravelExperience({ initialExperience, userName, isAgency
       <section className="detail">
         <div className="detailHead"><div><span className="tag" style={{ color: colors[active % colors.length] }}>{day.label || `GIORNO ${day.number}`} · {currentDate.full}</span><h2>{day.title}</h2><p><MapPin/><span className="cityLinks">{day.cities.length ? day.cities.map((city, index) => <Fragment key={city.id}>{index > 0 && <ArrowRight/>}<a href={city.googleUrl} target="_blank" rel="noreferrer">{city.name}<ExternalLink/></a></Fragment>) : day.city}</span></p></div><div className="pager"><button disabled={active === 0} onClick={() => setActive(active - 1)}><ArrowLeft/></button><button disabled={active === experience.days.length - 1} onClick={() => setActive(active + 1)}><ArrowRight/></button></div></div>
         <p className="description">{day.description}</p><div className="stayInfo"><span><CircleUserRound/>{transport.label}</span><span><BedDouble/><strong>{day.hotels.map((hotel) => hotel.name).join(" · ") || "Pernottamento da confermare"}</strong></span></div>
-        <section className="dayProgramme"><header><span>PROGRAMMA DELLA GIORNATA</span><h3>La giornata, in ordine cronologico</h3></header><div className="dayProgrammeList">{day.items.map((item, index) => { const presentation = itemPresentation(item.type); const ItemIcon = presentation.Icon; const site = relatedSite(day, item); const included = item.type === "meal" ? mealInclusion(item) : null; return <article className={`programmeStep ${item.type}`} key={item.id}><span className="programmeStepNumber">{String(index + 1).padStart(2, "0")}</span><span className="programmeStepLine"/><div className="programmeStepBody"><div className="programmeStepMeta"><small><ItemIcon/>{presentation.label}</small>{item.startsAt && <time><Clock3/>{item.startsAt}{item.endsAt ? ` – ${item.endsAt}` : ""}</time>}</div><h4>{site ? <a href={site.googleUrl} target="_blank" rel="noreferrer">{item.title}<ExternalLink/></a> : item.title}</h4>{item.description && <p>{item.description}</p>}{item.type === "meal" && <span className={`mealStatus ${included === true ? "included" : included === false ? "excluded" : "unknown"}`}>{included === true ? "Incluso nel preventivo" : included === false ? "Non incluso nel preventivo" : "Inclusione da confermare"}</span>}</div></article>; })}{day.items.length === 0 && <div className="programmeEmpty">Programma dettagliato ancora da completare.</div>}</div></section>
+        <section className="dayProgramme"><header><span>PROGRAMMA DELLA GIORNATA</span><h3>La giornata, in ordine cronologico</h3></header><div className="dayProgrammeList">
+          {day.items.map((item, index) => {
+            const presentation = itemPresentation(item.type); const ItemIcon = presentation.Icon;
+            const site = relatedSite(day, item); const included = item.type === "meal" ? mealInclusion(item) : null;
+            const hasRequiredTime = ["transport", "flight", "train"].includes(item.type);
+            const ratingBusy = saving === `rating-itinerary_item-${item.id}`;
+            return <article className={`programmeStep ${item.type}`} key={item.id}>
+              <span className="programmeStepNumber">{String(index + 1).padStart(2, "0")}</span><span className="programmeStepLine"/>
+              <div className="programmeStepBody"><div className="programmeStepMeta"><small><ItemIcon/>{presentation.label}</small>{hasRequiredTime && <time className={item.startsAt ? "" : "pending"}><Clock3/>{item.startsAt || "Orario da confermare"}{item.endsAt ? ` – ${item.endsAt}` : ""}</time>}</div>
+                <h4>{site ? <a href={site.googleUrl} target="_blank" rel="noreferrer">{item.title}<ExternalLink/></a> : item.title}</h4>
+                {item.description && <div className={item.type === "transport" ? "programmeOperationalNote" : "programmeDescriptionNote"}>{item.type === "transport" && <strong>Note operative</strong>}<p>{item.description}</p></div>}
+                {item.type === "meal" && <span className={`mealStatus ${included === true ? "included" : included === false ? "excluded" : "unknown"}`}>{included === true ? "Incluso nel preventivo" : included === false ? "Non incluso nel preventivo" : "Inclusione da confermare"}</span>}
+                {item.tickets.length > 0 && <div className="travelerTickets">{item.tickets.map((ticket) => <a href={ticket.downloadUrl} key={ticket.id}><FileText/><span><strong>Biglietto</strong><small>{ticket.title}</small></span><Download/></a>)}</div>}
+                <RatingStars value={item.rating} busy={ratingBusy} label={`Valutazione di ${item.title}`} onRate={(rating) => void saveRating(day.id, "itinerary_item", item.id, rating)}/>
+              </div>
+            </article>;
+          })}
+          {day.hotels.map((hotel, hotelIndex) => { const ratingBusy = saving === `rating-hotel-${hotel.id}`; return <article className="programmeStep hotel" key={`hotel-${hotel.id}`}>
+            <span className="programmeStepNumber">{String(day.items.length + hotelIndex + 1).padStart(2, "0")}</span><span className="programmeStepLine"/>
+            <div className="programmeStepBody"><div className="programmeStepMeta"><small><BedDouble/>Pernottamento</small></div><h4><a href={hotel.googleUrl} target="_blank" rel="noreferrer">{hotel.name}<ExternalLink/></a></h4><p>{hotel.city}</p><RatingStars value={hotel.rating} busy={ratingBusy} label={`Valutazione di ${hotel.name}`} onRate={(rating) => void saveRating(day.id, "hotel", hotel.id, rating)}/></div>
+          </article>; })}
+          {day.items.length === 0 && day.hotels.length === 0 && <div className="programmeEmpty">Programma dettagliato ancora da completare.</div>}
+        </div></section>
         {day.cities[0] && <div className="programmeMapCard"><iframe title={`Mappa di ${day.city}`} src={`https://www.google.com/maps?q=${encodeURIComponent(day.city)}&output=embed`}/><a href={day.cities[0].googleUrl} target="_blank" rel="noreferrer"><MapPin/> Apri la mappa <ExternalLink/></a></div>}
         <PwaInstaller/>
         <div className="journal"><div><MessageCircle/><strong>Nota del giorno</strong></div><textarea placeholder="Scrivi qui un ricordo, un consiglio, una curiosità…" value={dayNote?.text || ""} onChange={(event) => setExperience((current) => ({ ...current, notes: current.notes.some((entry) => entry.dayId === day.id) ? current.notes.map((entry) => entry.dayId === day.id ? { ...entry, text: event.target.value, updatedBy: userName } : entry) : [...current.notes, { id: "new", dayId: day.id, dayNumber: day.number, text: event.target.value, updatedBy: userName, updatedAt: "" }] }))} onBlur={() => void saveNote()}/>{saving === `note-${day.id}` ? <small className="auditBy">Salvataggio…</small> : dayNote?.text && <small className="auditBy">Ultima modifica: {dayNote.updatedBy}</small>}</div>

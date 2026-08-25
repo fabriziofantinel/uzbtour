@@ -15,6 +15,7 @@ function imageContentType(file: File) {
   if (extension === "webp") return "image/webp";
   if (extension === "heic") return "image/heic";
   if (extension === "heif") return "image/heif";
+  if (extension === "pdf") return "application/pdf";
   return "application/octet-stream";
 }
 
@@ -59,16 +60,17 @@ export async function uploadPrivateFile(input: {
   payload: Record<string, unknown>;
   onProgress?: (percentage: number) => void;
 }) {
+  const contentType = imageContentType(input.file);
   const authorization = await responseJson<UploadAuthorization>(await fetch(input.endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       ...input.payload,
       originalName: input.file.name,
-      contentType: imageContentType(input.file),
+      contentType,
       sizeBytes: input.file.size,
     }),
   }));
   await putFile(authorization, input.file, input.onProgress);
-  return { key: authorization.key };
+  return { key: authorization.key, contentType };
 }

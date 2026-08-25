@@ -1,6 +1,7 @@
 import { getSql } from "@/lib/db";
 import { PlatformRequestError } from "./http";
 import { geocodeCity } from "./geocoding";
+import { ensureProgrammeFeedbackSchema } from "./programme-feedback-schema";
 
 type Row = Record<string, unknown>;
 
@@ -41,8 +42,9 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
   const agencyId = String(selected.agency_id);
   const versionId = String(selected.template_version_id);
   const partyId = String(selected.party_id);
+  await ensureProgrammeFeedbackSchema();
 
-  const [dayRows, itemRows, cityRows, siteRows, hotelRows, travelerRows, infoRows, phraseRows, challengeRows, expenseRows, noteRows, restaurantRows, cashRows, photoRows, resultRows, contestRows] = await Promise.all([
+  const [dayRows, itemRows, cityRows, siteRows, hotelRows, travelerRows, infoRows, phraseRows, challengeRows, expenseRows, noteRows, restaurantRows, cashRows, photoRows, resultRows, contestRows, ticketRows, feedbackRows] = await Promise.all([
     sql`
       SELECT id::text, day_number, day_offset, label, title, city, description,
         source_date::text, metadata
@@ -184,6 +186,27 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       WHERE entry.agency_id = ${agencyId} AND entry.party_id = ${partyId}
       ORDER BY entry.submitted_at DESC
     `,
+    sql`
+      SELECT document.id::text, document.itinerary_item_id::text, document.title,
+        asset.content_type, asset.size_bytes, document.created_at::text
+      FROM itinerary_item_documents document
+      JOIN media_assets asset ON asset.id = document.media_asset_id AND asset.agency_id = document.agency_id
+      JOIN itinerary_items item
+        ON item.id = document.itinerary_item_id AND item.agency_id = document.agency_id
+      JOIN trip_days day ON day.id = item.trip_day_id AND day.agency_id = item.agency_id
+      WHERE document.agency_id = ${agencyId} AND document.departure_id = ${departureId}
+        AND day.template_version_id = ${versionId} AND asset.status = 'ready'
+      ORDER BY document.created_at
+    `,
+    sql`
+      SELECT feedback.trip_day_id::text, feedback.target_type,
+        feedback.itinerary_item_id::text, feedback.hotel_id::text, feedback.rating
+      FROM traveler_programme_feedback feedback
+      JOIN traveler_profiles profile
+        ON profile.id = feedback.traveler_id AND profile.agency_id = feedback.agency_id
+      WHERE feedback.agency_id = ${agencyId} AND feedback.departure_id = ${departureId}
+        AND feedback.party_id = ${partyId} AND profile.user_id = ${userId}
+    `,
   ]);
 
   const items = itemRows as Row[];
@@ -214,6 +237,14 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
   }
   const sites = siteRows as Row[];
   const hotels = hotelRows as Row[];
+  const tickets = ticketRows as Row[];
+  const feedback = feedbackRows as Row[];
+  const itemRatings = new Map(feedback
+    .filter((entry) => entry.target_type === "itinerary_item")
+    .map((entry) => [String(entry.itinerary_item_id), Number(entry.rating)]));
+  const hotelRatings = new Map(feedback
+    .filter((entry) => entry.target_type === "hotel")
+    .map((entry) => [`${String(entry.trip_day_id)}:${String(entry.hotel_id)}`, Number(entry.rating)]));
   return {
     journey: {
       departureId,
@@ -260,6 +291,13 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
           startsAt: stringValue(item.starts_at),
           endsAt: stringValue(item.ends_at),
           metadata: item.metadata,
+          rating: itemRatings.get(String(item.id)) ?? null,
+          tickets: tickets.filter((ticket) => String(ticket.itinerary_item_id) === String(item.id)).map((ticket) => ({
+            id: String(ticket.id), title: String(ticket.title), contentType: String(ticket.content_type),
+            sizeBytes: ticket.size_bytes == null ? null : Number(ticket.size_bytes),
+            createdAt: String(ticket.created_at),
+            downloadUrl: `/api/travel-documents/${String(ticket.id)}/content?download=1`,
+          })),
         })),
         cities: cities.filter((city) => String(city.trip_day_id) === id).map((city) => ({
           id: String(city.id), name: String(city.name), country: String(city.country),
@@ -273,6 +311,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
         hotels: hotels.filter((hotel) => String(hotel.trip_day_id) === id).map((hotel) => ({
           id: String(hotel.id), name: String(hotel.name), city: String(hotel.city),
           googleUrl: String(hotel.google_url), websiteUrl: stringValue(hotel.website_url),
+          rating: hotelRatings.get(`${id}:${String(hotel.id)}`) ?? null,
         })),
       };
     }),

@@ -1,5 +1,6 @@
 import { getSql } from "@/lib/db";
 import { PlatformRequestError } from "./http";
+import { ensureProgrammeFeedbackSchema } from "./programme-feedback-schema";
 
 type Row = Record<string, unknown>;
 
@@ -8,6 +9,7 @@ function value(value: unknown) {
 }
 
 export async function getAgencyProgramme(departureId: string, actorId: string) {
+  await ensureProgrammeFeedbackSchema();
   const sql = getSql();
   const departures = await sql`
     SELECT d.id::text, d.agency_id::text, d.template_id::text, d.template_version_id::text,
@@ -27,7 +29,7 @@ export async function getAgencyProgramme(departureId: string, actorId: string) {
   const departure = departures[0] as Row;
   const agencyId = String(departure.agency_id);
   const versionId = String(departure.template_version_id);
-  const [dayRows, itemRows, hotelRows] = await Promise.all([
+  const [dayRows, itemRows, hotelRows, documentRows] = await Promise.all([
     sql`
       SELECT id::text, day_number, day_offset, label, title, city, description
       FROM trip_days
@@ -51,9 +53,22 @@ export async function getAgencyProgramme(departureId: string, actorId: string) {
       WHERE accommodation.agency_id = ${agencyId} AND day.template_version_id = ${versionId}
       ORDER BY day.day_number, accommodation.sort_order, accommodation.id
     `,
+    sql`
+      SELECT document.id::text, document.itinerary_item_id::text, document.title,
+        asset.content_type, asset.size_bytes, document.created_at::text
+      FROM itinerary_item_documents document
+      JOIN media_assets asset ON asset.id = document.media_asset_id AND asset.agency_id = document.agency_id
+      JOIN itinerary_items item
+        ON item.id = document.itinerary_item_id AND item.agency_id = document.agency_id
+      JOIN trip_days day ON day.id = item.trip_day_id AND day.agency_id = item.agency_id
+      WHERE document.agency_id = ${agencyId} AND document.departure_id = ${departureId}
+        AND day.template_version_id = ${versionId} AND asset.status = 'ready'
+      ORDER BY document.created_at
+    `,
   ]);
   const items = itemRows as Row[];
   const hotels = hotelRows as Row[];
+  const documents = documentRows as Row[];
   return {
     departure: {
       id: String(departure.id),
@@ -79,6 +94,12 @@ export async function getAgencyProgramme(departureId: string, actorId: string) {
         id: String(item.id), type: String(item.item_type), title: String(item.title),
         description: value(item.description), startsAt: value(item.starts_at).slice(0, 5),
         endsAt: value(item.ends_at).slice(0, 5), sortOrder: Number(item.sort_order),
+        tickets: documents.filter((document) => String(document.itinerary_item_id) === String(item.id)).map((document) => ({
+          id: String(document.id), title: String(document.title), contentType: String(document.content_type),
+          sizeBytes: document.size_bytes == null ? null : Number(document.size_bytes),
+          createdAt: String(document.created_at),
+          downloadUrl: `/api/travel-documents/${String(document.id)}/content?download=1`,
+        })),
         includedInQuote: typeof (item.metadata as Record<string, unknown> | null)?.includedInQuote === "boolean"
           ? Boolean((item.metadata as Record<string, unknown>).includedInQuote) : null,
       })),

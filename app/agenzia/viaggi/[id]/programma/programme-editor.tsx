@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowDown, ArrowLeft, ArrowUp, BedDouble, CalendarDays, CheckCircle2, Clock3, LoaderCircle, MapPin, Save } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, BedDouble, CalendarDays, CheckCircle2, Clock3, Download, FileText, LoaderCircle, MapPin, Save, Upload } from "lucide-react";
 import { useMemo, useState } from "react";
+import { uploadPrivateFile } from "@/lib/private-upload-client";
 import type { AgencyProgramme } from "@/lib/platform/programme-repository";
 
 type Props = { initialProgramme: AgencyProgramme };
@@ -62,6 +63,29 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
     } finally { setBusy(""); }
   }
 
+  async function uploadTicket(dayId: string, itemId: string, file: File) {
+    setBusy(`ticket-${itemId}`); setMessage("");
+    try {
+      const uploaded = await uploadPrivateFile({
+        endpoint: `/api/admin/platform/departures/${departure.id}/tickets/upload`,
+        file,
+        payload: { itemId },
+      });
+      const response = await fetch(`/api/admin/platform/departures/${departure.id}/tickets`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemId, objectKey: uploaded.key, originalName: file.name, contentType: uploaded.contentType }),
+      });
+      const result = await response.json().catch(() => ({})) as { error?: string; ticket?: Day["items"][number]["tickets"][number] };
+      if (!response.ok || !result.ticket) throw new Error(result.error || "Biglietto non registrato");
+      setDays((current) => current.map((day) => day.id !== dayId ? day : ({ ...day,
+        items: day.items.map((item) => item.id === itemId ? { ...item, tickets: [...item.tickets, result.ticket!] } : item),
+      })));
+      setMessage("Biglietto caricato. I viaggiatori potranno scaricarlo dal programma.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Caricamento del biglietto non riuscito");
+    } finally { setBusy(""); }
+  }
+
   return <main className="programmePage">
     <header className="programmeTopbar">
       <Link href="/agenzia"><ArrowLeft/> Viaggi</Link>
@@ -91,9 +115,10 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
           {openDay.items.map((item, index) => <article className="programmeItem" key={item.id}>
             <div className="orderButtons"><button aria-label="Sposta su" onClick={() => moveItem(openDay, index, -1)} disabled={index === 0}><ArrowUp/></button><button aria-label="Sposta giù" onClick={() => moveItem(openDay, index, 1)} disabled={index === openDay.items.length - 1}><ArrowDown/></button></div>
             <div className="itemFields"><label>Tipo<span>{item.type}</span></label><label>Titolo<input value={item.title} onChange={(event) => updateDay(openDay.id, { items: openDay.items.map((entry) => entry.id === item.id ? { ...entry, title: event.target.value } : entry) })}/></label>
-              {(["transport", "flight", "train"].includes(item.type)) && <div className="timeFields"><Clock3/><label>Inizio<input type="time" value={item.startsAt} onChange={(event) => updateDay(openDay.id, { items: openDay.items.map((entry) => entry.id === item.id ? { ...entry, startsAt: event.target.value } : entry) })}/></label><label>Fine<input type="time" value={item.endsAt} onChange={(event) => updateDay(openDay.id, { items: openDay.items.map((entry) => entry.id === item.id ? { ...entry, endsAt: event.target.value } : entry) })}/></label></div>}
+              {(["transport", "flight", "train"].includes(item.type)) && <div className="timeFields"><Clock3/><label>Orario di inizio<input type="time" value={item.startsAt} onChange={(event) => updateDay(openDay.id, { items: openDay.items.map((entry) => entry.id === item.id ? { ...entry, startsAt: event.target.value } : entry) })}/></label><label>Orario di fine<input type="time" value={item.endsAt} onChange={(event) => updateDay(openDay.id, { items: openDay.items.map((entry) => entry.id === item.id ? { ...entry, endsAt: event.target.value } : entry) })}/></label></div>}
               {item.type === "meal" && <label className="mealIncluded">Inclusione nel preventivo<select value={item.includedInQuote == null ? "unknown" : item.includedInQuote ? "included" : "excluded"} onChange={(event) => updateDay(openDay.id, { items: openDay.items.map((entry) => entry.id === item.id ? { ...entry, includedInQuote: event.target.value === "unknown" ? null : event.target.value === "included" } : entry) })}><option value="unknown">Da confermare</option><option value="included">Incluso</option><option value="excluded">Non incluso</option></select></label>}
-              <label className="wide">Note<textarea rows={2} value={item.description} onChange={(event) => updateDay(openDay.id, { items: openDay.items.map((entry) => entry.id === item.id ? { ...entry, description: event.target.value } : entry) })}/></label>
+              <label className="wide">{item.type === "transport" ? "Note operative (autista, telefono, targa o punto d’incontro)" : "Note"}<textarea rows={2} value={item.description} onChange={(event) => updateDay(openDay.id, { items: openDay.items.map((entry) => entry.id === item.id ? { ...entry, description: event.target.value } : entry) })}/></label>
+              {(["flight", "train"].includes(item.type)) && <div className="ticketManager"><div className="ticketManagerHead"><FileText/><div><b>Biglietti</b><small>PDF o immagine, massimo 25 MB</small></div><label className={busy === `ticket-${item.id}` ? "busy" : ""}>{busy === `ticket-${item.id}` ? <LoaderCircle className="spin"/> : <Upload/>}<span>Allega biglietto</span><input type="file" accept="application/pdf,image/jpeg,image/png,image/webp,.pdf" disabled={busy === `ticket-${item.id}`} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void uploadTicket(openDay.id, item.id, file); }}/></label></div>{item.tickets.length > 0 && <div className="ticketList">{item.tickets.map((ticket) => <a href={ticket.downloadUrl} key={ticket.id}><FileText/><span>{ticket.title}</span><Download/></a>)}</div>}</div>}
             </div>
           </article>)}
         </div>
