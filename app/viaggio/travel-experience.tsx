@@ -2,7 +2,7 @@
 
 import { Fragment, useMemo, useState } from "react";
 import {
-  ArrowLeft, ArrowRight, ArrowRightLeft, Banknote, BedDouble, Building2, Bus,
+  ArrowLeft, ArrowRight, Banknote, BedDouble, Building2, Bus,
   CalendarDays, Camera, ChevronRight, CircleAlert, CircleUserRound, Clock3,
   Download, ExternalLink, FileText, Info, Languages, LoaderCircle, LogOut, Map,
   MapPin, MessageCircle, Navigation, Plane, Plus, ReceiptText, ShieldCheck,
@@ -11,10 +11,8 @@ import {
 import ExpenseDialog from "@/components/expense-dialog";
 import PlatformTripChallenges from "@/components/platform-trip-challenges";
 import Phrasebook from "@/components/phrasebook";
-import PwaInstaller from "@/components/pwa-installer";
 import TripOverviewMap, { type TripMapDay } from "@/components/trip-overview-map";
 import UsefulInfo from "@/components/useful-info";
-import { uploadPrivateFile } from "@/lib/private-upload-client";
 import type { TravelerExperience as Experience } from "@/lib/platform/traveler-experience";
 
 type Tab = "oggi" | "mappa" | "programma" | "ricordi" | "spese" | "info" | "assicurazione" | "frasario" | "sfide";
@@ -168,35 +166,6 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Nota non salvata"); }
     finally { setSaving(""); }
   }
-  async function addRestaurant() {
-    if (!day) return;
-    const name = prompt("Nome del locale?")?.trim(); if (!name) return;
-    setSaving("restaurant"); setError("");
-    try {
-      const result = await postJournal({ action: "restaurant", dayId: day.id, name }) as { restaurant: { id: string; createdAt: string } };
-      setExperience((current) => ({ ...current, restaurants: [{ id: result.restaurant.id, dayId: day.id, dayNumber: day.number, name, addedBy: userName, createdAt: result.restaurant.createdAt }, ...current.restaurants] }));
-    } catch (caught) { setError(caught instanceof Error ? caught.message : "Locale non salvato"); }
-    finally { setSaving(""); }
-  }
-  async function addCash(kind: "withdrawal" | "exchange") {
-    if (!day) return;
-    const localRaw = prompt(kind === "withdrawal" ? "Importo prelevato in valuta locale?" : "Importo ricevuto in valuta locale?");
-    if (localRaw == null) return;
-    const localAmount = numberValue(localRaw);
-    const euroRaw = prompt(kind === "withdrawal" ? "Importo addebitato in euro? Lascia vuoto se non disponibile." : "Importo cambiato in euro?");
-    if (euroRaw == null) return;
-    const euroAmount = numberValue(euroRaw);
-    const feeRaw = kind === "withdrawal" ? prompt("Commissione bancaria in euro? Lascia vuoto se assente.") : "";
-    if (feeRaw == null) return;
-    const feeEuro = numberValue(feeRaw);
-    if (!localAmount || (kind === "exchange" && !euroAmount)) { setError("Inserisci importi validi."); return; }
-    setSaving("cash"); setError("");
-    try {
-      const result = await postJournal({ action: "cash", dayId: day.id, kind, localAmount, euroAmount, feeEuro }) as { movement: { id: string; createdAt: string } };
-      setExperience((current) => ({ ...current, cashMovements: [{ id: result.movement.id, dayId: day.id, dayNumber: day.number, kind, euroAmount, localAmount, localCurrency: "UZS", feeEuro, addedBy: userName, createdAt: result.movement.createdAt }, ...current.cashMovements] }));
-    } catch (caught) { setError(caught instanceof Error ? caught.message : "Movimento non salvato"); }
-    finally { setSaving(""); }
-  }
   async function saveExpense(input: { label: string; amount: string; currency: "EUR" | "UZS" }) {
     const amount = numberValue(input.amount);
     if (!amount || amount <= 0) { setError("Inserisci un importo valido."); return false; }
@@ -211,28 +180,10 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Spesa non salvata"); return false; }
     finally { setSaving(""); }
   }
-  async function uploadPhotos(event: React.ChangeEvent<HTMLInputElement>) {
-    if (!day) return;
-    const files = [...(event.target.files || [])]; event.target.value = ""; if (!files.length) return;
-    setSaving("photo"); setError("");
-    try {
-      for (const file of files) {
-        const uploaded = await uploadPrivateFile({ endpoint: "/api/traveler/photos/upload", file, payload: { departureId: experience.journey.departureId, partyId: experience.journey.partyId, dayId: day.id } });
-        const response = await fetch("/api/traveler/photos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ departureId: experience.journey.departureId, partyId: experience.journey.partyId, dayId: day.id, objectKey: uploaded.key, originalName: file.name }) });
-        const result = await response.json() as { photo?: Experience["photos"][number]; error?: string };
-        if (!response.ok || !result.photo) throw new Error(result.error || "Foto non registrata");
-        setExperience((current) => ({ ...current, photos: [result.photo!, ...current.photos] }));
-      }
-    } catch (caught) { setError(caught instanceof Error ? caught.message : "Caricamento non riuscito"); }
-    finally { setSaving(""); }
-  }
-
   if (!day) return null;
   const currentDate = dateParts(day.date);
   const transport = dayTransport(day);
   const dayNote = experience.notes.find((entry) => entry.dayId === day.id);
-  const dayRestaurants = experience.restaurants.filter((entry) => entry.dayId === day.id);
-  const dayCash = experience.cashMovements.filter((entry) => entry.dayId === day.id);
   const isUzbekistan = experience.journey.destinationCountry.toLocaleLowerCase("it").includes("uzbek");
 
   return <main>
@@ -242,7 +193,7 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     <nav className="tabs"><button className={tab === "mappa" ? "active" : ""} onClick={() => setTab("mappa")}><Map/> Mappa</button><button className={tab === "programma" ? "active" : ""} onClick={openProgramme}><CalendarDays/> Programma</button><button className={tab === "spese" ? "active" : ""} onClick={() => setTab("spese")}><Wallet/> Spese <b>€ {totals.EUR.toFixed(2)} · {som.format(totals.UZS)} UZS</b></button><button className={tab === "info" ? "active" : ""} onClick={() => setTab("info")}><Info/> Info utili</button><button className={tab === "assicurazione" ? "active" : ""} onClick={() => setTab("assicurazione")}><ShieldCheck/> Polizza</button><button className={tab === "frasario" ? "active" : ""} onClick={() => setTab("frasario")}><Languages/> Frasi</button><button className={tab === "sfide" ? "active" : ""} onClick={() => setTab("sfide")}><Sparkles/> Sfide</button></nav>
     {error && <p className="dataError" role="alert">{error}</p>}
 
-    {tab === "oggi" && <section className="todayPage"><div className="todayHero"><div><span>{day.label || `GIORNO ${day.number}`} · {currentDate.full}</span><h2>{day.title}</h2><p>{day.city}</p></div><div className="todayHeroDay"><small>OGGI</small><strong>{currentDate.day}</strong><span>{currentDate.month}</span></div></div><section className="nextAppointment"><span><Clock3/></span><div><small>PROSSIMO APPUNTAMENTO</small><h3>{day.items[0]?.title || "Giornata libera"}</h3><p>{day.items[0]?.startsAt || "Orario da confermare"} · {day.city}</p></div><button onClick={() => setTab("programma")}><ChevronRight/></button></section><div className="todayInfoGrid"><article><span><Navigation/></span><small>PROGRAMMA</small><strong>{day.items.length} attività</strong><p>{transport.label}</p></article><article><span><BedDouble/></span><small>HOTEL</small><strong>{day.hotels[0]?.name || "Da confermare"}</strong><p>{day.hotels[0]?.city || day.city}</p></article><article><span><Wallet/></span><small>SPESE DI TAPPA</small><strong>€ {dayTotals.EUR.toFixed(2)}</strong><p>{som.format(dayTotals.UZS)} UZS</p></article><article><span><Camera/></span><small>RICORDI</small><strong>{photosByDay[day.number]?.length || 0} foto</strong><p>caricate per questa giornata</p></article></div><div className="todayActions"><button onClick={() => setTab("programma")}><Navigation/><span>Apri programma<small>Tutti i dettagli</small></span><ChevronRight/></button><button onClick={() => setTab("ricordi")}><Camera/><span>Ricordi del giorno<small>Foto della famiglia</small></span><ChevronRight/></button><button onClick={() => setTab("sfide")}><Sparkles/><span>Sfide del giorno<small>Quiz, missioni e giochi</small></span><ChevronRight/></button></div><PwaInstaller/><section className="todaySchedule"><div><Navigation/><span><small>PROGRAMMA RAPIDO</small><h3>La giornata in un colpo d’occhio</h3></span></div>{day.items.map((item, index) => <article key={item.id}><time>{item.startsAt || String(index + 1).padStart(2, "0")}</time><span/><strong>{item.title}</strong></article>)}<button onClick={() => setTab("programma")}><ReceiptText/> Apri tutti i dettagli</button></section></section>}
+    {tab === "oggi" && <section className="todayPage"><div className="todayHero"><div><span>{day.label || `GIORNO ${day.number}`} · {currentDate.full}</span><h2>{day.title}</h2><p>{day.city}</p></div><div className="todayHeroDay"><small>OGGI</small><strong>{currentDate.day}</strong><span>{currentDate.month}</span></div></div><section className="nextAppointment"><span><Clock3/></span><div><small>PROSSIMO APPUNTAMENTO</small><h3>{day.items[0]?.title || "Giornata libera"}</h3><p>{day.items[0]?.startsAt || "Orario da confermare"} · {day.city}</p></div><button onClick={() => setTab("programma")}><ChevronRight/></button></section><div className="todayInfoGrid"><article><span><Navigation/></span><small>PROGRAMMA</small><strong>{day.items.length} attività</strong><p>{transport.label}</p></article><article><span><BedDouble/></span><small>HOTEL</small><strong>{day.hotels[0]?.name || "Da confermare"}</strong><p>{day.hotels[0]?.city || day.city}</p></article><article><span><Wallet/></span><small>SPESE DI TAPPA</small><strong>€ {dayTotals.EUR.toFixed(2)}</strong><p>{som.format(dayTotals.UZS)} UZS</p></article><article><span><Camera/></span><small>RICORDI</small><strong>{photosByDay[day.number]?.length || 0} foto</strong><p>caricate per questa giornata</p></article></div><div className="todayActions"><button onClick={() => setTab("programma")}><Navigation/><span>Apri programma<small>Tutti i dettagli</small></span><ChevronRight/></button><button onClick={() => setTab("ricordi")}><Camera/><span>Ricordi del giorno<small>Foto della famiglia</small></span><ChevronRight/></button><button onClick={() => setTab("sfide")}><Sparkles/><span>Sfide del giorno<small>Quiz, missioni e giochi</small></span><ChevronRight/></button></div><section className="todaySchedule"><div><Navigation/><span><small>PROGRAMMA RAPIDO</small><h3>La giornata in un colpo d’occhio</h3></span></div>{day.items.map((item, index) => <article key={item.id}><time>{item.startsAt || String(index + 1).padStart(2, "0")}</time><span/><strong>{item.title}</strong></article>)}<button onClick={() => setTab("programma")}><ReceiptText/> Apri tutti i dettagli</button></section></section>}
 
     {tab === "mappa" && <section className="overviewPage"><div className="overviewHead"><div><span>LA ROTTA DEL VIAGGIO</span><h2>{experience.days.length} giorni, una mappa</h2><p>Tocca un numero sulla mappa o una tappa qui sotto per aprire il programma.</p></div><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(experience.journey.destinationCountry)}`} target="_blank" rel="noreferrer">Apri la mappa completa <ExternalLink/></a></div>{tripMapDays.length > 0 ? <><div className="overviewMap"><TripOverviewMap days={tripMapDays} onSelect={openDay}/></div><div className="overviewDayList">{tripMapDays.map((entry) => <button key={entry.n} onClick={() => openDay(entry.index)}><span style={{ background: entry.color }}>{entry.n}</span><span><small>{entry.date}</small><strong>{entry.city}</strong></span><ChevronRight/></button>)}</div><p className="mapAttribution">Coordinate fornite da <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo</a>.</p></> : <div className="empty"><Map/><h3>Mappa in preparazione</h3><p>Stiamo recuperando le coordinate delle località. Ricarica la pagina tra pochi secondi.</p></div>}</section>}
 
@@ -274,10 +225,7 @@ export default function TravelExperience({ initialExperience, userName, isAgency
           </article>; })}
           {day.items.length === 0 && day.hotels.length === 0 && <div className="programmeEmpty">Programma dettagliato ancora da completare.</div>}
         </div></section>
-        {day.cities[0] && <div className="programmeMapCard"><iframe title={`Mappa di ${day.city}`} src={`https://www.google.com/maps?q=${encodeURIComponent(day.city)}&output=embed`}/><a href={day.cities[0].googleUrl} target="_blank" rel="noreferrer"><MapPin/> Apri la mappa <ExternalLink/></a></div>}
-        <PwaInstaller/>
         <div className="journal"><div><MessageCircle/><strong>Nota del giorno</strong></div><textarea placeholder="Scrivi qui un ricordo, un consiglio, una curiosità…" value={dayNote?.text || ""} onChange={(event) => setExperience((current) => ({ ...current, notes: current.notes.some((entry) => entry.dayId === day.id) ? current.notes.map((entry) => entry.dayId === day.id ? { ...entry, text: event.target.value, updatedBy: userName } : entry) : [...current.notes, { id: "new", dayId: day.id, dayNumber: day.number, text: event.target.value, updatedBy: userName, updatedAt: "" }] }))} onBlur={() => void saveNote()}/>{saving === `note-${day.id}` ? <small className="auditBy">Salvataggio…</small> : dayNote?.text && <small className="auditBy">Ultima modifica: {dayNote.updatedBy}</small>}</div>
-        <div className="quickActions"><label className={saving === "photo" ? "disabled" : ""}>{saving === "photo" ? <LoaderCircle className="spin"/> : <Camera/>}<span>Aggiungi foto<small>{photosByDay[day.number]?.length || 0} caricate</small></span><Plus/><input type="file" accept="image/*,.heic,.heif" multiple disabled={saving === "photo"} onChange={(event) => void uploadPhotos(event)}/></label><button onClick={() => void addRestaurant()}><Utensils/><span>Aggiungi locale<small>{dayRestaurants.length} salvati</small></span><Plus/></button><button onClick={() => setExpenseDayId(day.id)}><ReceiptText/><span>Aggiungi spesa<small>Tappa: € {dayTotals.EUR.toFixed(2)} · {som.format(dayTotals.UZS)} UZS</small></span><Plus/></button><button onClick={() => void addCash("withdrawal")}><Banknote/><span>Aggiungi prelievo<small>{dayCash.filter((item) => item.kind === "withdrawal").length} registrati</small></span><Plus/></button><button onClick={() => void addCash("exchange")}><ArrowRightLeft/><span>Aggiungi cambio<small>{dayCash.filter((item) => item.kind === "exchange").length} registrati</small></span><Plus/></button></div>{dayRestaurants.length > 0 && <div className="restaurantList">{dayRestaurants.map((restaurant) => <span key={restaurant.id}><Utensils/><b>{restaurant.name}</b><small>Aggiunto da {restaurant.addedBy}</small></span>)}</div>}
       </section>
     </div>}
 
