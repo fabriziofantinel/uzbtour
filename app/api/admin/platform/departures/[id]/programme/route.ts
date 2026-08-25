@@ -24,6 +24,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         id: cleanText(item.id, 64), title: cleanText(item.title, 240),
         description: cleanText(item.description, 4000), startsAt: cleanText(item.startsAt, 5),
         endsAt: cleanText(item.endsAt, 5), sortOrder: index,
+        includedInQuote: typeof item.includedInQuote === "boolean" ? item.includedInQuote : null,
       };
     });
     const hotels = rawHotels.map((entry, index) => {

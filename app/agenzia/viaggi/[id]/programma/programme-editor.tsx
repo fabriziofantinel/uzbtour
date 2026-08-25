@@ -14,6 +14,16 @@ function dateFor(startsOn: string, offset: number) {
   return new Intl.DateTimeFormat("it-IT", { weekday: "long", day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" }).format(date);
 }
 
+function initialDayId(days: AgencyProgramme["days"], startsOn: string) {
+  const today = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Rome", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const current = days.find((day) => {
+    const date = new Date(`${startsOn}T12:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + day.offset);
+    return date.toISOString().slice(0, 10) === today;
+  });
+  return current?.id ?? days[0]?.id ?? "";
+}
+
 async function responseJson(response: Response) {
   const result = await response.json().catch(() => ({})) as { error?: string };
   if (!response.ok) throw new Error(result.error || "Salvataggio non riuscito");
@@ -21,7 +31,7 @@ async function responseJson(response: Response) {
 
 export default function ProgrammeEditor({ initialProgramme }: Props) {
   const [days, setDays] = useState(initialProgramme.days);
-  const [openDayId, setOpenDayId] = useState(initialProgramme.days[0]?.id ?? "");
+  const [openDayId, setOpenDayId] = useState(() => initialDayId(initialProgramme.days, initialProgramme.departure.startsOn));
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState("");
   const departure = initialProgramme.departure;
@@ -82,6 +92,7 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
             <div className="orderButtons"><button aria-label="Sposta su" onClick={() => moveItem(openDay, index, -1)} disabled={index === 0}><ArrowUp/></button><button aria-label="Sposta giù" onClick={() => moveItem(openDay, index, 1)} disabled={index === openDay.items.length - 1}><ArrowDown/></button></div>
             <div className="itemFields"><label>Tipo<span>{item.type}</span></label><label>Titolo<input value={item.title} onChange={(event) => updateDay(openDay.id, { items: openDay.items.map((entry) => entry.id === item.id ? { ...entry, title: event.target.value } : entry) })}/></label>
               {(["transport", "flight", "train"].includes(item.type)) && <div className="timeFields"><Clock3/><label>Inizio<input type="time" value={item.startsAt} onChange={(event) => updateDay(openDay.id, { items: openDay.items.map((entry) => entry.id === item.id ? { ...entry, startsAt: event.target.value } : entry) })}/></label><label>Fine<input type="time" value={item.endsAt} onChange={(event) => updateDay(openDay.id, { items: openDay.items.map((entry) => entry.id === item.id ? { ...entry, endsAt: event.target.value } : entry) })}/></label></div>}
+              {item.type === "meal" && <label className="mealIncluded">Inclusione nel preventivo<select value={item.includedInQuote == null ? "unknown" : item.includedInQuote ? "included" : "excluded"} onChange={(event) => updateDay(openDay.id, { items: openDay.items.map((entry) => entry.id === item.id ? { ...entry, includedInQuote: event.target.value === "unknown" ? null : event.target.value === "included" } : entry) })}><option value="unknown">Da confermare</option><option value="included">Incluso</option><option value="excluded">Non incluso</option></select></label>}
               <label className="wide">Note<textarea rows={2} value={item.description} onChange={(event) => updateDay(openDay.id, { items: openDay.items.map((entry) => entry.id === item.id ? { ...entry, description: event.target.value } : entry) })}/></label>
             </div>
           </article>)}

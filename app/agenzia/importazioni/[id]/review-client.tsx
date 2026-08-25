@@ -27,7 +27,7 @@ async function jsonResponse<T>(response: Response): Promise<T> {
 
 function emptyActivity(): TravelProgrammeDraft["days"][number]["activities"][number] {
   return {
-    type: "visit", title: "", description: "", startsAt: "", endsAt: "",
+    type: "visit", title: "", description: "", startsAt: "", endsAt: "", includedInQuote: null,
     placeName: "", placeCity: "", placeCountry: "",
     placeValidation: { needsValidation: true, reason: "Nuovo sito da verificare" },
   };
@@ -220,6 +220,7 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
                       <label>Città del sito<input value={activity.placeCity} onChange={(event) => updateActivity(dayIndex, activityIndex, { placeCity: event.target.value, placeValidation: changedValidation("Località del sito") })}/></label>
                     </>}
                     {timedActivityTypes.has(activity.type) && <><label className="activityTime">Ora inizio<input type="time" value={activity.startsAt} onChange={(event) => updateActivity(dayIndex, activityIndex, { startsAt: event.target.value })}/></label><label className="activityTime">Ora fine<input type="time" value={activity.endsAt} onChange={(event) => updateActivity(dayIndex, activityIndex, { endsAt: event.target.value })}/></label></>}
+                    {activity.type === "meal" && <label className="mealInclusion">Inclusione nel preventivo<div className="selectWrap"><select value={activity.includedInQuote == null ? "unknown" : activity.includedInQuote ? "included" : "excluded"} onChange={(event) => updateActivity(dayIndex, activityIndex, { includedInQuote: event.target.value === "unknown" ? null : event.target.value === "included" })}><option value="unknown">Da confermare</option><option value="included">Incluso</option><option value="excluded">Non incluso</option></select><ChevronDown/></div></label>}
                     <button className="removeActivity" aria-label="Rimuovi attività" onClick={() => updateDay(dayIndex, { activities: day.activities.filter((_, position) => position !== activityIndex) })}><Trash2/></button>
                     <label className="activityNotes">Note<textarea placeholder="Informazioni operative, riferimenti o indicazioni per l’agente" value={activity.description} onChange={(event) => updateActivity(dayIndex, activityIndex, { description: event.target.value })}/></label>
                     {activity.type === "visit" && <div className="siteValidation"><ValidationControl validation={activity.placeValidation} searchParts={[activity.placeName, activity.placeCity, activity.placeCountry]} onChange={(placeValidation) => updateActivity(dayIndex, activityIndex, { placeValidation })}/></div>}

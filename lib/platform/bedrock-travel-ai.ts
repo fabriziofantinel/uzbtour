@@ -42,6 +42,10 @@ REGOLE DI SICUREZZA E QUALITÀ:
 - date deve essere YYYY-MM-DD solo quando la data è esplicita, altrimenti stringa vuota.
 - startDate ed endDate devono rappresentare la prima e l'ultima data del viaggio; usa stringhe vuote se non ricavabili.
 - Non estrarre né proporre mai orari: startsAt ed endsAt devono essere sempre stringhe vuote, anche se il documento contiene orari.
+- Scomponi ogni giornata nella sequenza cronologica effettiva: colazione, trasferimenti, singole visite, pranzo, altre visite, cena e trasferimento in hotel, includendo solo gli elementi presenti o chiaramente indicati nel documento.
+- Non accorpare più monumenti in un'unica attività: crea una voce visit distinta per ogni sito.
+- Per ogni pasto usa type meal e imposta includedInQuote=true se il documento lo include, false se lo esclude o lo indica libero/a carico del cliente, null se non è specificato.
+- Per i trasferimenti conserva nella description tutte le note operative presenti nel documento; gli orari saranno aggiunti in seguito dall'agente.
 - accommodation deve sempre esistere; usa campi vuoti se non è indicato un hotel.
 - description deve sintetizzare fedelmente il testo senza materiale promozionale superfluo.
 - usefulInformation deve contenere solo informazioni realmente presenti nel documento.

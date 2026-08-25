@@ -387,6 +387,7 @@ export async function publishImport(input: {
               placeCity: activity.placeCity,
               placeCountry: activity.placeCountry,
               placeValidation: activity.placeValidation,
+              includedInQuote: activity.includedInQuote,
             })}::jsonb
           )
         `);

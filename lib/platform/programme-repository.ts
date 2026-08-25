@@ -36,7 +36,7 @@ export async function getAgencyProgramme(departureId: string, actorId: string) {
     `,
     sql`
       SELECT item.id::text, item.trip_day_id::text, item.item_type, item.title,
-        item.description, item.starts_at::text, item.ends_at::text, item.sort_order
+        item.description, item.starts_at::text, item.ends_at::text, item.sort_order, item.metadata
       FROM itinerary_items item
       JOIN trip_days day ON day.id = item.trip_day_id AND day.agency_id = item.agency_id
       WHERE item.agency_id = ${agencyId} AND day.template_version_id = ${versionId}
@@ -79,6 +79,8 @@ export async function getAgencyProgramme(departureId: string, actorId: string) {
         id: String(item.id), type: String(item.item_type), title: String(item.title),
         description: value(item.description), startsAt: value(item.starts_at).slice(0, 5),
         endsAt: value(item.ends_at).slice(0, 5), sortOrder: Number(item.sort_order),
+        includedInQuote: typeof (item.metadata as Record<string, unknown> | null)?.includedInQuote === "boolean"
+          ? Boolean((item.metadata as Record<string, unknown>).includedInQuote) : null,
       })),
       hotels: hotels.filter((hotel) => String(hotel.trip_day_id) === String(day.id)).map((hotel) => ({
         id: String(hotel.id), name: String(hotel.name), notes: value(hotel.notes),
@@ -98,7 +100,7 @@ export async function updateAgencyProgrammeDay(input: {
   title: string;
   city: string;
   description: string;
-  items: Array<{ id: string; title: string; description: string; startsAt: string; endsAt: string; sortOrder: number }>;
+  items: Array<{ id: string; title: string; description: string; startsAt: string; endsAt: string; sortOrder: number; includedInQuote: boolean | null }>;
   hotels: Array<{ id: string; name: string; notes: string; sortOrder: number }>;
 }) {
   const sql = getSql();
@@ -144,7 +146,8 @@ export async function updateAgencyProgrammeDay(input: {
     `,
     ...input.items.map((item) => txn`
       UPDATE itinerary_items SET title = ${item.title}, description = ${item.description},
-        starts_at = ${item.startsAt || null}, ends_at = ${item.endsAt || null}, sort_order = ${item.sortOrder}
+        starts_at = ${item.startsAt || null}, ends_at = ${item.endsAt || null}, sort_order = ${item.sortOrder},
+        metadata = COALESCE(metadata, '{}'::jsonb) || ${JSON.stringify({ includedInQuote: item.includedInQuote })}::jsonb
       WHERE id = ${item.id} AND trip_day_id = ${input.dayId} AND agency_id = ${agencyId}
     `),
     ...input.hotels.map((hotel) => txn`
