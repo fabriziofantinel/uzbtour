@@ -257,7 +257,7 @@ export default function TravelExperience({ initialExperience, userName, isAgency
             const site = relatedSite(day, item); const included = item.type === "meal" ? mealInclusion(item) : null;
             const hasRequiredTime = ["transport", "flight", "train"].includes(item.type);
             const ratingBusy = saving === `rating-itinerary_item-${item.id}`;
-            return <article className={`programmeStep ${item.type}`} key={item.id}>
+            return <article className={`programmeStep type-${item.type}`} key={item.id}>
               <span className="programmeStepNumber">{String(index + 1).padStart(2, "0")}</span><span className="programmeStepLine"/>
               <div className="programmeStepBody"><div className="programmeStepMeta"><small><ItemIcon/>{presentation.label}</small>{hasRequiredTime && <time className={item.startsAt ? "" : "pending"}><Clock3/>{item.startsAt || "Orario da confermare"}{item.endsAt ? ` – ${item.endsAt}` : ""}</time>}</div>
                 <h4>{site ? <a href={site.googleUrl} target="_blank" rel="noreferrer">{item.title}<ExternalLink/></a> : item.title}</h4>
@@ -268,7 +268,7 @@ export default function TravelExperience({ initialExperience, userName, isAgency
               </div>
             </article>;
           })}
-          {day.hotels.map((hotel, hotelIndex) => { const ratingBusy = saving === `rating-hotel-${hotel.id}`; return <article className="programmeStep hotel" key={`hotel-${hotel.id}`}>
+          {day.hotels.map((hotel, hotelIndex) => { const ratingBusy = saving === `rating-hotel-${hotel.id}`; return <article className="programmeStep type-hotel" key={`hotel-${hotel.id}`}>
             <span className="programmeStepNumber">{String(day.items.length + hotelIndex + 1).padStart(2, "0")}</span><span className="programmeStepLine"/>
             <div className="programmeStepBody"><div className="programmeStepMeta"><small><BedDouble/>Pernottamento</small></div><h4><a href={hotel.googleUrl} target="_blank" rel="noreferrer">{hotel.name}<ExternalLink/></a></h4><p>{hotel.city}</p><RatingStars value={hotel.rating} busy={ratingBusy} label={`Valutazione di ${hotel.name}`} onRate={(rating) => void saveRating(day.id, "hotel", hotel.id, rating)}/></div>
           </article>; })}
