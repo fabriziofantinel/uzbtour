@@ -1,5 +1,6 @@
 import { getSql } from "@/lib/db";
 import { PlatformRequestError } from "./http";
+import { geocodeCity } from "./geocoding";
 
 type Row = Record<string, unknown>;
 
@@ -187,6 +188,30 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
 
   const items = itemRows as Row[];
   const cities = cityRows as Row[];
+  const missingCities = [...new Map(cities
+    .filter((city) => city.latitude == null || city.longitude == null)
+    .map((city) => [String(city.id), city])).values()];
+  if (missingCities.length > 0) {
+    const recovered = await Promise.allSettled(missingCities.map(async (city) => {
+      const coordinates = await geocodeCity(String(city.name), String(city.country));
+      if (!coordinates) return;
+      await sql`
+        UPDATE cities
+        SET latitude = ${coordinates.latitude}, longitude = ${coordinates.longitude}, updated_at = NOW()
+        WHERE id = ${String(city.id)} AND (latitude IS NULL OR longitude IS NULL)
+      `;
+      for (const row of cities.filter((item) => String(item.id) === String(city.id))) {
+        row.latitude = coordinates.latitude;
+        row.longitude = coordinates.longitude;
+      }
+    }));
+    recovered.forEach((result, index) => {
+      if (result.status === "rejected") {
+        console.warn(`Coordinate non recuperate per ${String(missingCities[index].name)}`,
+          result.reason instanceof Error ? result.reason.message : result.reason);
+      }
+    });
+  }
   const sites = siteRows as Row[];
   const hotels = hotelRows as Row[];
   return {

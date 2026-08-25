@@ -1,5 +1,6 @@
 import { getSql } from "@/lib/db";
 import type { TravelProgrammeDraft } from "./import-schema";
+import { geocodeCity } from "./geocoding";
 
 export type ReferenceTarget = { entityType: "country" | "city" | "site"; entityId: string; name: string };
 export type DayReferences = { cityIds: string[]; siteIds: string[]; hotelId?: string };
@@ -29,9 +30,24 @@ async function ensureCity(countryId: string, countryName: string, name: string) 
     INSERT INTO cities (country_id, name, normalized_name, google_url)
     VALUES (${countryId}, ${name.trim()}, ${normalizedName(name)}, ${googleUrl(`${name}, ${countryName}`)})
     ON CONFLICT (country_id, normalized_name) DO UPDATE SET name = EXCLUDED.name, google_url = EXCLUDED.google_url, updated_at = NOW()
-    RETURNING id::text, name
+    RETURNING id::text, name, latitude, longitude
   `;
-  return { id: String(rows[0].id), name: String(rows[0].name) };
+  const city = rows[0];
+  if (city.latitude == null || city.longitude == null) {
+    try {
+      const coordinates = await geocodeCity(String(city.name), countryName);
+      if (coordinates) {
+        await sql`
+          UPDATE cities
+          SET latitude = ${coordinates.latitude}, longitude = ${coordinates.longitude}, updated_at = NOW()
+          WHERE id = ${String(city.id)} AND (latitude IS NULL OR longitude IS NULL)
+        `;
+      }
+    } catch (error) {
+      console.warn(`Coordinate non recuperate per ${String(city.name)}`, error instanceof Error ? error.message : error);
+    }
+  }
+  return { id: String(city.id), name: String(city.name) };
 }
 
 async function ensureSite(cityId: string, cityName: string, countryName: string, name: string) {

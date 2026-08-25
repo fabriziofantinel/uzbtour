@@ -3038,6 +3038,17 @@
   white-space: nowrap;
 }
 
+.mapAttribution {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 10px;
+  text-align: right;
+}
+
+.mapAttribution a {
+  color: inherit;
+}
+
 @media (max-width: 900px) {
   .overviewDayList {
     grid-template-columns: repeat(2, 1fr);
