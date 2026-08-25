@@ -15,15 +15,38 @@ function LoginContent() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  async function signIn(emailAddress: string, userPassword: string) {
+    const response = await fetch("/api/auth/sign-in/email", {
+      method: "POST",
+      credentials: "same-origin",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: emailAddress, password: userPassword })
+    });
+    const body = await response.json().catch(() => null) as { code?: string; message?: string } | null;
+    return { response, body };
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setError("");
 
     try {
-      const result = await authClient.signIn.email({ email: email.trim(), password });
-      if (result.error) {
+      const normalizedEmail = email.trim().toLocaleLowerCase("en-US");
+      const { response: signInResponse } = await signIn(normalizedEmail, password);
+      if (signInResponse.status === 401) {
         setError("Email o password non corrette.");
+        return;
+      }
+      if (signInResponse.status === 429) {
+        setError("Troppi tentativi di accesso. Attendi qualche minuto e riprova.");
+        return;
+      }
+      if (!signInResponse.ok) {
+        setError(signInResponse.status === 503
+          ? "Servizio di accesso temporaneamente non disponibile. Riprova tra poco."
+          : "Accesso non riuscito. Riprova oppure reimposta la password.");
         return;
       }
 
@@ -33,7 +56,7 @@ function LoginContent() {
         user?: { isSuperAdmin?: boolean; isAgencyAdmin?: boolean };
       } | null;
       if (!meResponse.ok || !me?.user) {
-        await authClient.signOut();
+        await authClient.signOut().catch(() => undefined);
         setError("Account non abilitato a questa applicazione.");
         return;
       }
@@ -43,7 +66,8 @@ function LoginContent() {
       const safeDestination = destination.startsWith("/") && !destination.startsWith("//")
         ? destination : "/";
       window.location.href = safeDestination;
-    } catch {
+    } catch (caught) {
+      console.error("Login request failed", caught instanceof Error ? caught.message : String(caught));
       setError("Connessione non disponibile. Riprova tra poco.");
     } finally {
       setLoading(false);
