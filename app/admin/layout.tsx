@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Building2, Gauge, LogIn, LogOut, ShieldCheck } from "lucide-react";
+import { Accessibility, Building2, Gauge, LogIn, LogOut, ShieldCheck } from "lucide-react";
 import { PlatformAuthorizationError, requireSuperAdmin } from "@/lib/platform/authorization";
 import "./superadmin.css";
 import "./agency-branding.css";
@@ -19,6 +19,7 @@ export default async function SuperadminLayout({ children }: { children: React.R
 
   return (
     <main className="superadminPage">
+      <a className="agidSkipLink" href="#main-content">Salta al contenuto principale</a>
       <header className="superadminTopbar">
         <Link className="superadminBrand" href="/admin">
           <span>SMF</span>
@@ -28,6 +29,7 @@ export default async function SuperadminLayout({ children }: { children: React.R
           <Link href="/admin"><Gauge size={17}/> Riepilogo</Link>
           <Link href="/admin/agenzie"><Building2 size={17}/> Agenzie</Link>
           <Link href="/admin/utenti"><LogIn size={17}/> Login come</Link>
+          <Link href="/accessibilita"><Accessibility size={17}/> Accessibilità</Link>
         </nav>
         <div className="superadminActor">
           <ShieldCheck size={17}/><b>{actor.name}</b>
@@ -36,7 +38,7 @@ export default async function SuperadminLayout({ children }: { children: React.R
           </form>
         </div>
       </header>
-      {children}
+      <div id="main-content" tabIndex={-1}>{children}</div>
     </main>
   );
 }

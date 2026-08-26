@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import {
-  Building2, CalendarDays, CheckCircle2, ChevronDown, CircleAlert,
+  Accessibility, Building2, CalendarDays, CheckCircle2, ChevronDown, CircleAlert,
   BookOpen, Download, Eye, FileCheck2, LayoutGrid, List, LoaderCircle, LogOut, MapPinned, Play, Plus, Sparkles,
   Search, SlidersHorizontal, Trash2, UsersRound, X,
 } from "lucide-react";
@@ -413,6 +413,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
 
   return (
     <main className="agencyPage">
+      <a className="agidSkipLink" href="#main-content">Salta all’elenco dei viaggi</a>
       <header className="agencyTopbar">
         <Link className="agencyBrand" href="/">
           <span>SMF</span><div><strong>SMF Travel</strong><small>PANNELLO AGENZIA</small></div>
@@ -444,10 +445,11 @@ export default function AgencyDashboard({ initialOverview }: Props) {
           </div>
           <nav>
             <a className="active" href="#viaggi"><MapPinned size={18}/> Viaggi</a>
+            <Link href="/accessibilita"><Accessibility size={18}/> Accessibilità</Link>
           </nav>
         </aside>
 
-        <section className="agencyContent">
+        <section id="main-content" className="agencyContent" tabIndex={-1}>
           {error && <div className="agencyMessage error" role="alert"><CircleAlert size={18}/><span>{error}</span></div>}
           {notice && <div className="agencyMessage success" role="status"><CheckCircle2 size={18}/><span>{notice}</span></div>}
 

@@ -77,6 +77,7 @@ function LoginContent() {
 
   return (
     <main className="loginPage">
+      <a className="agidSkipLink" href="#login-form">Salta al modulo di accesso</a>
       <section className="loginStory">
         <div className="loginPattern" />
         <div className="loginBrand"><span>SMF</span> SMF Travel</div>
@@ -89,7 +90,7 @@ function LoginContent() {
       </section>
 
       <section className="loginPanel">
-        <div className="loginBox">
+        <div id="login-form" className="loginBox" tabIndex={-1}>
           <span className="loginLock"><LockKeyhole size={24}/></span>
           <p className="loginEyebrow">AREA RISERVATA</p>
           <h2>Accedi al tuo spazio</h2>
@@ -107,6 +108,8 @@ function LoginContent() {
                 autoComplete="email"
                 autoFocus
                 required
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? "login-error" : undefined}
               />
             </div>
             <label htmlFor="password">Password</label>
@@ -120,6 +123,8 @@ function LoginContent() {
                 placeholder="Inserisci la password"
                 autoComplete="current-password"
                 required
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? "login-error" : undefined}
               />
               <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Nascondi password" : "Mostra password"}>
                 {showPassword ? <EyeOff size={17}/> : <Eye size={17}/>}
@@ -128,13 +133,13 @@ function LoginContent() {
             {searchParams.get("configuration") === "missing" && (
               <p className="loginError" role="alert">Autenticazione in configurazione. Riprova tra poco.</p>
             )}
-            {error && <p className="loginError" role="alert">{error}</p>}
+            {error && <p id="login-error" className="loginError" role="alert">{error}</p>}
             <button className="loginSubmit" type="submit" disabled={loading || !email.trim() || !password}>
               {loading ? <LoaderCircle className="spin" size={18}/> : <LockKeyhole size={17}/>}
               {loading ? "Accesso in corso…" : "Accedi"}
             </button>
           </form>
-          <p className="loginHelp"><CircleUserRound size={13}/> <a href="/auth/forgot-password">Password dimenticata?</a></p>
+          <p className="loginHelp"><CircleUserRound size={13}/> <a href="/auth/forgot-password">Password dimenticata?</a><span aria-hidden="true">·</span><a href="/accessibilita">Accessibilità e assistenza</a></p>
         </div>
       </section>
     </main>

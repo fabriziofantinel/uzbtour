@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
-  ArrowLeft, ArrowRight, ArrowRightLeft, Banknote, BedDouble, Building2, Bus,
+  Accessibility, ArrowLeft, ArrowRight, ArrowRightLeft, Banknote, BedDouble, Building2, Bus,
   CalendarDays, Camera, ChevronRight, CircleUserRound, Clock3,
   Check, Download, ExternalLink, FileText, Info, Languages, LoaderCircle, LocateFixed, LogOut, Map,
   MapPin, MessageCircle, Navigation, Plane, ReceiptText,
@@ -461,6 +461,7 @@ export default function TravelExperience({ initialExperience, userName, isAgency
       <button type="button" aria-current={tab === "documenti" ? "page" : undefined} onClick={() => { setTab("documenti"); setMoreOpen(false); }}><FileText/><span><strong>Documenti</strong><small>{travelDocuments.length === 1 ? "1 biglietto disponibile" : `${travelDocuments.length} biglietti disponibili`}</small></span><ChevronRight/></button>
       <button type="button" aria-current={tab === "info" ? "page" : undefined} onClick={() => { setTab("info"); setMoreOpen(false); }}><Info/><span><strong>Informazioni utili</strong><small>Contatti, valuta e consigli</small></span><ChevronRight/></button>
       <button type="button" aria-current={tab === "frasario" ? "page" : undefined} onClick={() => { setTab("frasario"); setMoreOpen(false); }}><Languages/><span><strong>Frasi</strong><small>Parole utili durante il viaggio</small></span><ChevronRight/></button>
+      <a href="/accessibilita"><Accessibility/><span><strong>Accessibilità</strong><small>Aiuto, comandi e segnalazioni</small></span><ChevronRight/></a>
       {experience.availableJourneys.length > 1 && <div className="moreJourneys"><small>I MIEI VIAGGI</small>{experience.availableJourneys.map((journey) => <a className={journey.departureId === experience.journey.departureId ? "active" : ""} href={`/viaggio?partenza=${journey.departureId}`} key={journey.departureId}><Map/><span><strong>{journey.title}</strong><small>{dateParts(journey.startsOn).full} — {dateParts(journey.endsOn).full}</small></span>{journey.departureId === experience.journey.departureId ? <Check/> : <ChevronRight/>}</a>)}</div>}
       {isAgencyAdmin && <a href="/agenzia"><Building2/><span><strong>Area agenzia</strong><small>Gestisci viaggi e viaggiatori</small></span><ChevronRight/></a>}
       <form action="/api/auth/logout" method="post"><button type="submit"><LogOut/><span><strong>Esci</strong><small>{userName}</small></span><ChevronRight/></button></form>

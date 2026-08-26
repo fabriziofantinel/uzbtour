@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope, Playfair_Display } from "next/font/google";
 import "./globals.css";
+import "./accessibility.css";
 import ImpersonationBanner from "@/components/impersonation-banner";
 import ServiceWorkerRegister from "@/components/service-worker-register";
 

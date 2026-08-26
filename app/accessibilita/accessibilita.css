@@ -1,0 +1,37 @@
+.accessibilityPage { min-height: 100svh; color: #173c3c; background: #f7f3eb; }
+.accessibilityTopbar { min-height: 68px; padding: 0 clamp(16px,5vw,64px); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #d9d8cf; background: #fff; }
+.accessibilityTopbar a { min-height: 44px; display: inline-flex; align-items: center; gap: 8px; color: #173c3c; font-weight: 800; text-decoration: none; }
+.accessibilityTopbar a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.accessibilityTopbar svg { width: 18px; }
+.accessibilityTopbar > span { display: flex; align-items: center; gap: 8px; font-family: var(--font-serif),serif; }
+.accessibilityTopbar i { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: #0b6462; font: 800 12px var(--font-sans),sans-serif; }
+.accessibilityShell { width: min(1080px,calc(100% - 32px)); margin: auto; padding: clamp(30px,6vw,72px) 0 80px; }
+.accessibilityHero { display: grid; grid-template-columns: 76px minmax(0,720px); gap: 28px; align-items: start; }
+.accessibilityHero > span { width: 76px; height: 76px; display: grid; place-items: center; border-radius: 16px; color: #fff; background: #123f48; box-shadow: 0 12px 30px rgba(7,31,30,.16); }
+.accessibilityHero > span svg { width: 34px; height: 34px; }
+.accessibilityHero p:first-child { margin: 2px 0 10px; color: #9a472f; font-size: .78rem; font-weight: 900; letter-spacing: .12em; }
+.accessibilityHero h1 { max-width: 17ch; margin: 0; font: 700 clamp(2.25rem,6vw,4.5rem)/1.02 var(--font-serif),serif; letter-spacing: -.03em; text-wrap: balance; }
+.accessibilityHero h1 + p { max-width: 66ch; margin: 22px 0 0; color: #455b58; font-size: 1.05rem; line-height: 1.75; }
+.accessibilitySection { margin-top: clamp(48px,8vw,88px); }
+.accessibilitySectionHead { display: grid; grid-template-columns: 1fr minmax(260px,450px); gap: 24px; align-items: end; }
+.accessibilitySection h2,.accessibilityReport h2,.accessibilityTips h2 { margin: 0; font: 700 clamp(1.65rem,3vw,2.35rem)/1.15 var(--font-serif),serif; }
+.accessibilitySectionHead p { margin: 0; color: #526461; line-height: 1.65; }
+.accessibilityMeasures { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); margin-top: 28px; border-block: 1px solid #d9d8cf; }
+.accessibilityMeasures article { min-width: 0; padding: 28px 24px; border-inline-start: 1px solid #d9d8cf; }
+.accessibilityMeasures article:first-child { border-inline-start: 0; }
+.accessibilityMeasures svg { color: #0b6462; }
+.accessibilityMeasures h3 { margin: 18px 0 7px; font-size: 1rem; }
+.accessibilityMeasures p { margin: 0; color: #526461; font-size: .9rem; line-height: 1.6; }
+.accessibilityReport { margin-top: 52px; padding: clamp(24px,5vw,48px); display: grid; grid-template-columns: 52px minmax(0,1fr); gap: 22px; border-radius: 16px; color: #fff; background: #123f48; box-shadow: 0 18px 46px rgba(7,31,30,.17); }
+.accessibilityReport > span { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 13px; color: #123f48; background: #efbd76; }
+.accessibilityReport p { max-width: 72ch; color: #e2ecea; line-height: 1.7; }
+.accessibilityStatus { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 0; }
+.accessibilityStatus svg { flex: 0 0 auto; margin-top: 3px; color: #efbd76; }
+.accessibilityTips { margin-top: 52px; display: grid; grid-template-columns: minmax(220px,.7fr) 1fr; gap: 36px; }
+.accessibilityTips > div { display: flex; gap: 13px; align-items: flex-start; }
+.accessibilityTips > div svg { flex: 0 0 auto; margin-top: 5px; color: #0b6462; }
+.accessibilityTips ul { margin: 0; padding-inline-start: 22px; color: #455b58; line-height: 1.7; }
+.accessibilityTips li + li { margin-top: 10px; }
+.accessibilityTips kbd { padding: 2px 6px; border: 1px solid #adb8b5; border-bottom-width: 2px; border-radius: 5px; color: #173c3c; background: #fff; font: 700 .85em var(--font-sans),sans-serif; }
+@media(max-width:800px){.accessibilityMeasures{grid-template-columns:1fr 1fr}.accessibilityMeasures article:nth-child(3){border-inline-start:0;border-top:1px solid #d9d8cf}.accessibilityMeasures article:nth-child(4){border-top:1px solid #d9d8cf}}
+@media(max-width:600px){.accessibilityShell{width:min(100% - 28px,1080px);padding-top:30px}.accessibilityHero{grid-template-columns:1fr;gap:18px}.accessibilityHero>span{width:58px;height:58px}.accessibilityHero>span svg{width:28px}.accessibilityHero h1{font-size:clamp(2.2rem,12vw,3.4rem)}.accessibilitySectionHead,.accessibilityTips{grid-template-columns:1fr}.accessibilityMeasures{grid-template-columns:1fr}.accessibilityMeasures article{border-inline-start:0;border-top:1px solid #d9d8cf}.accessibilityMeasures article:first-child{border-top:0}.accessibilityReport{grid-template-columns:1fr}.accessibilityTopbar>span strong{display:none}}
