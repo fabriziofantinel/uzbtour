@@ -76,17 +76,17 @@ export async function DELETE(
     const { id } = await context.params;
     const agencyId = await getImportAgency(id);
     await requireAgencyAdmin(agencyId);
-    const target = await getImportDeletionTarget(id, agencyId);
-    const storage = getObjectStorage(target.provider);
-    if (storage.bucket !== target.bucket) {
-      return NextResponse.json({ error: "Bucket del documento non valido" }, { status: 409 });
+    const targets = await getImportDeletionTarget(id, agencyId);
+    const storage = getObjectStorage("r2");
+    if (targets.some((target) => storage.bucket !== target.bucket)) {
+      return NextResponse.json({ error: "Bucket dei documenti non valido" }, { status: 409 });
     }
-    await storage.delete(target.objectKey);
+    await Promise.all(targets.map((target) => storage.delete(target.objectKey)));
     await deleteImportDraftRecords({
       importId: id,
       agencyId,
-      documentId: target.documentId,
-      mediaAssetId: target.mediaAssetId,
+      documentIds: targets.map((target) => target.documentId),
+      mediaAssetIds: targets.map((target) => target.mediaAssetId),
     });
     return NextResponse.json({ ok: true });
   } catch (error) {

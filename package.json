@@ -19,6 +19,7 @@
     "smoke:r2": "node scripts/smoke-r2-cors.mjs",
     "smoke:superadmin": "node --env-file=.env.local scripts/smoke-superadmin-data.mjs",
     "smoke:travel-catalog": "node --env-file=.env.local scripts/smoke-travel-catalog.mjs",
+    "smoke:normalized-document": "tsx scripts/smoke-normalized-document.ts",
     "aws:deploy": "sam deploy --guided"
   },
   "dependencies": {
@@ -33,6 +34,8 @@
     "@smithy/types": "^4.17.2",
     "@vercel/oidc-aws-credentials-provider": "^3.3.5",
     "ai": "^7.0.73",
+    "docx": "^9.7.1",
+    "jszip": "^3.10.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.468.0",
     "next": "^16.3.2",
@@ -52,6 +55,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "esbuild": "^0.28.2",
+    "tsx": "^4.23.12",
     "typescript": "^5.7.2"
   }
 }

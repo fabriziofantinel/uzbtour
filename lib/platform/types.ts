@@ -67,5 +67,6 @@ export type PlatformImportReview = {
   model: string | null;
   createdAt: string;
   tripTitle: string;
-  fileName: string;
+  sourceFileName: string;
+  normalizedFileName: string | null;
 };

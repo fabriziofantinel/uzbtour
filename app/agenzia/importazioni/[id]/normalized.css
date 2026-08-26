@@ -1,0 +1,89 @@
+.normalizedSource {
+  display: grid;
+  grid-template-columns: 32px minmax(170px, 1fr) auto minmax(170px, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-raised);
+}
+
+.normalizedSource > svg {
+  color: var(--rust);
+}
+
+.normalizedSource > div {
+  min-width: 0;
+}
+
+.normalizedSource small,
+.normalizedSource b {
+  display: block;
+}
+
+.normalizedSource small {
+  color: var(--text-subtle);
+  font-size: var(--text-meta);
+  font-weight: 850;
+  letter-spacing: 0.08em;
+}
+
+.normalizedSource b {
+  overflow: hidden;
+  margin-top: 4px;
+  font-size: var(--text-small);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.normalizedSource > span {
+  color: var(--muted);
+  font-size: var(--text-meta);
+}
+
+.normalizedSource > a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 13px;
+  border-radius: 10px;
+  color: var(--on-brand);
+  background: var(--teal);
+  font-size: var(--text-meta);
+  font-weight: 850;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.normalizedSource > a:hover {
+  background: var(--teal-deep);
+}
+
+.normalizedSource > a svg {
+  width: 16px;
+}
+
+@media (max-width: 800px) {
+  .normalizedSource {
+    grid-template-columns: 28px minmax(0, 1fr);
+    padding: 15px;
+  }
+
+  .normalizedSource > span {
+    display: none;
+  }
+
+  .normalizedSource > div:nth-of-type(2),
+  .normalizedSource > a {
+    grid-column: 2;
+  }
+
+  .normalizedSource > a {
+    width: 100%;
+    white-space: normal;
+  }
+}

@@ -4,6 +4,7 @@ import { getImportAgency, getImportForReview } from "@/lib/platform/import-repos
 import ImportReview from "./review-client";
 import "./review.css";
 import "./validation.css";
+import "./normalized.css";
 
 export const dynamic = "force-dynamic";
 

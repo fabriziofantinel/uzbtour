@@ -4,11 +4,21 @@ const files = {
   globals: await readFile("app/globals.css", "utf8"),
   tour: await readFile("app/tour.css", "utf8"),
   challenges: await readFile("app/challenges.css", "utf8"),
+  importReview: await readFile("app/agenzia/importazioni/[id]/review.css", "utf8"),
+  importValidation: await readFile("app/agenzia/importazioni/[id]/validation.css", "utf8"),
+  importNormalized: await readFile("app/agenzia/importazioni/[id]/normalized.css", "utf8"),
   experience: await readFile("app/viaggio/travel-experience.tsx", "utf8"),
   dialog: await readFile("components/expense-dialog.tsx", "utf8"),
 };
 
-const css = `${files.globals}\n${files.tour}\n${files.challenges}`;
+const css = [
+  files.globals,
+  files.tour,
+  files.challenges,
+  files.importReview,
+  files.importValidation,
+  files.importNormalized,
+].join("\n");
 const cssWithoutTokens = css.replace(/:root\s*\{[^}]*\}/gs, "");
 const checks = [
   ["Design system", !/(?:#(?:[\da-f]{3,8})\b|rgba?\()/i.test(cssWithoutTokens), "nessun colore fuori dai token"],
@@ -19,7 +29,7 @@ const checks = [
   ["Accessibilità", /prefers-reduced-motion/.test(files.tour), "movimento ridotto supportato"],
   ["Accessibilità", /role="dialog"/.test(files.dialog) && /aria-modal="true"/.test(files.dialog), "dialogo modale semantico"],
   ["Accessibilità", /Salta al contenuto del viaggio/.test(files.experience) && /aria-live="polite"/.test(files.experience), "skip link e annunci dinamici"],
-  ["Responsive", /@media \(max-width: 700px\)/.test(files.tour), "layout smartphone dedicato"],
+  ["Responsive", /@media \(max-width: 700px\)/.test(files.tour) && /@media \(max-width: 800px\)/.test(files.importReview), "layout smartphone dedicato"],
   ["Responsive", /min-height:\s*44px/.test(css), "target tattili da 44 px"],
   ["Responsive", /overflow-x:\s*hidden/.test(files.tour), "protezione overflow orizzontale"],
   ["Responsive", /env\(safe-area-inset-bottom\)/.test(files.tour), "safe area mobile supportata"],

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import {
   Building2, CalendarDays, CheckCircle2, ChevronDown, CircleAlert,
-  BookOpen, Eye, LayoutGrid, List, LoaderCircle, LogOut, MapPinned, Play, Plus, Sparkles,
+  BookOpen, Download, Eye, LayoutGrid, List, LoaderCircle, LogOut, MapPinned, Play, Plus, Sparkles,
   Search, SlidersHorizontal, Trash2, UsersRound, X,
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -409,6 +409,11 @@ export default function AgencyDashboard({ initialOverview }: Props) {
             {showNewTrip && (
               <form className="newTripForm" onSubmit={createTrip}>
                 <div className="formIntro"><b>Importa il preventivo accettato</b><span>Il documento creerà testata, itinerario e anagrafiche condivise.</span></div>
+                <div className="quoteTemplate">
+                  <Download/>
+                  <span><b>Modello preventivo SMF Travel</b><small>Usalo per ridurre gli errori di interpretazione.</small></span>
+                  <a href="/templates/modello-preventivo-smf-travel.docx" download>Scarica DOCX</a>
+                </div>
                 <label>Nome pratica (facoltativo)<input name="title" placeholder="Se vuoto useremo il nome del file"/></label>
                 <label className="pdfField">Preventivo PDF, DOC o DOCX *<input name="programme" type="file" accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" required/></label>
                 <div><button type="button" className="secondary" onClick={() => setShowNewTrip(false)}>Annulla</button><button disabled={busy === "new-trip"}>{busy === "new-trip" && <LoaderCircle className="spin"/>} Crea</button></div>

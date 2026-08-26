@@ -78,16 +78,6 @@ function currentDayIndex(days: Experience["days"], timeZone: string) {
   return index >= 0 ? index : 0;
 }
 
-function mealInclusion(item: Day["items"][number]) {
-  const metadata = item.metadata && typeof item.metadata === "object" && !Array.isArray(item.metadata)
-    ? item.metadata as Record<string, unknown> : null;
-  if (typeof metadata?.includedInQuote === "boolean") return metadata.includedInQuote;
-  const text = `${item.title} ${item.description}`.toLocaleLowerCase("it");
-  if (/non inclus|esclus|a carico|pasto libero/.test(text)) return false;
-  if (/inclus/.test(text)) return true;
-  return null;
-}
-
 function itemPresentation(type: string) {
   if (type === "meal") return { Icon: Utensils, label: "Pasto" };
   if (type === "visit") return { Icon: MapPin, label: "Visita" };
@@ -316,7 +306,7 @@ export default function TravelExperience({ initialExperience, userName, isAgency
         <section className="dayProgramme"><header><span>PROGRAMMA DELLA GIORNATA</span><h3>La giornata, in ordine cronologico</h3></header><div className="dayProgrammeList">
           {day.items.map((item, index) => {
             const presentation = itemPresentation(item.type); const ItemIcon = presentation.Icon;
-            const site = relatedSite(day, item); const included = item.type === "meal" ? mealInclusion(item) : null;
+            const site = relatedSite(day, item);
             const hasRequiredTime = ["transport", "flight", "train"].includes(item.type);
             const ratingBusy = saving === `rating-itinerary_item-${item.id}`;
             return <article className={`programmeStep type-${item.type}`} key={item.id}>
@@ -324,7 +314,6 @@ export default function TravelExperience({ initialExperience, userName, isAgency
               <div className="programmeStepBody"><div className="programmeStepMeta"><small><ItemIcon/>{presentation.label}</small>{hasRequiredTime && <time className={item.startsAt ? "" : "pending"}><Clock3/>{item.startsAt || "Orario da confermare"}{item.endsAt ? ` – ${item.endsAt}` : ""}</time>}</div>
                 <h4>{site ? <a href={site.googleUrl} target="_blank" rel="noreferrer">{item.title}<ExternalLink/></a> : item.title}</h4>
                 {item.description && <div className={item.type === "transport" ? "programmeOperationalNote" : "programmeDescriptionNote"}>{item.type === "transport" && <strong>Note operative</strong>}<p>{item.description}</p></div>}
-                {item.type === "meal" && <span className={`mealStatus ${included === true ? "included" : included === false ? "excluded" : "unknown"}`}>{included === true ? "Incluso nel preventivo" : included === false ? "Non incluso nel preventivo" : "Inclusione da confermare"}</span>}
                 {item.tickets.length > 0 && <div className="travelerTickets">{item.tickets.map((ticket) => <a href={ticket.downloadUrl} key={ticket.id}><FileText/><span><strong>Biglietto</strong><small>{ticket.title}</small></span><Download/></a>)}</div>}
                 <RatingStars value={item.rating} busy={ratingBusy} label={`Valutazione di ${item.title}`} onRate={(rating) => void saveRating(day.id, "itinerary_item", item.id, rating)}/>
               </div>

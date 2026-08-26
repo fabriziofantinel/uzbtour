@@ -15,7 +15,7 @@ export const importedActivitySchema = z.object({
   description: z.string().max(3000),
   startsAt: z.string().max(5).describe("Orario HH:mm modificabile dall'agente; non viene proposto durante l'importazione"),
   endsAt: z.string().max(5).describe("Orario HH:mm modificabile dall'agente; non viene proposto durante l'importazione"),
-  includedInQuote: z.boolean().nullable().default(null).describe("Per i pasti: true se incluso, false se escluso, null se non specificato"),
+  includedInQuote: z.boolean().nullable().default(null).describe("Per i pasti presenti nel programma: true. I pasti non inclusi non devono essere creati"),
   placeName: z.string().max(240),
   placeCity: z.string().max(240).default(""),
   placeCountry: z.string().max(120).default(""),

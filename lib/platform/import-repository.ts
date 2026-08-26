@@ -3,6 +3,7 @@ import { PlatformRequestError } from "./http";
 import { catalogValidationIssues, travelProgrammeDraftSchema, type TravelProgrammeDraft } from "./import-schema";
 import type { PlatformImportReview } from "./types";
 import { prepareTravelCatalog } from "./travel-catalog";
+import { ensureNormalizedImportSchema } from "./normalized-import-schema";
 
 type ImportSourceRow = {
   id: string;
@@ -15,6 +16,7 @@ type ImportSourceRow = {
   original_name: string;
   content_type: string;
   size_bytes: number | null;
+  uploaded_by_user_id: string | null;
   status: string;
 };
 
@@ -84,7 +86,7 @@ export async function claimImportJob(
     SELECT
       ci.id::text, ci.agency_id::text, ci.template_id::text, ci.document_id::text,
       ma.provider, ma.bucket, ma.object_key, ma.original_name,
-      ma.content_type, ma.size_bytes, ci.status
+      ma.content_type, ma.size_bytes, ma.uploaded_by_user_id, ci.status
     FROM changed_import ci
     JOIN travel_documents td ON td.id = ci.document_id AND td.agency_id = ci.agency_id
     JOIN media_assets ma ON ma.id = td.media_asset_id AND ma.agency_id = ci.agency_id
@@ -93,6 +95,65 @@ export async function claimImportJob(
     throw new PlatformRequestError("Importazione già in elaborazione o non accodabile");
   }
   return rows[0] as ImportSourceRow;
+}
+
+export async function saveNormalizedImportDocument(input: {
+  importId: string;
+  agencyId: string;
+  templateId: string;
+  uploadedByUserId: string | null;
+  provider: "r2";
+  bucket: string;
+  objectKey: string;
+  originalName: string;
+  contentType: string;
+  sizeBytes: number;
+  checksumSha256: string;
+}) {
+  const sql = getSql();
+  const mediaId = crypto.randomUUID();
+  const documentId = crypto.randomUUID();
+  const rows = await sql`
+    WITH media AS (
+      INSERT INTO media_assets (
+        id, agency_id, uploaded_by_user_id, provider, bucket, object_key,
+        original_name, content_type, size_bytes, checksum_sha256,
+        purpose, visibility, status, metadata
+      ) VALUES (
+        ${mediaId}, ${input.agencyId}, ${input.uploadedByUserId}, ${input.provider},
+        ${input.bucket}, ${input.objectKey}, ${input.originalName}, ${input.contentType},
+        ${input.sizeBytes}, ${input.checksumSha256}, 'travel_programme_normalized',
+        'agency', 'ready', ${JSON.stringify({ format: "smf-travel-canonical-v1", sourceImportId: input.importId })}::jsonb
+      )
+      ON CONFLICT (provider, bucket, object_key) DO UPDATE SET
+        original_name = EXCLUDED.original_name,
+        content_type = EXCLUDED.content_type,
+        size_bytes = EXCLUDED.size_bytes,
+        checksum_sha256 = EXCLUDED.checksum_sha256,
+        status = 'ready', metadata = EXCLUDED.metadata, updated_at = NOW()
+      RETURNING id
+    ), document AS (
+      INSERT INTO travel_documents (
+        id, agency_id, template_id, media_asset_id, document_type, title, status
+      ) SELECT
+        ${documentId}, ${input.agencyId}, ${input.templateId}, media.id,
+        'normalized_programme', ${input.originalName}, 'ready'
+      FROM media
+      ON CONFLICT (media_asset_id) DO UPDATE SET title = EXCLUDED.title, status = 'ready'
+      RETURNING id
+    ), updated AS (
+      UPDATE import_jobs
+      SET normalized_document_id = document.id, updated_at = NOW()
+      FROM document
+      WHERE import_jobs.id = ${input.importId}
+        AND import_jobs.agency_id = ${input.agencyId}
+        AND import_jobs.template_id = ${input.templateId}
+      RETURNING document.id
+    )
+    SELECT id::text FROM updated
+  `;
+  if (!rows[0]) throw new PlatformRequestError("Registrazione del preventivo normalizzato non riuscita");
+  return String(rows[0].id);
 }
 
 export async function getPlatformJobStatus(jobId: string, agencyId: string) {
@@ -131,7 +192,12 @@ export async function completeImport(input: {
     `,
     txn`
       UPDATE travel_documents SET status = 'ready'
-      WHERE id = (SELECT document_id FROM import_jobs WHERE id = ${input.importId})
+      WHERE id IN (
+        SELECT document_id FROM import_jobs WHERE id = ${input.importId}
+        UNION
+        SELECT normalized_document_id FROM import_jobs
+        WHERE id = ${input.importId} AND normalized_document_id IS NOT NULL
+      )
     `,
     txn`
       UPDATE platform_jobs
@@ -154,7 +220,12 @@ export async function failImport(importId: string, error: unknown) {
     `,
     txn`
       UPDATE travel_documents SET status = 'failed'
-      WHERE id = (SELECT document_id FROM import_jobs WHERE id = ${importId})
+      WHERE id IN (
+        SELECT document_id FROM import_jobs WHERE id = ${importId}
+        UNION
+        SELECT normalized_document_id FROM import_jobs
+        WHERE id = ${importId} AND normalized_document_id IS NOT NULL
+      )
     `,
     txn`
       UPDATE platform_jobs
@@ -168,16 +239,24 @@ export async function getImportForReview(
   importId: string,
   agencyId: string
 ): Promise<PlatformImportReview> {
+  await ensureNormalizedImportSchema();
   const sql = getSql();
   const rows = await sql`
     SELECT
       ij.id::text, ij.agency_id::text, ij.template_id::text, ij.status,
       ij.result, ij.error_message, ij.ai_provider, ij.created_at::text,
-      tt.title AS trip_title, ma.original_name AS file_name
+      tt.title AS trip_title, ma.original_name AS source_file_name,
+      normalized_media.original_name AS normalized_file_name
     FROM import_jobs ij
     JOIN trip_templates tt ON tt.id = ij.template_id AND tt.agency_id = ij.agency_id
     JOIN travel_documents td ON td.id = ij.document_id AND td.agency_id = ij.agency_id
     JOIN media_assets ma ON ma.id = td.media_asset_id AND ma.agency_id = ij.agency_id
+    LEFT JOIN travel_documents normalized_document
+      ON normalized_document.id = ij.normalized_document_id
+      AND normalized_document.agency_id = ij.agency_id
+    LEFT JOIN media_assets normalized_media
+      ON normalized_media.id = normalized_document.media_asset_id
+      AND normalized_media.agency_id = ij.agency_id
     WHERE ij.id = ${importId} AND ij.agency_id = ${agencyId}
     LIMIT 1
   `;
@@ -193,40 +272,64 @@ export async function getImportForReview(
     model: row.ai_provider ? String(row.ai_provider) : null,
     createdAt: String(row.created_at),
     tripTitle: String(row.trip_title),
-    fileName: String(row.file_name),
+    sourceFileName: String(row.source_file_name),
+    normalizedFileName: row.normalized_file_name ? String(row.normalized_file_name) : null,
+  };
+}
+
+export async function getNormalizedImportDocument(importId: string, agencyId: string) {
+  await ensureNormalizedImportSchema();
+  const sql = getSql();
+  const rows = await sql`
+    SELECT ma.provider, ma.bucket, ma.object_key, ma.original_name, ma.content_type
+    FROM import_jobs ij
+    JOIN travel_documents td
+      ON td.id = ij.normalized_document_id AND td.agency_id = ij.agency_id
+    JOIN media_assets ma ON ma.id = td.media_asset_id AND ma.agency_id = ij.agency_id
+    WHERE ij.id = ${importId} AND ij.agency_id = ${agencyId}
+      AND td.status = 'ready' AND ma.status = 'ready'
+    LIMIT 1
+  `;
+  if (!rows[0]) throw new PlatformRequestError("Preventivo normalizzato non disponibile");
+  return {
+    provider: String(rows[0].provider), bucket: String(rows[0].bucket),
+    objectKey: String(rows[0].object_key), originalName: String(rows[0].original_name),
+    contentType: String(rows[0].content_type),
   };
 }
 
 export async function getImportDeletionTarget(importId: string, agencyId: string) {
+  await ensureNormalizedImportSchema();
   const sql = getSql();
   const rows = await sql`
-    SELECT
-      ij.status, ij.document_id::text, td.media_asset_id::text,
-      ma.provider, ma.bucket, ma.object_key
+    SELECT ij.status, documents.document_id::text, documents.media_asset_id::text,
+      documents.provider, documents.bucket, documents.object_key
     FROM import_jobs ij
-    JOIN travel_documents td ON td.id = ij.document_id AND td.agency_id = ij.agency_id
-    JOIN media_assets ma ON ma.id = td.media_asset_id AND ma.agency_id = ij.agency_id
+    CROSS JOIN LATERAL (
+      SELECT td.id AS document_id, ma.id AS media_asset_id,
+        ma.provider, ma.bucket, ma.object_key
+      FROM travel_documents td
+      JOIN media_assets ma ON ma.id = td.media_asset_id AND ma.agency_id = td.agency_id
+      WHERE td.agency_id = ij.agency_id
+        AND td.id IN (ij.document_id, ij.normalized_document_id)
+    ) documents
     WHERE ij.id = ${importId} AND ij.agency_id = ${agencyId}
       AND ij.status IN ('ready_for_review', 'failed')
-      AND ma.provider = 'r2'
-    LIMIT 1
+      AND documents.provider = 'r2'
   `;
   if (!rows[0]) throw new PlatformRequestError("La bozza non può essere eliminata");
-  return {
-    status: String(rows[0].status),
-    documentId: String(rows[0].document_id),
-    mediaAssetId: String(rows[0].media_asset_id),
-    provider: "r2" as const,
-    bucket: String(rows[0].bucket),
-    objectKey: String(rows[0].object_key),
-  };
+  return rows.map((row) => ({
+    status: String(row.status), documentId: String(row.document_id),
+    mediaAssetId: String(row.media_asset_id), provider: "r2" as const,
+    bucket: String(row.bucket), objectKey: String(row.object_key),
+  }));
 }
 
 export async function deleteImportDraftRecords(input: {
   importId: string;
   agencyId: string;
-  documentId: string;
-  mediaAssetId: string;
+  documentIds: string[];
+  mediaAssetIds: string[];
 }) {
   const sql = getSql();
   const results = await sql.transaction((transaction) => [
@@ -247,11 +350,11 @@ export async function deleteImportDraftRecords(input: {
     `,
     transaction`
       DELETE FROM travel_documents
-      WHERE id = ${input.documentId} AND agency_id = ${input.agencyId}
+      WHERE id = ANY(${input.documentIds}::uuid[]) AND agency_id = ${input.agencyId}
     `,
     transaction`
       DELETE FROM media_assets
-      WHERE id = ${input.mediaAssetId} AND agency_id = ${input.agencyId}
+      WHERE id = ANY(${input.mediaAssetIds}::uuid[]) AND agency_id = ${input.agencyId}
     `,
   ]);
   if (results[2].length !== 1) throw new PlatformRequestError("Eliminazione della bozza non riuscita");

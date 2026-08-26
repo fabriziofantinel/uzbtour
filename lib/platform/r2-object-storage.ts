@@ -122,6 +122,25 @@ export class R2ObjectStorage implements ObjectStorage {
     };
   }
 
+  async put(key: string, bytes: Uint8Array, contentType: string): Promise<StoredObject> {
+    validKey(key);
+    if (!bytes.byteLength) throw new PlatformRequestError("Il file da salvare è vuoto");
+    if (!contentType.trim()) throw new PlatformRequestError("Content-Type del file mancante");
+    await this.client.send(new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      Body: bytes,
+      ContentType: contentType,
+    }));
+    return {
+      provider: this.provider,
+      bucket: this.bucket,
+      key,
+      sizeBytes: bytes.byteLength,
+      contentType,
+    };
+  }
+
   async createDownloadUrl(
     key: string,
     expiresInSeconds: number,

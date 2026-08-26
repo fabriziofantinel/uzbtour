@@ -30,6 +30,7 @@ export interface ObjectStorage {
   ): Promise<UploadAuthorization>;
   head(key: string): Promise<StoredObject>;
   get(key: string): Promise<DownloadedObject>;
+  put(key: string, bytes: Uint8Array, contentType: string): Promise<StoredObject>;
   createDownloadUrl(
     key: string,
     expiresInSeconds: number,

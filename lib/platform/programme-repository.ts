@@ -167,8 +167,7 @@ export async function updateAgencyProgrammeDay(input: {
     `,
     ...input.items.map((item) => txn`
       UPDATE itinerary_items SET title = ${item.title}, description = ${item.description},
-        starts_at = ${item.startsAt || null}, ends_at = ${item.endsAt || null}, sort_order = ${item.sortOrder},
-        metadata = COALESCE(metadata, '{}'::jsonb) || ${JSON.stringify({ includedInQuote: item.includedInQuote })}::jsonb
+        starts_at = ${item.startsAt || null}, ends_at = ${item.endsAt || null}, sort_order = ${item.sortOrder}
       WHERE id = ${item.id} AND trip_day_id = ${input.dayId} AND agency_id = ${agencyId}
     `),
     ...input.hotels.map((hotel) => txn`

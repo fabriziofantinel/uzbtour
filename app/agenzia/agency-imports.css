@@ -1,3 +1,57 @@
 .importsList article{grid-template-columns:30px minmax(0,1fr) auto auto auto}.importAction{display:flex;align-items:center;justify-content:center;gap:5px;min-width:78px;padding:8px 10px;border:0;border-radius:7px;background:#0b6462;color:#fff;text-decoration:none;font-size:8px;font-weight:900}.importAction.review{background:#d46239}.importAction:disabled{opacity:.55}.importAction svg{width:14px;height:14px}
 @media(max-width:850px){.importsList article{grid-template-columns:26px minmax(0,1fr) auto auto}.importsList time{display:none}}
 @media(max-width:520px){.importsList article{grid-template-columns:24px minmax(0,1fr) auto}.importsList article>em{grid-column:2}.importAction{grid-column:3;grid-row:1/3;min-width:42px;padding:8px}.importAction span{display:none}}
+.quoteTemplate {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 15px;
+  border-radius: 12px;
+  color: var(--ink);
+  background: var(--surface-brand);
+}
+
+.quoteTemplate > svg {
+  color: var(--rust);
+}
+
+.quoteTemplate b,
+.quoteTemplate small {
+  display: block;
+}
+
+.quoteTemplate b {
+  font-size: var(--text-small);
+}
+
+.quoteTemplate small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: var(--text-meta);
+}
+
+.quoteTemplate a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 13px;
+  border-radius: 10px;
+  color: var(--on-brand);
+  background: var(--teal);
+  font-size: var(--text-meta);
+  font-weight: 850;
+  text-decoration: none;
+}
+
+@media (max-width: 620px) {
+  .quoteTemplate {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+
+  .quoteTemplate a {
+    grid-column: 2;
+  }
+}
