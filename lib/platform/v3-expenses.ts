@@ -13,6 +13,39 @@ export function v3ExpenseDualWriteEnabled() {
   return process.env.V3_EXPENSE_DUAL_WRITE === "true";
 }
 
+export function v3ExpenseCutoverReadEnabled() {
+  return process.env.V3_EXPENSE_READ_SOURCE === "v3";
+}
+
+export async function readV3ExpenseRows(input: {
+  agencyId: string;
+  departureId: string;
+  partyId: string;
+}) {
+  const sql = getSql();
+  const [, rows] = await sql.transaction((txn) => [
+    txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
+    txn`
+      SELECT expense.id::text, day.template_day_id::text AS trip_day_id,
+        day.day_number, expense.label,
+        expense.amount_minor::numeric / power(10::numeric, currency.minor_unit) AS amount,
+        expense.currency, expense.base_currency, expense.exchange_rate_to_base,
+        expense.base_amount_minor::numeric / power(10::numeric, base_currency.minor_unit) AS base_amount,
+        expense.paid_by_name, expense.created_at::text
+      FROM journey.expenses expense
+      JOIN ref.currencies currency ON currency.code = expense.currency
+      JOIN ref.currencies base_currency ON base_currency.code = expense.base_currency
+      LEFT JOIN travel.departure_days day
+        ON day.id = expense.departure_day_id AND day.agency_id = expense.agency_id
+      WHERE expense.agency_id = ${input.agencyId}
+        AND expense.departure_id = ${input.departureId}
+        AND expense.party_id = ${input.partyId}
+      ORDER BY expense.created_at DESC
+    `,
+  ], { readOnly: true });
+  return rows as Row[];
+}
+
 function canonicalExpense(row: Row) {
   return {
     id: String(row.id),

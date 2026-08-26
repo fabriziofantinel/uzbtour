@@ -96,3 +96,17 @@ npm run db:migrate:v3:final
 Il runner usa un advisory lock, timeout espliciti, checksum immutabili e una
 transazione unica. I gate verificano tutti i dodici trigger e impediscono al
 ruolo runtime di leggere le mappe tecniche delle identità e dei contenuti.
+
+## Cutover letture - prima ondata
+
+Le letture v3 dei domini operativi sono attivabili in modo indipendente:
+
+| Dominio | Variabile | Valore v3 | Rollback |
+| --- | --- | --- | --- |
+| Spese | `V3_EXPENSE_READ_SOURCE` | `v3` | rimuovere la variabile o impostare `legacy` |
+| Note, locali, prelievi e cambi | `V3_JOURNEY_JOURNAL_READ_SOURCE` | `v3` | rimuovere la variabile o impostare `legacy` |
+| Feedback | `V3_PROGRAMME_FEEDBACK_READ_SOURCE` | `v3` | rimuovere la variabile o impostare `legacy` |
+
+Ogni lettura v3 imposta `app.agency_id` nella stessa transazione read-only e
+mantiene invariato il contratto restituito al frontend. L'attivazione avviene
+prima in Preview; Production viene abilitata solo dopo lo smoke test autenticato.

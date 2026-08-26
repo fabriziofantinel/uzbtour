@@ -7,6 +7,8 @@ import {
   addTravelerExpenseDualWrite,
   compareV3ExpenseShadow,
   deleteTravelerExpenseDualWrite,
+  readV3ExpenseRows,
+  v3ExpenseCutoverReadEnabled,
   v3ExpenseDualWriteEnabled,
 } from "./v3-expenses";
 import {
@@ -14,10 +16,16 @@ import {
   addTravelerRestaurantDualWrite,
   compareV3JourneyJournalShadow,
   deleteTravelerCashMovementDualWrite,
+  readV3JourneyJournalRows,
   saveTravelerNoteDualWrite,
+  v3JourneyJournalCutoverReadEnabled,
   v3JourneyJournalDualWriteEnabled,
 } from "./v3-journey-journal";
-import { compareV3ProgrammeFeedbackShadow } from "./v3-programme-feedback";
+import {
+  compareV3ProgrammeFeedbackShadow,
+  readV3ProgrammeFeedbackRows,
+  v3ProgrammeFeedbackCutoverReadEnabled,
+} from "./v3-programme-feedback";
 import { compareV3TravelerExperienceShadow } from "./v3-traveler-experience";
 
 type Row = Record<string, unknown>;
@@ -264,6 +272,23 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
     legacyContestEntries: contestRows as Row[],
   });
 
+  const [v3Expenses, v3Journal, v3Feedback] = await Promise.all([
+    v3ExpenseCutoverReadEnabled()
+      ? readV3ExpenseRows({ agencyId, departureId, partyId })
+      : Promise.resolve(null),
+    v3JourneyJournalCutoverReadEnabled()
+      ? readV3JourneyJournalRows({ agencyId, departureId, partyId })
+      : Promise.resolve(null),
+    v3ProgrammeFeedbackCutoverReadEnabled()
+      ? readV3ProgrammeFeedbackRows({ agencyId, departureId, partyId, userId })
+      : Promise.resolve(null),
+  ]);
+  const activeExpenseRows = v3Expenses ?? expenseRows as Row[];
+  const activeNoteRows = v3Journal?.notes ?? noteRows as Row[];
+  const activeRestaurantRows = v3Journal?.restaurants ?? restaurantRows as Row[];
+  const activeCashRows = v3Journal?.cash ?? cashRows as Row[];
+  const activeFeedbackRows = v3Feedback ?? feedbackRows as Row[];
+
   const items = itemRows as Row[];
   const cities = cityRows as Row[];
   const missingCities = [...new Map(cities
@@ -293,7 +318,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
   const sites = siteRows as Row[];
   const hotels = hotelRows as Row[];
   const tickets = ticketRows as Row[];
-  const feedback = feedbackRows as Row[];
+  const feedback = activeFeedbackRows;
   const itemRatings = new Map(feedback
     .filter((entry) => entry.target_type === "itinerary_item")
     .map((entry) => [String(entry.itinerary_item_id), Number(entry.rating)]));
@@ -398,7 +423,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       dayNumber: row.day_number == null ? null : Number(row.day_number), type: String(row.content_type),
       title: String(row.title), content: row.content,
     })),
-    expenses: (expenseRows as Row[]).map((row) => ({
+    expenses: activeExpenseRows.map((row) => ({
       id: String(row.id), dayId: row.trip_day_id ? String(row.trip_day_id) : null,
       dayNumber: row.day_number == null ? null : Number(row.day_number), label: String(row.label),
       amount: Number(row.amount), currency: String(row.currency), paidBy: String(row.paid_by_name),
@@ -407,15 +432,15 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       baseAmount: row.base_amount == null ? null : Number(row.base_amount),
       createdAt: String(row.created_at),
     })),
-    notes: (noteRows as Row[]).map((row) => ({
+    notes: activeNoteRows.map((row) => ({
       id: String(row.id), dayId: String(row.trip_day_id), dayNumber: Number(row.day_number),
       text: String(row.text), updatedBy: String(row.updated_by_name), updatedAt: String(row.updated_at),
     })),
-    restaurants: (restaurantRows as Row[]).map((row) => ({
+    restaurants: activeRestaurantRows.map((row) => ({
       id: String(row.id), dayId: String(row.trip_day_id), dayNumber: Number(row.day_number),
       name: String(row.name), addedBy: String(row.added_by_name), createdAt: String(row.created_at),
     })),
-    cashMovements: (cashRows as Row[]).map((row) => ({
+    cashMovements: activeCashRows.map((row) => ({
       id: String(row.id), dayId: String(row.trip_day_id), dayNumber: Number(row.day_number),
       kind: String(row.kind), euroAmount: row.euro_amount == null ? null : Number(row.euro_amount),
       localAmount: Number(row.local_amount), localCurrency: String(row.local_currency),
