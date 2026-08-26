@@ -14,7 +14,7 @@ import {
   normalizedTravelDocumentName,
   readNormalizedTravelDocument,
 } from "./normalized-travel-document";
-import { ensureNormalizedImportSchema } from "./normalized-import-schema";
+import { assertNormalizedImportSchema } from "./schema-readiness";
 import {
   hasTravelDocumentSignature,
   isMatchingTravelDocument,
@@ -26,7 +26,7 @@ export async function processTravelImport(
   importId: string,
   expected?: { jobId?: string; agencyId?: string }
 ) {
-  await ensureNormalizedImportSchema();
+  await assertNormalizedImportSchema();
   const source = await claimImportJob(importId, expected);
   let unregisteredNormalizedKey: string | null = null;
   try {

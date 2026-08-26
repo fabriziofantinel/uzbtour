@@ -4,7 +4,7 @@ import { requirePlatformAdmin } from "@/lib/platform/authorization";
 import { platformApiError } from "@/lib/platform/http";
 import { getObjectStorage } from "@/lib/platform/object-storage";
 import { requireAgencyTicketItem } from "@/lib/platform/programme-documents";
-import { ensureProgrammeFeedbackSchema } from "@/lib/platform/programme-feedback-schema";
+import { assertProgrammeFeedbackSchema } from "@/lib/platform/schema-readiness";
 import { MAX_TICKET_SIZE_BYTES, TICKET_CONTENT_TYPES, ticketFileDetails } from "@/lib/platform/travel-documents";
 
 export const runtime = "nodejs";
@@ -12,7 +12,7 @@ export const runtime = "nodejs";
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const actor = await requirePlatformAdmin();
-    await ensureProgrammeFeedbackSchema();
+    await assertProgrammeFeedbackSchema();
     const { id: departureId } = await context.params;
     const body = await request.json().catch(() => null) as Record<string, unknown> | null;
     const itemId = String(body?.itemId || "");

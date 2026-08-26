@@ -1,6 +1,6 @@
 import { getSql } from "@/lib/db";
 import { PlatformRequestError } from "./http";
-import { ensureProgrammeFeedbackSchema } from "./programme-feedback-schema";
+import { assertProgrammeFeedbackSchema } from "./schema-readiness";
 
 type Row = Record<string, unknown>;
 
@@ -9,7 +9,7 @@ function value(value: unknown) {
 }
 
 export async function getAgencyProgramme(departureId: string, actorId: string) {
-  await ensureProgrammeFeedbackSchema();
+  await assertProgrammeFeedbackSchema();
   const sql = getSql();
   const departures = await sql`
     SELECT d.id::text, d.agency_id::text, d.template_id::text, d.template_version_id::text,
@@ -29,14 +29,14 @@ export async function getAgencyProgramme(departureId: string, actorId: string) {
   const departure = departures[0] as Row;
   const agencyId = String(departure.agency_id);
   const versionId = String(departure.template_version_id);
-  const [dayRows, itemRows, hotelRows, documentRows] = await Promise.all([
-    sql`
+  const [dayRows, itemRows, hotelRows, documentRows] = await sql.transaction((transaction) => [
+    transaction`
       SELECT id::text, day_number, day_offset, label, title, city, description
       FROM trip_days
       WHERE agency_id = ${agencyId} AND template_version_id = ${versionId}
       ORDER BY day_number
     `,
-    sql`
+    transaction`
       SELECT item.id::text, item.trip_day_id::text, item.item_type, item.title,
         item.description, item.starts_at::text, item.ends_at::text, item.sort_order, item.metadata
       FROM itinerary_items item
@@ -44,7 +44,7 @@ export async function getAgencyProgramme(departureId: string, actorId: string) {
       WHERE item.agency_id = ${agencyId} AND day.template_version_id = ${versionId}
       ORDER BY day.day_number, item.sort_order, item.id
     `,
-    sql`
+    transaction`
       SELECT accommodation.id::text, accommodation.trip_day_id::text,
         accommodation.name, accommodation.notes, accommodation.sort_order
       FROM accommodations accommodation
@@ -53,7 +53,7 @@ export async function getAgencyProgramme(departureId: string, actorId: string) {
       WHERE accommodation.agency_id = ${agencyId} AND day.template_version_id = ${versionId}
       ORDER BY day.day_number, accommodation.sort_order, accommodation.id
     `,
-    sql`
+    transaction`
       SELECT document.id::text, document.itinerary_item_id::text, document.title,
         asset.content_type, asset.size_bytes, document.created_at::text
       FROM itinerary_item_documents document

@@ -62,7 +62,7 @@ export async function getPlatformOverview(
   actor: { id: string; name: string }
 ): Promise<PlatformOverview> {
   const sql = getSql();
-  const [overviewRows, importRows, referenceRows, enrichmentRows] = await Promise.all([sql`
+  const [overviewRows, importRows, referenceRows, enrichmentRows] = await sql.transaction((transaction) => [transaction`
     WITH latest_imports AS (
       SELECT DISTINCT ON (agency_id, template_id)
         agency_id,
@@ -106,7 +106,7 @@ export async function getPlatformOverview(
       tt.destination_country, tt.starts_on, tt.ends_on, li.result,
       d.id, d.code, d.title, d.starts_on, d.ends_on, d.status
     ORDER BY a.name, tt.title NULLS LAST, d.starts_on DESC NULLS LAST
-  `, sql`
+  `, transaction`
     SELECT
       ij.id::text,
       ij.agency_id::text,
@@ -125,7 +125,7 @@ export async function getPlatformOverview(
     JOIN media_assets ma ON ma.id = td.media_asset_id AND ma.agency_id = ij.agency_id
     ORDER BY ij.created_at DESC
     LIMIT 12
-  `, sql`
+  `, transaction`
     WITH latest_versions AS (
       SELECT DISTINCT ON (ttv.template_id)
         ttv.id, ttv.template_id
@@ -163,7 +163,7 @@ export async function getPlatformOverview(
       ON rc.entity_type = te.entity_type
       AND rc.entity_id = te.entity_id
       AND rc.locale = 'it-IT'
-  `, sql`
+  `, transaction`
     SELECT DISTINCT ON (resolved.template_id)
       resolved.template_id::text,
       resolved.status,

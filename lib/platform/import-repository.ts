@@ -3,7 +3,7 @@ import { PlatformRequestError } from "./http";
 import { catalogValidationIssues, travelProgrammeDraftSchema, type TravelProgrammeDraft } from "./import-schema";
 import type { PlatformImportReview } from "./types";
 import { prepareTravelCatalog } from "./travel-catalog";
-import { ensureNormalizedImportSchema } from "./normalized-import-schema";
+import { assertNormalizedImportSchema } from "./schema-readiness";
 
 type ImportSourceRow = {
   id: string;
@@ -239,7 +239,7 @@ export async function getImportForReview(
   importId: string,
   agencyId: string
 ): Promise<PlatformImportReview> {
-  await ensureNormalizedImportSchema();
+  await assertNormalizedImportSchema();
   const sql = getSql();
   const rows = await sql`
     SELECT
@@ -278,7 +278,7 @@ export async function getImportForReview(
 }
 
 export async function getNormalizedImportDocument(importId: string, agencyId: string) {
-  await ensureNormalizedImportSchema();
+  await assertNormalizedImportSchema();
   const sql = getSql();
   const rows = await sql`
     SELECT ma.provider, ma.bucket, ma.object_key, ma.original_name, ma.content_type
@@ -299,7 +299,7 @@ export async function getNormalizedImportDocument(importId: string, agencyId: st
 }
 
 export async function getImportDeletionTarget(importId: string, agencyId: string) {
-  await ensureNormalizedImportSchema();
+  await assertNormalizedImportSchema();
   const sql = getSql();
   const rows = await sql`
     SELECT ij.status, documents.document_id::text, documents.media_asset_id::text,

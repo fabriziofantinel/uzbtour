@@ -1,91 +1,11 @@
 import { getSql } from "./db";
 import { safeOriginalName } from "./photos";
+import { assertDatabaseTables } from "./platform/schema-readiness";
 
 export type ChallengeEvidenceType = "mission" | "bingo";
 
-let challengeSchemaPromise: Promise<void> | null = null;
-
 export async function ensureChallengeTables() {
-  const sql = getSql();
-  if (!challengeSchemaPromise) {
-    challengeSchemaPromise = (async () => {
-      await sql`
-        CREATE TABLE IF NOT EXISTS trip_mission_completions (
-          id BIGSERIAL PRIMARY KEY,
-          day SMALLINT NOT NULL CHECK (day BETWEEN 1 AND 13),
-          mission_id TEXT NOT NULL,
-          user_id TEXT NOT NULL,
-          user_name TEXT NOT NULL,
-          note TEXT NOT NULL DEFAULT '',
-          pathname TEXT,
-          original_name TEXT,
-          content_type TEXT,
-          size_bytes BIGINT,
-          status TEXT NOT NULL DEFAULT 'approved'
-            CHECK (status IN ('pending', 'approved', 'rejected')),
-          reviewed_by_id TEXT,
-          reviewed_by_name TEXT,
-          reviewed_at TIMESTAMPTZ,
-          review_note TEXT NOT NULL DEFAULT '',
-          completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          UNIQUE (day, mission_id, user_id)
-        )
-      `;
-      await sql`ALTER TABLE trip_mission_completions ADD COLUMN IF NOT EXISTS pathname TEXT`;
-      await sql`ALTER TABLE trip_mission_completions ADD COLUMN IF NOT EXISTS original_name TEXT`;
-      await sql`ALTER TABLE trip_mission_completions ADD COLUMN IF NOT EXISTS content_type TEXT`;
-      await sql`ALTER TABLE trip_mission_completions ADD COLUMN IF NOT EXISTS size_bytes BIGINT`;
-      await sql`ALTER TABLE trip_mission_completions ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'approved'`;
-      await sql`ALTER TABLE trip_mission_completions ADD COLUMN IF NOT EXISTS reviewed_by_id TEXT`;
-      await sql`ALTER TABLE trip_mission_completions ADD COLUMN IF NOT EXISTS reviewed_by_name TEXT`;
-      await sql`ALTER TABLE trip_mission_completions ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ`;
-      await sql`ALTER TABLE trip_mission_completions ADD COLUMN IF NOT EXISTS review_note TEXT NOT NULL DEFAULT ''`;
-      await sql`
-        CREATE INDEX IF NOT EXISTS trip_mission_user_day_idx
-        ON trip_mission_completions (user_id, day, completed_at)
-      `;
-      await sql`
-        CREATE TABLE IF NOT EXISTS trip_bingo_completions (
-          id BIGSERIAL PRIMARY KEY,
-          item_id TEXT NOT NULL,
-          user_id TEXT NOT NULL,
-          user_name TEXT NOT NULL,
-          note TEXT NOT NULL DEFAULT '',
-          day SMALLINT CHECK (day BETWEEN 1 AND 13),
-          pathname TEXT,
-          original_name TEXT,
-          content_type TEXT,
-          size_bytes BIGINT,
-          status TEXT NOT NULL DEFAULT 'approved'
-            CHECK (status IN ('pending', 'approved', 'rejected')),
-          reviewed_by_id TEXT,
-          reviewed_by_name TEXT,
-          reviewed_at TIMESTAMPTZ,
-          review_note TEXT NOT NULL DEFAULT '',
-          completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          UNIQUE (item_id, user_id)
-        )
-      `;
-      await sql`ALTER TABLE trip_bingo_completions ADD COLUMN IF NOT EXISTS day SMALLINT`;
-      await sql`ALTER TABLE trip_bingo_completions ADD COLUMN IF NOT EXISTS pathname TEXT`;
-      await sql`ALTER TABLE trip_bingo_completions ADD COLUMN IF NOT EXISTS original_name TEXT`;
-      await sql`ALTER TABLE trip_bingo_completions ADD COLUMN IF NOT EXISTS content_type TEXT`;
-      await sql`ALTER TABLE trip_bingo_completions ADD COLUMN IF NOT EXISTS size_bytes BIGINT`;
-      await sql`ALTER TABLE trip_bingo_completions ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'approved'`;
-      await sql`ALTER TABLE trip_bingo_completions ADD COLUMN IF NOT EXISTS reviewed_by_id TEXT`;
-      await sql`ALTER TABLE trip_bingo_completions ADD COLUMN IF NOT EXISTS reviewed_by_name TEXT`;
-      await sql`ALTER TABLE trip_bingo_completions ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ`;
-      await sql`ALTER TABLE trip_bingo_completions ADD COLUMN IF NOT EXISTS review_note TEXT NOT NULL DEFAULT ''`;
-      await sql`
-        CREATE INDEX IF NOT EXISTS trip_bingo_user_idx
-        ON trip_bingo_completions (user_id, completed_at)
-      `;
-    })().catch((error) => {
-      challengeSchemaPromise = null;
-      throw error;
-    });
-  }
-  await challengeSchemaPromise;
+  await assertDatabaseTables(["trip_mission_completions", "trip_bingo_completions"]);
 }
 
 export function validChallengeEvidencePath(

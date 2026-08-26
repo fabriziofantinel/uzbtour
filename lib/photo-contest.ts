@@ -2,6 +2,7 @@ import sharp from "sharp";
 import { getSql } from "./db";
 import { quizDays } from "./quiz-data";
 import { getObjectStorage } from "./platform/object-storage";
+import { assertDatabaseTables } from "./platform/schema-readiness";
 
 export const MAX_CONTEST_PHOTOS = 12;
 export const MAX_PHOTOS_PER_PARTICIPANT = 3;
@@ -75,56 +76,8 @@ export type PhotoScore = {
   rationale: string;
 };
 
-let photoContestSchemaPromise: Promise<void> | null = null;
-
 export async function ensurePhotoContestsTable() {
-  const sql = getSql();
-  if (!photoContestSchemaPromise) {
-    photoContestSchemaPromise = (async () => {
-      await sql`
-        CREATE TABLE IF NOT EXISTS trip_contest_photos (
-          id BIGSERIAL PRIMARY KEY,
-          day SMALLINT NOT NULL CHECK (day BETWEEN 1 AND 13),
-          contest_type TEXT NOT NULL CHECK (contest_type IN ('free', 'theme')),
-          participant_slot SMALLINT NOT NULL CHECK (participant_slot BETWEEN 1 AND 3),
-          pathname TEXT NOT NULL UNIQUE,
-          original_name TEXT NOT NULL CHECK (char_length(original_name) BETWEEN 1 AND 255),
-          content_type TEXT NOT NULL,
-          size_bytes BIGINT,
-          uploaded_by_id TEXT NOT NULL,
-          uploaded_by_name TEXT NOT NULL,
-          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          UNIQUE (day, contest_type, uploaded_by_id, participant_slot)
-        )
-      `;
-      await sql`
-        CREATE INDEX IF NOT EXISTS trip_contest_photos_day_type_idx
-        ON trip_contest_photos (day, contest_type, created_at)
-      `;
-      await sql`
-        CREATE TABLE IF NOT EXISTS trip_daily_photo_contests (
-          day SMALLINT NOT NULL CHECK (day BETWEEN 1 AND 13),
-          contest_type TEXT NOT NULL CHECK (contest_type IN ('free', 'theme')),
-          status TEXT NOT NULL CHECK (status IN ('processing', 'completed', 'failed')),
-          winner_photo_id BIGINT REFERENCES trip_contest_photos(id) ON DELETE SET NULL,
-          winner_score SMALLINT CHECK (winner_score BETWEEN 0 AND 100),
-          winner_reason TEXT,
-          rankings JSONB NOT NULL DEFAULT '[]'::JSONB,
-          judged_by_id TEXT NOT NULL,
-          judged_by_name TEXT NOT NULL,
-          model TEXT NOT NULL,
-          error_message TEXT,
-          started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          completed_at TIMESTAMPTZ,
-          PRIMARY KEY (day, contest_type)
-        )
-      `;
-    })().catch((error) => {
-      photoContestSchemaPromise = null;
-      throw error;
-    });
-  }
-  await photoContestSchemaPromise;
+  await assertDatabaseTables(["trip_contest_photos", "trip_daily_photo_contests"]);
 }
 
 export function validPhotoContestType(value: unknown): value is PhotoContestType {

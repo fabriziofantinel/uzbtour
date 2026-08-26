@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { getSql } from "@/lib/db";
 import { getObjectStorage } from "@/lib/platform/object-storage";
-import { ensureProgrammeFeedbackSchema } from "@/lib/platform/programme-feedback-schema";
+import { assertProgrammeFeedbackSchema } from "@/lib/platform/schema-readiness";
 
 export const runtime = "nodejs";
 
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
-  await ensureProgrammeFeedbackSchema();
+  await assertProgrammeFeedbackSchema();
   const { id } = await context.params;
   const sql = getSql();
   const rows = await sql`

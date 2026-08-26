@@ -1,7 +1,7 @@
 import { getSql } from "@/lib/db";
 import { PlatformRequestError } from "./http";
 import { geocodeCity } from "./geocoding";
-import { ensureProgrammeFeedbackSchema } from "./programme-feedback-schema";
+import { assertProgrammeFeedbackSchema } from "./schema-readiness";
 
 type Row = Record<string, unknown>;
 
@@ -42,17 +42,17 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
   const agencyId = String(selected.agency_id);
   const versionId = String(selected.template_version_id);
   const partyId = String(selected.party_id);
-  await ensureProgrammeFeedbackSchema();
+  await assertProgrammeFeedbackSchema();
 
-  const [dayRows, itemRows, cityRows, siteRows, hotelRows, travelerRows, infoRows, phraseRows, challengeRows, expenseRows, noteRows, restaurantRows, cashRows, photoRows, resultRows, contestRows, ticketRows, feedbackRows] = await Promise.all([
-    sql`
+  const [dayRows, itemRows, cityRows, siteRows, hotelRows, travelerRows, infoRows, phraseRows, challengeRows, expenseRows, noteRows, restaurantRows, cashRows, photoRows, resultRows, contestRows, ticketRows, feedbackRows] = await sql.transaction((transaction) => [
+    transaction`
       SELECT id::text, day_number, day_offset, label, title, city, description,
         source_date::text, metadata
       FROM trip_days
       WHERE agency_id = ${agencyId} AND template_version_id = ${versionId}
       ORDER BY day_number
     `,
-    sql`
+    transaction`
       SELECT item.id::text, item.trip_day_id::text, item.item_type, item.title,
         item.description, item.starts_at::text, item.ends_at::text, item.sort_order,
         item.metadata, place.latitude, place.longitude
@@ -62,7 +62,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       WHERE item.agency_id = ${agencyId} AND day.template_version_id = ${versionId}
       ORDER BY day.day_number, item.sort_order
     `,
-    sql`
+    transaction`
       SELECT link.trip_day_id::text, city.id::text, city.name, city.google_url,
         city.latitude, city.longitude, country.name AS country
       FROM trip_day_cities link
@@ -72,7 +72,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       WHERE day.agency_id = ${agencyId} AND day.template_version_id = ${versionId}
       ORDER BY day.day_number, city.name
     `,
-    sql`
+    transaction`
       SELECT link.trip_day_id::text, site.id::text, site.name, site.google_url,
         site.official_url, city.name AS city
       FROM trip_day_sites link
@@ -82,7 +82,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       WHERE day.agency_id = ${agencyId} AND day.template_version_id = ${versionId}
       ORDER BY day.day_number, site.name
     `,
-    sql`
+    transaction`
       SELECT link.trip_day_id::text, hotel.id::text, hotel.name, hotel.google_url,
         hotel.website_url, city.name AS city
       FROM trip_day_hotels link
@@ -92,26 +92,26 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       WHERE day.agency_id = ${agencyId} AND day.template_version_id = ${versionId}
       ORDER BY day.day_number, hotel.name
     `,
-    sql`
+    transaction`
       SELECT profile.display_name, membership.role
       FROM party_memberships membership
       JOIN traveler_profiles profile ON profile.id = membership.traveler_id
       WHERE membership.party_id = ${partyId} AND membership.status = 'active'
       ORDER BY membership.role, profile.display_name
     `,
-    sql`
+    transaction`
       SELECT category, title, body, phone, url
       FROM useful_information
       WHERE agency_id = ${agencyId} AND template_version_id = ${versionId}
       ORDER BY sort_order, title
     `,
-    sql`
+    transaction`
       SELECT language_code, category, term, pronunciation, translation
       FROM phrasebook_entries
       WHERE agency_id = ${agencyId} AND template_version_id = ${versionId}
       ORDER BY sort_order, language_code, term
     `,
-    sql`
+    transaction`
       SELECT content.id::text, content.trip_day_id::text, day.day_number,
         content.content_type, content.title, content.content
       FROM generated_content content
@@ -121,7 +121,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
         AND content.status = 'approved'
       ORDER BY COALESCE(day.day_number, 0), content.sort_order
     `,
-    sql`
+    transaction`
       SELECT expense.id::text, expense.trip_day_id::text, day.day_number,
         expense.label, expense.amount, expense.currency, expense.paid_by_name,
         expense.created_at::text
@@ -131,7 +131,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
         AND expense.party_id = ${partyId}
       ORDER BY expense.created_at DESC
     `,
-    sql`
+    transaction`
       SELECT note.id::text, note.trip_day_id::text, day.day_number, note.text,
         note.updated_by_name, note.updated_at::text
       FROM party_day_notes note
@@ -139,7 +139,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       WHERE note.agency_id = ${agencyId} AND note.party_id = ${partyId}
       ORDER BY day.day_number
     `,
-    sql`
+    transaction`
       SELECT restaurant.id::text, restaurant.trip_day_id::text, day.day_number,
         restaurant.name, restaurant.added_by_name, restaurant.created_at::text
       FROM party_restaurants restaurant
@@ -147,7 +147,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       WHERE restaurant.agency_id = ${agencyId} AND restaurant.party_id = ${partyId}
       ORDER BY restaurant.created_at DESC
     `,
-    sql`
+    transaction`
       SELECT movement.id::text, movement.trip_day_id::text, day.day_number,
         movement.kind, movement.euro_amount, movement.local_amount, movement.local_currency,
         movement.fee_euro, movement.added_by_name, movement.created_at::text
@@ -156,7 +156,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       WHERE movement.agency_id = ${agencyId} AND movement.party_id = ${partyId}
       ORDER BY movement.created_at DESC
     `,
-    sql`
+    transaction`
       SELECT memory.id::text, memory.trip_day_id::text, day.day_number,
         asset.id::text AS media_id, asset.original_name, asset.content_type, asset.size_bytes,
         asset.uploaded_by_user_id, uploader.display_name AS added_by, memory.created_at::text
@@ -167,7 +167,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       WHERE memory.agency_id = ${agencyId} AND memory.party_id = ${partyId} AND asset.status = 'ready'
       ORDER BY memory.created_at DESC
     `,
-    sql`
+    transaction`
       SELECT result.id::text, result.traveler_id::text, profile.display_name,
         result.trip_day_id::text, result.generated_content_id::text, result.activity_type,
         result.score, result.max_score, result.status, result.result, result.submitted_at::text,
@@ -182,7 +182,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       WHERE result.agency_id = ${agencyId} AND result.party_id = ${partyId}
       ORDER BY result.submitted_at DESC
     `,
-    sql`
+    transaction`
       SELECT entry.id::text, entry.traveler_id::text, profile.display_name,
         entry.generated_content_id::text, entry.media_asset_id::text, entry.participant_slot,
         entry.status, entry.score, entry.reason, entry.is_winner, entry.submitted_at::text,
@@ -193,7 +193,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       WHERE entry.agency_id = ${agencyId} AND entry.party_id = ${partyId}
       ORDER BY entry.submitted_at DESC
     `,
-    sql`
+    transaction`
       SELECT document.id::text, document.itinerary_item_id::text, document.title,
         asset.content_type, asset.size_bytes, document.created_at::text
       FROM itinerary_item_documents document
@@ -205,7 +205,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
         AND day.template_version_id = ${versionId} AND asset.status = 'ready'
       ORDER BY document.created_at
     `,
-    sql`
+    transaction`
       SELECT feedback.trip_day_id::text, feedback.target_type,
         feedback.itinerary_item_id::text, feedback.hotel_id::text, feedback.rating
       FROM traveler_programme_feedback feedback

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { getSql } from "@/lib/db";
+import { assertDatabaseTables } from "@/lib/platform/schema-readiness";
 
 type NoteRequest = { action: "note"; day?: number; text?: string };
 type RestaurantRequest = { action: "restaurant"; day?: number; name?: string };
@@ -17,59 +18,8 @@ type TripDataRequest = NoteRequest | RestaurantRequest | ExpenseRequest | CashMo
 
 export const runtime = "nodejs";
 
-let cashSchemaPromise: Promise<void> | null = null;
-let expenseSchemaPromise: Promise<void> | null = null;
-
 function validDay(day: unknown): day is number {
   return Number.isInteger(day) && Number(day) >= 1 && Number(day) <= 13;
-}
-
-async function ensureCashMovementsTable(sql: ReturnType<typeof getSql>) {
-  if (!cashSchemaPromise) {
-    cashSchemaPromise = (async () => {
-      await sql`
-        CREATE TABLE IF NOT EXISTS trip_cash_movements (
-          id BIGSERIAL PRIMARY KEY,
-          day INTEGER NOT NULL CHECK (day BETWEEN 1 AND 13),
-          kind TEXT NOT NULL CHECK (kind IN ('withdrawal', 'exchange')),
-          location TEXT NOT NULL,
-          euro_amount NUMERIC(12, 2),
-          som_amount NUMERIC(18, 2) NOT NULL,
-          fee_eur NUMERIC(12, 2),
-          added_by_id TEXT NOT NULL,
-          added_by_name TEXT NOT NULL,
-          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        )
-      `;
-    })().catch((error) => {
-      cashSchemaPromise = null;
-      throw error;
-    });
-  }
-  await cashSchemaPromise;
-}
-
-async function ensureExpenseSchema(sql: ReturnType<typeof getSql>) {
-  if (!expenseSchemaPromise) {
-    expenseSchemaPromise = (async () => {
-      await sql`
-        ALTER TABLE trip_expenses
-        ADD COLUMN IF NOT EXISTS currency TEXT NOT NULL DEFAULT 'EUR'
-      `;
-      await sql`
-        ALTER TABLE trip_expenses
-        ADD COLUMN IF NOT EXISTS day SMALLINT
-      `;
-      await sql`
-        CREATE INDEX IF NOT EXISTS trip_expenses_day_created_idx
-        ON trip_expenses (day, created_at)
-      `;
-    })().catch((error) => {
-      expenseSchemaPromise = null;
-      throw error;
-    });
-  }
-  await expenseSchemaPromise;
 }
 
 function cashMovementFromRow(row: Record<string, unknown>) {
@@ -94,10 +44,7 @@ export async function GET() {
 
   try {
     const sql = getSql();
-    await Promise.all([
-      ensureCashMovementsTable(sql),
-      ensureExpenseSchema(sql)
-    ]);
+    await assertDatabaseTables(["trip_cash_movements", "trip_expenses"]);
     const [noteRows, restaurantRows, expenseRows, cashRows] = await Promise.all([
       sql`SELECT day, text, updated_by_name, updated_at FROM trip_notes ORDER BY day`,
       sql`SELECT id, day, name, added_by_name, created_at FROM trip_restaurants ORDER BY created_at`,
@@ -227,7 +174,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Movimento di valuta non valido" }, { status: 400 });
       }
 
-      await ensureCashMovementsTable(sql);
+      await assertDatabaseTables(["trip_cash_movements"]);
       const rows = await sql`
         INSERT INTO trip_cash_movements (
           day, kind, location, euro_amount, som_amount, fee_eur, added_by_id, added_by_name
@@ -262,7 +209,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Spesa non valida" }, { status: 400 });
     }
 
-    await ensureExpenseSchema(sql);
+    await assertDatabaseTables(["trip_expenses"]);
     const rows = await sql`
       INSERT INTO trip_expenses (day, label, amount, currency, payer_id, payer_name)
       VALUES (${expenseDay}, ${label}, ${amount}, ${currency}, ${user.id}, ${user.name})

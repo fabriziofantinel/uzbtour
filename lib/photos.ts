@@ -1,4 +1,5 @@
 import { getSql } from "./db";
+import { assertDatabaseTables } from "./platform/schema-readiness";
 
 export const MAX_PHOTO_SIZE_BYTES = 25 * 1024 * 1024;
 export const PHOTO_CONTENT_TYPES = [
@@ -9,35 +10,8 @@ export const PHOTO_CONTENT_TYPES = [
   "image/heif"
 ] as const;
 
-let photosSchemaPromise: Promise<void> | null = null;
-
 export async function ensurePhotosTable() {
-  const sql = getSql();
-  if (!photosSchemaPromise) {
-    photosSchemaPromise = (async () => {
-      await sql`
-        CREATE TABLE IF NOT EXISTS trip_photos (
-          id BIGSERIAL PRIMARY KEY,
-          day SMALLINT NOT NULL CHECK (day BETWEEN 1 AND 13),
-          pathname TEXT NOT NULL UNIQUE,
-          original_name TEXT NOT NULL CHECK (char_length(original_name) BETWEEN 1 AND 255),
-          content_type TEXT NOT NULL,
-          size_bytes BIGINT,
-          uploaded_by_id TEXT NOT NULL,
-          uploaded_by_name TEXT NOT NULL,
-          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        )
-      `;
-      await sql`
-        CREATE INDEX IF NOT EXISTS trip_photos_day_created_idx
-        ON trip_photos (day, created_at DESC)
-      `;
-    })().catch((error) => {
-      photosSchemaPromise = null;
-      throw error;
-    });
-  }
-  await photosSchemaPromise;
+  await assertDatabaseTables(["trip_photos"]);
 }
 
 export function validPhotoDay(day: unknown): day is number {

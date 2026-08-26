@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { getSql } from "@/lib/db";
 import { assertTravelerPartyScope } from "@/lib/platform/traveler-experience";
-import { ensureProgrammeFeedbackSchema } from "@/lib/platform/programme-feedback-schema";
+import { assertProgrammeFeedbackSchema } from "@/lib/platform/schema-readiness";
 
 export const runtime = "nodejs";
 
@@ -10,7 +10,7 @@ export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
-    await ensureProgrammeFeedbackSchema();
+    await assertProgrammeFeedbackSchema();
     const body = await request.json().catch(() => null) as Record<string, unknown> | null;
     const departureId = String(body?.departureId || "");
     const partyId = String(body?.partyId || "");
