@@ -61,6 +61,7 @@ ha superato il proprio gate di riconciliazione.
 | --- | --- | --- | --- | --- |
 | Spese | `019_v3_expense_runtime_access` | `V3_EXPENSE_SHADOW_READ` | `V3_EXPENSE_DUAL_WRITE` | `public` |
 | Prelievi e cambi, note, locali | `020_v3_journey_journal_runtime_access` | `V3_JOURNEY_JOURNAL_SHADOW_READ` | `V3_JOURNEY_JOURNAL_DUAL_WRITE` | `public` |
+| Feedback su tappe e hotel | `022_v3_programme_feedback_runtime_access` | `V3_PROGRAMME_FEEDBACK_SHADOW_READ` | `V3_PROGRAMME_FEEDBACK_DUAL_WRITE` | `public` |
 
 Le feature flag devono essere abilitate prima in Preview e poi in Production.
 Il cutover delle letture non è implicito nell'abilitazione del dual-write.

@@ -17,6 +17,7 @@ import {
   saveTravelerNoteDualWrite,
   v3JourneyJournalDualWriteEnabled,
 } from "./v3-journey-journal";
+import { compareV3ProgrammeFeedbackShadow } from "./v3-programme-feedback";
 
 type Row = Record<string, unknown>;
 
@@ -245,6 +246,13 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
     legacyCash: cashRows as Row[],
     legacyNotes: noteRows as Row[],
     legacyRestaurants: restaurantRows as Row[],
+  });
+  await compareV3ProgrammeFeedbackShadow({
+    agencyId,
+    departureId,
+    partyId,
+    userId,
+    legacyRows: feedbackRows as Row[],
   });
 
   const items = itemRows as Row[];

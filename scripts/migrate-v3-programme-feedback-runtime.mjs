@@ -1,0 +1,90 @@
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { performance } from "node:perf_hooks";
+
+import { Client } from "@neondatabase/serverless";
+
+const migrationVersion = "022_v3_programme_feedback_runtime_access";
+const modelVersion = "3.3.4-runtime-programme-feedback";
+const apply = process.argv.includes("--apply");
+const migrationUrl = process.env.DATABASE_MIGRATION_URL ?? process.env.DATABASE_URL_UNPOOLED;
+if (!migrationUrl) throw new Error("Connessione diretta Neon owner non configurata");
+
+const migrationSql = await readFile(
+  new URL("../database/migrations/022_v3_programme_feedback_runtime_access.sql", import.meta.url),
+  "utf8",
+);
+const checksum = createHash("sha256").update(migrationSql).digest("hex");
+const client = new Client(migrationUrl);
+let transactionOpen = false;
+
+try {
+  await client.connect();
+  const capability = (await client.query(`
+    SELECT current_user AS role_name,
+      has_database_privilege(current_user, current_database(), 'CREATE') AS can_create,
+      current_user = 'smf_app' AS is_runtime_role
+  `)).rows[0];
+  if (!capability || capability.is_runtime_role || !capability.can_create) {
+    throw new Error(`Ruolo non autorizzato: ${capability?.role_name ?? "sconosciuto"}`);
+  }
+
+  const startedAt = performance.now();
+  await client.query("BEGIN");
+  transactionOpen = true;
+  await client.query("SET LOCAL lock_timeout = '5s'");
+  await client.query("SET LOCAL statement_timeout = '5min'");
+  await client.query("SELECT pg_advisory_xact_lock(hashtextextended('smf-travel:v3-runtime-programme-feedback', 0))");
+  await client.query(migrationSql);
+
+  const grants = (await client.query(`
+    SELECT
+      has_table_privilege('smf_app', 'journey.programme_feedback', 'SELECT,INSERT,UPDATE') AS feedback_dml,
+      has_table_privilege('smf_app', 'travel.departure_itinerary_items', 'SELECT') AS departure_items_read,
+      has_table_privilege('smf_app', 'ref.hotels', 'SELECT') AS hotels_read,
+      has_function_privilege('smf_app', 'app.resolve_legacy_user_id(text,uuid)', 'EXECUTE') AS resolver_execute,
+      NOT has_table_privilege('smf_app', 'ops.legacy_id_map', 'SELECT') AS map_private,
+      (SELECT relrowsecurity AND relforcerowsecurity FROM pg_class
+       WHERE oid = 'journey.programme_feedback'::regclass) AS feedback_rls_forced
+  `)).rows[0];
+  if (!grants || Object.values(grants).some((value) => value !== true)) {
+    throw new Error(`Gate runtime incompleti: ${JSON.stringify(grants)}`);
+  }
+
+  const executionMs = Math.round(performance.now() - startedAt);
+  if (apply) {
+    const previous = await client.query(
+      "SELECT checksum_sha256 FROM ops.schema_migrations WHERE version = $1",
+      [modelVersion],
+    );
+    if (previous.rowCount > 0 && previous.rows[0].checksum_sha256 !== checksum) {
+      throw new Error(`Checksum differente per ${modelVersion}: applicazione interrotta`);
+    }
+    await client.query(
+      `INSERT INTO ops.schema_migrations (version, checksum_sha256, execution_ms)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (version) DO UPDATE SET execution_ms = EXCLUDED.execution_ms,
+         applied_at = clock_timestamp()`,
+      [modelVersion, checksum, executionMs],
+    );
+    await client.query("COMMIT");
+  } else {
+    await client.query("ROLLBACK");
+  }
+  transactionOpen = false;
+
+  console.log(JSON.stringify({
+    status: apply ? "applied" : "dry_run_passed",
+    migrationVersion,
+    modelVersion,
+    checksum,
+    executionMs,
+    role: capability.role_name,
+    grants,
+  }, null, 2));
+} catch (error) {
+  if (transactionOpen) await client.query("ROLLBACK").catch(() => undefined);
+  throw error;
+} finally {
+  await client.end().catch(() => undefined);
+}

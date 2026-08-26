@@ -3,6 +3,10 @@ import { getCurrentUser } from "@/lib/current-user";
 import { getSql } from "@/lib/db";
 import { assertTravelerPartyScope } from "@/lib/platform/traveler-experience";
 import { assertArchitectureHardeningSchema, assertProgrammeFeedbackSchema } from "@/lib/platform/schema-readiness";
+import {
+  saveTravelerProgrammeFeedbackDualWrite,
+  v3ProgrammeFeedbackDualWriteEnabled,
+} from "@/lib/platform/v3-programme-feedback";
 
 export const runtime = "nodejs";
 
@@ -38,6 +42,21 @@ export async function POST(request: Request) {
     `;
     if (!profiles[0]) return NextResponse.json({ error: "Viaggiatore non disponibile" }, { status: 403 });
     const travelerId = String(profiles[0].id);
+
+    if (v3ProgrammeFeedbackDualWriteEnabled()) {
+      const feedback = await saveTravelerProgrammeFeedbackDualWrite({
+        agencyId,
+        userId: user.id,
+        departureId,
+        partyId,
+        dayId,
+        targetId,
+        targetType: targetType as "itinerary_item" | "hotel",
+        rating,
+        clientOperationId,
+      });
+      return NextResponse.json({ feedback });
+    }
 
     if (targetType === "itinerary_item") {
       const valid = await sql`
