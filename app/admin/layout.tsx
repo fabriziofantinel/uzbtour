@@ -4,6 +4,7 @@ import { Building2, Gauge, LogIn, LogOut, ShieldCheck } from "lucide-react";
 import { PlatformAuthorizationError, requireSuperAdmin } from "@/lib/platform/authorization";
 import "./superadmin.css";
 import "./agency-branding.css";
+import "../smf-2026.css";
 
 export const dynamic = "force-dynamic";
 

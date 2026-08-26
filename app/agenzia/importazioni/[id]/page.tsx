@@ -5,6 +5,7 @@ import ImportReview from "./review-client";
 import "./review.css";
 import "./validation.css";
 import "./normalized.css";
+import "../../../smf-2026.css";
 
 export const dynamic = "force-dynamic";
 

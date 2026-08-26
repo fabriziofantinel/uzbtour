@@ -7,7 +7,7 @@ import {
   CalendarDays, Camera, ChevronRight, CircleUserRound, Clock3,
   Check, Download, ExternalLink, FileText, Info, Languages, LoaderCircle, LocateFixed, LogOut, Map,
   MapPin, MessageCircle, Navigation, Plane, ReceiptText,
-  Sparkles, Star, TrainFront, Trash2, Utensils, Wallet,
+  Sparkles, Star, TrainFront, Trash2, Utensils, Wallet, Wifi, WifiOff,
 } from "lucide-react";
 import ExpenseDialog from "@/components/expense-dialog";
 import type { TripMapDay } from "@/components/trip-overview-map";
@@ -189,6 +189,7 @@ export default function TravelExperience({ initialExperience, userName, isAgency
   const [suggestedItemId, setSuggestedItemId] = useState<string | null>(null);
   const [currentItems, setCurrentItems] = useState<Record<string, string>>({});
   const [moreOpen, setMoreOpen] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
   const contentRef = useRef<HTMLDivElement>(null);
   const firstTabRender = useRef(true);
   const day = experience.days[active] ?? experience.days[0];
@@ -235,6 +236,17 @@ export default function TravelExperience({ initialExperience, userName, isAgency
         if (activeRequest && result?.rate && Number.isFinite(result.rate)) setOfficialEurRate(result.rate);
       }).catch(() => undefined);
     return () => { activeRequest = false; };
+  }, []);
+
+  useEffect(() => {
+    const updateConnectionState = () => setIsOnline(navigator.onLine);
+    updateConnectionState();
+    window.addEventListener("online", updateConnectionState);
+    window.addEventListener("offline", updateConnectionState);
+    return () => {
+      window.removeEventListener("online", updateConnectionState);
+      window.removeEventListener("offline", updateConnectionState);
+    };
   }, []);
 
   useEffect(() => {
@@ -415,9 +427,9 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     "--agency-on-primary": brandContrastColor(agencyPrimary),
   } as CSSProperties;
 
-  return <main className="travelExperience travelerRedesign" style={brandStyle}>
+  return <main className="travelExperience travelerRedesign" style={brandStyle} data-design-contract="b0beb44b" data-design-thesis="sentiero-delle-tappe">
     <a className="skipLink" href="#travel-main-content">Salta al contenuto del viaggio</a>
-    <header className="topbar"><div className="brand">{agencyLogo ? <img className="agencyLogo" src={agencyLogo} alt={`Logo ${experience.journey.agencyName}`}/> : <span className="brandMark">{initials(experience.journey.agencyName)}</span>}<div><strong>{experience.journey.agencyName}</strong><small>POWERED BY SMF TRAVEL</small></div></div><div className="tripDates"><CalendarDays/><span>{dateParts(experience.journey.startsOn).full} — {dateParts(experience.journey.endsOn).full}</span><i>{experience.days.length} gg</i></div><div className="people"><span className="currentUser"><i>{initials(userName)}</i><b>{userName}</b></span><div className="avatars">{experience.journey.travelers.slice(0, 4).map((traveler) => <i key={traveler.name}>{initials(traveler.name)}</i>)}</div>{isAgencyAdmin && <a className="agencyButton" href="/agenzia"><Building2/><span>Agenzia</span></a>}<form action="/api/auth/logout" method="post"><button className="logoutButton"><LogOut/><span>Esci</span></button></form></div></header>
+    <header className="topbar"><div className="brand">{agencyLogo ? <img className="agencyLogo" src={agencyLogo} alt={`Logo ${experience.journey.agencyName}`}/> : <span className="brandMark">{initials(experience.journey.agencyName)}</span>}<div><strong>{experience.journey.agencyName}</strong><small>POWERED BY SMF TRAVEL</small></div></div><div className="tripDates"><CalendarDays/><span>{dateParts(experience.journey.startsOn).full} — {dateParts(experience.journey.endsOn).full}</span><i>{experience.days.length} gg</i></div><div className="people"><span className={`connectionStatus ${isOnline ? "online" : "offline"}`} role="status" aria-live="polite">{isOnline ? <Wifi/> : <WifiOff/>}<b>{isOnline ? (saving ? "Salvataggio…" : "Online") : "Solo consultazione"}</b></span><span className="currentUser"><i>{initials(userName)}</i><b>{userName}</b></span><div className="avatars">{experience.journey.travelers.slice(0, 4).map((traveler) => <i key={traveler.name}>{initials(traveler.name)}</i>)}</div>{isAgencyAdmin && <a className="agencyButton" href="/agenzia"><Building2/><span>Agenzia</span></a>}<form action="/api/auth/logout" method="post"><button className="logoutButton"><LogOut/><span>Esci</span></button></form></div></header>
     {experience.availableJourneys.length > 1 && <nav className="journeyPicker">{experience.availableJourneys.map((journey) => <a className={journey.departureId === experience.journey.departureId ? "active" : ""} href={`/viaggio?partenza=${journey.departureId}`} key={journey.departureId}>{journey.title}<small>{dateParts(journey.startsOn).full}</small></a>)}</nav>}
     <section className="hero"><div className="heroTexture"/><div className="heroCopy"><p className="eyebrow">IL NOSTRO VIAGGIO</p><h1>{experience.journey.title}</h1><p>{experience.journey.destinationCountry} · {experience.journey.partyName}</p></div><div className="routeSummary"><div><strong>{experience.days.length}</strong><span>GIORNI</span></div><div><strong>{new Set(experience.days.flatMap((entry) => entry.cities.map((city) => city.name))).size}</strong><span>LOCALITÀ</span></div><div><strong>{experience.journey.travelers.length}</strong><span>VIAGGIATORI</span></div></div></section>
     <nav className="tabs" aria-label="Sezioni del viaggio"><button type="button" className={tab === "mappa" ? "active" : ""} aria-current={tab === "mappa" ? "page" : undefined} onClick={() => { setTab("mappa"); setMoreOpen(false); }}><Map/><span>Mappa</span></button><button type="button" className={tab === "programma" ? "active" : ""} aria-current={tab === "programma" ? "page" : undefined} onClick={() => { openProgramme(); setMoreOpen(false); }}><CalendarDays/><span>Programma</span></button><button type="button" aria-label="Spese, prelievi e cambi" className={tab === "spese" ? "active" : ""} aria-current={tab === "spese" ? "page" : undefined} onClick={() => { setTab("spese"); setMoreOpen(false); }}><Wallet/><span>Spese</span></button><button type="button" className={tab === "sfide" ? "active" : ""} aria-current={tab === "sfide" ? "page" : undefined} onClick={() => { setTab("sfide"); setMoreOpen(false); }}><Sparkles/><span>Sfide</span></button><button type="button" className={moreOpen || tab === "info" || tab === "frasario" ? "active" : ""} aria-expanded={moreOpen} onClick={() => setMoreOpen((value) => !value)}><CircleUserRound/><span>Altro</span></button></nav>
@@ -444,8 +456,8 @@ export default function TravelExperience({ initialExperience, userName, isAgency
             const ratingBusy = saving === `rating-itinerary_item-${item.id}`;
             const progressClass = item.id === currentItemId ? "is-current" : currentItemIndex > index ? "is-complete" : item.id === suggestedItemId ? "is-suggested" : "";
             return <article className={`programmeStep type-${item.type} ${progressClass}`} key={item.id}>
-              <span className="programmeStepNumber">{String(index + 1).padStart(2, "0")}</span><span className="programmeStepLine"/>
-              <div className="programmeStepBody"><div className="programmeStepMeta"><small><ItemIcon/>{presentation.label}</small>{hasVisibleTime && <time><Clock3/>{item.startsAt || item.endsAt}{item.startsAt && item.endsAt ? ` – ${item.endsAt}` : ""}</time>}</div>
+              <span className="programmeStepNumber">{String(index + 1).padStart(2, "0")}</span><span className="programmeStepLine"/><span className="programmeStepIcon" aria-hidden="true"><ItemIcon/></span>
+              <div className="programmeStepBody"><div className="programmeStepMeta"><small>{presentation.label}</small>{hasVisibleTime && <time><Clock3/>{item.startsAt || item.endsAt}{item.startsAt && item.endsAt ? ` – ${item.endsAt}` : ""}</time>}</div>
                 <h4>{site ? <a href={site.googleUrl} target="_blank" rel="noreferrer">{item.title}<ExternalLink/></a> : item.title}</h4>
                 {item.description && <div className={item.type === "transport" ? "programmeOperationalNote" : "programmeDescriptionNote"}>{item.type === "transport" && <strong>Note operative</strong>}<p>{item.description}</p></div>}
                 {item.tickets.length > 0 && <div className="travelerTickets">{item.tickets.map((ticket) => <a href={ticket.downloadUrl} key={ticket.id}><FileText/><span><strong>Biglietto</strong><small>{ticket.title}</small></span><Download/></a>)}</div>}
@@ -455,8 +467,8 @@ export default function TravelExperience({ initialExperience, userName, isAgency
             </article>;
           })}
           {day.hotels.map((hotel, hotelIndex) => { const ratingBusy = saving === `rating-hotel-${hotel.id}`; return <article className="programmeStep type-hotel" key={`hotel-${hotel.id}`}>
-            <span className="programmeStepNumber">{String(day.items.length + hotelIndex + 1).padStart(2, "0")}</span><span className="programmeStepLine"/>
-            <div className="programmeStepBody"><div className="programmeStepMeta"><small><BedDouble/>Pernottamento</small></div><h4><a href={hotel.googleUrl} target="_blank" rel="noreferrer">{hotel.name}<ExternalLink/></a></h4><p>{hotel.city}</p><RatingStars value={hotel.rating} busy={ratingBusy} label={`Valutazione di ${hotel.name}`} onRate={(rating) => void saveRating(day.id, "hotel", hotel.id, rating)}/></div>
+            <span className="programmeStepNumber">{String(day.items.length + hotelIndex + 1).padStart(2, "0")}</span><span className="programmeStepLine"/><span className="programmeStepIcon" aria-hidden="true"><BedDouble/></span>
+            <div className="programmeStepBody"><div className="programmeStepMeta"><small>Pernottamento</small></div><h4><a href={hotel.googleUrl} target="_blank" rel="noreferrer">{hotel.name}<ExternalLink/></a></h4><p>{hotel.city}</p><RatingStars value={hotel.rating} busy={ratingBusy} label={`Valutazione di ${hotel.name}`} onRate={(rating) => void saveRating(day.id, "hotel", hotel.id, rating)}/></div>
           </article>; })}
           {day.items.length === 0 && day.hotels.length === 0 && <div className="programmeEmpty">Programma dettagliato ancora da completare.</div>}
         </div></section>

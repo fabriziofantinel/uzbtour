@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth/client";
 import "./login.css";
 import "./login-fix.css";
+import "../smf-2026.css";
 
 function LoginContent() {
   const searchParams = useSearchParams();

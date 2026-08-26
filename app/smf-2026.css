@@ -1,0 +1,998 @@
+/*
+ * SMF Travel 2026
+ * Livello visivo autorevole per companion, back-office e amministrazione.
+ * È caricato dopo gli stylesheet storici: ogni regola è deliberatamente
+ * circoscritta alle shell di prodotto e non modifica la logica dei moduli.
+ */
+
+:root {
+  --smf-ink: #142b35;
+  --smf-ink-soft: #324952;
+  --smf-muted: #667773;
+  --smf-paper: #f7f3ea;
+  --smf-surface: #fffdfa;
+  --smf-surface-soft: #f0ede5;
+  --smf-line: #d9d5ca;
+  --smf-brand: #247a6b;
+  --smf-brand-deep: #153f43;
+  --smf-accent: #ef7d4d;
+  --smf-action: #245eea;
+  --smf-danger: #a63d32;
+  --smf-success: #247a58;
+  --smf-warning: #9a6419;
+  --smf-focus: #245eea;
+  --smf-shadow: 0 16px 45px rgba(20, 43, 53, .09);
+  --smf-shadow-soft: 0 8px 22px rgba(20, 43, 53, .06);
+}
+
+html { color-scheme: light; background: var(--smf-paper); }
+body {
+  min-width: 320px;
+  color: var(--smf-ink);
+  background: var(--smf-paper);
+  font-size: 16px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+body::-webkit-scrollbar { width: 11px; height: 11px; }
+body::-webkit-scrollbar-track { background: var(--smf-paper); }
+body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radius: 999px; background: #9aa9a5; }
+::selection { color: white; background: var(--smf-brand-deep); }
+:is(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--smf-focus) !important;
+  outline-offset: 3px !important;
+}
+
+/* ---------- Companion del viaggiatore ---------- */
+
+.travelExperience.travelerRedesign {
+  --trail-ink: var(--smf-ink);
+  --trail-paper: var(--smf-paper);
+  --trail-surface: var(--smf-surface);
+  --trail-line: var(--smf-line);
+  --trail-muted: var(--smf-muted);
+  --trail-coral: var(--smf-accent);
+  --trail-primary: var(--agency-primary, var(--smf-brand));
+  min-height: 100svh;
+  color: var(--smf-ink);
+  background: var(--smf-paper);
+}
+
+.travelerRedesign .topbar {
+  position: sticky;
+  z-index: 700;
+  top: 0;
+  height: 70px;
+  padding: 0 clamp(18px, 4vw, 54px);
+  border: 0;
+  border-bottom: 1px solid var(--smf-line);
+  background: color-mix(in srgb, var(--smf-surface) 95%, transparent);
+  backdrop-filter: blur(16px);
+}
+
+.travelerRedesign .brandMark,
+.travelerRedesign .agencyLogo {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border-radius: 12px;
+}
+
+.travelerRedesign .brand strong { font: 800 15px/1.2 var(--font-sans), sans-serif; }
+.travelerRedesign .brand small {
+  margin-top: 3px;
+  color: var(--smf-muted);
+  font: 750 9px/1.2 var(--font-sans), sans-serif;
+  letter-spacing: .1em;
+}
+
+.travelerRedesign .tripDates { color: var(--smf-ink-soft); font-size: 13px; }
+.travelerRedesign .tripDates i {
+  padding: 5px 8px;
+  border-radius: 7px;
+  color: var(--smf-brand-deep);
+  background: var(--smf-surface-soft);
+  font-style: normal;
+}
+.travelerRedesign .currentUser { display: inline-flex; align-items: center; gap: 7px; }
+.travelerRedesign .connectionStatus {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+  border-radius: 999px;
+  color: var(--smf-success);
+  background: color-mix(in srgb, var(--smf-success) 10%, white);
+  font-size: 11px;
+}
+.travelerRedesign .connectionStatus svg { width: 15px; height: 15px; }
+.travelerRedesign .connectionStatus.offline { color: var(--smf-danger); background: #fff0ed; }
+.travelerRedesign .currentUser i {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  color: var(--agency-on-primary, white);
+  background: var(--trail-primary);
+  font: 800 11px/1 var(--font-sans), sans-serif;
+  font-style: normal;
+}
+.travelerRedesign .agencyButton,
+.travelerRedesign .logoutButton {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 1px solid var(--smf-line);
+  border-radius: 10px;
+  color: var(--smf-ink-soft);
+  background: var(--smf-surface);
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.travelerRedesign .hero {
+  min-height: 132px;
+  height: auto;
+  padding: 24px clamp(24px, 7vw, 108px);
+  align-items: center;
+  color: white;
+  background: var(--smf-brand-deep);
+}
+.travelerRedesign .hero::after {
+  width: 34vw;
+  height: 34vw;
+  min-width: 320px;
+  min-height: 320px;
+  right: -8vw;
+  top: -14vw;
+  border: 1px solid rgba(255,255,255,.12);
+  background: transparent;
+}
+.travelerRedesign .heroTexture { opacity: .08; background-size: 36px 36px; }
+.travelerRedesign .heroCopy .eyebrow { display: none; }
+.travelerRedesign .hero h1 {
+  max-width: 780px;
+  margin: 0;
+  font: 700 clamp(28px, 4vw, 45px)/1.04 var(--font-serif), serif;
+  letter-spacing: -.025em;
+  text-wrap: balance;
+}
+.travelerRedesign .heroCopy > p:last-child { margin: 9px 0 0; color: #c7d5d4; opacity: 1; }
+.travelerRedesign .routeSummary {
+  gap: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.travelerRedesign .routeSummary div { min-width: 68px; padding: 0; border: 0; }
+.travelerRedesign .routeSummary strong { font: 700 26px/1 var(--font-serif), serif; }
+.travelerRedesign .routeSummary span { display: block; margin-top: 5px; color: #c7d5d4; font-size: 9px; letter-spacing: .08em; }
+
+.travelerRedesign .tabs {
+  position: sticky;
+  z-index: 650;
+  top: 70px;
+  height: 62px;
+  justify-content: center;
+  gap: clamp(8px, 4vw, 50px);
+  padding: 0 24px;
+  border-bottom: 1px solid var(--smf-line);
+  background: var(--smf-surface);
+}
+.travelerRedesign .tabs button {
+  min-width: 78px;
+  min-height: 62px;
+  padding: 7px 10px;
+  color: var(--smf-muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+.travelerRedesign .tabs button:hover { color: var(--smf-ink); }
+.travelerRedesign .tabs button.active { color: var(--trail-primary); }
+.travelerRedesign .tabs button.active::after { height: 3px; background: var(--trail-primary); }
+
+.travelerRedesign .travelMainContent { min-height: calc(100svh - 264px); }
+.travelerRedesign .dashboard {
+  width: min(1180px, 100%);
+  min-height: 680px;
+  grid-template-columns: 270px minmax(0, 1fr);
+  margin: 0 auto;
+  border-inline: 1px solid var(--smf-line);
+  background: var(--smf-surface);
+}
+.travelerRedesign .timeline {
+  padding: 28px 20px 48px;
+  border-right: 1px solid var(--smf-line);
+  background: color-mix(in srgb, var(--smf-paper) 74%, white);
+}
+.travelerRedesign .sectionTitle > div > span,
+.travelerRedesign .detailHead .tag,
+.travelerRedesign .dayProgramme > header > span,
+.travelerRedesign .overviewHead > div > span,
+.travelerRedesign .expenseHero > span,
+.travelerRedesign .collection > .sectionTitle span {
+  font: 800 10px/1.2 var(--font-sans), sans-serif;
+  letter-spacing: .08em;
+}
+.travelerRedesign .sectionTitle h2 { font: 700 23px/1.15 var(--font-serif), serif; }
+.travelerRedesign .dayList { scrollbar-color: #9aa9a5 transparent; }
+.travelerRedesign .dayRow {
+  min-height: 70px;
+  grid-template-columns: 39px 12px minmax(0, 1fr) 17px;
+  gap: 7px;
+  padding: 8px;
+  border-radius: 10px;
+}
+.travelerRedesign .dayRow:hover { background: rgba(36,122,107,.06); }
+.travelerRedesign .dayRow.selected {
+  color: var(--smf-ink);
+  background: color-mix(in srgb, var(--trail-primary) 11%, white);
+  box-shadow: inset 3px 0 0 var(--trail-primary);
+}
+.travelerRedesign .dayInfo small { color: var(--smf-muted); font-size: 9px; letter-spacing: .04em; }
+.travelerRedesign .dayInfo strong { font: 700 16px/1.2 var(--font-serif), serif; }
+.travelerRedesign .dayInfo em { max-width: 180px; overflow: hidden; color: var(--smf-muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+
+.travelerRedesign .detail {
+  padding: 34px clamp(24px, 5vw, 66px) 76px;
+  background: var(--smf-surface);
+}
+.travelerRedesign .detailHead h2 {
+  max-width: 760px;
+  margin: 6px 0;
+  font: 700 clamp(30px, 4vw, 44px)/1.03 var(--font-serif), serif;
+  letter-spacing: -.025em;
+  text-wrap: balance;
+}
+.travelerRedesign .detailHead p { margin: 10px 0 0; }
+.travelerRedesign .pager button { min-width: 44px; min-height: 44px; }
+
+.travelerRedesign .proximityPanel {
+  margin: 25px 0 30px;
+  padding: 15px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--smf-paper);
+  box-shadow: var(--smf-shadow-soft);
+}
+.travelerRedesign .proximityCopy small { letter-spacing: .06em; }
+.travelerRedesign .proximityCopy p { font-size: 13px; }
+
+.travelerRedesign .dayProgramme > header { padding-bottom: 17px; }
+.travelerRedesign .dayProgramme > header > span,
+.travelerRedesign .overviewHead > div > span,
+.travelerRedesign .expenseHero > span { display: none; }
+.travelerRedesign .dayProgramme > header h3 { margin: 4px 0; font: 700 27px/1.13 var(--font-serif), serif; }
+.travelerRedesign .dayProgramme > header p { font-size: 13px; }
+.travelerRedesign .programmeStep {
+  grid-template-columns: 44px 20px 42px minmax(0,1fr);
+  min-height: 116px;
+}
+.travelerRedesign .programmeStepNumber {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  color: white;
+  background: var(--smf-accent);
+}
+.travelerRedesign .programmeStepLine::before { left: 9px; width: 1px; background: var(--smf-line); }
+.travelerRedesign .programmeStepIcon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  align-self: start;
+  border-radius: 11px;
+  color: var(--trail-primary);
+  background: color-mix(in srgb, var(--trail-primary) 10%, white);
+}
+.travelerRedesign .programmeStepIcon svg { width: 21px; height: 21px; }
+.travelerRedesign .programmeStepBody { padding: 0 0 25px 10px; border-bottom: 1px solid var(--smf-line); }
+.travelerRedesign .programmeStepBody h4 { margin: 6px 0; font: 700 20px/1.25 var(--font-serif), serif; }
+.travelerRedesign .programmeStepMeta small { color: var(--trail-primary); letter-spacing: .05em; }
+.travelerRedesign .programmeStep.is-current .programmeStepIcon {
+  color: var(--agency-on-primary, white);
+  background: var(--trail-primary);
+  animation: confirm-current-step 420ms cubic-bezier(.2,.8,.2,1);
+}
+@keyframes confirm-current-step {
+  0% { transform: scale(.82); box-shadow: 0 0 0 0 color-mix(in srgb, var(--trail-primary) 34%, transparent); }
+  65% { transform: scale(1.08); box-shadow: 0 0 0 8px transparent; }
+  100% { transform: scale(1); box-shadow: none; }
+}
+.travelerRedesign .programmeOperationalNote,
+.travelerRedesign .programmeDescriptionNote {
+  max-width: 70ch;
+  margin: 9px 0;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 9px;
+  color: var(--smf-ink-soft);
+  background: var(--smf-paper);
+}
+.travelerRedesign .programmeOperationalNote strong { color: var(--smf-warning); }
+.travelerRedesign .setCurrentStep { min-height: 40px; border-radius: 9px; }
+.travelerRedesign .programmeRating { min-height: 44px; }
+.travelerRedesign .programmeRating button { width: 42px; height: 42px; }
+.travelerRedesign .journal,
+.travelerRedesign .dayContext { border: 0; border-radius: 14px; background: var(--smf-paper); box-shadow: none; }
+.travelerRedesign .journal { padding: 16px; }
+.travelerRedesign .journal textarea { min-height: 78px; font-family: var(--font-sans), sans-serif; font-size: 16px; }
+
+.travelerRedesign .collection,
+.travelerRedesign .overviewPage,
+.travelerRedesign .usefulPage,
+.travelerRedesign .phrasebookPage,
+.travelerRedesign .challengesPage {
+  width: min(1050px, calc(100% - 36px));
+  max-width: 1050px;
+  margin: 0 auto;
+  padding: 38px 0 88px;
+}
+.travelerRedesign .overviewHead,
+.travelerRedesign .sectionTitle { align-items: flex-end; }
+.travelerRedesign .overviewHead h2,
+.travelerRedesign .collection .sectionTitle h2,
+.travelerRedesign .expenseHero h2 {
+  margin: 5px 0;
+  font: 700 clamp(29px, 4vw, 43px)/1.05 var(--font-serif), serif;
+  letter-spacing: -.02em;
+}
+.travelerRedesign .overviewMap { overflow: hidden; border: 0; border-radius: 16px; box-shadow: var(--smf-shadow); }
+
+/* ---------- Neon Auth: recupero password e verifica email ---------- */
+
+.authUtilityPage {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 32px 18px;
+  color: var(--smf-ink);
+  background:
+    radial-gradient(circle at 12% 18%, rgba(239,125,77,.14), transparent 28rem),
+    linear-gradient(145deg, var(--smf-brand-deep), #0f2f35 43%, var(--smf-paper) 43%);
+}
+.authUtilityPage > * { width: min(440px, 100%); }
+.authUtilityPage :is([data-slot="card"], form) {
+  border-color: var(--smf-line);
+  border-radius: 18px;
+  background: var(--smf-surface);
+  box-shadow: var(--smf-shadow);
+}
+.authUtilityPage form { padding: clamp(22px, 5vw, 34px); }
+.authUtilityPage :is(h1, h2, h3) { color: var(--smf-ink); font-family: var(--font-serif), serif; letter-spacing: -.02em; }
+.authUtilityPage label { color: var(--smf-ink-soft); font-weight: 750; }
+.authUtilityPage input {
+  min-height: 48px;
+  border: 1px solid var(--smf-line);
+  border-radius: 10px;
+  color: var(--smf-ink);
+  background: white;
+  font-size: 16px;
+}
+.authUtilityPage button[type="submit"] {
+  min-height: 48px;
+  border-radius: 10px;
+  color: white;
+  background: var(--smf-brand-deep);
+  font-weight: 800;
+}
+.authUtilityPage a { color: var(--smf-brand-deep); font-weight: 750; }
+.authUtilityPage [role="alert"] { color: var(--smf-danger); }
+.travelerRedesign .overviewDayList { margin-top: 24px; border-block: 1px solid var(--smf-line); }
+.travelerRedesign .overviewDayList button { min-height: 68px; border: 0; border-bottom: 1px solid var(--smf-line); border-radius: 0; background: transparent; }
+.travelerRedesign .overviewDayList button:last-child { border-bottom: 0; }
+.travelerRedesign .empty { border: 1px dashed #b8c3bf; border-radius: 16px; background: transparent; }
+
+.travelerRedesign .expenseHero {
+  padding: 28px;
+  border-radius: 16px;
+  color: white;
+  background: var(--smf-brand-deep);
+  text-align: left;
+}
+.travelerRedesign .expenseCurrencyTotals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 22px; }
+.travelerRedesign .expenseCurrencyTotals > div { padding: 8px 22px; border-left: 1px solid rgba(255,255,255,.16); }
+.travelerRedesign .expenseCurrencyTotals > div:first-child { padding-left: 0; border-left: 0; }
+.travelerRedesign .expenseCurrencyTotals strong { font-size: clamp(22px, 3vw, 32px); }
+.travelerRedesign .financeActions { gap: 10px; margin: 18px 0 28px; }
+.travelerRedesign .financeActions button { min-height: 58px; border: 1px solid var(--smf-line); border-radius: 12px; background: var(--smf-surface); }
+.travelerRedesign .expenseList > div,
+.travelerRedesign .cashMovementList > div { min-height: 70px; padding: 13px 7px; border-bottom: 1px solid var(--smf-line); }
+
+.travelerRedesign .moreMenu { border: 0; box-shadow: var(--smf-shadow); }
+.travelerRedesign .dataError { border-radius: 10px; }
+
+/* ---------- Back-office agenzia ---------- */
+
+.agencyPage {
+  --agency-ui: var(--smf-brand);
+  min-height: 100svh;
+  color: var(--smf-ink);
+  background: var(--smf-paper);
+}
+.agencyTopbar {
+  position: sticky;
+  z-index: 60;
+  top: 0;
+  height: 68px;
+  padding: 0 clamp(18px, 4vw, 54px);
+  border-bottom: 1px solid var(--smf-line);
+  background: rgba(255,253,250,.95);
+  backdrop-filter: blur(16px);
+}
+.agencyBrand > span { width: 40px; height: 40px; border-radius: 12px; background: var(--smf-brand-deep); }
+.agencyBrand strong { font: 800 16px/1.15 var(--font-sans), sans-serif; }
+.agencyBrand small { color: var(--smf-muted); font-size: 9px; letter-spacing: .08em; }
+.agencyUser > i { border-radius: 11px; background: var(--smf-accent); }
+.agencyUser span small { font-size: 10px; }
+.agencyUser span b { font-size: 13px; }
+.agencyUser button { min-width: 40px; min-height: 40px; border-color: var(--smf-line); }
+
+.agencyHero {
+  min-height: 0;
+  padding: 28px max(24px, 6vw);
+  color: white;
+  background: var(--smf-brand-deep);
+}
+.agencyHero::after { display: none; }
+.agencyHero p { display: none; }
+.agencyHero h1 { font: 700 clamp(27px, 3vw, 38px)/1.08 var(--font-serif), serif; letter-spacing: -.02em; }
+.agencyHero span { margin-top: 7px; color: #cad7d5; font-size: 14px; opacity: 1; }
+.agencyShell { max-width: 1480px; grid-template-columns: 230px minmax(0, 1fr); }
+.agencySidebar {
+  min-height: calc(100svh - 153px);
+  padding: 25px 18px;
+  border-right: 1px solid var(--smf-line);
+  background: var(--smf-surface);
+}
+.agencySidebar > label { color: var(--smf-muted); font-size: 10px; letter-spacing: .06em; }
+.agencySelect { min-height: 48px; border-color: var(--smf-line); border-radius: 10px; }
+.agencySelect select { font-size: 13px; }
+.agencySidebar nav a { min-height: 44px; border-radius: 9px; font-size: 13px; }
+.agencySidebar nav a.active { color: var(--smf-brand-deep); background: #e8f1ee; }
+.agencyContent { padding: 30px clamp(20px, 3vw, 44px) 80px; }
+.agencyMessage { padding: 13px 15px; border-radius: 10px; font-size: 13px; }
+.agencyStats {
+  display: flex;
+  gap: 0;
+  margin: 0 0 30px;
+  padding: 0 0 22px;
+  border-bottom: 1px solid var(--smf-line);
+}
+.agencyStats article {
+  min-width: 150px;
+  gap: 10px;
+  padding: 4px 26px;
+  border: 0;
+  border-left: 1px solid var(--smf-line);
+  border-radius: 0;
+  background: transparent;
+}
+.agencyStats article:first-child { padding-left: 0; border-left: 0; }
+.agencyStats article > svg { width: 36px; height: 36px; border-radius: 10px; color: var(--smf-brand); background: #e8f1ee; }
+.agencyStats small { color: var(--smf-muted); font-size: 9px; letter-spacing: .06em; }
+.agencyStats b { font: 700 25px/1 var(--font-serif), serif; }
+.agencySectionHead { align-items: center; margin-bottom: 18px; }
+.agencySectionHead small { display: none; }
+.agencySectionHead h2 { margin: 0; font: 700 29px/1.12 var(--font-serif), serif; letter-spacing: -.02em; }
+.agencySectionActions > .newTripButton { min-height: 44px; padding: 0 15px; border-radius: 10px; background: var(--smf-action); font-size: 12px; }
+.tripViewToggle { border-color: var(--smf-line); border-radius: 10px; background: var(--smf-surface-soft); }
+.tripViewToggle button { width: 34px; height: 34px; }
+.tripViewToggle button.active { background: var(--smf-brand-deep); }
+.tripFilters {
+  min-height: 54px;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--smf-line);
+  border-radius: 12px;
+  background: var(--smf-surface);
+}
+.tripFilters > span { font-size: 12px; }
+.tripFilters > button { min-height: 36px; border-radius: 8px; font-size: 12px; }
+.tripFilters > button.active { background: var(--smf-brand-deep); }
+.tripFilters > label { height: 40px; border-color: var(--smf-line); font-size: 13px; }
+.tripTableWrap { border-color: var(--smf-line); border-radius: 12px; box-shadow: none; }
+.tripTable { min-width: 1220px; }
+.tripTable th { padding: 12px; color: var(--smf-ink-soft); background: #e9efec; font-size: 10px; letter-spacing: .04em; }
+.tripTable td { padding: 13px 12px; border-bottom-color: #e7e4dc; font-size: 12px; }
+.tripNameCell b { font: 700 15px/1.2 var(--font-sans), sans-serif; }
+.tripNameCell span, .tripNameCell small { font-size: 11px; }
+.status { padding: 5px 8px; border-radius: 7px; font-size: 9px; letter-spacing: .03em; }
+.dateCell { font-size: 12px; }
+.travelerCell { font-size: 11px; }
+.tableActions.inline { min-width: 410px; }
+.tableActions a, .tableActions button { min-height: 36px; padding: 7px 9px; border-radius: 8px; font-size: 10px; }
+.tableActions .primary { background: var(--smf-action); }
+.tripAdminCard {
+  padding: 20px;
+  border-color: var(--smf-line);
+  border-radius: 14px;
+  background: var(--smf-surface);
+}
+.tripAdminCard h3 { font: 700 21px/1.2 var(--font-serif), serif; }
+.newTripForm {
+  grid-template-columns: minmax(220px, 1.2fr) minmax(180px, .8fr) minmax(260px, 1fr) auto;
+  padding: 20px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--smf-surface);
+  box-shadow: var(--smf-shadow);
+}
+.newTripForm label { color: var(--smf-ink-soft); font-size: 11px; }
+.newTripForm input { min-height: 44px; border-color: var(--smf-line); border-radius: 9px; font-size: 13px; }
+.newTripForm button { min-height: 44px; border-radius: 9px; font-size: 12px; }
+.quoteTemplate { border-radius: 11px; background: #e9f1ee; }
+
+/* ---------- Superadmin ---------- */
+
+.superadminPage {
+  min-height: 100svh;
+  padding-left: 248px;
+  color: var(--smf-ink);
+  background: var(--smf-paper);
+}
+.superadminTopbar {
+  position: fixed;
+  z-index: 80;
+  inset: 0 auto 0 0;
+  width: 248px;
+  height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 26px 18px;
+  border: 0;
+  border-right: 1px solid var(--smf-line);
+  background: var(--smf-brand-deep);
+}
+.superadminBrand { padding: 0 7px 28px; color: white; }
+.superadminBrand > span { background: var(--smf-accent); }
+.superadminBrand strong { font-size: 16px; }
+.superadminBrand small { margin-top: 3px; color: #c9d6d4; font-size: 9px; }
+.superadminTopbar nav { display: grid; gap: 6px; margin: 0; }
+.superadminTopbar nav a {
+  min-height: 46px;
+  padding: 0 12px;
+  border-radius: 9px;
+  color: #d9e3e1;
+  font-size: 13px;
+}
+.superadminTopbar nav a:hover { color: white; background: rgba(255,255,255,.1); }
+.superadminActor {
+  margin-top: auto;
+  padding: 16px 8px 0;
+  border-top: 1px solid rgba(255,255,255,.14);
+  color: white;
+}
+.superadminActor > svg { color: #f0b176; }
+.superadminActor button { color: white; background: rgba(255,255,255,.1); }
+.superadminShell { width: min(1180px, calc(100% - 56px)); padding: 46px 0 82px; }
+.superadminHero,
+.registryHead { align-items: center; margin-bottom: 30px; }
+.superadminHero small,
+.registryHead small,
+.superadminQuick small { display: none; }
+.superadminHero h1,
+.registryHead h1 { margin: 0 0 7px; font: 700 clamp(34px, 5vw, 54px)/1 var(--font-serif), serif; letter-spacing: -.025em; }
+.superadminHero p,
+.registryHead p { font-size: 15px; }
+.superadminHero > a,
+.registryHead > button,
+.agentsHeader button { min-height: 44px; border-radius: 10px; background: var(--smf-action); }
+.superadminStats {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  border-block: 1px solid var(--smf-line);
+}
+.superadminStats article {
+  gap: 14px;
+  padding: 26px;
+  border: 0;
+  border-left: 1px solid var(--smf-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.superadminStats article:first-child { border-left: 0; }
+.superadminStats article > span { width: 44px; height: 44px; border-radius: 12px; }
+.superadminStats small { color: var(--smf-muted); font-size: 10px; }
+.superadminStats strong { font: 700 38px/1 var(--font-serif), serif; }
+.superadminStats p { font-size: 12px; }
+.superadminQuick {
+  margin-top: 28px;
+  padding: 28px;
+  border-radius: 14px;
+  background: var(--smf-surface);
+  color: var(--smf-ink);
+  box-shadow: var(--smf-shadow-soft);
+}
+.superadminQuick h2 { font: 700 27px/1.15 var(--font-serif), serif; }
+.superadminQuick p { color: var(--smf-muted); }
+.superadminQuick a { color: white; background: var(--smf-action); }
+.agencyRegistryForm,
+.agencyRegistryList > article { border-color: var(--smf-line); border-radius: 14px; box-shadow: none; }
+.agencyRegistryForm > header { background: var(--smf-brand-deep); }
+.agencyRegistryForm fieldset { gap: 16px; }
+.agencyRegistryForm label,
+.agentForm label { font-size: 12px; }
+.agencyRegistryForm input,
+.agentForm input,
+.agentForm select { min-height: 44px; border-color: var(--smf-line); border-radius: 9px; }
+.agencyRegistrySummary { min-height: 82px; }
+.agencyIdentity strong { font-size: 16px; }
+.agencyIdentity em { font-size: 12px; }
+.agencyRegistryDetail { background: var(--smf-paper); }
+.agentsList > div { min-height: 62px; }
+
+/* ---------- Sfide e contenuti del companion ---------- */
+
+.travelerRedesign .challengesHero,
+.travelerRedesign .quizHero,
+.travelerRedesign .gamesHero,
+.travelerRedesign .rankingsHero,
+.travelerRedesign .contestHubHero,
+.travelerRedesign .phrasebookHero,
+.travelerRedesign .usefulHero {
+  padding: 25px 0;
+  border: 0;
+  border-bottom: 1px solid var(--smf-line);
+  border-radius: 0;
+  color: var(--smf-ink);
+  background: transparent;
+  box-shadow: none;
+}
+.travelerRedesign :is(.challengesHero,.quizHero,.gamesHero,.rankingsHero,.contestHubHero,.phrasebookHero,.usefulHero) h2 {
+  margin: 4px 0 8px;
+  font: 700 clamp(30px, 4vw, 44px)/1.05 var(--font-serif), serif;
+  letter-spacing: -.025em;
+}
+.travelerRedesign :is(.challengesHero,.quizHero,.gamesHero,.rankingsHero,.contestHubHero,.phrasebookHero,.usefulHero) > :is(span,small),
+.travelerRedesign :is(.challengesHero,.quizHero,.gamesHero,.rankingsHero,.contestHubHero,.phrasebookHero,.usefulHero) > div > small {
+  display: none;
+}
+.travelerRedesign :is(.challengesHero,.quizHero,.gamesHero,.rankingsHero,.contestHubHero,.phrasebookHero,.usefulHero) p {
+  max-width: 68ch;
+  color: var(--smf-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.travelerRedesign .challengeTabs,
+.travelerRedesign .challengeDayPicker,
+.travelerRedesign .quizDayList,
+.travelerRedesign .contestDayPicker,
+.travelerRedesign .phraseCategories {
+  display: flex;
+  gap: 7px;
+  margin: 18px 0 24px;
+  padding: 5px;
+  overflow-x: auto;
+  border: 1px solid var(--smf-line);
+  border-radius: 12px;
+  background: var(--smf-surface);
+  scrollbar-width: thin;
+}
+.travelerRedesign :is(.challengeTabs,.challengeDayPicker,.quizDayList,.contestDayPicker,.phraseCategories) button {
+  min-height: 42px;
+  flex: 0 0 auto;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--smf-muted);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 750;
+}
+.travelerRedesign :is(.challengeTabs,.challengeDayPicker,.quizDayList,.contestDayPicker,.phraseCategories) button.active,
+.travelerRedesign :is(.challengeTabs,.challengeDayPicker,.quizDayList,.contestDayPicker,.phraseCategories) button[aria-pressed="true"] {
+  color: white;
+  background: var(--trail-primary);
+}
+.travelerRedesign .missionBoard,
+.travelerRedesign .reviewPanel,
+.travelerRedesign .quizPlay,
+.travelerRedesign .overallRanking,
+.travelerRedesign .travellerProfile,
+.travelerRedesign .gamesNotice,
+.travelerRedesign .languageNote,
+.travelerRedesign .infoSection {
+  border: 0;
+  border-radius: 14px;
+  background: var(--smf-surface);
+  box-shadow: var(--smf-shadow-soft);
+}
+.travelerRedesign .missionList,
+.travelerRedesign .rankingRows,
+.travelerRedesign .phraseList { gap: 0; }
+.travelerRedesign .missionList > article,
+.travelerRedesign .rankingRows > div,
+.travelerRedesign .phraseList > article {
+  border: 0;
+  border-bottom: 1px solid var(--smf-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.travelerRedesign .missionList > article:last-child,
+.travelerRedesign .rankingRows > div:last-child,
+.travelerRedesign .phraseList > article:last-child { border-bottom: 0; }
+.travelerRedesign .missionNumber,
+.travelerRedesign .quizDayNumber {
+  border-radius: 10px;
+  color: white;
+  background: var(--smf-accent);
+}
+.travelerRedesign .dualContestGrid,
+.travelerRedesign .dailyGamesGrid,
+.travelerRedesign .categoryRankings,
+.travelerRedesign .cultureGrid {
+  gap: 14px;
+}
+.travelerRedesign .photoContestPanel,
+.travelerRedesign .dailyGamesGrid > article,
+.travelerRedesign .categoryRankings > article,
+.travelerRedesign .cultureGrid > article {
+  border: 1px solid var(--smf-line);
+  border-radius: 14px;
+  background: var(--smf-surface);
+  box-shadow: none;
+}
+.travelerRedesign .bingoBoard,
+.travelerRedesign .tombolaCard {
+  overflow: hidden;
+  border: 2px solid var(--smf-brand-deep);
+  border-radius: 12px;
+  background: var(--smf-surface);
+}
+.travelerRedesign .tombolaNumber { border-color: var(--smf-line); }
+.travelerRedesign .gameAnswerBox input,
+.travelerRedesign .quizQuestions input,
+.travelerRedesign .quizQuestions textarea {
+  min-height: 48px;
+  border: 1px solid var(--smf-line);
+  border-radius: 9px;
+  background: white;
+  font-size: 16px;
+}
+.travelerRedesign .quizSubmitBar button,
+.travelerRedesign .gameAnswerBox button,
+.travelerRedesign .contestUploadBar label,
+.travelerRedesign .contestJudgeBar button {
+  min-height: 46px;
+  border: 0;
+  border-radius: 10px;
+  color: white;
+  background: var(--smf-action);
+  font-weight: 800;
+}
+.travelerRedesign .photoGrid { gap: 10px; }
+.travelerRedesign .photoGrid figure {
+  border-radius: 12px;
+  background: var(--smf-surface-soft);
+}
+.travelerRedesign .phraseTranslations strong { font-size: 17px; }
+.travelerRedesign .phraseTranslations em { font-size: 19px; line-height: 1.4; }
+
+/* ---------- Accesso e attivazione ---------- */
+
+.loginPage {
+  min-height: 100svh;
+  color: var(--smf-ink);
+  background: var(--smf-paper);
+}
+.loginStory {
+  color: white;
+  background: var(--smf-brand-deep);
+}
+.loginStory::after {
+  content: "";
+  position: absolute;
+  width: min(54vw, 700px);
+  aspect-ratio: 1;
+  right: -24%;
+  bottom: -42%;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 50%;
+  box-shadow: 0 0 0 70px rgba(255,255,255,.025), 0 0 0 140px rgba(255,255,255,.018);
+}
+.loginPattern { opacity: .07; }
+.loginBrand { font-size: 15px; }
+.loginBrand > span { border-radius: 12px; background: var(--smf-accent); }
+.loginStoryCopy > p,
+.loginEyebrow { display: none; }
+.loginStoryCopy h1 {
+  max-width: 650px;
+  font: 700 clamp(44px, 6vw, 78px)/.98 var(--font-serif), serif;
+  letter-spacing: -.035em;
+  text-wrap: balance;
+}
+.loginStoryCopy h1 em { color: #f3ba84; font-weight: inherit; }
+.loginPanel { background: var(--smf-surface); }
+.loginBox { width: min(430px, calc(100% - 36px)); }
+.loginLock { border-radius: 12px; color: var(--smf-brand); background: #e7f1ee; }
+.loginBox h2 { margin-top: 13px; font: 700 34px/1.05 var(--font-serif), serif; letter-spacing: -.02em; }
+.loginIntro { color: var(--smf-muted); font-size: 14px; line-height: 1.55; }
+.loginBox form > label { color: var(--smf-ink-soft); font-size: 12px; }
+.codeInput { min-height: 50px; border-color: var(--smf-line); border-radius: 10px; background: white; }
+.codeInput input { font-size: 16px; }
+.loginSubmit { min-height: 50px; border-radius: 10px; background: var(--smf-action); }
+.loginHelp { font-size: 13px; }
+
+/* ---------- Editor e revisione ---------- */
+
+.reviewPage,
+.programmePage,
+.journeyManagePage { color: var(--smf-ink); background: var(--smf-paper); }
+.reviewTopbar,
+.programmeTopbar,
+.journeyManagePage > header {
+  position: sticky;
+  z-index: 50;
+  top: 0;
+  min-height: 66px;
+  border-bottom: 1px solid var(--smf-line);
+  background: rgba(255,253,250,.96);
+  backdrop-filter: blur(14px);
+}
+.reviewHero,
+.programmeNotice,
+.journeyManageHero { color: white; background: var(--smf-brand-deep); }
+.reviewHero h1,
+.journeyManageHero h1 { font-family: var(--font-serif), serif; letter-spacing: -.025em; }
+.reviewShell,
+.programmeLayout,
+.journeyManageShell { width: min(1160px, calc(100% - 32px)); }
+.reviewGeneral,
+.reviewDay,
+.programmeBlock,
+.familyCards > article { border-color: var(--smf-line); border-radius: 14px; background: var(--smf-surface); }
+.reviewPage input,
+.reviewPage textarea,
+.reviewPage select,
+.programmePage input,
+.programmePage textarea,
+.programmePage select,
+.journeyManagePage input,
+.journeyManagePage textarea,
+.journeyManagePage select { min-height: 44px; border-color: var(--smf-line); border-radius: 9px; font-size: 14px; }
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 900px) {
+  .travelerRedesign .hero { padding-inline: 28px; }
+  .travelerRedesign .routeSummary { gap: 14px; }
+  .travelerRedesign .dashboard { border-inline: 0; }
+  .agencyShell { display: block; }
+  .agencySidebar { min-height: 0; padding: 14px 18px; border: 0; border-bottom: 1px solid var(--smf-line); }
+  .agencyStats { overflow-x: auto; }
+  .agencyStats article { min-width: 145px; }
+  .superadminPage { padding-left: 0; padding-top: 66px; }
+  .superadminTopbar {
+    inset: 0 0 auto;
+    width: 100%;
+    height: 66px;
+    flex-direction: row;
+    align-items: center;
+    padding: 0 16px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255,255,255,.14);
+  }
+  .superadminBrand { padding: 0; }
+  .superadminBrand div { display: none; }
+  .superadminTopbar nav { display: flex; margin: 0 auto; }
+  .superadminTopbar nav a { min-width: 44px; padding: 0 10px; font-size: 0; }
+  .superadminTopbar nav a svg { width: 20px; height: 20px; }
+  .superadminActor { margin: 0; padding: 0; border: 0; }
+  .superadminActor b, .superadminActor > svg { display: none; }
+}
+
+@media (max-width: 700px) {
+  .travelerRedesign .topbar { height: 62px; padding: 0 14px; }
+  .travelerRedesign .brandMark,
+  .travelerRedesign .agencyLogo { width: 38px; height: 38px; flex-basis: 38px; }
+  .travelerRedesign .brand strong { max-width: 52vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .travelerRedesign .brand small { font-size: 8px; }
+  .travelerRedesign .hero,
+  .travelerRedesign .journeyPicker { display: none; }
+  .travelerRedesign .tabs {
+    position: fixed;
+    z-index: 1000;
+    inset: auto 0 0;
+    top: auto;
+    height: calc(70px + env(safe-area-inset-bottom));
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0;
+    padding: 0 5px env(safe-area-inset-bottom);
+    border-top: 1px solid var(--smf-line);
+    border-bottom: 0;
+    background: rgba(255,253,250,.97);
+    box-shadow: 0 -10px 32px rgba(20,43,53,.08);
+    backdrop-filter: blur(16px);
+  }
+  .travelerRedesign .tabs button { min-width: 0; min-height: 64px; padding: 7px 2px; font-size: 10px; }
+  .travelerRedesign .tabs button.active::after { inset: 0 24% auto; }
+  .travelerRedesign .travelMainContent { min-height: calc(100svh - 62px); padding-bottom: calc(82px + env(safe-area-inset-bottom)); }
+  .travelerRedesign .dashboard { display: block; min-height: auto; background: var(--smf-paper); }
+  .travelerRedesign .timeline { padding: 15px 14px 9px; border: 0; background: var(--smf-paper); }
+  .travelerRedesign .timeline .sectionTitle { display: none; }
+  .travelerRedesign .dayList { display: flex; gap: 8px; margin: 0 -14px; padding: 0 14px 6px; overflow-x: auto; scroll-snap-type: x proximity; }
+  .travelerRedesign .dayRow {
+    min-width: 146px;
+    min-height: 58px;
+    grid-template-columns: 36px minmax(0,1fr);
+    scroll-snap-align: start;
+    border: 1px solid var(--smf-line);
+    background: var(--smf-surface);
+  }
+  .travelerRedesign .dayRow.selected { box-shadow: inset 0 -3px 0 var(--trail-primary); }
+  .travelerRedesign .dayRow .line,
+  .travelerRedesign .dayRow > svg,
+  .travelerRedesign .dayInfo em { display: none; }
+  .travelerRedesign .dayInfo strong { overflow: hidden; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
+  .travelerRedesign .detail { padding: 20px 16px 44px; }
+  .travelerRedesign .detailHead h2 { font-size: clamp(29px, 9vw, 39px); }
+  .travelerRedesign .detailHead .pager { display: none; }
+  .travelerRedesign .proximityPanel { grid-template-columns: 40px minmax(0,1fr); margin: 20px 0 27px; }
+  .travelerRedesign .locateButton,
+  .travelerRedesign .proximityActions { grid-column: 1 / -1; width: 100%; }
+  .travelerRedesign .connectionStatus { min-width: 34px; padding: 0 8px; }
+  .travelerRedesign .connectionStatus b { display: none; }
+  .travelerRedesign .currentUser b { display: none; }
+  .travelerRedesign .programmeStep { grid-template-columns: 36px 16px 38px minmax(0,1fr); }
+  .travelerRedesign .programmeStepNumber { width: 34px; height: 34px; border-radius: 10px; }
+  .travelerRedesign .programmeStepIcon { width: 34px; height: 34px; border-radius: 10px; }
+  .travelerRedesign .programmeStepIcon svg { width: 19px; height: 19px; }
+  .travelerRedesign .programmeStepBody { padding-left: 7px; }
+  .travelerRedesign .programmeRating { gap: 3px; overflow-x: auto; }
+  .travelerRedesign .programmeRating > span { margin-right: 4px; font-size: 11px; }
+  .travelerRedesign .programmeRating button { width: 44px; height: 44px; }
+  .travelerRedesign .collection,
+  .travelerRedesign .overviewPage,
+  .travelerRedesign .usefulPage,
+  .travelerRedesign .phrasebookPage,
+  .travelerRedesign .challengesPage { width: 100%; padding: 24px 16px 96px; }
+  .travelerRedesign .expenseHero { margin-inline: -16px; padding: 24px 16px; border-radius: 0; }
+  .travelerRedesign .expenseCurrencyTotals { grid-template-columns: 1fr 1fr; }
+  .travelerRedesign .expenseCurrencyTotals > div { padding: 8px 12px; }
+  .travelerRedesign .expenseCurrencyTotals .grandTotal { grid-column: 1 / -1; margin-top: 12px; padding: 13px 0 0; border: 0; border-top: 1px solid rgba(255,255,255,.18); }
+  .travelerRedesign .financeActions { grid-template-columns: 1fr; }
+
+  .agencyHero { padding: 23px 18px; }
+  .agencyHero h1 { font-size: 28px; }
+  .agencyContent { padding: 22px 14px 70px; }
+  .agencyStats { margin-inline: -14px; padding-inline: 14px; }
+  .agencyStats article { padding-inline: 15px; }
+  .agencySectionHead { align-items: center; }
+  .agencySectionHead h2 { font-size: 25px; }
+  .tripFilters { align-items: stretch; }
+  .newTripForm { grid-template-columns: 1fr; }
+  .newTripForm .pdfField { grid-column: auto; }
+  .quoteTemplate { grid-column: auto; }
+  .superadminShell { width: min(100% - 24px, 1180px); padding-top: 30px; }
+  .superadminHero, .registryHead { align-items: flex-start; }
+  .superadminStats { grid-template-columns: 1fr; }
+  .superadminStats article { border-left: 0; border-top: 1px solid var(--smf-line); }
+  .superadminStats article:first-child { border-top: 0; }
+
+  .loginPage { display: block; }
+  .loginStory { min-height: 214px; padding: 24px 22px; }
+  .loginBrand { position: relative; top: auto; left: auto; }
+  .loginStoryCopy { margin-top: 38px; }
+  .loginStoryCopy h1 { margin: 0; font-size: clamp(36px, 12vw, 50px); }
+  .loginStoryCopy > span,
+  .loginStory > small { display: none; }
+  .loginPanel { min-height: calc(100svh - 214px); padding: 28px 0 40px; }
+  .loginBox h2 { font-size: 30px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
+}

@@ -3,6 +3,7 @@ import { PlatformAuthorizationError, requirePlatformAdmin } from "@/lib/platform
 import { getAgencyProgramme } from "@/lib/platform/programme-repository";
 import ProgrammeEditor from "./programme-editor";
 import "./programme.css";
+import "../../../../smf-2026.css";
 
 export const dynamic = "force-dynamic";
 

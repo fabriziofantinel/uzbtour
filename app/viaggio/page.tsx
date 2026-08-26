@@ -5,6 +5,7 @@ import TravelExperience from "./travel-experience";
 import "../tour.css";
 import "../challenges.css";
 import "leaflet/dist/leaflet.css";
+import "../smf-2026.css";
 
 export const dynamic = "force-dynamic";
 
