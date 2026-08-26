@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { CircleAlert, LoaderCircle, LogIn, Search, ShieldCheck, UserRound, UsersRound } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CircleAlert, LoaderCircle, LogIn, Search, ShieldCheck, UserRound, UsersRound, X } from "lucide-react";
 import type { ImpersonationUser } from "@/lib/platform/superadmin-repository";
 
 const agencyRoleLabels: Record<string, string> = {
@@ -12,6 +12,9 @@ export default function ImpersonationRegistry({ initialUsers }: { initialUsers: 
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
+  const [selectedUser, setSelectedUser] = useState<ImpersonationUser | null>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLElement>(null);
   const users = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("it");
     if (!needle) return initialUsers;
@@ -19,8 +22,28 @@ export default function ImpersonationRegistry({ initialUsers }: { initialUsers: 
       .some((value) => value.toLocaleLowerCase("it").includes(needle)));
   }, [initialUsers, query]);
 
+  useEffect(() => {
+    if (!selectedUser) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    cancelRef.current?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !busy) setSelectedUser(null);
+      if (event.key === "Tab") {
+        const focusable = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(
+          "button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex='-1'])"
+        ) ?? []);
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => { document.removeEventListener("keydown", handleKeyDown); previousFocus?.focus(); };
+  }, [selectedUser, busy]);
+
   async function impersonate(user: ImpersonationUser) {
-    if (!window.confirm(`Vuoi entrare nell’applicazione come ${user.name}?`)) return;
     setBusy(user.id);
     setError("");
     try {
@@ -44,8 +67,12 @@ export default function ImpersonationRegistry({ initialUsers }: { initialUsers: 
         <div><small>CONTROLLO ACCESSI</small><h1>Login come utente</h1><p>Verifica l’applicazione usando esattamente il profilo e i permessi di un utente censito.</p></div>
       </section>
       <div className="impersonationWarning"><ShieldCheck/><span><b>Sessione controllata</b><small>Non servono le credenziali dell’utente. Una fascia viola consentirà sempre di tornare al superadmin.</small></span></div>
-      {error && <div className="superadminMessage error"><CircleAlert size={18}/>{error}</div>}
-      <label className="userSearch"><Search/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca per nome, email o agenzia…"/></label>
+      {error && !selectedUser && <div className="superadminMessage error" role="alert"><CircleAlert size={18}/>{error}</div>}
+      <div className="registryTools impersonationTools">
+        <label className="userSearch" htmlFor="user-search"><Search/><span className="srOnly">Cerca utente</span><input id="user-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca per nome, email o agenzia…" autoComplete="off"/></label>
+        <span className="registryResultCount" aria-live="polite">{users.length} {users.length === 1 ? "utente" : "utenti"}</span>
+        {query && <button type="button" className="registryClear" onClick={() => setQuery("")}><X/> Azzera ricerca</button>}
+      </div>
       <section className="impersonationList">
         {users.map((user) => (
           <article key={user.id}>
@@ -60,13 +87,32 @@ export default function ImpersonationRegistry({ initialUsers }: { initialUsers: 
               {user.isTraveler && <b><UserRound/> Viaggiatore</b>}
               {user.status === "invited" && <b className="pending">Invitato</b>}
             </span>
-            <button onClick={() => impersonate(user)} disabled={Boolean(busy)}>
-              {busy === user.id ? <LoaderCircle className="spin"/> : <LogIn/>} Accedi come
+            <button type="button" onClick={() => { setError(""); setSelectedUser(user); }} disabled={Boolean(busy)} aria-label={`Accedi come ${user.name}`}>
+              <LogIn/> Accedi come
             </button>
           </article>
         ))}
-        {users.length === 0 && <div className="registryEmpty"><UserRound/><h2>Nessun utente trovato</h2><p>Modifica i criteri di ricerca.</p></div>}
+        {users.length === 0 && <div className="registryEmpty"><UserRound/><h2>Nessun utente trovato</h2><p>Nessun profilo corrisponde a “{query}”.</p><button type="button" onClick={() => setQuery("")}><X/> Azzera ricerca</button></div>}
       </section>
+      {selectedUser && (
+        <div className="agencyDeleteBackdrop" role="presentation" onMouseDown={(event) => {
+          if (event.target === event.currentTarget && !busy) setSelectedUser(null);
+        }}>
+          <section ref={dialogRef} className="agencyDeleteDialog impersonationDialog" role="dialog" aria-modal="true" aria-labelledby="impersonation-title">
+            <button type="button" className="agencyDeleteClose" aria-label="Chiudi" disabled={Boolean(busy)} onClick={() => setSelectedUser(null)}><X/></button>
+            <i><LogIn/></i>
+            <small>SESSIONE TEMPORANEA</small>
+            <h2 id="impersonation-title">Accedere come {selectedUser.name}?</h2>
+            <p>La nuova sessione avrà gli stessi ruoli e permessi di questo utente. Potrai tornare in qualsiasi momento al profilo superadmin.</p>
+            <div className="impersonationTarget"><UserRound/><span><b>{selectedUser.name}</b><small>{selectedUser.email || "Email non indicata"}</small></span></div>
+            {error && <div className="superadminMessage error dialogMessage" role="alert"><CircleAlert size={18}/>{error}</div>}
+            <div>
+              <button ref={cancelRef} type="button" className="secondary" disabled={Boolean(busy)} onClick={() => setSelectedUser(null)}>Annulla</button>
+              <button type="button" className="confirmImpersonation" disabled={Boolean(busy)} onClick={() => void impersonate(selectedUser)}>{busy === selectedUser.id ? <><LoaderCircle className="spin"/> Accesso in corso…</> : <><LogIn/> Avvia sessione</>}</button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
