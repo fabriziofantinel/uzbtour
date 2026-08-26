@@ -28,7 +28,7 @@ const UsefulInfo = dynamic(() => import("@/components/useful-info"), {
   loading: () => <div className="componentLoading" role="status">Caricamento delle informazioni…</div>,
 });
 
-type Tab = "oggi" | "mappa" | "programma" | "ricordi" | "spese" | "info" | "frasario" | "sfide";
+type Tab = "oggi" | "mappa" | "programma" | "ricordi" | "documenti" | "spese" | "info" | "frasario" | "sfide";
 type Day = Experience["days"][number];
 const colors = ["#D6663D", "#715C9D", "#C4902F", "#177A78", "#3D8B68", "#A35D55"];
 const som = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0 });
@@ -191,8 +191,11 @@ export default function TravelExperience({ initialExperience, userName, isAgency
   const [suggestedItemId, setSuggestedItemId] = useState<string | null>(null);
   const [currentItems, setCurrentItems] = useState<Record<string, string>>({});
   const [moreOpen, setMoreOpen] = useState(false);
+  const [memoryDayFilter, setMemoryDayFilter] = useState<number | "all">("all");
   const [isOnline, setIsOnline] = useState(true);
   const contentRef = useRef<HTMLDivElement>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+  const moreButtonRef = useRef<HTMLButtonElement>(null);
   const firstTabRender = useRef(true);
   const day = experience.days[active] ?? experience.days[0];
   const currentItemId = day ? currentItems[day.id] ?? null : null;
@@ -201,6 +204,18 @@ export default function TravelExperience({ initialExperience, userName, isAgency
   const photosByDay = useMemo(() => experience.photos.reduce<Record<number, Experience["photos"]>>((all, photo) => {
     all[photo.dayNumber] = [...(all[photo.dayNumber] || []), photo]; return all;
   }, {}), [experience.photos]);
+  const memoryDays = useMemo(() => Object.keys(photosByDay).map(Number).sort((left, right) => left - right), [photosByDay]);
+  const visiblePhotos = useMemo(() => memoryDayFilter === "all"
+    ? experience.photos
+    : experience.photos.filter((photo) => photo.dayNumber === memoryDayFilter), [experience.photos, memoryDayFilter]);
+  const travelDocuments = useMemo(() => experience.days.flatMap((entry) => entry.items.flatMap((item) => item.tickets.map((ticket) => ({
+    ...ticket,
+    dayNumber: entry.number,
+    dayDate: entry.date,
+    dayTitle: entry.title,
+    itemTitle: item.title,
+    itemType: item.type,
+  })))), [experience.days]);
   const totals = useMemo(() => experience.expenses.reduce((sum, expense) => {
     if (expense.currency === "EUR" || expense.currency === "UZS") sum[expense.currency] += expense.amount;
     return sum;
@@ -262,10 +277,22 @@ export default function TravelExperience({ initialExperience, userName, isAgency
   useEffect(() => {
     if (!moreOpen) return;
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setMoreOpen(false);
+      if (event.key === "Escape") {
+        setMoreOpen(false);
+        moreButtonRef.current?.focus();
+      }
+    };
+    const closeOutside = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (!moreMenuRef.current?.contains(target) && !moreButtonRef.current?.contains(target)) setMoreOpen(false);
     };
     document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
+    document.addEventListener("pointerdown", closeOutside);
+    moreMenuRef.current?.querySelector<HTMLElement>("button, a")?.focus();
+    return () => {
+      document.removeEventListener("keydown", closeOnEscape);
+      document.removeEventListener("pointerdown", closeOutside);
+    };
   }, [moreOpen]);
 
   function selectDay(index: number) {
@@ -431,8 +458,17 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     <header className="topbar"><div className="brand">{agencyLogo ? <img className="agencyLogo" src={agencyLogo} alt={`Logo ${experience.journey.agencyName}`}/> : <span className="brandMark">{initials(experience.journey.agencyName)}</span>}<div><strong>{experience.journey.agencyName}</strong><small>POWERED BY SMF TRAVEL</small></div></div><div className="tripDates"><CalendarDays/><span>{dateParts(experience.journey.startsOn).full} — {dateParts(experience.journey.endsOn).full}</span><i>{experience.days.length} gg</i></div><div className="people"><span className={`connectionStatus ${isOnline ? "online" : "offline"}`} role="status" aria-live="polite">{isOnline ? <Wifi/> : <WifiOff/>}<b>{isOnline ? (saving ? "Salvataggio…" : "Online") : "Solo consultazione"}</b></span><span className="currentUser"><i>{initials(userName)}</i><b>{userName}</b></span><div className="avatars">{experience.journey.travelers.slice(0, 4).map((traveler) => <i key={traveler.name}>{initials(traveler.name)}</i>)}</div>{isAgencyAdmin && <a className="agencyButton" href="/agenzia"><Building2/><span>Agenzia</span></a>}<form action="/api/auth/logout" method="post"><button className="logoutButton"><LogOut/><span>Esci</span></button></form></div></header>
     {experience.availableJourneys.length > 1 && <nav className="journeyPicker">{experience.availableJourneys.map((journey) => <a className={journey.departureId === experience.journey.departureId ? "active" : ""} href={`/viaggio?partenza=${journey.departureId}`} key={journey.departureId}>{journey.title}<small>{dateParts(journey.startsOn).full}</small></a>)}</nav>}
     <section className="hero"><div className="heroTexture"/><div className="heroCopy"><p className="eyebrow">IL NOSTRO VIAGGIO</p><h1>{experience.journey.title}</h1><p>{experience.journey.destinationCountry} · {experience.journey.partyName}</p></div><div className="routeSummary"><div><strong>{experience.days.length}</strong><span>GIORNI</span></div><div><strong>{new Set(experience.days.flatMap((entry) => entry.cities.map((city) => city.name))).size}</strong><span>LOCALITÀ</span></div><div><strong>{experience.journey.travelers.length}</strong><span>VIAGGIATORI</span></div></div></section>
-    <nav className="tabs" aria-label="Sezioni del viaggio"><button type="button" className={tab === "mappa" ? "active" : ""} aria-current={tab === "mappa" ? "page" : undefined} onClick={() => { setTab("mappa"); setMoreOpen(false); }}><Map/><span>Mappa</span></button><button type="button" className={tab === "programma" ? "active" : ""} aria-current={tab === "programma" ? "page" : undefined} onClick={() => { openProgramme(); setMoreOpen(false); }}><CalendarDays/><span>Programma</span></button><button type="button" aria-label="Spese, prelievi e cambi" className={tab === "spese" ? "active" : ""} aria-current={tab === "spese" ? "page" : undefined} onClick={() => { setTab("spese"); setMoreOpen(false); }}><Wallet/><span>Spese</span></button><button type="button" className={tab === "sfide" ? "active" : ""} aria-current={tab === "sfide" ? "page" : undefined} onClick={() => { setTab("sfide"); setMoreOpen(false); }}><Sparkles/><span>Sfide</span></button><button type="button" className={moreOpen || tab === "info" || tab === "frasario" ? "active" : ""} aria-expanded={moreOpen} onClick={() => setMoreOpen((value) => !value)}><CircleUserRound/><span>Altro</span></button></nav>
-    {moreOpen && <div className="moreMenu" role="region" aria-label="Altre sezioni"><button type="button" onClick={() => { setTab("info"); setMoreOpen(false); }}><Info/><span><strong>Informazioni utili</strong><small>Contatti, valuta e consigli</small></span><ChevronRight/></button><button type="button" onClick={() => { setTab("frasario"); setMoreOpen(false); }}><Languages/><span><strong>Frasi</strong><small>Parole utili durante il viaggio</small></span><ChevronRight/></button>{experience.availableJourneys.length > 1 && <div className="moreJourneys"><small>I MIEI VIAGGI</small>{experience.availableJourneys.map((journey) => <a className={journey.departureId === experience.journey.departureId ? "active" : ""} href={`/viaggio?partenza=${journey.departureId}`} key={journey.departureId}><Map/><span><strong>{journey.title}</strong><small>{dateParts(journey.startsOn).full} — {dateParts(journey.endsOn).full}</small></span>{journey.departureId === experience.journey.departureId ? <Check/> : <ChevronRight/>}</a>)}</div>}{isAgencyAdmin && <a href="/agenzia"><Building2/><span><strong>Area agenzia</strong><small>Gestisci viaggi e viaggiatori</small></span><ChevronRight/></a>}<form action="/api/auth/logout" method="post"><button type="submit"><LogOut/><span><strong>Esci</strong><small>{userName}</small></span><ChevronRight/></button></form></div>}
+    <nav className="tabs" aria-label="Sezioni del viaggio"><button type="button" className={tab === "mappa" ? "active" : ""} aria-current={tab === "mappa" ? "page" : undefined} onClick={() => { setTab("mappa"); setMoreOpen(false); }}><Map/><span>Mappa</span></button><button type="button" className={tab === "programma" ? "active" : ""} aria-current={tab === "programma" ? "page" : undefined} onClick={() => { openProgramme(); setMoreOpen(false); }}><CalendarDays/><span>Programma</span></button><button type="button" aria-label="Spese, prelievi e cambi" className={tab === "spese" ? "active" : ""} aria-current={tab === "spese" ? "page" : undefined} onClick={() => { setTab("spese"); setMoreOpen(false); }}><Wallet/><span>Spese</span></button><button type="button" className={tab === "sfide" ? "active" : ""} aria-current={tab === "sfide" ? "page" : undefined} onClick={() => { setTab("sfide"); setMoreOpen(false); }}><Sparkles/><span>Sfide</span></button><button ref={moreButtonRef} type="button" className={moreOpen || ["ricordi", "documenti", "info", "frasario"].includes(tab) ? "active" : ""} aria-expanded={moreOpen} aria-haspopup="true" aria-controls="travel-more-menu" onClick={() => setMoreOpen((value) => !value)}><CircleUserRound/><span>Altro</span></button></nav>
+    {moreOpen && <div ref={moreMenuRef} id="travel-more-menu" className="moreMenu" role="region" aria-label="Altre sezioni">
+      <div className="moreMenuHead"><strong>Altro</strong><small>Ricordi, documenti e strumenti utili</small></div>
+      <button type="button" aria-current={tab === "ricordi" ? "page" : undefined} onClick={() => { setTab("ricordi"); setMoreOpen(false); }}><Camera/><span><strong>Ricordi</strong><small>{experience.photos.length === 1 ? "1 foto del viaggio" : `${experience.photos.length} foto del viaggio`}</small></span><ChevronRight/></button>
+      <button type="button" aria-current={tab === "documenti" ? "page" : undefined} onClick={() => { setTab("documenti"); setMoreOpen(false); }}><FileText/><span><strong>Documenti</strong><small>{travelDocuments.length === 1 ? "1 biglietto disponibile" : `${travelDocuments.length} biglietti disponibili`}</small></span><ChevronRight/></button>
+      <button type="button" aria-current={tab === "info" ? "page" : undefined} onClick={() => { setTab("info"); setMoreOpen(false); }}><Info/><span><strong>Informazioni utili</strong><small>Contatti, valuta e consigli</small></span><ChevronRight/></button>
+      <button type="button" aria-current={tab === "frasario" ? "page" : undefined} onClick={() => { setTab("frasario"); setMoreOpen(false); }}><Languages/><span><strong>Frasi</strong><small>Parole utili durante il viaggio</small></span><ChevronRight/></button>
+      {experience.availableJourneys.length > 1 && <div className="moreJourneys"><small>I MIEI VIAGGI</small>{experience.availableJourneys.map((journey) => <a className={journey.departureId === experience.journey.departureId ? "active" : ""} href={`/viaggio?partenza=${journey.departureId}`} key={journey.departureId}><Map/><span><strong>{journey.title}</strong><small>{dateParts(journey.startsOn).full} — {dateParts(journey.endsOn).full}</small></span>{journey.departureId === experience.journey.departureId ? <Check/> : <ChevronRight/>}</a>)}</div>}
+      {isAgencyAdmin && <a href="/agenzia"><Building2/><span><strong>Area agenzia</strong><small>Gestisci viaggi e viaggiatori</small></span><ChevronRight/></a>}
+      <form action="/api/auth/logout" method="post"><button type="submit"><LogOut/><span><strong>Esci</strong><small>{userName}</small></span><ChevronRight/></button></form>
+    </div>}
     <div id="travel-main-content" className="travelMainContent" ref={contentRef} tabIndex={-1}>
     <div className="srStatus" role="status" aria-live="polite" aria-atomic="true">{saving ? "Salvataggio in corso" : ""}</div>
     {error && <p className="dataError" role="alert">{error}</p>}
@@ -476,7 +512,22 @@ export default function TravelExperience({ initialExperience, userName, isAgency
       </section>
     </div>}
 
-    {tab === "ricordi" && <section className="collection"><div className="sectionTitle"><div><span>DIARIO VISIVO</span><h2>I nostri ricordi</h2></div></div>{experience.photos.length === 0 ? <div className="empty"><Camera/><h3>La galleria aspetta il primo ricordo</h3><p>Apri una giornata del programma e aggiungi le tue foto.</p><button onClick={() => setTab("programma")}>Vai al programma</button></div> : <div className="photoGrid">{experience.photos.map((photo) => <figure key={photo.id}><img src={photo.contentUrl} alt={`Ricordo del giorno ${photo.dayNumber}: ${photo.originalName}`} width={800} height={600} loading="lazy" decoding="async"/><div className="photoActions"><a href={photo.downloadUrl} aria-label={`Scarica ${photo.originalName}`}><Download/></a></div><figcaption>Giorno {photo.dayNumber} · {photo.addedBy}</figcaption></figure>)}</div>}</section>}
+    {tab === "ricordi" && <section className="collection memoriesPage">
+      <header className="memoriesHead"><div><Camera/><span><small>RICORDI DEL VIAGGIO</small><h2>La nostra galleria</h2><p>Le foto condivise dalla famiglia, ordinate per giornata.</p></span></div>{experience.photos.length > 0 && <strong>{experience.photos.length}<small>{experience.photos.length === 1 ? "foto" : "foto"}</small></strong>}</header>
+      {experience.photos.length === 0 ? <div className="empty memoriesEmpty"><Camera/><h3>La galleria aspetta il primo ricordo</h3><p>Le foto caricate nelle sfide e nei contest appariranno qui, disponibili per tutta la famiglia.</p><button type="button" onClick={() => setTab("sfide")}>Apri le sfide</button></div> : <>
+        {memoryDays.length > 1 && <div className="memoryFilters" role="group" aria-label="Filtra le foto per giornata"><button type="button" className={memoryDayFilter === "all" ? "active" : ""} aria-pressed={memoryDayFilter === "all"} onClick={() => setMemoryDayFilter("all")}>Tutte <span>{experience.photos.length}</span></button>{memoryDays.map((dayNumber) => <button type="button" key={dayNumber} className={memoryDayFilter === dayNumber ? "active" : ""} aria-pressed={memoryDayFilter === dayNumber} onClick={() => setMemoryDayFilter(dayNumber)}>Giorno {dayNumber} <span>{photosByDay[dayNumber].length}</span></button>)}</div>}
+        <p className="memoryResult" role="status">{visiblePhotos.length === 1 ? "1 foto visualizzata" : `${visiblePhotos.length} foto visualizzate`}</p>
+        <div className="photoGrid">{visiblePhotos.map((photo) => <figure key={photo.id}><img src={photo.contentUrl} alt={`Ricordo del giorno ${photo.dayNumber}: ${photo.originalName}`} width={800} height={600} loading="lazy" decoding="async"/><div className="photoActions"><a href={photo.downloadUrl} download aria-label={`Scarica ${photo.originalName}`} title="Scarica foto"><Download/></a></div><figcaption><strong>Giorno {photo.dayNumber}</strong><span>{photo.addedBy}</span></figcaption></figure>)}</div>
+      </>}
+    </section>}
+
+    {tab === "documenti" && <section className="collection documentsPage">
+      <header className="documentsHead"><div><FileText/><span><small>DOCUMENTI DI VIAGGIO</small><h2>Biglietti sempre a portata di mano</h2><p>I documenti allegati dall’agenzia ai trasferimenti del programma.</p></span></div><strong>{travelDocuments.length}<small>{travelDocuments.length === 1 ? "documento" : "documenti"}</small></strong></header>
+      {travelDocuments.length === 0 ? <div className="empty documentsEmpty"><FileText/><h3>Nessun documento disponibile</h3><p>L’agenzia non ha ancora allegato biglietti a voli, treni o trasferimenti. Li troverai qui appena saranno pubblicati.</p><button type="button" onClick={() => setTab("programma")}>Torna al programma</button></div> : <div className="documentList">{travelDocuments.map((ticket) => {
+        const DocumentIcon = itemPresentation(ticket.itemType).Icon;
+        return <article key={ticket.id}><span className="documentIcon"><DocumentIcon/></span><span className="documentCopy"><small>GIORNO {ticket.dayNumber} · {dateParts(ticket.dayDate).full}</small><strong>{ticket.title}</strong><p>{ticket.itemTitle} · {ticket.dayTitle}</p></span><a href={ticket.downloadUrl} download aria-label={`Scarica ${ticket.title}`}><Download/><span>Scarica</span></a></article>;
+      })}</div>}
+    </section>}
 
     {tab === "spese" && <section className="collection expensesPage"><div className="expenseHero"><span>SPESE, PRELIEVI E CAMBI</span><h2>Totali per valuta</h2><div className="expenseCurrencyTotals"><div><small>EURO</small><strong>€ {totals.EUR.toFixed(2)}</strong></div><div><small>VALUTA LOCALE</small><strong>{som.format(totals.UZS)} UZS</strong></div><div className="grandTotal"><small>TOTALE SPESO IN EURO</small><strong>{totalSpentEuro == null ? "Calcolo…" : `€ ${totalSpentEuro.toFixed(2)}`}</strong></div></div><p>Famiglia: {experience.journey.partyName}{appliedEurRate ? ` · Conversione: 1 € = ${som.format(appliedEurRate)} UZS` : ""}</p></div><div className="financeActions"><button type="button" onClick={() => setExpenseDayId(null)}><ReceiptText/><span>Aggiungi spesa<small>Spesa della famiglia</small></span></button><button type="button" disabled={saving === "cash"} onClick={() => setCashDialogKind("withdrawal")}><Banknote/><span>Aggiungi prelievo<small>Giorno {day.number}</small></span></button><button type="button" disabled={saving === "cash"} onClick={() => setCashDialogKind("exchange")}><ArrowRightLeft/><span>Aggiungi cambio<small>Giorno {day.number}</small></span></button></div>{experience.expenses.length === 0 ? <div className="financeEmpty"><ReceiptText/><div><h3>Nessuna spesa registrata</h3><p>Aggiungi la prima spesa per iniziare il riepilogo della famiglia.</p></div><button type="button" onClick={() => setExpenseDayId(null)}>Aggiungi spesa</button></div> : <div className="expenseList">{experience.expenses.map((expense) => <div key={expense.id}><span className="receipt"><ReceiptText/></span><span><strong>{expense.label}</strong><small>Pagato da {expense.paidBy}{expense.dayNumber ? ` · Giorno ${expense.dayNumber}` : ""}</small></span><b>{expense.currency === "EUR" ? `€ ${expense.amount.toFixed(2)}` : `${som.format(expense.amount)} ${expense.currency}`}</b><button className="financeDelete" type="button" disabled={saving === `delete-expense-${expense.id}`} onClick={() => void deleteExpense(expense.id)} aria-label={`Elimina la spesa ${expense.label}`} title="Elimina spesa">{saving === `delete-expense-${expense.id}` ? <LoaderCircle className="spin"/> : <Trash2/>}</button></div>)}</div>}<div className="cashSection"><div className="sectionTitle"><div><span>GESTIONE CONTANTI</span><h2>Prelievi e cambi</h2></div></div>{experience.cashMovements.length === 0 ? <p className="cashEmpty">Nessun prelievo o cambio registrato.</p> : <div className="cashMovementList">{experience.cashMovements.map((movement) => <div key={movement.id}><span className={`cashIcon ${movement.kind}`}><Banknote/></span><span><strong>{movement.kind === "withdrawal" ? "Prelievo ATM" : "Cambio valuta"}</strong><small>Giorno {movement.dayNumber} · Inserito da {movement.addedBy}</small><em className="appliedExchangeRate">{exchangeRateLabel(movement.euroAmount, movement.localAmount, movement.localCurrency)}</em></span><b>{movement.euroAmount != null && <small>€ {movement.euroAmount.toFixed(2)}</small>}{som.format(movement.localAmount)} {movement.localCurrency}</b><button className="financeDelete" type="button" disabled={saving === `delete-cash-${movement.id}`} onClick={() => void deleteCashMovement(movement.id, movement.kind === "withdrawal" ? "withdrawal" : "exchange")} aria-label={`Elimina ${movement.kind === "withdrawal" ? "il prelievo" : "il cambio"}`} title={movement.kind === "withdrawal" ? "Elimina prelievo" : "Elimina cambio"}>{saving === `delete-cash-${movement.id}` ? <LoaderCircle className="spin"/> : <Trash2/>}</button></div>)}</div>}</div></section>}
 

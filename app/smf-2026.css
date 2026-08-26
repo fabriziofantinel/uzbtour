@@ -1033,11 +1033,191 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   background: var(--smf-action);
   font-weight: 800;
 }
-.travelerRedesign .photoGrid { gap: 10px; }
+.travelerRedesign .moreMenu {
+  max-height: min(680px, calc(100dvh - 156px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: var(--smf-line) transparent;
+}
+.travelerRedesign .moreMenuHead {
+  padding: 11px 10px 9px;
+  border-bottom: 1px solid var(--smf-line);
+}
+.travelerRedesign .moreMenuHead strong,
+.travelerRedesign .moreMenuHead small { display: block; }
+.travelerRedesign .moreMenuHead strong { font: 700 20px/1.1 var(--font-serif), serif; }
+.travelerRedesign .moreMenuHead small { margin-top: 4px; color: var(--smf-muted); font-size: 12px; }
+.travelerRedesign .moreMenu > button[aria-current="page"] {
+  color: var(--trail-primary);
+  background: color-mix(in srgb, var(--trail-primary) 9%, var(--smf-surface));
+}
+
+.travelerRedesign .memoriesHead,
+.travelerRedesign .documentsHead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 22px;
+}
+.travelerRedesign .memoriesHead > div,
+.travelerRedesign .documentsHead > div {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.travelerRedesign .memoriesHead > div > svg,
+.travelerRedesign .documentsHead > div > svg {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  padding: 10px;
+  border-radius: 12px;
+  color: var(--agency-on-primary);
+  background: var(--trail-primary);
+}
+.travelerRedesign .memoriesHead span,
+.travelerRedesign .documentsHead span { min-width: 0; }
+.travelerRedesign .memoriesHead small,
+.travelerRedesign .documentsHead small {
+  display: block;
+  color: var(--smf-muted);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .08em;
+}
+.travelerRedesign .memoriesHead h2,
+.travelerRedesign .documentsHead h2 {
+  margin: 3px 0 5px;
+  font: 700 clamp(29px, 4vw, 43px)/1.05 var(--font-serif), serif;
+  letter-spacing: -.02em;
+  text-wrap: balance;
+}
+.travelerRedesign .memoriesHead p,
+.travelerRedesign .documentsHead p { max-width: 66ch; margin: 0; color: var(--smf-muted); }
+.travelerRedesign .memoriesHead > strong,
+.travelerRedesign .documentsHead > strong {
+  flex: 0 0 auto;
+  color: var(--trail-primary);
+  font: 700 36px/1 var(--font-serif), serif;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.travelerRedesign .memoriesHead > strong small,
+.travelerRedesign .documentsHead > strong small { margin-top: 4px; text-align: right; }
+.travelerRedesign .memoryFilters {
+  display: flex;
+  gap: 7px;
+  margin: 0 0 10px;
+  padding: 5px;
+  overflow-x: auto;
+  border: 1px solid var(--smf-line);
+  border-radius: 12px;
+  background: var(--smf-surface);
+  scrollbar-width: thin;
+}
+.travelerRedesign .memoryFilters button {
+  min-height: 42px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--smf-ink);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 800;
+}
+.travelerRedesign .memoryFilters button:hover { background: var(--smf-surface-soft); }
+.travelerRedesign .memoryFilters button.active { color: white; background: var(--trail-primary); }
+.travelerRedesign .memoryFilters button span {
+  min-width: 22px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  color: inherit;
+  background: color-mix(in srgb, currentColor 11%, transparent);
+  font-variant-numeric: tabular-nums;
+}
+.travelerRedesign .memoryResult { margin: 0 0 12px; color: var(--smf-muted); font-size: 12px; }
+.travelerRedesign .photoGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .travelerRedesign .photoGrid figure {
+  height: auto;
+  aspect-ratio: 4 / 3;
   border-radius: 12px;
   background: var(--smf-surface-soft);
 }
+.travelerRedesign .photoGrid figure::after {
+  position: absolute;
+  inset: auto 0 0;
+  height: 42%;
+  pointer-events: none;
+  background: linear-gradient(to top, rgba(9,31,38,.78), transparent);
+  content: "";
+}
+.travelerRedesign .photoGrid figcaption {
+  z-index: 1;
+  inset: auto 12px 11px;
+  padding: 0;
+  color: white;
+  background: transparent;
+}
+.travelerRedesign .photoGrid figcaption strong,
+.travelerRedesign .photoGrid figcaption span { display: block; }
+.travelerRedesign .photoGrid figcaption strong { font-size: 12px; }
+.travelerRedesign .photoGrid figcaption span { margin-top: 2px; color: #d8e3e2; font-size: 11px; }
+.travelerRedesign .photoActions { inset: 10px 10px auto auto; }
+.travelerRedesign .photoActions a { border: 0; background: rgba(20,43,53,.88); }
+.travelerRedesign .photoActions a:hover { background: var(--trail-primary); }
+.travelerRedesign .memoriesEmpty,
+.travelerRedesign .documentsEmpty { padding: clamp(48px, 8vw, 82px) 24px; }
+
+.travelerRedesign .documentList { border-top: 1px solid var(--smf-line); }
+.travelerRedesign .documentList article {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 17px 4px;
+  border-bottom: 1px solid var(--smf-line);
+}
+.travelerRedesign .documentIcon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--trail-primary);
+  background: color-mix(in srgb, var(--trail-primary) 10%, var(--smf-surface));
+}
+.travelerRedesign .documentIcon svg { width: 21px; height: 21px; }
+.travelerRedesign .documentCopy { min-width: 0; }
+.travelerRedesign .documentCopy small { color: var(--trail-coral); }
+.travelerRedesign .documentCopy strong {
+  display: block;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+  font: 700 18px/1.2 var(--font-serif), serif;
+}
+.travelerRedesign .documentCopy p { margin: 4px 0 0; overflow-wrap: anywhere; color: var(--smf-muted); font-size: 12px; }
+.travelerRedesign .documentList article > a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  border-radius: 9px;
+  color: white;
+  background: var(--smf-action);
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+.travelerRedesign .documentList article > a:hover { background: color-mix(in srgb, var(--smf-action) 84%, black); }
+.travelerRedesign .documentList article > a svg { width: 17px; }
 .travelerRedesign .phraseTranslations strong { font-size: 17px; }
 .travelerRedesign .phraseTranslations em { font-size: 19px; line-height: 1.4; }
 .travelerRedesign .infoQuickNav {
@@ -1369,6 +1549,39 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   .travelerRedesign .usefulPage,
   .travelerRedesign .phrasebookPage,
   .travelerRedesign .challengesPage { width: 100%; padding: 24px 16px 96px; }
+  .travelerRedesign .moreMenu {
+    right: 10px;
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    width: calc(100vw - 20px);
+    max-height: calc(100dvh - 96px - env(safe-area-inset-bottom));
+  }
+  .travelerRedesign .moreMenu > button,
+  .travelerRedesign .moreMenu > a,
+  .travelerRedesign .moreMenu form button { min-height: 60px; }
+  .travelerRedesign .memoriesHead,
+  .travelerRedesign .documentsHead { align-items: flex-start; gap: 12px; margin-bottom: 18px; }
+  .travelerRedesign .memoriesHead > div,
+  .travelerRedesign .documentsHead > div { gap: 10px; }
+  .travelerRedesign .memoriesHead > div > svg,
+  .travelerRedesign .documentsHead > div > svg { width: 38px; height: 38px; padding: 9px; }
+  .travelerRedesign .memoriesHead h2,
+  .travelerRedesign .documentsHead h2 { font-size: clamp(27px, 8vw, 35px); }
+  .travelerRedesign .memoriesHead p,
+  .travelerRedesign .documentsHead p { font-size: 13px; }
+  .travelerRedesign .memoriesHead > strong,
+  .travelerRedesign .documentsHead > strong { font-size: 28px; }
+  .travelerRedesign .memoryFilters { margin-inline: -16px; padding-inline: 16px; border-inline: 0; border-radius: 0; }
+  .travelerRedesign .memoryFilters button { min-height: 44px; }
+  .travelerRedesign .photoGrid { grid-template-columns: 1fr; gap: 12px; }
+  .travelerRedesign .photoGrid figure { height: auto; aspect-ratio: 4 / 3; }
+  .travelerRedesign .documentList article {
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 10px;
+    padding: 15px 0;
+  }
+  .travelerRedesign .documentIcon { width: 42px; height: 42px; }
+  .travelerRedesign .documentCopy strong { font-size: 17px; }
+  .travelerRedesign .documentList article > a { grid-column: 2; width: 100%; justify-content: center; }
   .travelerRedesign .expenseHero { margin-inline: -16px; padding: 24px 16px; border-radius: 0; }
   .travelerRedesign .expenseCurrencyTotals { grid-template-columns: 1fr 1fr; }
   .travelerRedesign .expenseCurrencyTotals > div { padding: 8px 12px; }
