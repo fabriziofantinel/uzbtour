@@ -6,7 +6,7 @@ import {
   BookOpen, Download, Eye, LayoutGrid, List, LoaderCircle, LogOut, MapPinned, Play, Plus, Sparkles,
   Search, SlidersHorizontal, Trash2, UsersRound, X,
 } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { PlatformOverview } from "@/lib/platform/types";
 import {
   TRAVEL_DOCUMENT_MAX_BYTES,
@@ -81,8 +81,11 @@ export default function AgencyDashboard({ initialOverview }: Props) {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [departureError, setDepartureError] = useState("");
   const [tripToDelete, setTripToDelete] = useState<{ id: string; title: string } | null>(null);
   const [departureForTrip, setDepartureForTrip] = useState<{ id: string; title: string } | null>(null);
+  const deleteCloseRef = useRef<HTMLButtonElement>(null);
+  const departureCloseRef = useRef<HTMLButtonElement>(null);
   const agency = overview.agencies.find((candidate) => candidate.id === selectedAgencyId)
     ?? overview.agencies[0];
 
@@ -156,6 +159,23 @@ export default function AgencyDashboard({ initialOverview }: Props) {
       window.clearInterval(timer);
     };
   }, [activeGenerationKey]);
+
+  useEffect(() => {
+    if (tripToDelete) deleteCloseRef.current?.focus();
+    if (departureForTrip) departureCloseRef.current?.focus();
+  }, [departureForTrip, tripToDelete]);
+
+  useEffect(() => {
+    if (!tripToDelete && !departureForTrip) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || busy) return;
+      setTripToDelete(null);
+      setDepartureForTrip(null);
+      setDepartureError("");
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [busy, departureForTrip, tripToDelete]);
 
   async function refresh() {
     const result = await responseJson<PlatformOverview>(await fetch("/api/admin/platform/overview", {
@@ -327,25 +347,40 @@ export default function AgencyDashboard({ initialOverview }: Props) {
     event.preventDefault();
     if (!departureForTrip) return;
     const form = new FormData(event.currentTarget);
-    setBusy(`departure-${departureForTrip.id}`); setError(""); setNotice("");
+    const startsOn = String(form.get("startsOn") || "");
+    const endsOn = String(form.get("endsOn") || "");
+    if (startsOn && endsOn && endsOn < startsOn) {
+      setDepartureError("La data di rientro deve essere uguale o successiva alla data di partenza.");
+      return;
+    }
+    setBusy(`departure-${departureForTrip.id}`); setError(""); setDepartureError(""); setNotice("");
     try {
       await responseJson(await fetch(`/api/admin/platform/trips/${departureForTrip.id}/departures`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: String(form.get("title") || ""), startsOn: String(form.get("startsOn") || ""),
-          endsOn: String(form.get("endsOn") || ""),
+          title: String(form.get("title") || ""), startsOn, endsOn,
         }),
       }));
       setDepartureForTrip(null); await refresh();
       setNotice("Nuova partenza creata sullo stesso programma e sugli stessi contenuti.");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Creazione della partenza non riuscita");
+      setDepartureError(caught instanceof Error ? caught.message : "Creazione della partenza non riuscita");
     } finally { setBusy(""); }
   }
 
   function selectTripView(view: "list" | "cards") {
     setTripView(view);
     window.localStorage.setItem("smf-agency-trip-view", view);
+  }
+
+  function openDeparture(id: string, title: string) {
+    setDepartureError("");
+    setDepartureForTrip({ id, title });
+  }
+
+  function clearTripFilters() {
+    setTripPeriod("all");
+    setTravelerFilter("");
   }
 
   return (
@@ -357,7 +392,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
         <div className="agencyUser">
           <i>{overview.actor.name.slice(0, 2).toUpperCase()}</i>
           <span><small>{agency?.role === "editor" ? "Agente" : "Amministratore"}</small><b>{overview.actor.name}</b></span>
-          <form action="/api/auth/logout" method="post"><button aria-label="Esci"><LogOut size={17}/></button></form>
+          <form action="/api/auth/logout" method="post"><button type="submit" aria-label="Esci"><LogOut size={17}/></button></form>
         </div>
       </header>
 
@@ -371,10 +406,10 @@ export default function AgencyDashboard({ initialOverview }: Props) {
 
       <div className="agencyShell">
         <aside className="agencySidebar">
-          <label>Agenzia attiva</label>
+          <label htmlFor="active-agency">Agenzia attiva</label>
           <div className="agencySelect">
             <Building2 size={18}/>
-            <select value={agency?.id ?? ""} onChange={(event) => setSelectedAgencyId(event.target.value)}>
+            <select id="active-agency" value={agency?.id ?? ""} onChange={(event) => setSelectedAgencyId(event.target.value)}>
               {overview.agencies.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
             </select>
             <ChevronDown size={15}/>
@@ -385,8 +420,8 @@ export default function AgencyDashboard({ initialOverview }: Props) {
         </aside>
 
         <section className="agencyContent">
-          {error && <div className="agencyMessage error"><CircleAlert size={18}/>{error}</div>}
-          {notice && <div className="agencyMessage success"><CheckCircle2 size={18}/>{notice}</div>}
+          {error && <div className="agencyMessage error" role="alert"><CircleAlert size={18}/><span>{error}</span></div>}
+          {notice && <div className="agencyMessage success" role="status"><CheckCircle2 size={18}/><span>{notice}</span></div>}
 
           <div className="agencyStats">
             <article><MapPinned/><span><small>VIAGGI</small><b>{stats.trips}</b></span></article>
@@ -402,32 +437,33 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                   <button type="button" className={tripView === "list" ? "active" : ""} aria-label="Visualizza come lista" aria-pressed={tripView === "list"} onClick={() => selectTripView("list")}><List/></button>
                   <button type="button" className={tripView === "cards" ? "active" : ""} aria-label="Visualizza come schede" aria-pressed={tripView === "cards"} onClick={() => selectTripView("cards")}><LayoutGrid/></button>
                 </div>
-                <button className="newTripButton" onClick={() => setShowNewTrip(true)}><Plus size={17}/> Nuovo viaggio</button>
+                <button type="button" className="newTripButton" aria-expanded={showNewTrip} aria-controls="new-trip-form" onClick={() => setShowNewTrip(true)}><Plus size={17}/> Nuovo viaggio</button>
               </div>
             </div>
 
             {showNewTrip && (
-              <form className="newTripForm" onSubmit={createTrip}>
+              <form id="new-trip-form" className="newTripForm" onSubmit={createTrip} aria-busy={busy === "new-trip"}>
                 <div className="formIntro"><b>Importa il preventivo accettato</b><span>Il documento creerà testata, itinerario e anagrafiche condivise.</span></div>
                 <div className="quoteTemplate">
                   <Download/>
                   <span><b>Modello preventivo SMF Travel</b><small>Usalo per ridurre gli errori di interpretazione.</small></span>
                   <a href="/templates/modello-preventivo-smf-travel.docx" download>Scarica DOCX</a>
                 </div>
-                <label>Nome pratica (facoltativo)<input name="title" placeholder="Se vuoto useremo il nome del file"/></label>
-                <label className="pdfField">Preventivo PDF, DOC o DOCX *<input name="programme" type="file" accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" required/></label>
-                <div><button type="button" className="secondary" onClick={() => setShowNewTrip(false)}>Annulla</button><button disabled={busy === "new-trip"}>{busy === "new-trip" && <LoaderCircle className="spin"/>} Crea</button></div>
+                <label htmlFor="trip-title">Nome pratica <span>(facoltativo)</span><input id="trip-title" name="title" maxLength={160} autoComplete="off" placeholder="Se vuoto useremo il nome del file"/></label>
+                <label className="pdfField" htmlFor="trip-programme">Preventivo PDF, DOC o DOCX *<input id="trip-programme" name="programme" type="file" aria-describedby="trip-programme-help" accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" required/><small id="trip-programme-help">Dimensione massima 4,5 MB. Il file originale sarà conservato nei documenti del viaggio.</small></label>
+                <div><button type="button" className="secondary" disabled={busy === "new-trip"} onClick={() => setShowNewTrip(false)}>Annulla</button><button type="submit" disabled={busy === "new-trip"}>{busy === "new-trip" ? <><LoaderCircle className="spin"/> Creazione…</> : <>Crea viaggio</>}</button></div>
               </form>
             )}
 
-            <div className="tripFilters">
+            <div className="tripFilters" role="group" aria-label="Filtra i viaggi">
               <span><SlidersHorizontal/> Stato</span>
-              <button aria-pressed={tripPeriod === "upcoming"} className={tripPeriod === "upcoming" ? "active" : ""} onClick={() => setTripPeriod("upcoming")}>Da fare</button>
-              <button aria-pressed={tripPeriod === "ongoing"} className={tripPeriod === "ongoing" ? "active" : ""} onClick={() => setTripPeriod("ongoing")}>In corso</button>
-              <button aria-pressed={tripPeriod === "past"} className={tripPeriod === "past" ? "active" : ""} onClick={() => setTripPeriod("past")}>Fatti</button>
-              <button aria-pressed={tripPeriod === "all"} className={tripPeriod === "all" ? "active" : ""} onClick={() => setTripPeriod("all")}>Tutti</button>
-              <label><Search/><input value={travelerFilter} onChange={(event) => setTravelerFilter(event.target.value)} placeholder="Cerca viaggiatore…"/></label>
+              <button type="button" aria-pressed={tripPeriod === "upcoming"} className={tripPeriod === "upcoming" ? "active" : ""} onClick={() => setTripPeriod("upcoming")}>Da fare</button>
+              <button type="button" aria-pressed={tripPeriod === "ongoing"} className={tripPeriod === "ongoing" ? "active" : ""} onClick={() => setTripPeriod("ongoing")}>In corso</button>
+              <button type="button" aria-pressed={tripPeriod === "past"} className={tripPeriod === "past" ? "active" : ""} onClick={() => setTripPeriod("past")}>Fatti</button>
+              <button type="button" aria-pressed={tripPeriod === "all"} className={tripPeriod === "all" ? "active" : ""} onClick={() => setTripPeriod("all")}>Tutti</button>
+              <div className="tripSearch"><Search/><label className="srOnly" htmlFor="traveler-filter">Cerca per viaggiatore</label><input id="traveler-filter" type="search" value={travelerFilter} onChange={(event) => setTravelerFilter(event.target.value)} placeholder="Cerca viaggiatore…"/>{travelerFilter && <button type="button" className="clearTripSearch" aria-label="Cancella ricerca" onClick={() => setTravelerFilter("")}><X/></button>}</div>
             </div>
+            <p className="tripResultCount" aria-live="polite">{filteredDepartures.length} {filteredDepartures.length === 1 ? "risultato" : "risultati"}</p>
 
             {tripView === "list" && <div className="tripTableWrap">
               <table className="tripTable">
@@ -468,8 +504,8 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                           <small>{latestImport.status === "published" && "Programma revisionato e pubblicato."}</small>
                         </span>
                       </div>
-                      {importIsActive && <i><span style={{ width: `${importProgress(latestImport.status)}%` }}/></i>}
-                      {latestImport.status === "failed" && <button disabled={Boolean(busy)} onClick={() => void processImport(latestImport.id)}>{busy === `process-${latestImport.id}` ? <LoaderCircle className="spin"/> : <Play/>} Riprova</button>}
+                      {importIsActive && <i role="progressbar" aria-label="Avanzamento importazione" aria-valuemin={0} aria-valuemax={100} aria-valuenow={importProgress(latestImport.status)}><span style={{ width: `${importProgress(latestImport.status)}%` }}/></i>}
+                      {latestImport.status === "failed" && <button type="button" disabled={Boolean(busy)} onClick={() => void processImport(latestImport.id)}>{busy === `process-${latestImport.id}` ? <LoaderCircle className="spin"/> : <Play/>} Riprova</button>}
                       {latestImport.status === "ready_for_review" && <a href={`/agenzia/importazioni/${latestImport.id}`}><Eye/> Revisiona</a>}
                     </div>
                   )}
@@ -484,8 +520,8 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                           {content.contestTitles.length > 0 && <small title={content.contestTitles.join(" · ")}>Contest: {content.contestTitles.slice(0, 2).join(" · ")}{content.contestTitles.length > 2 ? ` e altri ${content.contestTitles.length - 2}` : ""}</small>}
                         </span>
                       </div>
-                      {contentIsActive && content.expectedSections > 0 && <i><span style={{ width: `${Math.max(8, Math.round(content.readySections / content.expectedSections * 100))}%` }}/></i>}
-                      {content.status === "failed" && <button disabled={Boolean(busy)} onClick={() => void retryEnrichment(trip.id)}>{busy === `enrichment-${trip.id}` ? <LoaderCircle className="spin"/> : <Play/>} Riprova contenuti</button>}
+                      {contentIsActive && content.expectedSections > 0 && <i role="progressbar" aria-label="Avanzamento generazione contenuti" aria-valuemin={0} aria-valuemax={content.expectedSections} aria-valuenow={content.readySections}><span style={{ width: `${Math.max(8, Math.round(content.readySections / content.expectedSections * 100))}%` }}/></i>}
+                      {content.status === "failed" && <button type="button" disabled={Boolean(busy)} onClick={() => void retryEnrichment(trip.id)}>{busy === `enrichment-${trip.id}` ? <LoaderCircle className="spin"/> : <Play/>} Riprova contenuti</button>}
                     </div>
                   )}
                   {!latestImport && !content && <span>—</span>}
@@ -493,14 +529,14 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                   <td><div className="tableActions inline">
                     {departure && <Link className="primary" href={`/agenzia/viaggi/${departure.id}/programma`}><BookOpen/> Apri programma</Link>}
                     {departure && <Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Famiglie</Link>}
-                    {trip.status === "active" && <button onClick={() => setDepartureForTrip({ id: trip.id, title: trip.title })}><Plus/> Nuova partenza</button>}
-                    <button className="danger" disabled={Boolean(busy)} onClick={() => setTripToDelete({ id: trip.id, title: trip.title })}><Trash2/> Elimina</button>
+                    {trip.status === "active" && <button type="button" onClick={() => openDeparture(trip.id, trip.title)}><Plus/> Nuova partenza</button>}
+                    <button type="button" className="danger" disabled={Boolean(busy)} onClick={() => setTripToDelete({ id: trip.id, title: trip.title })}><Trash2/> Elimina</button>
                   </div></td>
                 </tr>
               )})}
                 </tbody>
               </table>
-              {filteredDepartures.length === 0 && <div className="agencyEmpty"><MapPinned/><h3>Nessun viaggio</h3><p>Nessun risultato per i filtri selezionati.</p></div>}
+              {filteredDepartures.length === 0 && <div className="agencyEmpty"><MapPinned/><h3>{agency?.trips.length ? "Nessun risultato" : "Nessun viaggio ancora"}</h3><p>{agency?.trips.length ? "Modifica i filtri per visualizzare altri viaggi." : "Importa il primo preventivo accettato per creare il viaggio."}</p><button type="button" onClick={agency?.trips.length ? clearTripFilters : () => setShowNewTrip(true)}>{agency?.trips.length ? "Azzera filtri" : "Crea il primo viaggio"}</button></div>}
             </div>}
 
             {tripView === "cards" && <div className="tripAdminGrid cards">
@@ -536,8 +572,8 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                           {importIsActive ? <LoaderCircle className="spin"/> : latestImport.status === "failed" ? <CircleAlert/> : <CheckCircle2/>}
                           <span><b>{importIsActive ? "Viaggio in generazione" : statusLabels[latestImport.status] ?? latestImport.status}</b><small>{latestImport.status === "ready_for_review" ? "Il programma è pronto per il controllo." : latestImport.status === "failed" ? "Analisi non riuscita: puoi riprovare." : "Documento e itinerario acquisiti."}</small></span>
                         </div>
-                        {importIsActive && <i><span style={{ width: `${importProgress(latestImport.status)}%` }}/></i>}
-                        {latestImport.status === "failed" && <button disabled={Boolean(busy)} onClick={() => void processImport(latestImport.id)}>{busy === `process-${latestImport.id}` ? <LoaderCircle className="spin"/> : <Play/>} Riprova</button>}
+                        {importIsActive && <i role="progressbar" aria-label="Avanzamento importazione" aria-valuemin={0} aria-valuemax={100} aria-valuenow={importProgress(latestImport.status)}><span style={{ width: `${importProgress(latestImport.status)}%` }}/></i>}
+                        {latestImport.status === "failed" && <button type="button" disabled={Boolean(busy)} onClick={() => void processImport(latestImport.id)}>{busy === `process-${latestImport.id}` ? <LoaderCircle className="spin"/> : <Play/>} Riprova</button>}
                         {latestImport.status === "ready_for_review" && <a href={`/agenzia/importazioni/${latestImport.id}`}><Eye/> Revisiona</a>}
                       </div>}
                       {content && <div className={`tripGeneration ${contentIsComplete ? "published" : content.status}`}>
@@ -545,21 +581,21 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                           {contentIsActive ? <LoaderCircle className="spin"/> : contentIsComplete ? <CheckCircle2/> : <CircleAlert/>}
                           <span><b>{contentIsActive ? "Generazione contenuti" : contentIsComplete ? "Contenuti completi" : "Contenuti da completare"}</b><small>{content.readySections}/{content.expectedSections} sezioni pronte tra info, frasi, quiz, missioni, giochi e contest.</small>{content.contestTitles.length > 0 && <small>Contest: {content.contestTitles.slice(0, 2).join(" · ")}</small>}</span>
                         </div>
-                        {contentIsActive && content.expectedSections > 0 && <i><span style={{ width: `${Math.max(8, Math.round(content.readySections / content.expectedSections * 100))}%` }}/></i>}
-                        {content.status === "failed" && <button disabled={Boolean(busy)} onClick={() => void retryEnrichment(trip.id)}>{busy === `enrichment-${trip.id}` ? <LoaderCircle className="spin"/> : <Play/>} Riprova contenuti</button>}
+                        {contentIsActive && content.expectedSections > 0 && <i role="progressbar" aria-label="Avanzamento generazione contenuti" aria-valuemin={0} aria-valuemax={content.expectedSections} aria-valuenow={content.readySections}><span style={{ width: `${Math.max(8, Math.round(content.readySections / content.expectedSections * 100))}%` }}/></i>}
+                        {content.status === "failed" && <button type="button" disabled={Boolean(busy)} onClick={() => void retryEnrichment(trip.id)}>{busy === `enrichment-${trip.id}` ? <LoaderCircle className="spin"/> : <Play/>} Riprova contenuti</button>}
                       </div>}
                       {!latestImport && !content && <div className="journeyNoContent">Nessun contenuto generato</div>}
                     </div>
                     <div className="tableActions cardActions">
                       {departure && <Link className="primary" href={`/agenzia/viaggi/${departure.id}/programma`}><BookOpen/> Apri programma</Link>}
                       {departure && <Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Famiglie</Link>}
-                      {trip.status === "active" && <button onClick={() => setDepartureForTrip({ id: trip.id, title: trip.title })}><Plus/> Nuova partenza</button>}
-                      <button className="danger" disabled={Boolean(busy)} onClick={() => setTripToDelete({ id: trip.id, title: trip.title })}><Trash2/> Elimina</button>
+                      {trip.status === "active" && <button type="button" onClick={() => openDeparture(trip.id, trip.title)}><Plus/> Nuova partenza</button>}
+                      <button type="button" className="danger" disabled={Boolean(busy)} onClick={() => setTripToDelete({ id: trip.id, title: trip.title })}><Trash2/> Elimina</button>
                     </div>
                   </article>
                 );
               })}
-              {filteredDepartures.length === 0 && <div className="agencyEmpty"><MapPinned/><h3>Nessun viaggio</h3><p>Nessun risultato per i filtri selezionati.</p></div>}
+              {filteredDepartures.length === 0 && <div className="agencyEmpty"><MapPinned/><h3>{agency?.trips.length ? "Nessun risultato" : "Nessun viaggio ancora"}</h3><p>{agency?.trips.length ? "Modifica i filtri per visualizzare altri viaggi." : "Importa il primo preventivo accettato per creare il viaggio."}</p><button type="button" onClick={agency?.trips.length ? clearTripFilters : () => setShowNewTrip(true)}>{agency?.trips.length ? "Azzera filtri" : "Crea il primo viaggio"}</button></div>}
             </div>}
           </section>
 
@@ -570,27 +606,28 @@ export default function AgencyDashboard({ initialOverview }: Props) {
           if (event.target === event.currentTarget && !busy) setTripToDelete(null);
         }}>
           <section className="deleteTripDialog" role="dialog" aria-modal="true" aria-labelledby="delete-trip-title">
-            <button className="deleteTripClose" aria-label="Chiudi" disabled={Boolean(busy)} onClick={() => setTripToDelete(null)}><X/></button>
+            <button ref={deleteCloseRef} type="button" className="deleteTripClose" aria-label="Chiudi" disabled={Boolean(busy)} onClick={() => setTripToDelete(null)}><X/></button>
             <i><Trash2/></i>
             <small>OPERAZIONE DEFINITIVA</small>
             <h2 id="delete-trip-title">Eliminare “{tripToDelete.title}”?</h2>
             <p>Verranno eliminati programma, importazioni, partenze, famiglie e file collegati. Le anagrafiche condivise e gli utenti resteranno disponibili.</p>
             <div>
-              <button className="secondary" disabled={Boolean(busy)} onClick={() => setTripToDelete(null)}>Annulla</button>
-              <button className="danger" disabled={Boolean(busy)} onClick={() => void deleteTrip()}>{busy === `delete-${tripToDelete.id}` ? <LoaderCircle className="spin"/> : <Trash2/>} Elimina definitivamente</button>
+              <button type="button" className="secondary" disabled={Boolean(busy)} onClick={() => setTripToDelete(null)}>Annulla</button>
+              <button type="button" className="danger" disabled={Boolean(busy)} onClick={() => void deleteTrip()}>{busy === `delete-${tripToDelete.id}` ? <><LoaderCircle className="spin"/> Eliminazione…</> : <><Trash2/> Elimina definitivamente</>}</button>
             </div>
           </section>
         </div>
       )}
       {departureForTrip && (
         <div className="deleteTripBackdrop" role="presentation">
-          <form className="newDepartureDialog" onSubmit={createDeparture}>
-            <button type="button" className="deleteTripClose" aria-label="Chiudi" onClick={() => setDepartureForTrip(null)}><X/></button>
-            <small>STESSO PROGRAMMA, NUOVE DATE</small><h2>Nuova partenza</h2>
-            <p>Itinerario, quiz, missioni, giochi e contest saranno gli stessi di “{departureForTrip.title}”. Famiglie e dati dei viaggiatori partiranno vuoti.</p>
-            <label>Nome partenza<input name="title" placeholder={departureForTrip.title}/></label>
-            <div><label>Data inizio<input name="startsOn" type="date" required/></label><label>Data fine<input name="endsOn" type="date" required/></label></div>
-            <footer><button type="button" className="secondary" onClick={() => setDepartureForTrip(null)}>Annulla</button><button disabled={Boolean(busy)}>{busy === `departure-${departureForTrip.id}` ? <LoaderCircle className="spin"/> : <Plus/>} Crea partenza</button></footer>
+          <form className="newDepartureDialog" role="dialog" aria-modal="true" aria-labelledby="new-departure-title" aria-describedby="new-departure-description" onSubmit={createDeparture}>
+            <button ref={departureCloseRef} type="button" className="deleteTripClose" aria-label="Chiudi" disabled={Boolean(busy)} onClick={() => setDepartureForTrip(null)}><X/></button>
+            <small>STESSO PROGRAMMA, NUOVE DATE</small><h2 id="new-departure-title">Nuova partenza</h2>
+            <p id="new-departure-description">Itinerario, quiz, missioni, giochi e contest saranno gli stessi di “{departureForTrip.title}”. Famiglie e dati dei viaggiatori partiranno vuoti.</p>
+            {departureError && <p className="dialogInlineError" role="alert"><CircleAlert/>{departureError}</p>}
+            <label htmlFor="departure-title">Nome partenza<input id="departure-title" name="title" maxLength={160} autoComplete="off" placeholder={departureForTrip.title}/></label>
+            <div><label htmlFor="departure-start">Data inizio<input id="departure-start" name="startsOn" type="date" required/></label><label htmlFor="departure-end">Data fine<input id="departure-end" name="endsOn" type="date" required/></label></div>
+            <footer><button type="button" className="secondary" disabled={Boolean(busy)} onClick={() => setDepartureForTrip(null)}>Annulla</button><button type="submit" disabled={Boolean(busy)}>{busy === `departure-${departureForTrip.id}` ? <><LoaderCircle className="spin"/> Creazione…</> : <><Plus/> Crea partenza</>}</button></footer>
           </form>
         </div>
       )}

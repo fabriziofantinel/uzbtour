@@ -43,6 +43,17 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   outline: 3px solid var(--smf-focus) !important;
   outline-offset: 3px !important;
 }
+.srOnly {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
 
 /* ---------- Companion del viaggiatore ---------- */
 
@@ -497,7 +508,27 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 .tripFilters > span { font-size: 12px; }
 .tripFilters > button { min-height: 36px; border-radius: 8px; font-size: 12px; }
 .tripFilters > button.active { background: var(--smf-brand-deep); }
-.tripFilters > label { height: 40px; border-color: var(--smf-line); font-size: 13px; }
+.tripFilters > label,
+.tripFilters > .tripSearch { height: 40px; border-color: var(--smf-line); font-size: 13px; }
+.tripSearch {
+  min-width: 230px;
+  margin-left: auto;
+  padding: 0 9px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--smf-line);
+  border-radius: 9px;
+  color: var(--smf-muted);
+  background: var(--smf-surface);
+}
+.tripSearch > svg { width: 16px; height: 16px; flex: 0 0 auto; }
+.tripSearch input { min-width: 0; width: 100%; border: 0; outline: 0; color: var(--smf-ink); background: transparent; font-size: 13px; }
+.tripSearch input::-webkit-search-cancel-button { display: none; }
+.clearTripSearch { width: 30px; height: 30px; display: grid; place-items: center; flex: 0 0 30px; padding: 0; border: 0; border-radius: 8px; color: var(--smf-muted); background: transparent; }
+.clearTripSearch:hover { color: var(--smf-ink); background: var(--smf-surface-soft); }
+.clearTripSearch svg { width: 15px; height: 15px; }
+.tripResultCount { margin: -8px 0 10px; color: var(--smf-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .tripTableWrap { border-color: var(--smf-line); border-radius: 12px; box-shadow: none; }
 .tripTable { min-width: 1220px; }
 .tripTable th { padding: 12px; color: var(--smf-ink-soft); background: #e9efec; font-size: 10px; letter-spacing: .04em; }
@@ -526,9 +557,26 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   box-shadow: var(--smf-shadow);
 }
 .newTripForm label { color: var(--smf-ink-soft); font-size: 11px; }
+.newTripForm label > span { color: var(--smf-muted); font-weight: 500; }
 .newTripForm input { min-height: 44px; border-color: var(--smf-line); border-radius: 9px; font-size: 13px; }
+.newTripForm label > small { display: block; margin-top: 6px; color: var(--smf-muted); font-size: 11px; font-weight: 500; line-height: 1.4; }
 .newTripForm button { min-height: 44px; border-radius: 9px; font-size: 12px; }
 .quoteTemplate { border-radius: 11px; background: #e9f1ee; }
+.agencyEmpty button { min-height: 44px; margin-top: 16px; padding: 0 15px; border: 0; border-radius: 10px; color: white; background: var(--smf-action); font-size: 12px; font-weight: 800; }
+.dialogInlineError {
+  max-width: none !important;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 0 15px !important;
+  padding: 11px 12px;
+  border-radius: 10px;
+  color: var(--smf-danger) !important;
+  background: #fff0ed;
+  font-size: 12px !important;
+  text-align: left;
+}
+.dialogInlineError svg { width: 17px; height: 17px; flex: 0 0 auto; }
 
 /* ---------- Superadmin ---------- */
 
@@ -973,6 +1021,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   .agencySectionHead { align-items: center; }
   .agencySectionHead h2 { font-size: 25px; }
   .tripFilters { align-items: stretch; }
+  .tripSearch { order: 2; width: 100%; min-width: 0; margin-left: 0; }
   .newTripForm { grid-template-columns: 1fr; }
   .newTripForm .pdfField { grid-column: auto; }
   .quoteTemplate { grid-column: auto; }
