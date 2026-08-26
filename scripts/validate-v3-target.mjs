@@ -2,9 +2,9 @@ import { readFile } from "node:fs/promises";
 
 import { Client } from "@neondatabase/serverless";
 
-const migrationUrl = process.env.DATABASE_MIGRATION_URL;
+const migrationUrl = process.env.DATABASE_MIGRATION_URL ?? process.env.DATABASE_URL_UNPOOLED;
 if (!migrationUrl) {
-  throw new Error("DATABASE_MIGRATION_URL non configurata");
+  throw new Error("Connessione diretta Neon non configurata");
 }
 
 const smokeUrl = new URL("../database/schema-v3-smoke.sql", import.meta.url);
@@ -61,7 +61,8 @@ try {
   `);
 
   const result = inventory.rows[0];
-  const shadowCoreInstalled = result.table_count === 62;
+  const shadowCoreInstalled = result.table_count >= 62;
+  const shadowOperationalInstalled = result.table_count === 65;
   let shadowCore = null;
   if (shadowCoreInstalled) {
     shadowCore = (
@@ -76,20 +77,44 @@ try {
       `)
     ).rows[0];
   }
+  let shadowOperational = null;
+  if (shadowOperationalInstalled) {
+    shadowOperational = (
+      await client.query(`
+        SELECT
+          (SELECT count(*)::int FROM ops.schema_migrations
+            WHERE version = '3.3.0-shadow-operational') AS marker_count,
+          (SELECT count(*)::int FROM (
+            SELECT legacy_generated_content_id
+              FROM ops.legacy_generated_content_map
+             GROUP BY legacy_generated_content_id HAVING count(*) > 1
+          ) duplicated) AS duplicate_legacy_content_ids,
+          (SELECT count(*)::int FROM (
+            SELECT activity_item_id
+              FROM ops.legacy_generated_content_map
+             GROUP BY activity_item_id HAVING count(*) > 1
+          ) duplicated) AS duplicate_activity_item_ids
+      `)
+    ).rows[0];
+  }
   if (
-    ![60, 62].includes(result.table_count) ||
-    result.rls_table_count !== (shadowCoreInstalled ? 49 : 47) ||
+    ![60, 62, 65].includes(result.table_count) ||
+    result.rls_table_count !== (shadowOperationalInstalled ? 52 : shadowCoreInstalled ? 49 : 47) ||
     result.unvalidated_constraints !== 0 ||
     result.invalid_indexes !== 0 ||
     result.tenant_tables_without_leading_index !== 0 ||
     (shadowCoreInstalled &&
-      (shadowCore?.marker_count !== 1 || shadowCore?.duplicate_target_ids !== 0))
+      (shadowCore?.marker_count !== 1 || shadowCore?.duplicate_target_ids !== 0)) ||
+    (shadowOperationalInstalled &&
+      (shadowOperational?.marker_count !== 1 ||
+       shadowOperational?.duplicate_legacy_content_ids !== 0 ||
+       shadowOperational?.duplicate_activity_item_ids !== 0))
   ) {
-    throw new Error(`Validazione catalogo fallita: ${JSON.stringify({ ...result, shadowCore })}`);
+    throw new Error(`Validazione catalogo fallita: ${JSON.stringify({ ...result, shadowCore, shadowOperational })}`);
   }
 
   await client.query(smokeSql);
-  console.log(JSON.stringify({ status: "passed", ...result, shadowCore }));
+  console.log(JSON.stringify({ status: "passed", ...result, shadowCore, shadowOperational }));
 } finally {
   await client.end().catch(() => undefined);
 }
