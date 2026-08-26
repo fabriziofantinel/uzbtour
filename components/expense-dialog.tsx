@@ -27,6 +27,7 @@ export default function ExpenseDialog({
   const [label, setLabel] = useState("");
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState<ExpenseCurrency>("EUR");
+  const [submitError, setSubmitError] = useState("");
   const dialogRef = useRef<HTMLElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
@@ -42,6 +43,7 @@ export default function ExpenseDialog({
     setLabel("");
     setAmount("");
     setCurrency("EUR");
+    setSubmitError("");
   }, [open]);
 
   useEffect(() => {
@@ -84,7 +86,9 @@ export default function ExpenseDialog({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (await onSave({ label, amount, currency })) onClose();
+    setSubmitError("");
+    if (await onSave({ label: label.trim(), amount, currency })) onClose();
+    else setSubmitError("La spesa non è stata salvata. I valori inseriti sono rimasti disponibili: riprova.");
   }
 
   return (
@@ -115,14 +119,16 @@ export default function ExpenseDialog({
         </header>
 
         <form onSubmit={submit}>
-          <label className="expenseField">
+          <label className="expenseField" htmlFor="expense-description">
             <span>Descrizione</span>
             <input
+              id="expense-description"
               autoFocus
               value={label}
               onChange={(event) => setLabel(event.target.value)}
               maxLength={200}
               placeholder="Es. cena, taxi, souvenir"
+              autoComplete="off"
               required
             />
           </label>
@@ -155,12 +161,14 @@ export default function ExpenseDialog({
             </label>
           </fieldset>
 
-          <label className="expenseField">
+          <label className="expenseField" htmlFor="expense-amount">
             <span>Importo in {currency === "EUR" ? "euro" : "som"}</span>
             <div className="expenseAmount">
               <b>{currency === "EUR" ? "€" : "UZS"}</b>
               <input
+                id="expense-amount"
                 inputMode="decimal"
+                autoComplete="off"
                 value={amount}
                 onChange={(event) => setAmount(event.target.value)}
                 placeholder={currency === "EUR" ? "0,00" : "0"}
@@ -169,7 +177,8 @@ export default function ExpenseDialog({
             </div>
           </label>
 
-          <button className="expenseSubmit" type="submit" disabled={saving}>
+          {submitError && <p className="cashDialogError" role="alert">{submitError}</p>}
+          <button className="expenseSubmit" type="submit" disabled={saving || !label.trim() || !amount.trim()}>
             {saving
               ? <><LoaderCircle className="spin" size={18}/> Salvataggio…</>
               : "Salva spesa"
