@@ -8,7 +8,7 @@
   height: 70px;
   padding: 0 max(18px, 4vw);
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: minmax(120px, 1fr) auto auto minmax(120px, 1fr);
   align-items: center;
   background: var(--surface-raised);
   border-bottom: 1px solid var(--line);
@@ -65,6 +65,20 @@
   color: var(--on-brand);
   font-size: var(--text-small);
   font-weight: 800;
+}
+.reviewSaveState {
+  justify-self: end;
+  padding: 6px 9px;
+  border-radius: 7px;
+  color: var(--success);
+  background: var(--surface-success);
+  font-size: var(--text-meta);
+  font-weight: 850;
+  white-space: nowrap;
+}
+.reviewSaveState.dirty {
+  color: var(--rust-deep);
+  background: var(--surface-danger);
 }
 .reviewTopbar button svg {
   width: 16px;
@@ -380,7 +394,7 @@
 }
 .reviewUseful article {
   display: grid;
-  grid-template-columns: 140px 1fr 2fr 32px;
+  grid-template-columns: 140px minmax(180px, 1fr) minmax(240px, 2fr) minmax(140px, .8fr) minmax(170px, 1fr) 36px;
   gap: 8px;
   align-items: start;
   margin-bottom: 8px;
@@ -389,12 +403,58 @@
   border: 1px solid var(--line);
   border-radius: 9px;
 }
-.reviewUseful article input,
-.reviewUseful article textarea {
+.reviewUseful article label {
+  min-width: 0;
+}
+.reviewUseful article label input,
+.reviewUseful article label textarea {
   margin: 0;
 }
-.reviewUseful article textarea {
-  min-height: 38px;
+.reviewUseful article label {
+  display: grid;
+  gap: 6px;
+}
+.reviewUseful article .usefulBody textarea {
+  min-height: 68px;
+}
+.reviewUseful article > button { align-self: end; margin-bottom: 5px; }
+.addUsefulInfo {
+  min-height: 42px;
+  border: 0;
+  border-radius: 9px;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--on-brand);
+  background: var(--teal);
+  font-size: var(--text-small);
+  font-weight: 850;
+}
+.addUsefulInfo svg { width: 16px; }
+.reviewUsefulEmpty {
+  padding: 28px;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+.reviewUsefulEmpty > svg { color: var(--rust); }
+.reviewUsefulEmpty p { max-width: 54ch; margin: 0; line-height: 1.5; }
+.reviewUsefulEmpty button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 9px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--on-brand);
+  background: var(--teal);
+  font-weight: 850;
 }
 .reviewActions {
   position: sticky;
@@ -450,6 +510,7 @@
   background: var(--surface-raised);
   color: var(--muted);
 }
+.reviewActions > button.dangerText { color: var(--danger); }
 .reviewActions button svg {
   width: 15px;
 }
@@ -477,6 +538,65 @@
 .reviewUnavailable > a {
   margin-top: 12px;
 }
+.reviewDialogBackdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  padding: 20px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--ink) 72%, transparent);
+  backdrop-filter: blur(4px);
+}
+.reviewConfirmDialog {
+  position: relative;
+  width: min(500px, 100%);
+  padding: 30px;
+  border-radius: 16px;
+  background: var(--surface-raised);
+  box-shadow: 0 24px 70px color-mix(in srgb, var(--shadow-base) 32%, transparent);
+  text-align: center;
+}
+.reviewConfirmDialog > i {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: var(--teal);
+  background: var(--surface-success);
+}
+.reviewConfirmDialog.delete > i { color: var(--danger); background: var(--surface-danger); }
+.reviewConfirmDialog h2 { margin: 0 0 9px; font: 700 28px/1.15 var(--font-serif); }
+.reviewConfirmDialog > p { margin: 0; color: var(--muted); font-size: var(--text-small); line-height: 1.55; }
+.reviewConfirmDialog .dialogMessage { margin: 18px 0 0; text-align: left; }
+.reviewConfirmDialog > div:last-child { margin-top: 22px; display: flex; justify-content: center; gap: 9px; }
+.reviewConfirmDialog > div:last-child button,
+.reviewDialogClose {
+  min-height: 44px;
+  border: 0;
+  border-radius: 9px;
+  padding: 0 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-weight: 850;
+}
+.reviewConfirmDialog button.secondary { color: var(--muted); background: var(--surface-brand); }
+.reviewConfirmDialog button.primary { color: var(--on-brand); background: var(--teal); }
+.reviewConfirmDialog button.danger { color: white; background: var(--danger); }
+.reviewConfirmDialog button:disabled { cursor: wait; opacity: .6; }
+.reviewDialogClose {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 40px;
+  padding: 0;
+  color: var(--muted);
+  background: var(--surface-brand);
+}
 @media (max-width: 800px) {
   .reviewPage input,
   .reviewPage textarea,
@@ -488,6 +608,7 @@
     grid-template-columns: auto 1fr auto;
     padding: 0 14px;
   }
+  .reviewSaveState { display: none; }
   .reviewTopbar > a {
     min-width: 44px;
     min-height: 44px;
@@ -521,6 +642,11 @@
   .reviewGeneral .wide {
     grid-column: auto;
   }
+  .reviewUseful article {
+    grid-template-columns: 1fr 1fr 44px;
+  }
+  .reviewUseful article .usefulBody { grid-column: 1 / -1; }
+  .reviewUseful article > button { grid-column: 3; grid-row: 1; width: 44px; height: 44px; margin: 0; }
   .reviewHeading > span {
     display: none;
   }
@@ -598,6 +724,14 @@
   .reviewActions > button:first-of-type span {
     display: none;
   }
+}
+@media (max-width: 520px) {
+  .reviewUseful article { grid-template-columns: 1fr 44px; }
+  .reviewUseful article label { grid-column: 1 / -1; }
+  .reviewUseful article > button { grid-column: 2; grid-row: 1; }
+  .reviewConfirmDialog { padding: 28px 18px 20px; }
+  .reviewConfirmDialog > div:last-child { flex-direction: column-reverse; }
+  .reviewConfirmDialog > div:last-child button { width: 100%; }
 }
 
 @media (pointer: coarse) {

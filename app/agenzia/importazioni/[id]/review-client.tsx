@@ -3,9 +3,9 @@
 import {
   ArrowDown, ArrowLeft, ArrowUp, BedDouble, CalendarDays, Check, ChevronDown, CircleAlert, FileText,
   ExternalLink, Hotel, LoaderCircle, MapPin, Plus, Save, Send,
-  ShieldCheck, Sparkles, Trash2,
+  ShieldCheck, Sparkles, Trash2, X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { TravelProgrammeDraft } from "@/lib/platform/import-schema";
 import type { PlatformImportReview } from "@/lib/platform/types";
 
@@ -86,6 +86,51 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
   const [busy, setBusy] = useState("");
   const [error, setError] = useState(initialImport.errorMessage ?? "");
   const [notice, setNotice] = useState("");
+  const [pendingAction, setPendingAction] = useState<"publish" | "delete" | null>(null);
+  const savedSignatureRef = useRef(JSON.stringify(initialImport.draft));
+  const navigatingRef = useRef(false);
+  const dialogRef = useRef<HTMLElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const draftSignature = useMemo(() => JSON.stringify(draft), [draft]);
+  const isDirty = draftSignature !== savedSignatureRef.current;
+  const validationsPending = useMemo(() => draft ? pendingValidationCount(draft) : 0, [draft]);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const warnBeforeLeaving = (event: BeforeUnloadEvent) => { if (!navigatingRef.current) event.preventDefault(); };
+    window.addEventListener("beforeunload", warnBeforeLeaving);
+    return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
+  }, [isDirty]);
+
+  useEffect(() => {
+    if (!pendingAction) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    cancelRef.current?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !busy) setPendingAction(null);
+      if (event.key !== "Tab") return;
+      const focusable = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(
+        "button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex='-1'])"
+      ) ?? []);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => { document.removeEventListener("keydown", handleKeyDown); previousFocus?.focus(); };
+  }, [pendingAction, busy]);
+
+  function validateDraftForSave() {
+    if (!draft) return "La bozza non è disponibile.";
+    if (!draft.title.trim()) return "Inserisci il titolo del viaggio prima di salvare.";
+    if (!draft.days.length) return "Il programma deve contenere almeno una giornata.";
+    if (draft.startDate && draft.endDate && draft.endDate < draft.startDate) {
+      return "La data di fine non può precedere la data di inizio.";
+    }
+    return "";
+  }
 
   function updateDay(index: number, changes: Partial<TravelProgrammeDraft["days"][number]>) {
     if (!draft) return;
@@ -112,6 +157,8 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
 
   async function save() {
     if (!draft) return;
+    const validationError = validateDraftForSave();
+    if (validationError) { setError(validationError); setNotice(""); return; }
     setBusy("save"); setError(""); setNotice("");
     try {
       await jsonResponse(await fetch(`/api/admin/platform/imports/${initialImport.id}`, {
@@ -119,6 +166,7 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ draft }),
       }));
+      savedSignatureRef.current = JSON.stringify(draft);
       setNotice("Revisione salvata.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Salvataggio non riuscito");
@@ -129,12 +177,19 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
 
   async function publish() {
     if (!draft) return;
-    const pending = pendingValidationCount(draft);
+    const validationError = validateDraftForSave();
+    if (validationError) { setError(validationError); setNotice(""); return; }
+    const pending = validationsPending;
     if (pending > 0) {
       setError(`Restano ${pending} anagrafiche da validare. Controllale su Google e confermale prima di pubblicare.`);
       return;
     }
-    if (!confirm("Pubblicare questo programma? Le giornate della versione corrente saranno sostituite.")) return;
+    setError("");
+    setPendingAction("publish");
+  }
+
+  async function publishConfirmed() {
+    if (!draft) return;
     setBusy("publish"); setError(""); setNotice("");
     try {
       await jsonResponse(await fetch(`/api/admin/platform/imports/${initialImport.id}`, {
@@ -143,6 +198,7 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
         body: JSON.stringify({ draft }),
       }));
       await jsonResponse(await fetch(`/api/admin/platform/imports/${initialImport.id}/publish`, { method: "POST" }));
+      navigatingRef.current = true;
       window.location.href = "/agenzia";
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Pubblicazione non riuscita");
@@ -151,12 +207,17 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
   }
 
   async function removeDraft() {
-    if (!confirm("Eliminare questa bozza e il documento privato associato? L’operazione non è reversibile.")) return;
+    setError("");
+    setPendingAction("delete");
+  }
+
+  async function removeDraftConfirmed() {
     setBusy("delete"); setError(""); setNotice("");
     try {
       await jsonResponse(await fetch(`/api/admin/platform/imports/${initialImport.id}`, {
         method: "DELETE",
       }));
+      navigatingRef.current = true;
       window.location.href = "/agenzia";
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Eliminazione non riuscita");
@@ -173,7 +234,8 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
       <header className="reviewTopbar">
         <a href="/agenzia"><ArrowLeft size={17}/> Pannello</a>
         <div><FileText size={18}/><span><small>REVISIONE PROGRAMMA</small><b>{initialImport.normalizedFileName ?? initialImport.sourceFileName}</b></span></div>
-        <button aria-label="Salva la revisione" onClick={save} disabled={Boolean(busy)}>{busy === "save" ? <LoaderCircle className="spin"/> : <Save/>}<span>Salva</span></button>
+        <span className={isDirty ? "reviewSaveState dirty" : "reviewSaveState"} role="status">{isDirty ? "Modifiche da salvare" : "Tutto salvato"}</span>
+        <button type="button" aria-label="Salva la revisione" onClick={save} disabled={Boolean(busy) || !isDirty}>{busy === "save" ? <LoaderCircle className="spin"/> : <Save/>}<span>{busy === "save" ? "Salvataggio…" : "Salva"}</span></button>
       </header>
 
       <section className="reviewHero">
@@ -207,7 +269,7 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
         <section className="reviewDays">
           {draft.days.map((day, dayIndex) => (
             <article className="reviewDay" key={`${day.dayNumber}-${dayIndex}`}>
-              <header><span>{String(dayIndex + 1).padStart(2, "0")}</span><div><small>GIORNO {dayIndex + 1}</small><b>{day.title || "Senza titolo"}</b></div><button aria-label="Rimuovi giornata" onClick={() => setDraft({ ...draft, days: draft.days.filter((_, position) => position !== dayIndex) })}><Trash2/></button></header>
+              <header><span>{String(dayIndex + 1).padStart(2, "0")}</span><div><small>GIORNO {dayIndex + 1}</small><b>{day.title || "Senza titolo"}</b></div><button type="button" aria-label={`Rimuovi giornata ${dayIndex + 1}`} onClick={() => setDraft({ ...draft, days: draft.days.filter((_, position) => position !== dayIndex) })}><Trash2/></button></header>
               <div className="dayFields">
                 <label>Data<input type="date" value={day.date} onChange={(event) => updateDay(dayIndex, { date: event.target.value })}/></label>
                 <label>Paese<input value={day.country} onChange={(event) => updateDay(dayIndex, { country: event.target.value, countryValidation: changedValidation("Paese") })}/></label>
@@ -219,10 +281,10 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
               </div>
 
               <div className="activitiesEditor">
-                <div className="subheading"><b>Visite e trasferimenti</b><button onClick={() => updateDay(dayIndex, { activities: [...day.activities, emptyActivity()] })}><Plus/> Aggiungi</button></div>
+                <div className="subheading"><b>Visite e trasferimenti</b><button type="button" onClick={() => updateDay(dayIndex, { activities: [...day.activities, emptyActivity()] })}><Plus/> Aggiungi attività</button></div>
                 {day.activities.map((activity, activityIndex) => (
                   <div className="activityEditor" key={activityIndex}>
-                    <div className="activityOrder" aria-label={`Ordine attività ${activityIndex + 1}`}><button aria-label="Sposta attività in alto" title="Sposta in alto" disabled={activityIndex === 0} onClick={() => moveActivity(dayIndex, activityIndex, -1)}><ArrowUp/></button><span>{activityIndex + 1}</span><button aria-label="Sposta attività in basso" title="Sposta in basso" disabled={activityIndex === day.activities.length - 1} onClick={() => moveActivity(dayIndex, activityIndex, 1)}><ArrowDown/></button></div>
+                    <div className="activityOrder" aria-label={`Ordine attività ${activityIndex + 1}`}><button type="button" aria-label="Sposta attività in alto" title="Sposta in alto" disabled={activityIndex === 0} onClick={() => moveActivity(dayIndex, activityIndex, -1)}><ArrowUp/></button><span>{activityIndex + 1}</span><button type="button" aria-label="Sposta attività in basso" title="Sposta in basso" disabled={activityIndex === day.activities.length - 1} onClick={() => moveActivity(dayIndex, activityIndex, 1)}><ArrowDown/></button></div>
                     <label>Tipo<div className="selectWrap"><select value={activity.type} onChange={(event) => {
                       const type = event.target.value as typeof activity.type;
                       updateActivity(dayIndex, activityIndex, {
@@ -238,7 +300,7 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
                       <label>Città del sito<input value={activity.placeCity} onChange={(event) => updateActivity(dayIndex, activityIndex, { placeCity: event.target.value, placeValidation: changedValidation("Località del sito") })}/></label>
                     </>}
                     {timedActivityTypes.has(activity.type) && <><label className="activityTime">Ora inizio<input type="time" value={activity.startsAt} onChange={(event) => updateActivity(dayIndex, activityIndex, { startsAt: event.target.value })}/></label><label className="activityTime">Ora fine<input type="time" value={activity.endsAt} onChange={(event) => updateActivity(dayIndex, activityIndex, { endsAt: event.target.value })}/></label></>}
-                    <button className="removeActivity" aria-label="Rimuovi attività" onClick={() => updateDay(dayIndex, { activities: day.activities.filter((_, position) => position !== activityIndex) })}><Trash2/></button>
+                    <button type="button" className="removeActivity" aria-label={`Rimuovi attività ${activityIndex + 1}`} onClick={() => updateDay(dayIndex, { activities: day.activities.filter((_, position) => position !== activityIndex) })}><Trash2/></button>
                     <label className="activityNotes">Note<textarea placeholder="Informazioni operative, riferimenti o indicazioni per l’agente" value={activity.description} onChange={(event) => updateActivity(dayIndex, activityIndex, { description: event.target.value })}/></label>
                     {activity.type === "visit" && <div className="siteValidation"><ValidationControl validation={activity.placeValidation} searchParts={[activity.placeName, activity.placeCity, activity.placeCountry]} onChange={(placeValidation) => updateActivity(dayIndex, activityIndex, { placeValidation })}/></div>}
                   </div>
@@ -250,15 +312,38 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
           ))}
         </section>
 
-        <button className="addDay" onClick={() => setDraft({ ...draft, days: [...draft.days, { dayNumber: draft.days.length + 1, date: "", label: "", title: "Nuova giornata", country: "", countryValidation: changedValidation("Paese"), city: "", cityValidation: changedValidation("Città"), description: "", activities: [], accommodation: { name: "", city: "", country: "", notes: "", validation: changedValidation("Hotel") } }] })}><Plus/> Aggiungi giornata</button>
+        <button type="button" className="addDay" onClick={() => setDraft({ ...draft, days: [...draft.days, { dayNumber: draft.days.length + 1, date: "", label: "", title: "Nuova giornata", country: "", countryValidation: changedValidation("Paese"), city: "", cityValidation: changedValidation("Città"), description: "", activities: [], accommodation: { name: "", city: "", country: "", notes: "", validation: changedValidation("Hotel") } }] })}><Plus/> Aggiungi giornata</button>
 
         <section className="reviewUseful">
-          <div className="reviewHeading"><div><small>DAL DOCUMENTO</small><h2>Informazioni utili</h2></div></div>
-          {draft.usefulInformation.map((info, index) => <article key={index}><input value={info.category} onChange={(event) => setDraft({ ...draft, usefulInformation: draft.usefulInformation.map((item, position) => position === index ? { ...item, category: event.target.value } : item) })}/><input value={info.title} onChange={(event) => setDraft({ ...draft, usefulInformation: draft.usefulInformation.map((item, position) => position === index ? { ...item, title: event.target.value } : item) })}/><textarea value={info.body} onChange={(event) => setDraft({ ...draft, usefulInformation: draft.usefulInformation.map((item, position) => position === index ? { ...item, body: event.target.value } : item) })}/><button aria-label="Rimuovi informazione" onClick={() => setDraft({ ...draft, usefulInformation: draft.usefulInformation.filter((_, position) => position !== index) })}><Trash2/></button></article>)}
+          <div className="reviewHeading"><div><small>DAL DOCUMENTO</small><h2>Informazioni utili</h2></div><button type="button" className="addUsefulInfo" onClick={() => setDraft({ ...draft, usefulInformation: [...draft.usefulInformation, { category: "Generale", title: "Nuova informazione", body: "Inserisci il contenuto", phone: "", url: "" }] })}><Plus/> Aggiungi informazione</button></div>
+          {draft.usefulInformation.map((info, index) => <article key={index}>
+            <label>Categoria<input aria-label={`Categoria informazione ${index + 1}`} maxLength={80} value={info.category} onChange={(event) => setDraft({ ...draft, usefulInformation: draft.usefulInformation.map((item, position) => position === index ? { ...item, category: event.target.value } : item) })}/></label>
+            <label>Titolo<input aria-label={`Titolo informazione ${index + 1}`} maxLength={240} value={info.title} onChange={(event) => setDraft({ ...draft, usefulInformation: draft.usefulInformation.map((item, position) => position === index ? { ...item, title: event.target.value } : item) })}/></label>
+            <label className="usefulBody">Contenuto<textarea aria-label={`Contenuto informazione ${index + 1}`} maxLength={6000} value={info.body} onChange={(event) => setDraft({ ...draft, usefulInformation: draft.usefulInformation.map((item, position) => position === index ? { ...item, body: event.target.value } : item) })}/></label>
+            <label>Telefono<input type="tel" maxLength={100} value={info.phone} onChange={(event) => setDraft({ ...draft, usefulInformation: draft.usefulInformation.map((item, position) => position === index ? { ...item, phone: event.target.value } : item) })}/></label>
+            <label>Link<input type="url" maxLength={500} placeholder="https://" value={info.url} onChange={(event) => setDraft({ ...draft, usefulInformation: draft.usefulInformation.map((item, position) => position === index ? { ...item, url: event.target.value } : item) })}/></label>
+            <button type="button" aria-label={`Rimuovi informazione ${index + 1}`} onClick={() => setDraft({ ...draft, usefulInformation: draft.usefulInformation.filter((_, position) => position !== index) })}><Trash2/></button>
+          </article>)}
+          {draft.usefulInformation.length === 0 && <div className="reviewUsefulEmpty"><FileText/><p>Nessuna informazione utile estratta. Puoi aggiungerla manualmente prima di pubblicare.</p><button type="button" onClick={() => setDraft({ ...draft, usefulInformation: [{ category: "Generale", title: "Nuova informazione", body: "Inserisci il contenuto", phone: "", url: "" }] })}><Plus/> Aggiungi la prima</button></div>}
         </section>
 
-        <footer className="reviewActions"><div><BedDouble/><span><b>{pendingValidationCount(draft) > 0 ? `${pendingValidationCount(draft)} anagrafiche da validare` : "Pronto per la pubblicazione"}</b><small>{pendingValidationCount(draft) > 0 ? "Apri Google, correggi se necessario e conferma ogni elemento." : `Verranno create ${draft.days.length} giornate.`}</small></span></div><button className="secondary" aria-label="Elimina bozza" onClick={removeDraft} disabled={Boolean(busy)}>{busy === "delete" ? <LoaderCircle className="spin"/> : <Trash2/>}<span>Elimina bozza</span></button><button className="secondary" onClick={save} disabled={Boolean(busy)}><Save/><span>Salva bozza</span></button><button onClick={publish} disabled={Boolean(busy) || pendingValidationCount(draft) > 0}>{busy === "publish" ? <LoaderCircle className="spin"/> : <Send/>}<span>Pubblica programma</span></button></footer>
+        <footer className="reviewActions"><div><BedDouble/><span><b>{validationsPending > 0 ? `${validationsPending} anagrafiche da validare` : "Pronto per la pubblicazione"}</b><small>{validationsPending > 0 ? "Apri Google, correggi se necessario e conferma ogni elemento." : isDirty ? "Salva le modifiche o pubblica direttamente la versione aggiornata." : `Verranno create ${draft.days.length} giornate.`}</small></span></div><button type="button" className="secondary dangerText" aria-label="Elimina bozza" onClick={removeDraft} disabled={Boolean(busy)}><Trash2/><span>Elimina bozza</span></button><button type="button" className="secondary" onClick={save} disabled={Boolean(busy) || !isDirty}>{busy === "save" ? <LoaderCircle className="spin"/> : <Save/>}<span>{busy === "save" ? "Salvataggio…" : "Salva bozza"}</span></button><button type="button" onClick={publish} disabled={Boolean(busy) || validationsPending > 0}><Send/><span>Pubblica programma</span></button></footer>
       </div>
+      {pendingAction && (
+        <div className="reviewDialogBackdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) setPendingAction(null); }}>
+          <section ref={dialogRef} className={`reviewConfirmDialog ${pendingAction}`} role="dialog" aria-modal="true" aria-labelledby="review-confirm-title">
+            <button type="button" className="reviewDialogClose" aria-label="Chiudi" disabled={Boolean(busy)} onClick={() => setPendingAction(null)}><X/></button>
+            <i>{pendingAction === "publish" ? <Send/> : <Trash2/>}</i>
+            <h2 id="review-confirm-title">{pendingAction === "publish" ? "Pubblicare il programma?" : "Eliminare definitivamente la bozza?"}</h2>
+            <p>{pendingAction === "publish" ? `Verranno pubblicate ${draft.days.length} giornate. L’attuale versione del programma sarà sostituita.` : `Saranno eliminati la bozza e il documento privato “${initialImport.sourceFileName}”. L’operazione non è reversibile.`}</p>
+            {error && <div className="agencyMessage error dialogMessage" role="alert"><CircleAlert size={18}/>{error}</div>}
+            <div>
+              <button ref={cancelRef} type="button" className="secondary" disabled={Boolean(busy)} onClick={() => setPendingAction(null)}>Annulla</button>
+              <button type="button" className={pendingAction === "delete" ? "danger" : "primary"} disabled={Boolean(busy)} onClick={() => void (pendingAction === "publish" ? publishConfirmed() : removeDraftConfirmed())}>{busy ? <LoaderCircle className="spin"/> : pendingAction === "publish" ? <Send/> : <Trash2/>}{busy ? (pendingAction === "publish" ? "Pubblicazione…" : "Eliminazione…") : (pendingAction === "publish" ? "Pubblica ora" : "Elimina definitivamente")}</button>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }
