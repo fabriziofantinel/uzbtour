@@ -162,7 +162,7 @@ async function saveItineraryItemFeedback(input: Parameters<typeof saveTravelerPr
           legacy.rating, '', legacy.client_operation_id, legacy.created_at, legacy.updated_at
         FROM legacy, target_actor, target_day, target_item
         ON CONFLICT (party_id, traveler_id, departure_item_id)
-          WHERE departure_item_id IS NOT NULL
+          WHERE target_type = 'itinerary_item'
         DO UPDATE SET rating = EXCLUDED.rating,
           client_operation_id = EXCLUDED.client_operation_id, updated_at = EXCLUDED.updated_at
         RETURNING id, rating, updated_at
@@ -231,7 +231,7 @@ async function saveHotelFeedback(input: Parameters<typeof saveTravelerProgrammeF
           legacy.rating, '', legacy.client_operation_id, legacy.created_at, legacy.updated_at
         FROM legacy, target_actor, target_day, target_hotel
         ON CONFLICT (party_id, traveler_id, departure_day_id, hotel_id)
-          WHERE hotel_id IS NOT NULL
+          WHERE target_type = 'hotel'
         DO UPDATE SET rating = EXCLUDED.rating,
           client_operation_id = EXCLUDED.client_operation_id, updated_at = EXCLUDED.updated_at
         RETURNING id, rating, updated_at
