@@ -99,6 +99,30 @@ function relatedSite(day: Day, item: Day["items"][number]) {
   return visitIndex >= 0 ? day.sites[visitIndex] ?? null : null;
 }
 
+function normalizedLocation(value: string) {
+  return value.toLocaleLowerCase("it").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function mapCityForDay(day: Day) {
+  const cities = day.cities.filter((city) => city.latitude != null && city.longitude != null);
+  if (cities.length <= 1) return cities[0] ?? null;
+
+  const dayCity = normalizedLocation(day.city);
+  const exactDayCity = cities.find((city) => normalizedLocation(city.name) === dayCity);
+  if (exactDayCity) return exactDayCity;
+
+  const hotelCities = day.hotels.map((hotel) => normalizedLocation(hotel.city)).filter(Boolean);
+  const overnightCity = cities.find((city) => hotelCities.includes(normalizedLocation(city.name)));
+  if (overnightCity) return overnightCity;
+
+  const routeText = normalizedLocation(`${day.city} ${day.title}`);
+  const mentionedCities = cities.map((city) => ({ city, position: routeText.lastIndexOf(normalizedLocation(city.name)) }))
+    .filter((entry) => entry.position >= 0)
+    .sort((left, right) => right.position - left.position);
+  return mentionedCities[0]?.city ?? cities[0];
+}
+
 function RatingStars({ value, busy, label, onRate }: {
   value: number | null; busy: boolean; label: string; onRate: (rating: number) => void;
 }) {
@@ -136,8 +160,8 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     return sum;
   }, { EUR: 0, UZS: 0 }), [day?.id, experience.expenses]);
   const tripMapDays = useMemo<TripMapDay[]>(() => experience.days.flatMap((entry, index) => {
-    const city = entry.cities.find((candidate) => candidate.latitude != null && candidate.longitude != null);
-    return city ? [{ index, n: entry.number, date: dateParts(entry.date).full, city: entry.city || city.name,
+    const city = mapCityForDay(entry);
+    return city ? [{ index, n: entry.number, date: dateParts(entry.date).full, city: city.name,
       title: entry.title, lat: city.latitude!, lon: city.longitude!, color: colors[index % colors.length] }] : [];
   }), [experience.days]);
 
