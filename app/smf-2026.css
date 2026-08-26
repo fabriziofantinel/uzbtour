@@ -2360,6 +2360,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   .tripFilters::-webkit-scrollbar { display: none; }
   .tripFilters > span,
   .tripFilters > button { flex: 0 0 auto; scroll-snap-align: start; }
+  .tripFilters > span { width: auto; }
   .tripFilters > button { min-height: 44px; }
   .tripSearch {
     width: 100%;
@@ -2375,7 +2376,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   .clearAllTripFilters { min-height: 38px; }
   .tripListTools > label { order: 3; width: 100%; min-width: 0; min-height: 44px; margin-left: 0; }
   .tripListTools select { font-size: 16px; }
-  .tripTableWrap { overflow: visible; border: 0; border-radius: 0; background: transparent; }
+  .tripTableWrap { width: 100%; margin-right: 0; overflow: visible; border: 0; border-radius: 0; background: transparent; }
   .tripTable,
   .tripTable tbody { min-width: 0; display: block; }
   .tripTable thead { display: none; }
