@@ -1439,7 +1439,8 @@
   height: 100%;
   border-radius: inherit;
   background: var(--teal);
-  transition: width .2s ease;
+  transform-origin: left center;
+  transition: transform .2s ease-out;
 }
 
 .quizProgress small {
@@ -3213,8 +3214,8 @@
 .programmeOperationalNote {
   margin-top: 9px;
   padding: 9px 10px;
-  border-left: 3px solid var(--gold);
-  border-radius: 0 7px 7px 0;
+  border: 1px solid #ead39f;
+  border-radius: 8px;
   background: #fff8e9;
 }
 
@@ -5070,5 +5071,93 @@
 
   .photoPuzzle {
     width: 100%;
+  }
+}
+
+/* Qualità d'uso: leggibilità mobile, controlli touch e movimento accessibile. */
+@media (max-width: 700px) {
+  .travelExperience p,
+  .travelExperience .programmeStepBody p,
+  .travelExperience .overviewHead p,
+  .travelExperience .expenseHero p,
+  .travelExperience .cashEmpty,
+  .travelExperience .phrasebookFooter {
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+  .travelExperience small,
+  .travelExperience .eyebrow,
+  .travelExperience .tag,
+  .travelExperience .programmeStepMeta small,
+  .travelExperience .programmeStepMeta time,
+  .travelExperience .mealStatus,
+  .travelExperience .mapAttribution,
+  .travelExperience .programmeOperationalNote strong {
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .travelExperience input,
+  .travelExperience textarea,
+  .travelExperience select {
+    font-size: 16px;
+  }
+
+  .travelExperience .tabs {
+    min-height: 66px;
+    height: auto;
+    padding-bottom: max(4px, env(safe-area-inset-bottom));
+  }
+
+  .travelExperience .tabs button {
+    min-width: 0;
+    min-height: 52px;
+    padding: 6px 2px;
+    font-size: 10px;
+    line-height: 1.15;
+    text-align: center;
+  }
+
+  .travelExperience .programmeRating {
+    align-items: flex-start;
+  }
+
+  .travelExperience .programmeRating > div {
+    flex-wrap: nowrap;
+  }
+
+  .travelExperience .programmeRating button {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (pointer: coarse) {
+  .travelExperience button,
+  .travelExperience .agencyButton,
+  .travelExperience .travelerTickets a,
+  .travelExperience .overviewHead a,
+  .travelExperience .phraseCategories button,
+  .travelExperience .contestUploadBar label,
+  .travelExperience .evidencePicker {
+    min-height: 44px;
+  }
+
+  .travelExperience .pager button,
+  .travelExperience .financeDelete,
+  .travelExperience .photoActions a {
+    min-width: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+
+  .quizProgress b,
+  .bingoProgress span {
+    transition: none;
   }
 }

@@ -36,7 +36,7 @@
 .missionNumber{width:39px;height:39px;display:grid;place-items:center;color:#fff;border-radius:12px;background:var(--rust);font-family:var(--font-serif);font-weight:800}.completed .missionNumber{background:#3d8b68}
 .missionList article small{color:var(--rust);font-size:7px;font-weight:900;letter-spacing:1.3px}.missionList h4{margin:2px 0;font-family:var(--font-serif);font-size:17px}.missionList p{margin:0;color:#788181;font-size:10px;line-height:1.45}
 .missionList input{width:100%;margin-top:9px;padding:8px 10px;color:var(--ink);border:1px solid var(--line);border-radius:8px;background:#fffdf9;font-size:9px}.missionList article>button{min-height:36px;display:flex;align-items:center;justify-content:center;gap:5px;padding:8px;color:#fff;border:0;border-radius:9px;background:var(--teal);font-size:9px;font-weight:900}.missionList .completed>button{background:#3d8b68}
-.bingoHeading p{margin:5px 0 0;color:#7f8787;font-size:10px}.bingoProgress{height:8px;margin-bottom:16px;overflow:hidden;border-radius:20px;background:var(--cream)}.bingoProgress span{height:100%;display:block;border-radius:inherit;background:linear-gradient(90deg,var(--rust),#efb25f);transition:width .25s ease}
+.bingoHeading p{margin:5px 0 0;color:#7f8787;font-size:10px}.bingoProgress{height:8px;margin-bottom:16px;overflow:hidden;border-radius:20px;background:var(--cream)}.bingoProgress span{height:100%;display:block;border-radius:inherit;background:linear-gradient(90deg,var(--rust),#efb25f);transform-origin:left center;transition:transform .25s ease-out}
 .bingoGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.bingoGrid button{min-height:145px;display:flex;flex-direction:column;align-items:flex-start;padding:14px;text-align:left;color:var(--ink);border:1px solid var(--line);border-radius:14px;background:#fff}.bingoGrid button.completed{color:#fff;border-color:var(--teal);background:var(--teal)}
 .bingoGrid button>span{width:34px;height:34px;display:grid;place-items:center;margin-bottom:13px;color:var(--rust);border-radius:10px;background:var(--cream)}.bingoGrid button.completed>span{color:var(--teal);background:#fff}.bingoGrid strong{font-family:var(--font-serif);font-size:15px}.bingoGrid small{margin-top:5px;color:#7d8585;font-size:8px;line-height:1.35}.bingoGrid button.completed small{color:rgba(255,255,255,.7)}.honourNote{color:#8b9292;font-size:9px;text-align:center}
 .profileScore{display:grid;grid-template-columns:72px 1fr auto;gap:18px;align-items:center;padding:25px;color:#fff;border-radius:18px;background:linear-gradient(135deg,var(--teal),#123f48)}.profileScore>span{width:68px;height:68px;display:grid;place-items:center;border:2px solid rgba(255,255,255,.5);border-radius:50%;background:rgba(255,255,255,.12);font-family:var(--font-serif);font-size:24px}
@@ -87,7 +87,7 @@
 .reviewHeading small{color:var(--rust);font-size:8px;font-weight:900;letter-spacing:1.5px}.reviewHeading h3{margin:2px 0;font-family:var(--font-serif);font-size:25px}.reviewHeading p{margin:0;color:#7e8686;font-size:10px}
 .reviewEmpty{display:grid;place-items:center;padding:60px 20px;text-align:center;border-radius:16px;background:var(--cream)}.reviewEmpty h3{margin:8px 0 0;font-family:var(--font-serif);font-size:23px}.reviewEmpty p{color:#7d8585;font-size:10px}
 .reviewList{display:grid;gap:15px}.reviewList>article{display:grid;grid-template-columns:minmax(230px,38%) 1fr;overflow:hidden;border:1px solid var(--line);border-radius:16px;background:#fff}.reviewImage{min-height:270px;position:relative;background:var(--cream)}.reviewImage img{object-fit:cover}
-.reviewCopy{padding:20px}.reviewCopy>small{color:var(--rust);font-size:8px;font-weight:900;letter-spacing:1.2px}.reviewCopy h4{margin:5px 0;font-family:var(--font-serif);font-size:23px}.reviewCopy>p{margin:0;color:#768080;font-size:10px;line-height:1.45}.reviewCopy blockquote{margin:13px 0;padding:10px;border-left:3px solid var(--rust);background:var(--cream);font-family:var(--font-serif);font-size:11px}
+.reviewCopy{padding:20px}.reviewCopy>small{color:var(--rust);font-size:8px;font-weight:900;letter-spacing:1.2px}.reviewCopy h4{margin:5px 0;font-family:var(--font-serif);font-size:23px}.reviewCopy>p{margin:0;color:#768080;font-size:10px;line-height:1.45}.reviewCopy blockquote{margin:13px 0;padding:10px;border:1px solid #e1c1b6;border-radius:9px;background:var(--cream);font-family:var(--font-serif);font-size:11px}
 .reviewCopy>input{width:100%;margin-top:12px;padding:10px;border:1px solid var(--line);border-radius:9px;font-size:9px}.reviewCopy>div{display:flex;justify-content:flex-end;gap:8px;margin-top:11px}.reviewCopy button{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 13px;border-radius:9px;font-size:9px;font-weight:900}.reviewCopy button.reject{color:#a54135;border:1px solid #e5b1aa;background:#fff}.reviewCopy button.approve{color:#fff;border:1px solid var(--teal);background:var(--teal)}
 @media(max-width:800px){
   .challengeTabs.admin{display:flex}.reviewList>article{grid-template-columns:1fr}.reviewImage{min-height:330px}.evidenceBingoGrid{grid-template-columns:repeat(2,1fr)}
@@ -127,3 +127,44 @@
 .generalRanking{margin:18px 0;padding:20px;border:1px solid #ead8b3;border-radius:17px;background:#fff9eb}.rankingTitle{display:flex;align-items:center;gap:11px;margin-bottom:12px}.rankingTitle>svg{color:#b77a18}.rankingTitle small{color:var(--rust);font-size:8px;font-weight:900;letter-spacing:1.4px}.rankingTitle h3{margin:2px 0;font-family:var(--font-serif);font-size:24px}.rankingRows{display:grid;gap:6px}.rankingRows article{display:grid;grid-template-columns:32px 40px minmax(0,1fr) auto;align-items:center;gap:10px;padding:11px;border-radius:11px;background:rgba(255,255,255,.68)}.rankingRows article.current{box-shadow:0 0 0 2px rgba(11,100,98,.2);background:#edf7f4}.rankingRows article>span{display:grid;place-items:center;color:#b77a18;font-family:var(--font-serif);font-size:18px;font-weight:900}.rankingRows article>span svg{width:20px}.rankingRows i{display:grid;place-items:center;width:38px;height:38px;color:#fff;border-radius:50%;background:var(--teal);font-size:9px;font-style:normal;font-weight:900}.rankingRows strong{font-size:11px}.rankingRows b{color:var(--teal);font-family:var(--font-serif);font-size:19px}
 .categoryRankings{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.categoryRankings>section{padding:16px;border:1px solid var(--line);border-radius:15px;background:#fff}.categoryRankings>section>header{display:flex;align-items:center;gap:10px;margin-bottom:8px}.categoryRankings>section>header>span{display:grid;place-items:center;width:38px;height:38px;color:#fff;border-radius:10px;background:var(--teal)}.categoryRankings header small{color:var(--rust);font-size:7px;font-weight:900;letter-spacing:1.2px}.categoryRankings h3{margin:2px 0;font-family:var(--font-serif);font-size:19px}.categoryRankings article{display:grid;grid-template-columns:25px minmax(0,1fr) auto;align-items:center;gap:8px;padding:8px;border-top:1px solid var(--line)}.categoryRankings article.current{background:#f0f8f5}.categoryRankings article>span{color:var(--rust);font-weight:900;text-align:center}.categoryRankings article strong,.categoryRankings article b{font-size:10px}.categoryRankings article b{color:var(--teal)}.rankingRules{margin-top:13px;padding:11px 13px;color:#705827;border-radius:10px;background:#fff4d9;font-size:9px;line-height:1.5}
 @media(max-width:700px){.rankingsPage{margin:18px auto 80px;padding:0 14px}.rankingsHero{min-height:165px;padding:24px 19px;border-radius:18px}.rankingsHero h2{font-size:29px}.rankingsHero>svg{width:40px;height:40px}.categoryRankings{grid-template-columns:1fr}}
+
+/* Sfide leggibili e azionabili anche con una sola mano. */
+@media(max-width:700px){
+  .challengesPage{margin-top:20px;padding:0 14px calc(86px + env(safe-area-inset-bottom))}
+  .challengesPage p{font-size:14px;line-height:1.55}
+  .challengesPage small,
+  .challengeDayPicker small,
+  .missionList article small,
+  .missionDayHeading span,
+  .bingoHeading span,
+  .contestHubHero small,
+  .dualContestDayHeading small,
+  .dualContestCard>header small,
+  .rankingTitle small,
+  .categoryRankings header small{font-size:11px;line-height:1.35}
+  .challengesPage input,
+  .challengesPage textarea,
+  .challengesPage select{font-size:16px}
+  .challengeTabs{display:flex;gap:7px;margin-right:-14px;margin-left:-14px;padding:2px 14px 8px;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none}
+  .challengeTabs::-webkit-scrollbar{display:none}
+  .challengeTabs button{flex:0 0 auto;min-height:48px;padding:10px 13px;scroll-snap-align:start;font-size:11px}
+  .missionList article{grid-template-columns:42px minmax(0,1fr);align-items:start}
+  .missionList article>button,
+  .missionList article>label.evidencePicker,
+  .missionStatus{grid-column:2;width:100%;min-height:44px}
+  .contestUploadBar label,
+  .contestJudgeBar button,
+  .gameAnswerBox button{min-height:44px;font-size:11px}
+  .contestEntryGrid figcaption{min-height:48px}
+  .contestEntryGrid figcaption span{font-size:11px}
+  .contestEntryGrid figcaption button{width:44px;height:44px}
+  .rankingRows strong,
+  .categoryRankings article strong,
+  .categoryRankings article b{font-size:13px}
+}
+
+@media(pointer:coarse){
+  .challengesPage button,
+  .challengesPage label.evidencePicker,
+  .challengesPage .contestUploadBar label{min-height:44px}
+}
