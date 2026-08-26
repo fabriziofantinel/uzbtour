@@ -4699,3 +4699,507 @@
     contain-intrinsic-block-size: 120px;
   }
 }
+
+/* SMF Travel 2026: Sentiero delle tappe, composizione "Pannello a due livelli". */
+.travelerRedesign {
+  --trail-primary: var(--agency-primary, var(--trail-green));
+  min-height: 100vh;
+  color: var(--trail-ink);
+  background: var(--trail-paper);
+}
+
+.travelerRedesign .topbar {
+  height: 72px;
+  border-bottom-color: var(--trail-line);
+  background: color-mix(in srgb, var(--trail-paper) 94%, white);
+}
+
+.travelerRedesign .brandMark {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  color: var(--agency-on-primary);
+  background: var(--trail-primary);
+  font-family: var(--font-sans), sans-serif;
+  font-size: 12px;
+  letter-spacing: .04em;
+}
+
+.travelerRedesign .agencyLogo {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+}
+
+.travelerRedesign .brand strong {
+  color: var(--trail-ink);
+  font: 800 16px/1.15 var(--font-sans), sans-serif;
+}
+
+.travelerRedesign .brand small {
+  margin-top: 4px;
+  color: var(--trail-muted);
+  font-size: var(--text-caption);
+  font-weight: 750;
+  letter-spacing: .13em;
+}
+
+.travelerRedesign .hero {
+  height: 190px;
+  padding-block: 30px;
+  background: var(--trail-ink);
+}
+
+.travelerRedesign .hero h1,
+.travelerRedesign .detailHead h2,
+.travelerRedesign .dayProgramme h3 {
+  font-family: var(--font-serif), serif;
+}
+
+.travelerRedesign .tabs {
+  justify-content: center;
+  gap: clamp(12px, 4vw, 44px);
+  padding-inline: 24px;
+  background: var(--trail-surface);
+}
+
+.travelerRedesign .tabs button {
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-width: 72px;
+  color: var(--trail-muted);
+}
+
+.travelerRedesign .tabs button svg {
+  width: 20px;
+  height: 20px;
+}
+
+.travelerRedesign .tabs button.active {
+  color: var(--trail-primary);
+}
+
+.travelerRedesign .tabs button.active::after {
+  background: var(--trail-primary);
+}
+
+.moreMenu {
+  position: fixed;
+  z-index: 1100;
+  right: 18px;
+  bottom: 76px;
+  width: min(360px, calc(100vw - 36px));
+  padding: 8px;
+  border: 1px solid var(--trail-line);
+  border-radius: 16px;
+  background: var(--trail-surface);
+  box-shadow: 0 18px 50px color-mix(in srgb, var(--trail-ink) 18%, transparent);
+}
+
+.moreMenu > button,
+.moreMenu > a,
+.moreMenu form button {
+  width: 100%;
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: 36px 1fr 20px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--trail-ink);
+  background: transparent;
+  text-align: left;
+  text-decoration: none;
+}
+
+.moreMenu > button:hover,
+.moreMenu > a:hover,
+.moreMenu form button:hover {
+  background: color-mix(in srgb, var(--trail-primary) 8%, var(--trail-surface));
+}
+
+.moreMenu span strong,
+.moreMenu span small { display: block; }
+.moreMenu span small { margin-top: 3px; color: var(--trail-muted); font-size: 12px; }
+.moreMenu svg { width: 20px; }
+.moreJourneys { margin: 6px 0; padding: 8px 0; border-block: 1px solid var(--trail-line); }
+.moreJourneys > small { display: block; padding: 4px 10px 8px; color: var(--trail-muted); font-size: var(--text-caption); font-weight: 900; letter-spacing: .12em; }
+.moreJourneys > a { min-height: 58px; display: grid; grid-template-columns: 34px 1fr 20px; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; color: var(--trail-ink); text-decoration: none; }
+.moreJourneys > a.active { color: var(--trail-primary); background: color-mix(in srgb, var(--trail-primary) 8%, var(--trail-surface)); }
+
+.travelerRedesign .dashboard {
+  max-width: 1240px;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 0;
+  background: var(--trail-surface);
+}
+
+.travelerRedesign .timeline {
+  border-color: var(--trail-line);
+  background: color-mix(in srgb, var(--trail-paper) 75%, white);
+}
+
+.travelerRedesign .dayRow {
+  border-radius: 12px;
+}
+
+.travelerRedesign .dayRow.selected {
+  background: color-mix(in srgb, var(--trail-primary) 10%, var(--trail-surface));
+  box-shadow: inset 3px 0 0 var(--trail-primary);
+}
+
+.travelerRedesign .detail {
+  padding: 34px clamp(24px, 5vw, 68px) 70px;
+  background: var(--trail-surface);
+}
+
+.travelerRedesign .detailHead .tag,
+.travelerRedesign .dayProgramme > header > span {
+  color: var(--trail-coral) !important;
+}
+
+.travelerRedesign .stayInfo {
+  border-color: var(--trail-line);
+}
+
+.proximityPanel {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  margin: 22px 0 28px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--trail-primary) 24%, var(--trail-line));
+  border-radius: 14px;
+  background: var(--trail-paper);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--trail-ink) 7%, transparent);
+}
+
+.proximityIcon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--agency-on-primary);
+  background: var(--trail-primary);
+}
+
+.proximityIcon svg { width: 22px; }
+.proximityCopy { min-width: 0; }
+.proximityCopy small {
+  display: block;
+  color: var(--trail-primary);
+  font-size: var(--text-caption);
+  font-weight: 900;
+  letter-spacing: .1em;
+}
+.proximityCopy strong {
+  display: block;
+  margin-top: 3px;
+  color: var(--trail-ink);
+  font-size: 16px;
+}
+.proximityCopy p {
+  margin: 3px 0 0;
+  color: var(--trail-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.locateButton,
+.proximityActions button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 14px;
+  border: 1px solid color-mix(in srgb, var(--trail-primary) 45%, transparent);
+  border-radius: 10px;
+  color: var(--trail-primary);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 850;
+}
+.locateButton svg,
+.proximityActions button svg { width: 17px; }
+.proximityActions { display: flex; gap: 8px; }
+.proximityActions button.confirm {
+  border-color: var(--trail-primary);
+  color: var(--agency-on-primary);
+  background: var(--trail-primary);
+}
+
+.travelerRedesign .dayProgramme {
+  margin-top: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.travelerRedesign .dayProgramme > header {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--trail-line);
+}
+
+.travelerRedesign .dayProgramme > header h3 {
+  margin-bottom: 5px;
+  color: var(--trail-ink);
+  font-size: 25px;
+}
+
+.travelerRedesign .dayProgramme > header p {
+  margin: 0;
+  color: var(--trail-muted);
+  font-size: 12px;
+}
+
+.travelerRedesign .dayProgrammeList {
+  position: relative;
+  padding-top: 10px;
+}
+
+.dayContext {
+  margin-top: 24px;
+  padding: 0 16px;
+  border: 1px solid var(--trail-line);
+  border-radius: 12px;
+  background: var(--trail-paper);
+}
+
+.dayContext summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  color: var(--trail-ink);
+  font-size: 14px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.dayContext[open] {
+  padding-bottom: 14px;
+}
+
+.dayContext .description {
+  margin: 0 0 12px;
+  color: var(--trail-muted);
+}
+
+.dayContext .stayInfo {
+  margin-bottom: 0;
+}
+
+.travelerRedesign .programmeStep {
+  grid-template-columns: 46px 24px minmax(0, 1fr);
+  min-height: 112px;
+}
+
+.travelerRedesign .programmeStepNumber {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  color: white;
+  background: var(--trail-coral);
+  font: 850 14px/1 var(--font-sans), sans-serif;
+}
+
+.travelerRedesign .programmeStepLine::before {
+  left: 11px;
+  width: 3px;
+  background: var(--trail-green);
+}
+
+.travelerRedesign .programmeStepLine::after {
+  display: none;
+}
+
+.travelerRedesign .programmeStepBody {
+  position: relative;
+  padding: 0 0 24px 12px;
+  border-bottom: 1px dotted var(--trail-line);
+}
+
+.travelerRedesign .programmeStepMeta {
+  justify-content: flex-start;
+  gap: 14px;
+}
+
+.travelerRedesign .programmeStepMeta small {
+  color: var(--trail-green);
+}
+
+.travelerRedesign .programmeStepMeta time {
+  padding: 4px 7px;
+  border-radius: 5px;
+  color: var(--trail-ink);
+  background: color-mix(in srgb, var(--trail-primary) 10%, var(--trail-surface));
+}
+
+.travelerRedesign .programmeStepMeta time.pending {
+  color: var(--trail-muted);
+  background: transparent;
+}
+
+.travelerRedesign .programmeStepBody h4 {
+  margin-top: 7px;
+  color: var(--trail-ink);
+  font-size: 19px;
+}
+
+.travelerRedesign .programmeStep.is-current .programmeStepBody {
+  margin: -8px -10px 16px 2px;
+  padding: 12px 12px 18px;
+  border: 1px solid color-mix(in srgb, var(--trail-primary) 35%, var(--trail-line));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--trail-primary) 7%, var(--trail-surface));
+}
+
+.travelerRedesign .programmeStep.is-current .programmeStepNumber {
+  background: var(--trail-primary);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--trail-primary) 14%, transparent);
+}
+
+.travelerRedesign .programmeStep.is-complete .programmeStepNumber {
+  background: var(--trail-green);
+}
+
+.setCurrentStep {
+  min-height: 34px;
+  margin-top: 10px;
+  padding: 6px 10px;
+  border: 1px solid var(--trail-line);
+  border-radius: 8px;
+  color: var(--trail-muted);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.setCurrentStep[aria-pressed="true"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-color: var(--trail-primary);
+  color: var(--trail-primary);
+  background: color-mix(in srgb, var(--trail-primary) 7%, var(--trail-surface));
+}
+.setCurrentStep svg { width: 14px; }
+
+.travelerRedesign .programmeRating {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 10px;
+}
+
+.travelerRedesign .programmeRating > span {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.travelerRedesign .programmeRating > div {
+  display: flex;
+  flex-wrap: nowrap;
+}
+
+@media (max-width: 700px) {
+  .travelerRedesign { background: var(--trail-paper); }
+  .travelerRedesign .topbar {
+    position: sticky;
+    z-index: 500;
+    top: 0;
+    height: 64px;
+    padding: 0 16px;
+  }
+  .travelerRedesign .brand { gap: 9px; }
+  .travelerRedesign .brandMark,
+  .travelerRedesign .agencyLogo { width: 38px; height: 38px; }
+  .travelerRedesign .brand strong { max-width: 52vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .travelerRedesign .brand small { font-size: var(--text-caption); }
+  .travelerRedesign .people { display: flex; margin-left: auto; }
+  .travelerRedesign .people .avatars,
+  .travelerRedesign .people .agencyButton,
+  .travelerRedesign .people form { display: none; }
+  .travelerRedesign .currentUser { display: flex !important; }
+  .travelerRedesign .currentUser b { display: none; }
+  .travelerRedesign .hero,
+  .travelerRedesign .journeyPicker { display: none; }
+  .travelerRedesign .travelMainContent { padding-bottom: calc(82px + env(safe-area-inset-bottom)); }
+  .travelerRedesign .tabs {
+    position: fixed;
+    z-index: 1000;
+    inset: auto 0 0;
+    height: calc(68px + env(safe-area-inset-bottom));
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0;
+    padding: 0 6px env(safe-area-inset-bottom);
+    border-top: 1px solid var(--trail-line);
+    border-bottom: 0;
+    box-shadow: 0 -8px 30px color-mix(in srgb, var(--trail-ink) 8%, transparent);
+  }
+  .travelerRedesign .tabs button {
+    min-width: 0;
+    min-height: 62px;
+    padding: 6px 2px;
+    font-size: var(--text-caption);
+  }
+  .travelerRedesign .tabs button.active::after {
+    inset: 0 20% auto;
+    height: 3px;
+  }
+  .moreMenu { bottom: calc(74px + env(safe-area-inset-bottom)); }
+  .travelerRedesign .dashboard { display: block; min-height: auto; background: var(--trail-paper); }
+  .travelerRedesign .timeline {
+    padding: 16px 14px 10px;
+    border: 0;
+    background: var(--trail-paper);
+  }
+  .travelerRedesign .sectionTitle { margin-bottom: 8px; }
+  .travelerRedesign .sectionTitle h2 { font-size: 18px; }
+  .travelerRedesign .dayList { gap: 8px; margin-inline: -14px; padding: 0 14px 5px; }
+  .travelerRedesign .dayRow {
+    min-width: 148px;
+    min-height: 62px;
+    grid-template-columns: 38px 1fr;
+    gap: 8px;
+    padding: 7px 10px;
+    border: 1px solid var(--trail-line);
+    background: var(--trail-surface);
+  }
+  .travelerRedesign .dayRow.selected { box-shadow: inset 0 -3px 0 var(--trail-primary); }
+  .travelerRedesign .dayRow > svg,
+  .travelerRedesign .dayInfo em { display: none; }
+  .travelerRedesign .dayInfo strong { overflow: hidden; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
+  .travelerRedesign .detail { padding: 18px 16px 38px; background: var(--trail-surface); }
+  .travelerRedesign .detailHead h2 { margin-top: 6px; font-size: clamp(28px, 9vw, 40px); line-height: 1.03; }
+  .travelerRedesign .detailHead .pager { display: none; }
+  .travelerRedesign .description { margin-top: 0; }
+  .travelerRedesign .stayInfo { display: grid; gap: 8px; }
+  .proximityPanel {
+    grid-template-columns: 42px minmax(0, 1fr);
+    margin: 20px 0 26px;
+    padding: 13px;
+    gap: 10px;
+  }
+  .proximityIcon { width: 40px; height: 40px; }
+  .locateButton,
+  .proximityActions { grid-column: 1 / -1; }
+  .locateButton { width: 100%; }
+  .proximityActions { display: grid; grid-template-columns: 1fr 1fr; }
+  .travelerRedesign .dayProgramme > header h3 { font-size: 22px; }
+  .travelerRedesign .programmeStep { grid-template-columns: 38px 18px minmax(0, 1fr); }
+  .travelerRedesign .programmeStepNumber { width: 34px; height: 34px; }
+  .travelerRedesign .programmeStepLine::before { left: 8px; }
+  .travelerRedesign .programmeStepBody { padding-left: 10px; }
+  .travelerRedesign .programmeStepMeta { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 7px; }
+  .travelerRedesign .programmeStepBody h4 { font-size: 18px; }
+  .travelerRedesign .programmeRating { align-items: center; overflow-x: auto; }
+  .travelerRedesign .programmeRating button { width: 44px; height: 44px; }
+}

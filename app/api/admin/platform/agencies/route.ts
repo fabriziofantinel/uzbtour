@@ -24,6 +24,8 @@ const agencySchema = z.object({
   referenceName: z.string().trim().min(2).max(160),
   referenceEmail: z.email(),
   referencePhone: z.string().trim().min(5).max(40),
+  primaryColor: z.string().regex(/^#[0-9a-f]{6}$/i).optional().default("#247A6B"),
+  logoUrl: z.union([z.literal(""), z.url()]).optional().default(""),
 });
 
 function authorizationResponse(error: unknown) {

@@ -38,6 +38,8 @@ export type AgencyRegistryItem = {
   referenceName: string;
   referenceEmail: string;
   referencePhone: string;
+  primaryColor: string;
+  logoUrl: string;
   tripCount: number;
   travelerCount: number;
   agents: AgencyAgent[];
@@ -107,7 +109,10 @@ export async function getAgencyRegistry(): Promise<AgencyRegistryItem[]> {
     `,
   ]);
 
-  return agencyRows.map((row) => ({
+  return agencyRows.map((row) => {
+    const branding = row.branding && typeof row.branding === "object" && !Array.isArray(row.branding)
+      ? row.branding as Record<string, unknown> : {};
+    return ({
     id: String(row.id),
     slug: String(row.slug),
     name: String(row.name),
@@ -128,6 +133,8 @@ export async function getAgencyRegistry(): Promise<AgencyRegistryItem[]> {
     referenceName: textValue(row.reference_name),
     referenceEmail: textValue(row.reference_email),
     referencePhone: textValue(row.reference_phone),
+    primaryColor: textValue(branding.primaryColor) || "#247A6B",
+    logoUrl: textValue(branding.logoUrl),
     tripCount: Number(row.trip_count ?? 0),
     travelerCount: Number(row.traveler_count ?? 0),
     agents: agentRows
@@ -141,7 +148,8 @@ export async function getAgencyRegistry(): Promise<AgencyRegistryItem[]> {
         role: String(agent.role) as AgencyAgent["role"],
         status: String(agent.status),
       })),
-  }));
+    });
+  });
 }
 
 export async function getImpersonationUsers(actorId: string): Promise<ImpersonationUser[]> {
@@ -198,6 +206,8 @@ export async function createAgency(input: {
   referenceName: string;
   referenceEmail: string;
   referencePhone: string;
+  primaryColor?: string;
+  logoUrl?: string;
 }) {
   const sql = getSql();
   const rows = await sql`
@@ -205,7 +215,7 @@ export async function createAgency(input: {
       slug, name, status, legal_name, vat_number, tax_code,
       registered_address, registered_city, registered_postal_code,
       registered_province, registered_country, pec, sdi_code,
-      phone, email, website, reference_name, reference_email, reference_phone
+      phone, email, website, reference_name, reference_email, reference_phone, branding
     ) VALUES (
       ${agencySlug(input.name)}, ${input.name}, 'trial', ${input.legalName || null},
       ${input.vatNumber || null}, ${input.taxCode || null}, ${input.registeredAddress || null},
@@ -213,11 +223,31 @@ export async function createAgency(input: {
       ${input.registeredProvince || null}, ${input.registeredCountry || null},
       ${input.pec || null}, ${input.sdiCode || null}, ${input.phone || null},
       ${input.email || null}, ${input.website || null}, ${input.referenceName},
-      ${input.referenceEmail}, ${input.referencePhone}
+      ${input.referenceEmail}, ${input.referencePhone},
+      ${JSON.stringify({ primaryColor: input.primaryColor || "#247A6B", logoUrl: input.logoUrl || "" })}::jsonb
     )
     RETURNING id::text
   `;
   return String(rows[0].id);
+}
+
+export async function updateAgencyBranding(input: {
+  agencyId: string;
+  primaryColor: string;
+  logoUrl: string;
+}) {
+  const sql = getSql();
+  const rows = await sql`
+    UPDATE agencies
+    SET branding = branding || ${JSON.stringify({
+      primaryColor: input.primaryColor,
+      logoUrl: input.logoUrl,
+    })}::jsonb,
+    updated_at = NOW()
+    WHERE id = ${input.agencyId}
+    RETURNING id
+  `;
+  if (rows.length !== 1) throw new PlatformRequestError("Agenzia non trovata");
 }
 
 export async function getAgencyDeletionTarget(agencyId: string) {

@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import {
   Building2, ChevronDown, CircleAlert, LoaderCircle, Mail, MapPinned,
-  Phone, Plus, Save, Trash2, UserPlus, UsersRound, X,
+  Palette, Phone, Plus, Save, Trash2, UserPlus, UsersRound, X,
 } from "lucide-react";
 import type { AgencyRegistryItem } from "@/lib/platform/superadmin-repository";
 
@@ -37,6 +37,7 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
       "name", "legalName", "vatNumber", "taxCode", "registeredAddress", "registeredCity",
       "registeredPostalCode", "registeredProvince", "registeredCountry", "pec", "sdiCode",
       "phone", "email", "website", "referenceName", "referenceEmail", "referencePhone",
+      "primaryColor", "logoUrl",
     ];
     try {
       const result = await readJson<{ id: string; agencies: AgencyRegistryItem[] }>(
@@ -52,6 +53,30 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
       setNotice("Agenzia creata correttamente.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Creazione non riuscita");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function updateBranding(event: FormEvent<HTMLFormElement>, agencyId: string) {
+    event.preventDefault();
+    setBusy(`branding-${agencyId}`); setError(""); setNotice("");
+    const form = new FormData(event.currentTarget);
+    try {
+      const result = await readJson<{ agencies: AgencyRegistryItem[] }>(
+        await fetch(`/api/admin/platform/agencies/${agencyId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            primaryColor: stringField(form, "primaryColor"),
+            logoUrl: stringField(form, "logoUrl"),
+          }),
+        })
+      );
+      setAgencies(result.agencies);
+      setNotice("Logo e colore dell’agenzia aggiornati.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Branding non aggiornato");
     } finally {
       setBusy("");
     }
@@ -145,6 +170,11 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
             <label>Provincia<input name="registeredProvince"/></label>
             <label>Paese<input name="registeredCountry" defaultValue="Italia"/></label>
           </fieldset>
+          <fieldset>
+            <legend>Identità visiva</legend>
+            <label>Colore principale<input name="primaryColor" type="color" defaultValue="#247A6B"/></label>
+            <label className="wide">URL del logo<input name="logoUrl" type="url" placeholder="https://agenzia.it/logo.png"/></label>
+          </fieldset>
           <footer><button type="button" className="secondary" onClick={() => setShowAgencyForm(false)}>Annulla</button><button disabled={busy === "agency"}>{busy === "agency" ? <LoaderCircle className="spin"/> : <Save/>} Salva agenzia</button></footer>
         </form>
       )}
@@ -168,6 +198,13 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
                     <a href={`tel:${agency.referencePhone}`}><Phone/><span><small>TELEFONO</small><b>{agency.referencePhone}</b></span></a>
                     {agency.vatNumber && <span><small>PARTITA IVA</small><b>{agency.vatNumber}</b></span>}
                   </div>
+                  <form className="agencyBrandingForm" onSubmit={(event) => updateBranding(event, agency.id)}>
+                    <div className="agencyBrandPreview" style={{ background: agency.primaryColor }}>{agency.logoUrl ? <img src={agency.logoUrl} alt=""/> : <Palette/>}</div>
+                    <span><small>IDENTITÀ VISIVA</small><strong>Logo e colore nell’app viaggiatore</strong></span>
+                    <label>Colore<input name="primaryColor" type="color" defaultValue={agency.primaryColor}/></label>
+                    <label>URL logo<input name="logoUrl" type="url" defaultValue={agency.logoUrl} placeholder="https://"/></label>
+                    <button disabled={busy === `branding-${agency.id}`}>{busy === `branding-${agency.id}` ? <LoaderCircle className="spin"/> : <Save/>} Salva</button>
+                  </form>
                   <div className="agentsHeader"><div><small>UTENTI AGENZIA</small><h3>Agenti</h3></div><button onClick={() => setAgentAgencyId(agentAgencyId === agency.id ? "" : agency.id)}><UserPlus/> Aggiungi agente</button></div>
                   {agentAgencyId === agency.id && (
                     <form className="agentForm" onSubmit={(event) => createAgent(event, agency.id)}>

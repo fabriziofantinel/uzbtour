@@ -15,7 +15,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
     SELECT d.id::text AS departure_id, d.agency_id::text, d.template_version_id::text,
       d.title, d.code, d.starts_on::text, d.ends_on::text, d.timezone, d.status,
       tp.id::text AS party_id, tp.name AS party_name, tt.destination_country,
-      a.name AS agency_name
+      a.name AS agency_name, a.branding AS agency_branding
     FROM traveler_profiles profile
     JOIN party_memberships membership
       ON membership.traveler_id = profile.id AND membership.status = 'active'
@@ -55,9 +55,10 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
     sql`
       SELECT item.id::text, item.trip_day_id::text, item.item_type, item.title,
         item.description, item.starts_at::text, item.ends_at::text, item.sort_order,
-        item.metadata
+        item.metadata, place.latitude, place.longitude
       FROM itinerary_items item
       JOIN trip_days day ON day.id = item.trip_day_id AND day.agency_id = item.agency_id
+      LEFT JOIN places place ON place.id = item.place_id AND place.agency_id = item.agency_id
       WHERE item.agency_id = ${agencyId} AND day.template_version_id = ${versionId}
       ORDER BY day.day_number, item.sort_order
     `,
@@ -263,6 +264,15 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       status: String(selected.status),
       destinationCountry: stringValue(selected.destination_country),
       agencyName: String(selected.agency_name),
+      agencyBranding: (() => {
+        const branding = selected.agency_branding;
+        if (!branding || typeof branding !== "object" || Array.isArray(branding)) return {};
+        const value = branding as Record<string, unknown>;
+        return {
+          primaryColor: stringValue(value.primaryColor),
+          logoUrl: stringValue(value.logoUrl),
+        };
+      })(),
       partyName: String(selected.party_name),
       catalogReady: cityRows.length > 0 || siteRows.length > 0,
       travelers: (travelerRows as Row[]).map((row) => ({ name: String(row.display_name), role: String(row.role) })),
@@ -296,6 +306,8 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
           description: stringValue(item.description),
           startsAt: stringValue(item.starts_at),
           endsAt: stringValue(item.ends_at),
+          latitude: item.latitude == null ? null : Number(item.latitude),
+          longitude: item.longitude == null ? null : Number(item.longitude),
           metadata: item.metadata,
           rating: itemRatings.get(String(item.id)) ?? null,
           tickets: tickets.filter((ticket) => String(ticket.itinerary_item_id) === String(item.id)).map((ticket) => ({

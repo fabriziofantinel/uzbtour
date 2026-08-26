@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { requireSuperAdmin } from "@/lib/platform/authorization";
 import { platformApiError } from "@/lib/platform/http";
 import { getObjectStorage } from "@/lib/platform/object-storage";
@@ -6,10 +7,37 @@ import {
   deleteAgencyRecords,
   getAgencyDeletionTarget,
   getAgencyRegistry,
+  updateAgencyBranding,
 } from "@/lib/platform/superadmin-repository";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const brandingSchema = z.object({
+  primaryColor: z.string().regex(/^#[0-9a-f]{6}$/i),
+  logoUrl: z.union([z.literal(""), z.url()]),
+});
+
+export async function PATCH(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    await requireSuperAdmin();
+    const { id } = await context.params;
+    if (!/^[0-9a-f-]{36}$/i.test(id)) {
+      return NextResponse.json({ error: "Agenzia non valida" }, { status: 400 });
+    }
+    const parsed = brandingSchema.safeParse(await request.json().catch(() => null));
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Colore o indirizzo del logo non validi" }, { status: 400 });
+    }
+    await updateAgencyBranding({ agencyId: id, ...parsed.data });
+    return NextResponse.json({ agencies: await getAgencyRegistry() });
+  } catch (error) {
+    return platformApiError(error, "Branding dell’agenzia non aggiornato");
+  }
+}
 
 export async function DELETE(
   _request: Request,

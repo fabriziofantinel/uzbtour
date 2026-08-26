@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Building2, Gauge, LogIn, LogOut, ShieldCheck } from "lucide-react";
 import { PlatformAuthorizationError, requireSuperAdmin } from "@/lib/platform/authorization";
 import "./superadmin.css";
+import "./agency-branding.css";
 
 export const dynamic = "force-dynamic";
 

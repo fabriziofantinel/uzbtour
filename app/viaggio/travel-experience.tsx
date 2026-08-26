@@ -1,11 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   ArrowLeft, ArrowRight, ArrowRightLeft, Banknote, BedDouble, Building2, Bus,
   CalendarDays, Camera, ChevronRight, CircleUserRound, Clock3,
-  Download, ExternalLink, FileText, Info, Languages, LoaderCircle, LogOut, Map,
+  Check, Download, ExternalLink, FileText, Info, Languages, LoaderCircle, LocateFixed, LogOut, Map,
   MapPin, MessageCircle, Navigation, Plane, ReceiptText,
   Sparkles, Star, TrainFront, Trash2, Utensils, Wallet,
 } from "lucide-react";
@@ -62,6 +62,49 @@ function challengeText(content: unknown) {
   if (!content || typeof content !== "object" || Array.isArray(content)) return "";
   const item = content as Record<string, unknown>;
   return String(item.description || item.instructions || item.question || item.clue || "");
+}
+
+function validBrandColor(value: string | undefined) {
+  return value && /^#[0-9a-f]{6}$/i.test(value) ? value : "#247A6B";
+}
+
+function hexChannels(hex: string) {
+  return [1, 3, 5].map((index) => Number.parseInt(hex.slice(index, index + 2), 16));
+}
+
+function relativeLuminance(hex: string) {
+  const channels = hexChannels(hex).map((value) => value / 255)
+    .map((channel) => channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4);
+  return .2126 * channels[0] + .7152 * channels[1] + .0722 * channels[2];
+}
+
+function contrastRatio(first: string, second: string) {
+  const light = Math.max(relativeLuminance(first), relativeLuminance(second));
+  const dark = Math.min(relativeLuminance(first), relativeLuminance(second));
+  return (light + .05) / (dark + .05);
+}
+
+function accessibleBrandColor(hex: string) {
+  let channels = hexChannels(hex);
+  let candidate = hex;
+  while (contrastRatio(candidate, "#FAF7F0") < 4.5) {
+    channels = channels.map((value) => Math.max(0, Math.round(value * .82)));
+    candidate = `#${channels.map((value) => value.toString(16).padStart(2, "0")).join("")}`;
+  }
+  return candidate;
+}
+
+function brandContrastColor(hex: string) {
+  return contrastRatio(hex, "#142B35") >= contrastRatio(hex, "#FFFFFF") ? "#142B35" : "#FFFFFF";
+}
+
+function distanceMetres(from: { latitude: number; longitude: number }, to: { latitude: number; longitude: number }) {
+  const radians = (degrees: number) => degrees * Math.PI / 180;
+  const latitudeDelta = radians(to.latitude - from.latitude);
+  const longitudeDelta = radians(to.longitude - from.longitude);
+  const a = Math.sin(latitudeDelta / 2) ** 2
+    + Math.cos(radians(from.latitude)) * Math.cos(radians(to.latitude)) * Math.sin(longitudeDelta / 2) ** 2;
+  return 6_371_000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 function todayInTimeZone(timeZone: string) {
@@ -141,9 +184,17 @@ export default function TravelExperience({ initialExperience, userName, isAgency
   const [error, setError] = useState("");
   const [officialEurRate, setOfficialEurRate] = useState<number | null>(null);
   const [expenseDayId, setExpenseDayId] = useState<string | null | undefined>(undefined);
+  const [locationState, setLocationState] = useState<"idle" | "requesting" | "suggested" | "unavailable">("idle");
+  const [locationMessage, setLocationMessage] = useState("La posizione viene controllata solo quando lo chiedi.");
+  const [suggestedItemId, setSuggestedItemId] = useState<string | null>(null);
+  const [currentItems, setCurrentItems] = useState<Record<string, string>>({});
+  const [moreOpen, setMoreOpen] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const firstTabRender = useRef(true);
   const day = experience.days[active] ?? experience.days[0];
+  const currentItemId = day ? currentItems[day.id] ?? null : null;
+  const currentItemIndex = day ? day.items.findIndex((item) => item.id === currentItemId) : -1;
+  const suggestedItem = day?.items.find((item) => item.id === suggestedItemId) ?? null;
   const photosByDay = useMemo(() => experience.photos.reduce<Record<number, Experience["photos"]>>((all, photo) => {
     all[photo.dayNumber] = [...(all[photo.dayNumber] || []), photo]; return all;
   }, {}), [experience.photos]);
@@ -186,10 +237,68 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     contentRef.current?.focus({ preventScroll: true });
   }, [tab]);
 
-  function openDay(index: number) { setActive(index); setTab("programma"); }
+  useEffect(() => {
+    if (!moreOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMoreOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [moreOpen]);
+
+  function selectDay(index: number) {
+    setActive(index);
+    setSuggestedItemId(null);
+    setLocationState("idle");
+    setLocationMessage("La posizione viene controllata solo quando lo chiedi.");
+  }
+  function openDay(index: number) { selectDay(index); setTab("programma"); }
   function openProgramme() {
-    setActive(currentDayIndex(experience.days, experience.journey.timezone));
+    selectDay(currentDayIndex(experience.days, experience.journey.timezone));
     setTab("programma");
+  }
+  function requestNearbyVisit() {
+    if (!day) return;
+    const candidates = day.items.filter((item) => item.type === "visit"
+      && item.latitude != null && item.longitude != null);
+    if (candidates.length === 0) {
+      setLocationState("unavailable");
+      setSuggestedItemId(null);
+      setLocationMessage("Queste visite non hanno ancora coordinate precise. Puoi indicare manualmente la tappa attuale.");
+      return;
+    }
+    if (!("geolocation" in navigator)) {
+      setLocationState("unavailable");
+      setLocationMessage("La posizione non è disponibile su questo dispositivo. Seleziona manualmente la tappa.");
+      return;
+    }
+    setLocationState("requesting");
+    setLocationMessage("Cerco la visita più vicina…");
+    navigator.geolocation.getCurrentPosition((position) => {
+      const current = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+      const nearest = candidates.map((item) => ({ item, distance: distanceMetres(current, {
+        latitude: item.latitude!, longitude: item.longitude!,
+      }) })).sort((left, right) => left.distance - right.distance)[0];
+      if (!nearest || nearest.distance > 350) {
+        setLocationState("unavailable");
+        setSuggestedItemId(null);
+        setLocationMessage("Non risulti vicino a una visita prevista oggi. Puoi scegliere la tappa manualmente.");
+        return;
+      }
+      setSuggestedItemId(nearest.item.id);
+      setLocationState("suggested");
+      setLocationMessage(`Sei a circa ${Math.max(10, Math.round(nearest.distance / 10) * 10)} m da ${nearest.item.title}.`);
+    }, () => {
+      setLocationState("unavailable");
+      setLocationMessage("Posizione non autorizzata. Puoi continuare e scegliere la tappa manualmente.");
+    }, { enableHighAccuracy: false, timeout: 8_000, maximumAge: 300_000 });
+  }
+  function confirmCurrentItem(itemId: string) {
+    if (!day) return;
+    setCurrentItems((current) => ({ ...current, [day.id]: itemId }));
+    setSuggestedItemId(null);
+    setLocationState("idle");
+    setLocationMessage("Tappa attuale confermata. Puoi modificarla in qualsiasi momento.");
   }
   async function postJournal(body: Record<string, unknown>) {
     const response = await fetch("/api/traveler/journal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ departureId: experience.journey.departureId, partyId: experience.journey.partyId, ...body }) });
@@ -283,13 +392,22 @@ export default function TravelExperience({ initialExperience, userName, isAgency
   const transport = dayTransport(day);
   const dayNote = experience.notes.find((entry) => entry.dayId === day.id);
   const isUzbekistan = experience.journey.destinationCountry.toLocaleLowerCase("it").includes("uzbek");
+  const agencyColor = validBrandColor(experience.journey.agencyBranding.primaryColor);
+  const agencyPrimary = accessibleBrandColor(agencyColor);
+  const agencyLogo = experience.journey.agencyBranding.logoUrl;
+  const brandStyle = {
+    "--agency-source": agencyColor,
+    "--agency-primary": agencyPrimary,
+    "--agency-on-primary": brandContrastColor(agencyPrimary),
+  } as CSSProperties;
 
-  return <main className="travelExperience">
+  return <main className="travelExperience travelerRedesign" style={brandStyle}>
     <a className="skipLink" href="#travel-main-content">Salta al contenuto del viaggio</a>
-    <header className="topbar"><div className="brand"><span className="brandMark">SMF</span><div><strong>SMF Travel</strong><small>{experience.journey.agencyName.toUpperCase()} · {experience.journey.destinationCountry.toUpperCase()}</small></div></div><div className="tripDates"><CalendarDays/><span>{dateParts(experience.journey.startsOn).full} — {dateParts(experience.journey.endsOn).full}</span><i>{experience.days.length} gg</i></div><div className="people"><span className="currentUser"><i>{initials(userName)}</i><b>{userName}</b></span><div className="avatars">{experience.journey.travelers.slice(0, 4).map((traveler) => <i key={traveler.name}>{initials(traveler.name)}</i>)}</div>{isAgencyAdmin && <a className="agencyButton" href="/agenzia"><Building2/><span>Agenzia</span></a>}<form action="/api/auth/logout" method="post"><button className="logoutButton"><LogOut/><span>Esci</span></button></form></div></header>
+    <header className="topbar"><div className="brand">{agencyLogo ? <img className="agencyLogo" src={agencyLogo} alt={`Logo ${experience.journey.agencyName}`}/> : <span className="brandMark">{initials(experience.journey.agencyName)}</span>}<div><strong>{experience.journey.agencyName}</strong><small>POWERED BY SMF TRAVEL</small></div></div><div className="tripDates"><CalendarDays/><span>{dateParts(experience.journey.startsOn).full} — {dateParts(experience.journey.endsOn).full}</span><i>{experience.days.length} gg</i></div><div className="people"><span className="currentUser"><i>{initials(userName)}</i><b>{userName}</b></span><div className="avatars">{experience.journey.travelers.slice(0, 4).map((traveler) => <i key={traveler.name}>{initials(traveler.name)}</i>)}</div>{isAgencyAdmin && <a className="agencyButton" href="/agenzia"><Building2/><span>Agenzia</span></a>}<form action="/api/auth/logout" method="post"><button className="logoutButton"><LogOut/><span>Esci</span></button></form></div></header>
     {experience.availableJourneys.length > 1 && <nav className="journeyPicker">{experience.availableJourneys.map((journey) => <a className={journey.departureId === experience.journey.departureId ? "active" : ""} href={`/viaggio?partenza=${journey.departureId}`} key={journey.departureId}>{journey.title}<small>{dateParts(journey.startsOn).full}</small></a>)}</nav>}
     <section className="hero"><div className="heroTexture"/><div className="heroCopy"><p className="eyebrow">IL NOSTRO VIAGGIO</p><h1>{experience.journey.title}</h1><p>{experience.journey.destinationCountry} · {experience.journey.partyName}</p></div><div className="routeSummary"><div><strong>{experience.days.length}</strong><span>GIORNI</span></div><div><strong>{new Set(experience.days.flatMap((entry) => entry.cities.map((city) => city.name))).size}</strong><span>LOCALITÀ</span></div><div><strong>{experience.journey.travelers.length}</strong><span>VIAGGIATORI</span></div></div></section>
-    <nav className="tabs" aria-label="Sezioni del viaggio"><button type="button" className={tab === "mappa" ? "active" : ""} aria-current={tab === "mappa" ? "page" : undefined} onClick={() => setTab("mappa")}><Map/> Mappa</button><button type="button" className={tab === "programma" ? "active" : ""} aria-current={tab === "programma" ? "page" : undefined} onClick={openProgramme}><CalendarDays/> Programma</button><button type="button" aria-label="Spese, prelievi e cambi" className={tab === "spese" ? "active" : ""} aria-current={tab === "spese" ? "page" : undefined} onClick={() => setTab("spese")}><Wallet/> Spese</button><button type="button" className={tab === "info" ? "active" : ""} aria-current={tab === "info" ? "page" : undefined} onClick={() => setTab("info")}><Info/> Info utili</button><button type="button" className={tab === "frasario" ? "active" : ""} aria-current={tab === "frasario" ? "page" : undefined} onClick={() => setTab("frasario")}><Languages/> Frasi</button><button type="button" className={tab === "sfide" ? "active" : ""} aria-current={tab === "sfide" ? "page" : undefined} onClick={() => setTab("sfide")}><Sparkles/> Sfide</button></nav>
+    <nav className="tabs" aria-label="Sezioni del viaggio"><button type="button" className={tab === "mappa" ? "active" : ""} aria-current={tab === "mappa" ? "page" : undefined} onClick={() => { setTab("mappa"); setMoreOpen(false); }}><Map/><span>Mappa</span></button><button type="button" className={tab === "programma" ? "active" : ""} aria-current={tab === "programma" ? "page" : undefined} onClick={() => { openProgramme(); setMoreOpen(false); }}><CalendarDays/><span>Programma</span></button><button type="button" aria-label="Spese, prelievi e cambi" className={tab === "spese" ? "active" : ""} aria-current={tab === "spese" ? "page" : undefined} onClick={() => { setTab("spese"); setMoreOpen(false); }}><Wallet/><span>Spese</span></button><button type="button" className={tab === "sfide" ? "active" : ""} aria-current={tab === "sfide" ? "page" : undefined} onClick={() => { setTab("sfide"); setMoreOpen(false); }}><Sparkles/><span>Sfide</span></button><button type="button" className={moreOpen || tab === "info" || tab === "frasario" ? "active" : ""} aria-expanded={moreOpen} onClick={() => setMoreOpen((value) => !value)}><CircleUserRound/><span>Altro</span></button></nav>
+    {moreOpen && <div className="moreMenu" role="region" aria-label="Altre sezioni"><button type="button" onClick={() => { setTab("info"); setMoreOpen(false); }}><Info/><span><strong>Informazioni utili</strong><small>Contatti, valuta e consigli</small></span><ChevronRight/></button><button type="button" onClick={() => { setTab("frasario"); setMoreOpen(false); }}><Languages/><span><strong>Frasi</strong><small>Parole utili durante il viaggio</small></span><ChevronRight/></button>{experience.availableJourneys.length > 1 && <div className="moreJourneys"><small>I MIEI VIAGGI</small>{experience.availableJourneys.map((journey) => <a className={journey.departureId === experience.journey.departureId ? "active" : ""} href={`/viaggio?partenza=${journey.departureId}`} key={journey.departureId}><Map/><span><strong>{journey.title}</strong><small>{dateParts(journey.startsOn).full} — {dateParts(journey.endsOn).full}</small></span>{journey.departureId === experience.journey.departureId ? <Check/> : <ChevronRight/>}</a>)}</div>}{isAgencyAdmin && <a href="/agenzia"><Building2/><span><strong>Area agenzia</strong><small>Gestisci viaggi e viaggiatori</small></span><ChevronRight/></a>}<form action="/api/auth/logout" method="post"><button type="submit"><LogOut/><span><strong>Esci</strong><small>{userName}</small></span><ChevronRight/></button></form></div>}
     <div id="travel-main-content" className="travelMainContent" ref={contentRef} tabIndex={-1}>
     <div className="srStatus" role="status" aria-live="polite" aria-atomic="true">{saving ? "Salvataggio in corso" : ""}</div>
     {error && <p className="dataError" role="alert">{error}</p>}
@@ -299,22 +417,25 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     {tab === "mappa" && <section className="overviewPage"><div className="overviewHead"><div><span>LA ROTTA DEL VIAGGIO</span><h2>{experience.days.length} giorni, una mappa</h2><p>Tocca un numero sulla mappa o una tappa qui sotto per aprire il programma.</p></div><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(experience.journey.destinationCountry)}`} target="_blank" rel="noreferrer">Apri la mappa completa <ExternalLink/></a></div>{tripMapDays.length > 0 ? <><div className="overviewMap"><TripOverviewMap days={tripMapDays} onSelect={openDay}/></div><div className="overviewDayList">{tripMapDays.map((entry) => <button key={entry.n} onClick={() => openDay(entry.index)}><span style={{ background: entry.color }}>{entry.n}</span><span><small>{entry.date}</small><strong>{entry.city}</strong></span><ChevronRight/></button>)}</div><p className="mapAttribution">Coordinate fornite da <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo</a>.</p></> : <div className="empty"><Map/><h3>Mappa in preparazione</h3><p>Stiamo recuperando le coordinate delle località. Ricarica la pagina tra pochi secondi.</p></div>}</section>}
 
     {tab === "programma" && <div className="dashboard">
-      <aside className="timeline"><div className="sectionTitle"><div><span>ITINERARIO</span><h2>Giorno per giorno</h2></div><span>{active + 1} / {experience.days.length}</span></div><div className="dayList">{experience.days.map((entry, index) => { const date = dateParts(entry.date); const Transport = dayTransport(entry).Icon; return <button key={entry.id} className={`dayRow ${active === index ? "selected" : ""}`} onClick={() => setActive(index)}><span className="dayDate"><b>{date.day}</b>{date.month}</span><span className="line"><i style={{ background: colors[index % colors.length] }}/></span><span className="dayInfo"><small>{entry.label || `GIORNO ${entry.number}`}</small><strong>{entry.city}</strong><em><Transport/>{entry.title}</em></span><ChevronRight/></button>; })}</div></aside>
+      <aside className="timeline"><div className="sectionTitle"><div><span>ITINERARIO</span><h2>Giorno per giorno</h2></div><span>{active + 1} / {experience.days.length}</span></div><div className="dayList">{experience.days.map((entry, index) => { const date = dateParts(entry.date); const Transport = dayTransport(entry).Icon; return <button key={entry.id} className={`dayRow ${active === index ? "selected" : ""}`} onClick={() => selectDay(index)}><span className="dayDate"><b>{date.day}</b>{date.month}</span><span className="line"><i style={{ background: colors[index % colors.length] }}/></span><span className="dayInfo"><small>{entry.label || `GIORNO ${entry.number}`}</small><strong>{entry.city}</strong><em><Transport/>{entry.title}</em></span><ChevronRight/></button>; })}</div></aside>
       <section className="detail">
-        <div className="detailHead"><div><span className="tag" style={{ color: colors[active % colors.length] }}>{day.label || `GIORNO ${day.number}`} · {currentDate.full}</span><h2>{day.title}</h2><p><MapPin/><span className="cityLinks">{day.cities.length ? day.cities.map((city, index) => <Fragment key={city.id}>{index > 0 && <ArrowRight/>}<a href={city.googleUrl} target="_blank" rel="noreferrer">{city.name}<ExternalLink/></a></Fragment>) : day.city}</span></p></div><div className="pager"><button type="button" aria-label="Giornata precedente" disabled={active === 0} onClick={() => setActive(active - 1)}><ArrowLeft/></button><button type="button" aria-label="Giornata successiva" disabled={active === experience.days.length - 1} onClick={() => setActive(active + 1)}><ArrowRight/></button></div></div>
-        <p className="description">{day.description}</p><div className="stayInfo"><span><CircleUserRound/>{transport.label}</span><span><BedDouble/><strong>{day.hotels.map((hotel) => hotel.name).join(" · ") || "Pernottamento da confermare"}</strong></span></div>
-        <section className="dayProgramme"><header><span>PROGRAMMA DELLA GIORNATA</span><h3>La giornata, in ordine cronologico</h3></header><div className="dayProgrammeList">
+        <div className="detailHead"><div><span className="tag" style={{ color: colors[active % colors.length] }}>{day.label || `GIORNO ${day.number}`} · {currentDate.full}</span><h2>{day.title}</h2><p><MapPin/><span className="cityLinks">{day.cities.length ? day.cities.map((city, index) => <Fragment key={city.id}>{index > 0 && <ArrowRight/>}<a href={city.googleUrl} target="_blank" rel="noreferrer">{city.name}<ExternalLink/></a></Fragment>) : day.city}</span></p></div><div className="pager"><button type="button" aria-label="Giornata precedente" disabled={active === 0} onClick={() => selectDay(active - 1)}><ArrowLeft/></button><button type="button" aria-label="Giornata successiva" disabled={active === experience.days.length - 1} onClick={() => selectDay(active + 1)}><ArrowRight/></button></div></div>
+        <section className={`proximityPanel state-${locationState}`} aria-live="polite"><div className="proximityIcon"><LocateFixed/></div><div className="proximityCopy"><small>{suggestedItem ? "VISITA SUGGERITA DALLA POSIZIONE" : currentItemId ? "TAPPA ATTUALE" : "DOVE SEI NEL PROGRAMMA?"}</small><strong>{suggestedItem?.title || day.items.find((item) => item.id === currentItemId)?.title || "Individua la visita più vicina"}</strong><p>{locationMessage}</p></div>{suggestedItem ? <div className="proximityActions"><button type="button" className="confirm" onClick={() => confirmCurrentItem(suggestedItem.id)}><Check/>Conferma</button><button type="button" onClick={() => { setSuggestedItemId(null); setLocationState("idle"); setLocationMessage("Suggerimento ignorato. Puoi scegliere la tappa dalla scaletta."); }}>Non ora</button></div> : <button type="button" className="locateButton" disabled={locationState === "requesting"} onClick={requestNearbyVisit}>{locationState === "requesting" ? <LoaderCircle className="spin"/> : <LocateFixed/>}{locationState === "requesting" ? "Ricerca…" : "Individua"}</button>}</section>
+        <section className="dayProgramme"><header><span>SCALLETTA DELLA GIORNATA</span><h3>Le attività nell’ordine previsto</h3><p>Gli orari compaiono solo per trasporti e prenotazioni che li prevedono.</p></header><div className="dayProgrammeList">
           {day.items.map((item, index) => {
             const presentation = itemPresentation(item.type); const ItemIcon = presentation.Icon;
             const site = relatedSite(day, item);
-            const hasRequiredTime = ["transport", "flight", "train"].includes(item.type);
+            const hasVisibleTime = ["transport", "flight", "train"].includes(item.type)
+              && Boolean(item.startsAt || item.endsAt);
             const ratingBusy = saving === `rating-itinerary_item-${item.id}`;
-            return <article className={`programmeStep type-${item.type}`} key={item.id}>
+            const progressClass = item.id === currentItemId ? "is-current" : currentItemIndex > index ? "is-complete" : item.id === suggestedItemId ? "is-suggested" : "";
+            return <article className={`programmeStep type-${item.type} ${progressClass}`} key={item.id}>
               <span className="programmeStepNumber">{String(index + 1).padStart(2, "0")}</span><span className="programmeStepLine"/>
-              <div className="programmeStepBody"><div className="programmeStepMeta"><small><ItemIcon/>{presentation.label}</small>{hasRequiredTime && <time className={item.startsAt ? "" : "pending"}><Clock3/>{item.startsAt || "Orario da confermare"}{item.endsAt ? ` – ${item.endsAt}` : ""}</time>}</div>
+              <div className="programmeStepBody"><div className="programmeStepMeta"><small><ItemIcon/>{presentation.label}</small>{hasVisibleTime && <time><Clock3/>{item.startsAt || item.endsAt}{item.startsAt && item.endsAt ? ` – ${item.endsAt}` : ""}</time>}</div>
                 <h4>{site ? <a href={site.googleUrl} target="_blank" rel="noreferrer">{item.title}<ExternalLink/></a> : item.title}</h4>
                 {item.description && <div className={item.type === "transport" ? "programmeOperationalNote" : "programmeDescriptionNote"}>{item.type === "transport" && <strong>Note operative</strong>}<p>{item.description}</p></div>}
                 {item.tickets.length > 0 && <div className="travelerTickets">{item.tickets.map((ticket) => <a href={ticket.downloadUrl} key={ticket.id}><FileText/><span><strong>Biglietto</strong><small>{ticket.title}</small></span><Download/></a>)}</div>}
+                <button type="button" className="setCurrentStep" aria-pressed={item.id === currentItemId} onClick={() => confirmCurrentItem(item.id)}>{item.id === currentItemId ? <><Check/>Tappa attuale</> : "Sono qui"}</button>
                 <RatingStars value={item.rating} busy={ratingBusy} label={`Valutazione di ${item.title}`} onRate={(rating) => void saveRating(day.id, "itinerary_item", item.id, rating)}/>
               </div>
             </article>;
@@ -325,6 +446,7 @@ export default function TravelExperience({ initialExperience, userName, isAgency
           </article>; })}
           {day.items.length === 0 && day.hotels.length === 0 && <div className="programmeEmpty">Programma dettagliato ancora da completare.</div>}
         </div></section>
+        {(day.description || day.hotels.length > 0) && <details className="dayContext"><summary>Dettagli della giornata</summary>{day.description && <p className="description">{day.description}</p>}<div className="stayInfo"><span><CircleUserRound/>{transport.label}</span><span><BedDouble/><strong>{day.hotels.map((hotel) => hotel.name).join(" · ") || "Pernottamento da confermare"}</strong></span></div></details>}
         <div className="journal"><div><MessageCircle/><strong>Nota del giorno</strong></div><textarea placeholder="Scrivi qui un ricordo, un consiglio, una curiosità…" value={dayNote?.text || ""} onChange={(event) => setExperience((current) => ({ ...current, notes: current.notes.some((entry) => entry.dayId === day.id) ? current.notes.map((entry) => entry.dayId === day.id ? { ...entry, text: event.target.value, updatedBy: userName } : entry) : [...current.notes, { id: "new", dayId: day.id, dayNumber: day.number, text: event.target.value, updatedBy: userName, updatedAt: "" }] }))} onBlur={() => void saveNote()}/>{saving === `note-${day.id}` ? <small className="auditBy">Salvataggio…</small> : dayNote?.text && <small className="auditBy">Ultima modifica: {dayNote.updatedBy}</small>}</div>
       </section>
     </div>}

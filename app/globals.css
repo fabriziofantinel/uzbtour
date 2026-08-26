@@ -4,4 +4,11 @@
 .impersonationBanner{position:sticky;top:0;z-index:9999;min-height:46px;padding:7px clamp(12px,3vw,32px);display:flex;align-items:center;justify-content:center;gap:22px;background:var(--game-deep);color:var(--on-brand);box-shadow:0 4px 14px color-mix(in srgb,var(--shadow-base) 22%,transparent);font-family:var(--font-sans),sans-serif;font-size:13px}.impersonationBanner span{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.impersonationBanner strong{color:var(--line)}.impersonationBanner form{display:flex}.impersonationBanner button{border:1px solid color-mix(in srgb,var(--surface-raised) 33.3%,transparent);border-radius:9px;background:var(--surface-raised);color:var(--game-deep);padding:7px 11px;display:flex;align-items:center;gap:6px;font:inherit;font-weight:800;cursor:pointer;white-space:nowrap}@media(max-width:600px){.impersonationBanner{position:relative;justify-content:space-between;gap:8px;font-size:var(--text-small)}.impersonationBanner span b,.impersonationBanner button svg{display:none}.impersonationBanner button{padding:6px 8px;font-size:var(--text-meta)}}
 :root {
   color-scheme: light;
+  --trail-ink: #142b35;
+  --trail-paper: #faf7f0;
+  --trail-surface: #fffdf8;
+  --trail-green: #247a6b;
+  --trail-coral: #ef7d4d;
+  --trail-line: #d9dfd8;
+  --trail-muted: #60716f;
 }
