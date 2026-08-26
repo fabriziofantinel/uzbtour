@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  ArrowDown, ArrowLeft, ArrowUp, BedDouble, CalendarDays, Check, ChevronDown, CircleAlert, FileText,
+  ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BedDouble, CalendarDays, Check, ChevronDown, CircleAlert, FileText,
   ExternalLink, Hotel, LoaderCircle, MapPin, Plus, Save, Send,
   ShieldCheck, Sparkles, Trash2, X,
 } from "lucide-react";
@@ -70,15 +70,18 @@ function ValidationControl({
 }
 
 function pendingValidationCount(draft: TravelProgrammeDraft) {
-  return draft.days.reduce((total, day) => total
-    + Number(!day.country.trim() || day.countryValidation.needsValidation)
+  return draft.days.reduce((total, day) => total + dayValidationCount(day), 0);
+}
+
+function dayValidationCount(day: TravelProgrammeDraft["days"][number]) {
+  return Number(!day.country.trim() || day.countryValidation.needsValidation)
     + Number(!day.city.trim() || day.cityValidation.needsValidation)
     + day.activities.filter((activity) => activity.type === "visit").reduce((subtotal, activity) => subtotal + Number(
       !activity.placeName.trim() || !activity.placeCity.trim() || !activity.placeCountry.trim() || activity.placeValidation.needsValidation
     ), 0)
     + Number(Boolean(day.accommodation.name.trim()) && (
       !day.accommodation.city.trim() || !day.accommodation.country.trim() || day.accommodation.validation.needsValidation
-    )), 0);
+    ));
 }
 
 export default function ImportReview({ initialImport }: { initialImport: PlatformImportReview }) {
@@ -86,6 +89,7 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
   const [busy, setBusy] = useState("");
   const [error, setError] = useState(initialImport.errorMessage ?? "");
   const [notice, setNotice] = useState("");
+  const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [pendingAction, setPendingAction] = useState<"publish" | "delete" | null>(null);
   const savedSignatureRef = useRef(JSON.stringify(initialImport.draft));
   const navigatingRef = useRef(false);
@@ -153,6 +157,20 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
     if (destination < 0 || destination >= activities.length) return;
     [activities[activityIndex], activities[destination]] = [activities[destination], activities[activityIndex]];
     updateDay(dayIndex, { activities });
+  }
+
+  function removeDay(dayIndex: number) {
+    if (!draft) return;
+    const days = draft.days.filter((_, position) => position !== dayIndex);
+    setDraft({ ...draft, days });
+    setActiveDayIndex((current) => Math.max(0, Math.min(current, days.length - 1)));
+  }
+
+  function addDay() {
+    if (!draft) return;
+    const days = [...draft.days, { dayNumber: draft.days.length + 1, date: "", label: "", title: "Nuova giornata", country: "", countryValidation: changedValidation("Paese"), city: "", cityValidation: changedValidation("Città"), description: "", activities: [], accommodation: { name: "", city: "", country: "", notes: "", validation: changedValidation("Hotel") } }];
+    setDraft({ ...draft, days });
+    setActiveDayIndex(days.length - 1);
   }
 
   async function save() {
@@ -264,12 +282,34 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
           <label className="wide">Descrizione<textarea value={draft.summary} onChange={(event) => setDraft({ ...draft, summary: event.target.value })}/></label>
         </section>
 
-        <div className="reviewHeading"><div><small>ITINERARIO ESTRATTO</small><h2>{draft.days.length} giornate</h2></div><span><CalendarDays/> Modifica liberamente ogni campo</span></div>
+        <div className="reviewHeading"><div><small>ITINERARIO ESTRATTO</small><h2>{draft.days.length} giornate</h2></div><span><CalendarDays/> Controlla una giornata alla volta</span></div>
 
-        <section className="reviewDays">
-          {draft.days.map((day, dayIndex) => (
+        <div className="reviewItineraryWorkspace">
+          <aside className="reviewDayNavigator" aria-label="Giornate del programma">
+            <div className="reviewDayNavigatorHeading"><b>Giornate</b><span>{validationsPending ? `${validationsPending} verifiche` : "Tutto validato"}</span></div>
+            <div className="reviewDayNavigatorList">
+              {draft.days.map((day, dayIndex) => {
+                const pending = dayValidationCount(day);
+                return <button
+                  key={`${day.dayNumber}-${dayIndex}`}
+                  type="button"
+                  className={activeDayIndex === dayIndex ? "active" : ""}
+                  aria-current={activeDayIndex === dayIndex ? "step" : undefined}
+                  onClick={() => setActiveDayIndex(dayIndex)}
+                >
+                  <span>{String(dayIndex + 1).padStart(2, "0")}</span>
+                  <span><b>{day.title || "Senza titolo"}</b><small>{day.date || day.city || "Dati da completare"}</small></span>
+                  <i className={pending ? "pending" : "valid"} aria-label={pending ? `${pending} verifiche da completare` : "Giornata validata"}>{pending || <Check/>}</i>
+                </button>;
+              })}
+            </div>
+            <button type="button" className="reviewDayNavigatorAdd" onClick={addDay}><Plus/> Aggiungi giornata</button>
+          </aside>
+
+          <section className="reviewDays">
+          {draft.days.map((day, dayIndex) => activeDayIndex === dayIndex && (
             <article className="reviewDay" key={`${day.dayNumber}-${dayIndex}`}>
-              <header><span>{String(dayIndex + 1).padStart(2, "0")}</span><div><small>GIORNO {dayIndex + 1}</small><b>{day.title || "Senza titolo"}</b></div><button type="button" aria-label={`Rimuovi giornata ${dayIndex + 1}`} onClick={() => setDraft({ ...draft, days: draft.days.filter((_, position) => position !== dayIndex) })}><Trash2/></button></header>
+              <header><span>{String(dayIndex + 1).padStart(2, "0")}</span><div><small>GIORNO {dayIndex + 1} DI {draft.days.length}</small><b>{day.title || "Senza titolo"}</b></div><button type="button" aria-label={`Rimuovi giornata ${dayIndex + 1}`} onClick={() => removeDay(dayIndex)}><Trash2/></button></header>
               <div className="dayFields">
                 <label>Data<input type="date" value={day.date} onChange={(event) => updateDay(dayIndex, { date: event.target.value })}/></label>
                 <label>Paese<input value={day.country} onChange={(event) => updateDay(dayIndex, { country: event.target.value, countryValidation: changedValidation("Paese") })}/></label>
@@ -310,9 +350,10 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
               <div className="hotelEditor"><Hotel/><div><b>Pernottamento</b><span>Lascia vuoto se non previsto</span></div><label>Hotel<input value={day.accommodation.name} onChange={(event) => updateDay(dayIndex, { accommodation: { ...day.accommodation, name: event.target.value, validation: changedValidation("Hotel") } })}/></label><label>Città<input value={day.accommodation.city} onChange={(event) => updateDay(dayIndex, { accommodation: { ...day.accommodation, city: event.target.value, validation: changedValidation("Località dell’hotel") } })}/></label><label>Paese<input value={day.accommodation.country} onChange={(event) => updateDay(dayIndex, { accommodation: { ...day.accommodation, country: event.target.value, validation: changedValidation("Località dell’hotel") } })}/></label>{day.accommodation.name.trim() && <div className="hotelValidation"><ValidationControl validation={day.accommodation.validation} searchParts={[day.accommodation.name, day.accommodation.city, day.accommodation.country]} onChange={(validation) => updateDay(dayIndex, { accommodation: { ...day.accommodation, validation } })}/></div>}</div>
             </article>
           ))}
-        </section>
-
-        <button type="button" className="addDay" onClick={() => setDraft({ ...draft, days: [...draft.days, { dayNumber: draft.days.length + 1, date: "", label: "", title: "Nuova giornata", country: "", countryValidation: changedValidation("Paese"), city: "", cityValidation: changedValidation("Città"), description: "", activities: [], accommodation: { name: "", city: "", country: "", notes: "", validation: changedValidation("Hotel") } }] })}><Plus/> Aggiungi giornata</button>
+          {draft.days.length === 0 && <div className="reviewNoDays"><CalendarDays/><h3>Il programma non contiene giornate</h3><p>Aggiungi la prima giornata per poter completare e pubblicare il viaggio.</p><button type="button" onClick={addDay}><Plus/> Aggiungi la prima giornata</button></div>}
+          {draft.days.length > 1 && <nav className="reviewDayPager" aria-label="Navigazione tra giornate"><button type="button" disabled={activeDayIndex === 0} onClick={() => setActiveDayIndex((index) => Math.max(0, index - 1))}><ArrowLeft/> Giorno precedente</button><span>{activeDayIndex + 1} di {draft.days.length}</span><button type="button" disabled={activeDayIndex === draft.days.length - 1} onClick={() => setActiveDayIndex((index) => Math.min(draft.days.length - 1, index + 1))}>Giorno successivo <ArrowRight/></button></nav>}
+          </section>
+        </div>
 
         <section className="reviewUseful">
           <div className="reviewHeading"><div><small>DAL DOCUMENTO</small><h2>Informazioni utili</h2></div><button type="button" className="addUsefulInfo" onClick={() => setDraft({ ...draft, usefulInformation: [...draft.usefulInformation, { category: "Generale", title: "Nuova informazione", body: "Inserisci il contenuto", phone: "", url: "" }] })}><Plus/> Aggiungi informazione</button></div>
