@@ -16,7 +16,6 @@ import {
 import { isPhotoAdmin } from "@/lib/photos";
 
 export const runtime = "nodejs";
-export const preferredRegion = "fra1";
 export const maxDuration = 300;
 
 function contestFromRow(row: Record<string, unknown>) {

@@ -5,7 +5,6 @@ import { ensurePhotosTable } from "@/lib/photos";
 import { getObjectStorage } from "@/lib/platform/object-storage";
 
 export const runtime = "nodejs";
-export const preferredRegion = "fra1";
 
 function contentDisposition(filename: string, download: boolean) {
   const encoded = encodeURIComponent(filename.replace(/[\r\n]/g, "") || "foto");

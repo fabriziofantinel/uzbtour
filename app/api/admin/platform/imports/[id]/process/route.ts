@@ -7,7 +7,6 @@ import { getPlatformProviderConfig } from "@/lib/platform/provider-config";
 import { processTravelImport } from "@/lib/platform/process-import";
 
 export const runtime = "nodejs";
-export const preferredRegion = "fra1";
 export const maxDuration = 300;
 
 export async function POST(

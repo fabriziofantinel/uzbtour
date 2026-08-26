@@ -10,7 +10,6 @@ import {
 } from "@/lib/platform/travel-document";
 
 export const runtime = "nodejs";
-export const preferredRegion = "fra1";
 
 const UPLOAD_EXPIRY_SECONDS = 10 * 60;
 

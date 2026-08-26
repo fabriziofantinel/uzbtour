@@ -6,7 +6,6 @@ import { ensurePhotosTable, isPhotoAdmin } from "@/lib/photos";
 import { getObjectStorage } from "@/lib/platform/object-storage";
 
 export const runtime = "nodejs";
-export const preferredRegion = "fra1";
 
 export async function DELETE(
   _request: Request,

@@ -16,7 +16,6 @@ type CashMovementRequest = {
 type TripDataRequest = NoteRequest | RestaurantRequest | ExpenseRequest | CashMovementRequest;
 
 export const runtime = "nodejs";
-export const preferredRegion = "fra1";
 
 let cashSchemaPromise: Promise<void> | null = null;
 let expenseSchemaPromise: Promise<void> | null = null;

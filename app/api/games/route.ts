@@ -6,7 +6,6 @@ import { getSql } from "@/lib/db";
 import { getTravelCompanions, type TravelCompanion } from "@/lib/platform/travel-companions";
 
 export const runtime = "nodejs";
-export const preferredRegion = "fra1";
 
 type GameName = "word" | "order" | "puzzle";
 

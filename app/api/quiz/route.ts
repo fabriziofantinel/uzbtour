@@ -6,7 +6,6 @@ import { ensureQuizTable } from "@/lib/quiz";
 import { getTravelCompanions, type TravelCompanion } from "@/lib/platform/travel-companions";
 
 export const runtime = "nodejs";
-export const preferredRegion = "fra1";
 
 type AnswerMap = Record<string, string>;
 

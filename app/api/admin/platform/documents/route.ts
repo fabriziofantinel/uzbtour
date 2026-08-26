@@ -15,7 +15,6 @@ import {
 } from "@/lib/platform/travel-document";
 
 export const runtime = "nodejs";
-export const preferredRegion = "fra1";
 
 function validDocumentPath(pathname: string, agencyId: string, templateId: string) {
   const escapedAgencyId = agencyId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

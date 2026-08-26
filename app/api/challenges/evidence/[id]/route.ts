@@ -5,7 +5,6 @@ import { getSql } from "@/lib/db";
 import { getObjectStorage } from "@/lib/platform/object-storage";
 
 export const runtime = "nodejs";
-export const preferredRegion = "fra1";
 
 export async function GET(
   _request: Request,

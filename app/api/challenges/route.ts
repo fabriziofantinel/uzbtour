@@ -26,7 +26,6 @@ import {
 import { getObjectStorage } from "@/lib/platform/object-storage";
 
 export const runtime = "nodejs";
-export const preferredRegion = "fra1";
 
 type CompletionRow = Record<string, unknown>;
 

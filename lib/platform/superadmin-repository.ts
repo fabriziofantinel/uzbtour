@@ -75,15 +75,16 @@ function agencySlug(name: string) {
 
 export async function getSuperadminSummary(): Promise<SuperadminSummary> {
   const sql = getSql();
-  const [agencies, trips, travelers] = await Promise.all([
-    sql`SELECT COUNT(*)::INTEGER AS count FROM agencies`,
-    sql`SELECT COUNT(*)::INTEGER AS count FROM trip_templates`,
-    sql`SELECT COUNT(*)::INTEGER AS count FROM traveler_profiles`,
-  ]);
+  const rows = await sql`
+    SELECT
+      (SELECT COUNT(*) FROM agencies)::INTEGER AS agencies,
+      (SELECT COUNT(*) FROM trip_templates)::INTEGER AS trips,
+      (SELECT COUNT(*) FROM traveler_profiles)::INTEGER AS travelers
+  `;
   return {
-    agencies: Number(agencies[0]?.count ?? 0),
-    trips: Number(trips[0]?.count ?? 0),
-    travelers: Number(travelers[0]?.count ?? 0),
+    agencies: Number(rows[0]?.agencies ?? 0),
+    trips: Number(rows[0]?.trips ?? 0),
+    travelers: Number(rows[0]?.travelers ?? 0),
   };
 }
 
@@ -92,12 +93,19 @@ export async function getAgencyRegistry(): Promise<AgencyRegistryItem[]> {
   const [agencyRows, agentRows] = await Promise.all([
     sql`
       SELECT a.*,
-        COUNT(DISTINCT tt.id)::INTEGER AS trip_count,
-        COUNT(DISTINCT tp.id)::INTEGER AS traveler_count
+        COALESCE(trips.trip_count, 0)::INTEGER AS trip_count,
+        COALESCE(travelers.traveler_count, 0)::INTEGER AS traveler_count
       FROM agencies a
-      LEFT JOIN trip_templates tt ON tt.agency_id = a.id
-      LEFT JOIN traveler_profiles tp ON tp.agency_id = a.id
-      GROUP BY a.id
+      LEFT JOIN (
+        SELECT agency_id, COUNT(*) AS trip_count
+        FROM trip_templates
+        GROUP BY agency_id
+      ) trips ON trips.agency_id = a.id
+      LEFT JOIN (
+        SELECT agency_id, COUNT(*) AS traveler_count
+        FROM traveler_profiles
+        GROUP BY agency_id
+      ) travelers ON travelers.agency_id = a.id
       ORDER BY a.name
     `,
     sql`

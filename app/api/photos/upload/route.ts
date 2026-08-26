@@ -9,7 +9,6 @@ import {
 } from "@/lib/photos";
 
 export const runtime = "nodejs";
-export const preferredRegion = "fra1";
 
 type UploadPayload = {
   day?: number;

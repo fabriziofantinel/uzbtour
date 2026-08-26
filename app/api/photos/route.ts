@@ -14,7 +14,6 @@ import {
 } from "@/lib/photos";
 
 export const runtime = "nodejs";
-export const preferredRegion = "fra1";
 
 function photoFromRow(row: Record<string, unknown>, user: { id: string; isAgencyAdmin: boolean }) {
   const id = String(row.id);
