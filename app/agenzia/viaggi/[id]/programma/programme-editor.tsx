@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowDown, ArrowLeft, ArrowUp, BedDouble, CalendarDays, CheckCircle2, Clock3, Download, FileText, LoaderCircle, MapPin, Save, Upload } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ArrowDown, ArrowLeft, ArrowUp, BedDouble, CalendarDays, CheckCircle2, CircleAlert, Clock3, Download, FileText, LoaderCircle, MapPin, Save, Upload } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { uploadPrivateFile } from "@/lib/private-upload-client";
 import type { AgencyProgramme } from "@/lib/platform/programme-repository";
 
@@ -34,9 +34,20 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
   const [days, setDays] = useState(initialProgramme.days);
   const [openDayId, setOpenDayId] = useState(() => initialDayId(initialProgramme.days, initialProgramme.departure.startsOn));
   const [busy, setBusy] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
+  const savedDaysRef = useRef(new Map(initialProgramme.days.map((day) => [day.id, JSON.stringify(day)])));
   const departure = initialProgramme.departure;
   const openDay = useMemo(() => days.find((day) => day.id === openDayId), [days, openDayId]);
+  const dirtyDayIds = useMemo(() => new Set(days
+    .filter((day) => savedDaysRef.current.get(day.id) !== JSON.stringify(day))
+    .map((day) => day.id)), [days, message]);
+
+  useEffect(() => {
+    if (!dirtyDayIds.size) return;
+    const warnBeforeLeaving = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warnBeforeLeaving);
+    return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
+  }, [dirtyDayIds]);
 
   function updateDay(dayId: string, patch: Partial<Day>) {
     setDays((current) => current.map((day) => day.id === dayId ? { ...day, ...patch } : day));
@@ -51,20 +62,25 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
   }
 
   async function saveDay(day: Day) {
-    setBusy(day.id); setMessage("");
+    if (!day.title.trim()) { setMessage({ kind: "error", text: `Inserisci il titolo del giorno ${day.number} prima di salvare.` }); return; }
+    setBusy(day.id); setMessage(null);
     try {
       await responseJson(await fetch(`/api/admin/platform/departures/${departure.id}/programme`, {
         method: "PATCH", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(day),
       }));
-      setMessage(`Giorno ${day.number} salvato. La modifica è condivisa da tutte le partenze del programma.`);
+      savedDaysRef.current.set(day.id, JSON.stringify(day));
+      setMessage({ kind: "success", text: `Giorno ${day.number} salvato. La modifica è condivisa da tutte le partenze del programma.` });
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Salvataggio non riuscito");
+      setMessage({ kind: "error", text: error instanceof Error ? error.message : "Salvataggio non riuscito. Riprova senza perdere le modifiche." });
     } finally { setBusy(""); }
   }
 
   async function uploadTicket(dayId: string, itemId: string, file: File) {
-    setBusy(`ticket-${itemId}`); setMessage("");
+    const allowedTypes = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
+    if (file.size > 25 * 1024 * 1024) { setMessage({ kind: "error", text: "Il biglietto supera 25 MB. Scegli un file più piccolo." }); return; }
+    if (!allowedTypes.has(file.type)) { setMessage({ kind: "error", text: "Formato non supportato. Carica un PDF oppure un’immagine JPG, PNG o WebP." }); return; }
+    setBusy(`ticket-${itemId}`); setMessage(null);
     try {
       const uploaded = await uploadPrivateFile({
         endpoint: `/api/admin/platform/departures/${departure.id}/tickets/upload`,
@@ -80,9 +96,9 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
       setDays((current) => current.map((day) => day.id !== dayId ? day : ({ ...day,
         items: day.items.map((item) => item.id === itemId ? { ...item, tickets: [...item.tickets, result.ticket!] } : item),
       })));
-      setMessage("Biglietto caricato. I viaggiatori potranno scaricarlo dal programma.");
+      setMessage({ kind: "success", text: "Biglietto caricato. I viaggiatori potranno scaricarlo dal programma." });
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Caricamento del biglietto non riuscito");
+      setMessage({ kind: "error", text: error instanceof Error ? error.message : "Caricamento del biglietto non riuscito. Riprova." });
     } finally { setBusy(""); }
   }
 
@@ -96,15 +112,15 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
       <CalendarDays/><div><b>Partenza visualizzata: {departure.title}</b><span>{dateFor(departure.startsOn, 0)} – {dateFor(departure.startsOn, Math.max(0, days.length - 1))}</span></div>
       <p>Itinerario e contenuti appartengono al preventivo: ogni modifica vale per tutte le partenze collegate. Spese, ricordi, giochi e contest restano invece separati per famiglia.</p>
     </section>
-    {message && <div className="programmeMessage"><CheckCircle2/>{message}</div>}
+    {message && <div className={`programmeMessage ${message.kind}`} role={message.kind === "error" ? "alert" : "status"}>{message.kind === "error" ? <CircleAlert/> : <CheckCircle2/>}{message.text}</div>}
     <div className="programmeLayout">
       <nav className="programmeDays" aria-label="Giornate del programma">
-        {days.map((day) => <button key={day.id} className={day.id === openDayId ? "active" : ""} onClick={() => setOpenDayId(day.id)}>
-          <small>GIORNO {day.number}</small><b>{dateFor(departure.startsOn, day.offset)}</b><span>{day.city || day.title || "Da completare"}</span>
+        {days.map((day) => <button type="button" key={day.id} className={day.id === openDayId ? "active" : ""} aria-current={day.id === openDayId ? "page" : undefined} onClick={() => setOpenDayId(day.id)}>
+          <small>GIORNO {day.number}{dirtyDayIds.has(day.id) ? " · DA SALVARE" : ""}</small><b>{dateFor(departure.startsOn, day.offset)}</b><span>{day.city || day.title || "Da completare"}</span>
         </button>)}
       </nav>
       {openDay && <section className="dayEditor">
-        <div className="dayEditorHead"><div><small>GIORNO {openDay.number}</small><h2>{dateFor(departure.startsOn, openDay.offset)}</h2></div><button disabled={busy === openDay.id} onClick={() => void saveDay(openDay)}>{busy === openDay.id ? <LoaderCircle className="spin"/> : <Save/>} Salva giornata</button></div>
+        <div className="dayEditorHead"><div><small>GIORNO {openDay.number}{dirtyDayIds.has(openDay.id) ? " · MODIFICHE DA SALVARE" : " · SALVATO"}</small><h2>{dateFor(departure.startsOn, openDay.offset)}</h2></div><button type="button" disabled={Boolean(busy) || !dirtyDayIds.has(openDay.id)} onClick={() => void saveDay(openDay)}>{busy === openDay.id ? <><LoaderCircle className="spin"/> Salvataggio…</> : <><Save/> Salva giornata</>}</button></div>
         <div className="dayFields">
           <label>Etichetta<input value={openDay.label} onChange={(event) => updateDay(openDay.id, { label: event.target.value })}/></label>
           <label>Titolo<input value={openDay.title} onChange={(event) => updateDay(openDay.id, { title: event.target.value })}/></label>
@@ -113,13 +129,14 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
         </div>
         <div className="programmeBlock"><h3>Programma della giornata</h3>
           {openDay.items.map((item, index) => <article className="programmeItem" key={item.id}>
-            <div className="orderButtons"><button aria-label="Sposta su" onClick={() => moveItem(openDay, index, -1)} disabled={index === 0}><ArrowUp/></button><button aria-label="Sposta giù" onClick={() => moveItem(openDay, index, 1)} disabled={index === openDay.items.length - 1}><ArrowDown/></button></div>
+            <div className="orderButtons"><button type="button" aria-label={`Sposta “${item.title}” in alto`} onClick={() => moveItem(openDay, index, -1)} disabled={index === 0}><ArrowUp/></button><button type="button" aria-label={`Sposta “${item.title}” in basso`} onClick={() => moveItem(openDay, index, 1)} disabled={index === openDay.items.length - 1}><ArrowDown/></button></div>
             <div className="itemFields"><label>Tipo<span>{item.type}</span></label><label>Titolo<input value={item.title} onChange={(event) => updateDay(openDay.id, { items: openDay.items.map((entry) => entry.id === item.id ? { ...entry, title: event.target.value } : entry) })}/></label>
               {(["transport", "flight", "train"].includes(item.type)) && <div className="timeFields"><Clock3/><label>Orario di inizio<input type="time" value={item.startsAt} onChange={(event) => updateDay(openDay.id, { items: openDay.items.map((entry) => entry.id === item.id ? { ...entry, startsAt: event.target.value } : entry) })}/></label><label>Orario di fine<input type="time" value={item.endsAt} onChange={(event) => updateDay(openDay.id, { items: openDay.items.map((entry) => entry.id === item.id ? { ...entry, endsAt: event.target.value } : entry) })}/></label></div>}
               <label className="wide">{item.type === "transport" ? "Note operative (autista, telefono, targa o punto d’incontro)" : "Note"}<textarea rows={2} value={item.description} onChange={(event) => updateDay(openDay.id, { items: openDay.items.map((entry) => entry.id === item.id ? { ...entry, description: event.target.value } : entry) })}/></label>
-              {(["flight", "train"].includes(item.type)) && <div className="ticketManager"><div className="ticketManagerHead"><FileText/><div><b>Biglietti</b><small>PDF o immagine, massimo 25 MB</small></div><label className={busy === `ticket-${item.id}` ? "busy" : ""}>{busy === `ticket-${item.id}` ? <LoaderCircle className="spin"/> : <Upload/>}<span>Allega biglietto</span><input type="file" accept="application/pdf,image/jpeg,image/png,image/webp,.pdf" disabled={busy === `ticket-${item.id}`} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void uploadTicket(openDay.id, item.id, file); }}/></label></div>{item.tickets.length > 0 && <div className="ticketList">{item.tickets.map((ticket) => <a href={ticket.downloadUrl} key={ticket.id}><FileText/><span>{ticket.title}</span><Download/></a>)}</div>}</div>}
+              {(["flight", "train"].includes(item.type)) && <div className="ticketManager"><div className="ticketManagerHead"><FileText/><div><b>Biglietti</b><small>PDF o immagine, massimo 25 MB</small></div><label className={busy === `ticket-${item.id}` ? "busy" : ""}>{busy === `ticket-${item.id}` ? <LoaderCircle className="spin"/> : <Upload/>}<span>{busy === `ticket-${item.id}` ? "Caricamento…" : "Allega biglietto"}</span><input type="file" aria-label={`Allega biglietto per ${item.title}`} accept="application/pdf,image/jpeg,image/png,image/webp,.pdf" disabled={busy === `ticket-${item.id}`} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void uploadTicket(openDay.id, item.id, file); }}/></label></div>{item.tickets.length > 0 ? <div className="ticketList">{item.tickets.map((ticket) => <a href={ticket.downloadUrl} key={ticket.id}><FileText/><span>{ticket.title}</span><Download/></a>)}</div> : <p className="ticketEmpty">Nessun biglietto allegato.</p>}</div>}
             </div>
           </article>)}
+          {openDay.items.length === 0 && <div className="programmeEmpty"><CalendarDays/><b>Nessuna attività</b><p>Questa giornata non contiene ancora tappe modificabili.</p></div>}
         </div>
         {openDay.hotels.length > 0 && <div className="programmeBlock"><h3><BedDouble/> Pernottamento</h3>{openDay.hotels.map((hotel) => <article className="hotelFields" key={hotel.id}><label>Hotel<input value={hotel.name} onChange={(event) => updateDay(openDay.id, { hotels: openDay.hotels.map((entry) => entry.id === hotel.id ? { ...entry, name: event.target.value } : entry) })}/></label><label>Note<textarea rows={2} value={hotel.notes} onChange={(event) => updateDay(openDay.id, { hotels: openDay.hotels.map((entry) => entry.id === hotel.id ? { ...entry, notes: event.target.value } : entry) })}/></label></article>)}</div>}
       </section>}
