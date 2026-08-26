@@ -1,10 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope, Playfair_Display } from "next/font/google";
 import "./globals.css";
-import "@neondatabase/auth-ui/css";
-import "./tour.css";
-import "./challenges.css";
-import "leaflet/dist/leaflet.css";
 import ImpersonationBanner from "@/components/impersonation-banner";
 
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-sans" });

@@ -2,7 +2,9 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/current-user";
 import { getTravelerExperience } from "@/lib/platform/traveler-experience";
 import TravelExperience from "./travel-experience";
-import "./travel.css";
+import "../tour.css";
+import "../challenges.css";
+import "leaflet/dist/leaflet.css";
 
 export const dynamic = "force-dynamic";
 

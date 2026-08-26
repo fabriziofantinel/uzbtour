@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { AuthView } from "@neondatabase/auth-ui";
 import { authViewPaths, type AuthViewPath } from "@neondatabase/auth-ui/server";
 import AuthProvider from "../auth-provider";
+import "@neondatabase/auth-ui/css";
 
 const allowedPaths = new Set<string>([
   authViewPaths.FORGOT_PASSWORD,

@@ -128,7 +128,7 @@ export default function TripOverviewMap({ days, onSelect }: TripOverviewMapProps
 
   return (
     <div className="tripMapShell">
-      <div className="tripMapCanvas" ref={containerRef} aria-label="Mappa interattiva dell’itinerario"/>
+      <div className="tripMapCanvas" ref={containerRef} role="region" aria-label="Mappa interattiva dell’itinerario"/>
       <div className="tripMapZoom" role="group" aria-label="Controlli zoom della mappa">
         <button type="button" onClick={() => mapRef.current?.zoomIn()} aria-label="Ingrandisci la mappa">
           <Plus size={21}/>

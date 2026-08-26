@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { LoaderCircle, ReceiptText, X } from "lucide-react";
 
 type ExpenseCurrency = "EUR" | "UZS";
@@ -27,12 +27,57 @@ export default function ExpenseDialog({
   const [label, setLabel] = useState("");
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState<ExpenseCurrency>("EUR");
+  const dialogRef = useRef<HTMLElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  const savingRef = useRef(saving);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+    savingRef.current = saving;
+  }, [onClose, saving]);
 
   useEffect(() => {
     if (!open) return;
     setLabel("");
     setAmount("");
     setCurrency("EUR");
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape" && !savingRef.current) {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab" || !dialogRef.current) return;
+      const focusable = [...dialogRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
+      )];
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      returnFocusRef.current?.focus();
+    };
   }, [open]);
 
   if (!open) return null;
@@ -52,6 +97,7 @@ export default function ExpenseDialog({
     >
       <section
         className="expenseDialog"
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="expense-dialog-title"
@@ -129,6 +175,9 @@ export default function ExpenseDialog({
               : "Salva spesa"
             }
           </button>
+          <span className="srStatus" role="status" aria-live="polite">
+            {saving ? "Salvataggio della spesa in corso" : ""}
+          </span>
         </form>
       </section>
     </div>
