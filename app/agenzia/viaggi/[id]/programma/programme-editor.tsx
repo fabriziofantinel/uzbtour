@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowDown, ArrowLeft, ArrowUp, BedDouble, CalendarDays, CheckCircle2, CircleAlert, Clock3, Download, FileText, LoaderCircle, MapPin, Save, Upload } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, BedDouble, BookOpen, Bus, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, Clock3, Download, FileText, LoaderCircle, MapPin, Plane, Save, TrainFront, Upload, UsersRound, Utensils } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { uploadPrivateFile } from "@/lib/private-upload-client";
 import type { AgencyProgramme } from "@/lib/platform/programme-repository";
@@ -25,6 +25,15 @@ function initialDayId(days: AgencyProgramme["days"], startsOn: string) {
   return current?.id ?? days[0]?.id ?? "";
 }
 
+function itemPresentation(type: string) {
+  if (type === "transport") return { Icon: Bus, label: "Trasferimento" };
+  if (type === "flight") return { Icon: Plane, label: "Volo" };
+  if (type === "train") return { Icon: TrainFront, label: "Treno" };
+  if (type === "meal") return { Icon: Utensils, label: "Pasto" };
+  if (type === "hotel") return { Icon: BedDouble, label: "Hotel" };
+  return { Icon: MapPin, label: type === "visit" ? "Visita" : "Attività" };
+}
+
 async function responseJson(response: Response) {
   const result = await response.json().catch(() => ({})) as { error?: string };
   if (!response.ok) throw new Error(result.error || "Salvataggio non riuscito");
@@ -33,11 +42,13 @@ async function responseJson(response: Response) {
 export default function ProgrammeEditor({ initialProgramme }: Props) {
   const [days, setDays] = useState(initialProgramme.days);
   const [openDayId, setOpenDayId] = useState(() => initialDayId(initialProgramme.days, initialProgramme.departure.startsOn));
+  const [expandedItems, setExpandedItems] = useState(() => new Set(initialProgramme.days.flatMap((day) => day.items[0] ? [day.items[0].id] : [])));
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const savedDaysRef = useRef(new Map(initialProgramme.days.map((day) => [day.id, JSON.stringify(day)])));
   const departure = initialProgramme.departure;
   const openDay = useMemo(() => days.find((day) => day.id === openDayId), [days, openDayId]);
+  const openDayIndex = useMemo(() => days.findIndex((day) => day.id === openDayId), [days, openDayId]);
   const dirtyDayIds = useMemo(() => new Set(days
     .filter((day) => savedDaysRef.current.get(day.id) !== JSON.stringify(day))
     .map((day) => day.id)), [days, message]);
@@ -53,12 +64,29 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
     setDays((current) => current.map((day) => day.id === dayId ? { ...day, ...patch } : day));
   }
 
+  function updateItem(day: Day, itemId: string, patch: Partial<Day["items"][number]>) {
+    updateDay(day.id, { items: day.items.map((item) => item.id === itemId ? { ...item, ...patch } : item) });
+  }
+
+  function updateHotel(day: Day, hotelId: string, patch: Partial<Day["hotels"][number]>) {
+    updateDay(day.id, { hotels: day.hotels.map((hotel) => hotel.id === hotelId ? { ...hotel, ...patch } : hotel) });
+  }
+
   function moveItem(day: Day, index: number, direction: -1 | 1) {
     const target = index + direction;
     if (target < 0 || target >= day.items.length) return;
     const items = [...day.items];
     [items[index], items[target]] = [items[target], items[index]];
     updateDay(day.id, { items });
+  }
+
+  function setItemExpanded(itemId: string, expanded: boolean) {
+    setExpandedItems((current) => {
+      const next = new Set(current);
+      if (expanded) next.add(itemId);
+      else next.delete(itemId);
+      return next;
+    });
   }
 
   async function saveDay(day: Day) {
@@ -105,12 +133,13 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
   return <main className="programmePage">
     <header className="programmeTopbar">
       <Link href="/agenzia"><ArrowLeft/> Viaggi</Link>
-      <div><small>PROGRAMMA CONDIVISO · VERSIONE {departure.versionNumber}</small><h1>{departure.programmeTitle}</h1></div>
-      <Link href={`/agenzia/viaggi/${departure.id}`}>Famiglie</Link>
+      <nav aria-label="Gestione del viaggio"><span aria-current="page"><BookOpen/> Programma</span><Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Famiglie</Link></nav>
+      <div className="programmeContext"><small>VERSIONE {departure.versionNumber}</small><h1>{departure.programmeTitle}</h1></div>
     </header>
     <section className="programmeNotice">
       <CalendarDays/><div><b>Partenza visualizzata: {departure.title}</b><span>{dateFor(departure.startsOn, 0)} – {dateFor(departure.startsOn, Math.max(0, days.length - 1))}</span></div>
       <p>Itinerario e contenuti appartengono al preventivo: ogni modifica vale per tutte le partenze collegate. Spese, ricordi, giochi e contest restano invece separati per famiglia.</p>
+      {dirtyDayIds.size > 0 && <strong className="programmeUnsaved" role="status">{dirtyDayIds.size} {dirtyDayIds.size === 1 ? "giornata da salvare" : "giornate da salvare"}</strong>}
     </section>
     {message && <div className={`programmeMessage ${message.kind}`} role={message.kind === "error" ? "alert" : "status"}>{message.kind === "error" ? <CircleAlert/> : <CheckCircle2/>}{message.text}</div>}
     <div className="programmeLayout">
@@ -120,7 +149,7 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
         </button>)}
       </nav>
       {openDay && <section className="dayEditor">
-        <div className="dayEditorHead"><div><small>GIORNO {openDay.number}{dirtyDayIds.has(openDay.id) ? " · MODIFICHE DA SALVARE" : " · SALVATO"}</small><h2>{dateFor(departure.startsOn, openDay.offset)}</h2></div><button type="button" disabled={Boolean(busy) || !dirtyDayIds.has(openDay.id)} onClick={() => void saveDay(openDay)}>{busy === openDay.id ? <><LoaderCircle className="spin"/> Salvataggio…</> : <><Save/> Salva giornata</>}</button></div>
+        <div className="dayEditorHead"><div><small>GIORNO {openDay.number}{dirtyDayIds.has(openDay.id) ? " · MODIFICHE DA SALVARE" : " · SALVATO"}</small><h2>{dateFor(departure.startsOn, openDay.offset)}</h2><span>{openDay.items.length} {openDay.items.length === 1 ? "attività" : "attività"} · {openDay.hotels.length} {openDay.hotels.length === 1 ? "pernottamento" : "pernottamenti"}</span></div><div className="dayEditorActions"><div className="dayPager"><button type="button" aria-label="Giornata precedente" disabled={openDayIndex <= 0} onClick={() => setOpenDayId(days[openDayIndex - 1].id)}><ChevronLeft/></button><button type="button" aria-label="Giornata successiva" disabled={openDayIndex < 0 || openDayIndex >= days.length - 1} onClick={() => setOpenDayId(days[openDayIndex + 1].id)}><ChevronRight/></button></div><button className="saveDayButton" type="button" disabled={Boolean(busy) || !dirtyDayIds.has(openDay.id)} onClick={() => void saveDay(openDay)}>{busy === openDay.id ? <><LoaderCircle className="spin"/> Salvataggio…</> : <><Save/> Salva giornata</>}</button></div></div>
         <div className="dayFields">
           <label>Etichetta<input value={openDay.label} onChange={(event) => updateDay(openDay.id, { label: event.target.value })}/></label>
           <label>Titolo<input value={openDay.title} onChange={(event) => updateDay(openDay.id, { title: event.target.value })}/></label>
@@ -128,17 +157,18 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
           <label className="wide">Descrizione<textarea rows={4} value={openDay.description} onChange={(event) => updateDay(openDay.id, { description: event.target.value })}/></label>
         </div>
         <div className="programmeBlock"><h3>Programma della giornata</h3>
-          {openDay.items.map((item, index) => <article className="programmeItem" key={item.id}>
-            <div className="orderButtons"><button type="button" aria-label={`Sposta “${item.title}” in alto`} onClick={() => moveItem(openDay, index, -1)} disabled={index === 0}><ArrowUp/></button><button type="button" aria-label={`Sposta “${item.title}” in basso`} onClick={() => moveItem(openDay, index, 1)} disabled={index === openDay.items.length - 1}><ArrowDown/></button></div>
-            <div className="itemFields"><label>Tipo<span>{item.type}</span></label><label>Titolo<input value={item.title} onChange={(event) => updateDay(openDay.id, { items: openDay.items.map((entry) => entry.id === item.id ? { ...entry, title: event.target.value } : entry) })}/></label>
-              {(["transport", "flight", "train"].includes(item.type)) && <div className="timeFields"><Clock3/><label>Orario di inizio<input type="time" value={item.startsAt} onChange={(event) => updateDay(openDay.id, { items: openDay.items.map((entry) => entry.id === item.id ? { ...entry, startsAt: event.target.value } : entry) })}/></label><label>Orario di fine<input type="time" value={item.endsAt} onChange={(event) => updateDay(openDay.id, { items: openDay.items.map((entry) => entry.id === item.id ? { ...entry, endsAt: event.target.value } : entry) })}/></label></div>}
-              <label className="wide">{item.type === "transport" ? "Note operative (autista, telefono, targa o punto d’incontro)" : "Note"}<textarea rows={2} value={item.description} onChange={(event) => updateDay(openDay.id, { items: openDay.items.map((entry) => entry.id === item.id ? { ...entry, description: event.target.value } : entry) })}/></label>
+          {openDay.items.map((item, index) => { const presentation = itemPresentation(item.type); const ItemIcon = presentation.Icon; return <article className="programmeItem" key={item.id}>
+            <div className="orderButtons"><span>{String(index + 1).padStart(2, "0")}</span><button type="button" aria-label={`Sposta “${item.title}” in alto`} onClick={() => moveItem(openDay, index, -1)} disabled={index === 0}><ArrowUp/></button><button type="button" aria-label={`Sposta “${item.title}” in basso`} onClick={() => moveItem(openDay, index, 1)} disabled={index === openDay.items.length - 1}><ArrowDown/></button></div>
+            <details className="itemEditorDetails" open={expandedItems.has(item.id)} onToggle={(event) => setItemExpanded(item.id, event.currentTarget.open)}><summary><span className="itemSummaryIcon"><ItemIcon/></span><span><small>{presentation.label}{item.startsAt ? ` · ${item.startsAt}${item.endsAt ? `–${item.endsAt}` : ""}` : ""}</small><strong>{item.title || `${presentation.label} da completare`}</strong><em>{item.description || "Nessuna nota inserita"}</em></span><ChevronRight/></summary>
+            <div className="itemFields"><label>Tipo<span>{presentation.label}</span></label><label>Titolo<input value={item.title} onChange={(event) => updateItem(openDay, item.id, { title: event.target.value })}/></label>
+              {(["transport", "flight", "train"].includes(item.type)) && <div className="timeFields"><Clock3/><label>Orario di inizio<input type="time" value={item.startsAt} onChange={(event) => updateItem(openDay, item.id, { startsAt: event.target.value })}/></label><label>Orario di fine<input type="time" value={item.endsAt} onChange={(event) => updateItem(openDay, item.id, { endsAt: event.target.value })}/></label></div>}
+              <label className="wide">{item.type === "transport" ? "Note operative (autista, telefono, targa o punto d’incontro)" : "Note"}<textarea rows={2} value={item.description} onChange={(event) => updateItem(openDay, item.id, { description: event.target.value })}/></label>
               {(["flight", "train"].includes(item.type)) && <div className="ticketManager"><div className="ticketManagerHead"><FileText/><div><b>Biglietti</b><small>PDF o immagine, massimo 25 MB</small></div><label className={busy === `ticket-${item.id}` ? "busy" : ""}>{busy === `ticket-${item.id}` ? <LoaderCircle className="spin"/> : <Upload/>}<span>{busy === `ticket-${item.id}` ? "Caricamento…" : "Allega biglietto"}</span><input type="file" aria-label={`Allega biglietto per ${item.title}`} accept="application/pdf,image/jpeg,image/png,image/webp,.pdf" disabled={busy === `ticket-${item.id}`} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void uploadTicket(openDay.id, item.id, file); }}/></label></div>{item.tickets.length > 0 ? <div className="ticketList">{item.tickets.map((ticket) => <a href={ticket.downloadUrl} key={ticket.id}><FileText/><span>{ticket.title}</span><Download/></a>)}</div> : <p className="ticketEmpty">Nessun biglietto allegato.</p>}</div>}
-            </div>
-          </article>)}
+            </div></details>
+          </article>; })}
           {openDay.items.length === 0 && <div className="programmeEmpty"><CalendarDays/><b>Nessuna attività</b><p>Questa giornata non contiene ancora tappe modificabili.</p></div>}
         </div>
-        {openDay.hotels.length > 0 && <div className="programmeBlock"><h3><BedDouble/> Pernottamento</h3>{openDay.hotels.map((hotel) => <article className="hotelFields" key={hotel.id}><label>Hotel<input value={hotel.name} onChange={(event) => updateDay(openDay.id, { hotels: openDay.hotels.map((entry) => entry.id === hotel.id ? { ...entry, name: event.target.value } : entry) })}/></label><label>Note<textarea rows={2} value={hotel.notes} onChange={(event) => updateDay(openDay.id, { hotels: openDay.hotels.map((entry) => entry.id === hotel.id ? { ...entry, notes: event.target.value } : entry) })}/></label></article>)}</div>}
+        {openDay.hotels.length > 0 && <div className="programmeBlock"><h3><BedDouble/> Pernottamento</h3>{openDay.hotels.map((hotel) => <article className="hotelFields" key={hotel.id}><label>Hotel<input value={hotel.name} onChange={(event) => updateHotel(openDay, hotel.id, { name: event.target.value })}/></label><label>Note<textarea rows={2} value={hotel.notes} onChange={(event) => updateHotel(openDay, hotel.id, { notes: event.target.value })}/></label></article>)}</div>}
       </section>}
     </div>
   </main>;
