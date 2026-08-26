@@ -28,7 +28,7 @@ const UsefulInfo = dynamic(() => import("@/components/useful-info"), {
   loading: () => <div className="componentLoading" role="status">Caricamento delle informazioni…</div>,
 });
 
-type Tab = "oggi" | "mappa" | "programma" | "ricordi" | "documenti" | "spese" | "info" | "frasario" | "sfide";
+type Tab = "mappa" | "programma" | "ricordi" | "documenti" | "spese" | "info" | "frasario" | "sfide";
 type Day = Experience["days"][number];
 const colors = ["#D6663D", "#715C9D", "#C4902F", "#177A78", "#3D8B68", "#A35D55"];
 const som = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0 });
@@ -236,10 +236,6 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     }
     return total;
   }, [appliedEurRate, experience.expenses]);
-  const dayTotals = useMemo(() => experience.expenses.reduce((sum, expense) => {
-    if (expense.dayId === day?.id && (expense.currency === "EUR" || expense.currency === "UZS")) sum[expense.currency] += expense.amount;
-    return sum;
-  }, { EUR: 0, UZS: 0 }), [day?.id, experience.expenses]);
   const tripMapDays = useMemo<TripMapDay[]>(() => experience.days.flatMap((entry, index) => {
     const city = mapCityForDay(entry);
     return city ? [{ index, n: entry.number, date: dateParts(entry.date).full, city: city.name,
@@ -472,8 +468,6 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     <div id="travel-main-content" className="travelMainContent" ref={contentRef} tabIndex={-1}>
     <div className="srStatus" role="status" aria-live="polite" aria-atomic="true">{saving ? "Salvataggio in corso" : ""}</div>
     {error && <p className="dataError" role="alert">{error}</p>}
-
-    {tab === "oggi" && <section className="todayPage"><div className="todayHero"><div><span>{day.label || `GIORNO ${day.number}`} · {currentDate.full}</span><h2>{day.title}</h2><p>{day.city}</p></div><div className="todayHeroDay"><small>OGGI</small><strong>{currentDate.day}</strong><span>{currentDate.month}</span></div></div><section className="nextAppointment"><span><Clock3/></span><div><small>PROSSIMO APPUNTAMENTO</small><h3>{day.items[0]?.title || "Giornata libera"}</h3><p>{day.items[0]?.startsAt || "Orario da confermare"} · {day.city}</p></div><button onClick={() => setTab("programma")}><ChevronRight/></button></section><div className="todayInfoGrid"><article><span><Navigation/></span><small>PROGRAMMA</small><strong>{day.items.length} attività</strong><p>{transport.label}</p></article><article><span><BedDouble/></span><small>HOTEL</small><strong>{day.hotels[0]?.name || "Da confermare"}</strong><p>{day.hotels[0]?.city || day.city}</p></article><article><span><Wallet/></span><small>SPESE DI TAPPA</small><strong>€ {dayTotals.EUR.toFixed(2)}</strong><p>{som.format(dayTotals.UZS)} UZS</p></article><article><span><Camera/></span><small>RICORDI</small><strong>{photosByDay[day.number]?.length || 0} foto</strong><p>caricate per questa giornata</p></article></div><div className="todayActions"><button onClick={() => setTab("programma")}><Navigation/><span>Apri programma<small>Tutti i dettagli</small></span><ChevronRight/></button><button onClick={() => setTab("ricordi")}><Camera/><span>Ricordi del giorno<small>Foto della famiglia</small></span><ChevronRight/></button><button onClick={() => setTab("sfide")}><Sparkles/><span>Sfide del giorno<small>Quiz, missioni e giochi</small></span><ChevronRight/></button></div><section className="todaySchedule"><div><Navigation/><span><small>PROGRAMMA RAPIDO</small><h3>La giornata in un colpo d’occhio</h3></span></div>{day.items.map((item, index) => <article key={item.id}><time>{item.startsAt || String(index + 1).padStart(2, "0")}</time><span/><strong>{item.title}</strong></article>)}<button onClick={() => setTab("programma")}><ReceiptText/> Apri tutti i dettagli</button></section></section>}
 
     {tab === "mappa" && <section className="overviewPage"><div className="overviewHead"><div><span>LA ROTTA DEL VIAGGIO</span><h2>{experience.days.length} giorni, una mappa</h2><p>Tocca un numero sulla mappa o una tappa qui sotto per aprire il programma.</p></div><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(experience.journey.destinationCountry)}`} target="_blank" rel="noreferrer">Apri la mappa completa <ExternalLink/></a></div>{tripMapDays.length > 0 ? <><div className="overviewMap"><TripOverviewMap days={tripMapDays} onSelect={openDay}/></div><div className="overviewDayList">{tripMapDays.map((entry) => <button key={entry.n} onClick={() => openDay(entry.index)}><span style={{ background: entry.color }}>{entry.n}</span><span><small>{entry.date}</small><strong>{entry.city}</strong></span><ChevronRight/></button>)}</div><p className="mapAttribution">Coordinate fornite da <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo</a>.</p></> : <div className="empty"><Map/><h3>Mappa in preparazione</h3><p>Stiamo recuperando le coordinate delle località. Ricarica la pagina tra pochi secondi.</p></div>}</section>}
 
