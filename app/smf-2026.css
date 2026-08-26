@@ -8,19 +8,20 @@
 :root {
   --smf-ink: #142b35;
   --smf-ink-soft: #324952;
-  --smf-muted: #667773;
-  --smf-paper: #f7f3ea;
-  --smf-surface: #fffdfa;
+  --smf-muted: #52625f;
+  --smf-paper: #faf7f0;
+  --smf-surface: #ffffff;
   --smf-surface-soft: #f0ede5;
-  --smf-line: #d9d5ca;
+  --smf-line: #ded8cc;
   --smf-brand: #247a6b;
-  --smf-brand-deep: #153f43;
-  --smf-accent: #ef7d4d;
-  --smf-action: #245eea;
+  --smf-brand-deep: #142b35;
+  --smf-accent: #b34d2d;
+  --smf-action: #2f66f6;
   --smf-danger: #a63d32;
-  --smf-success: #247a58;
-  --smf-warning: #9a6419;
-  --smf-focus: #245eea;
+  --smf-success: #247a6b;
+  --smf-warning: #a96516;
+  --smf-focus: #2f66f6;
+  --smf-control-muted: #718581;
   --smf-shadow: 0 16px 45px rgba(20, 43, 53, .09);
   --smf-shadow-soft: 0 8px 22px rgba(20, 43, 53, .06);
 }
@@ -246,9 +247,9 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   background: color-mix(in srgb, var(--trail-primary) 11%, white);
   box-shadow: inset 3px 0 0 var(--trail-primary);
 }
-.travelerRedesign .dayInfo small { color: var(--smf-muted); font-size: 9px; letter-spacing: .04em; }
+.travelerRedesign .dayInfo small { color: var(--smf-muted); font-size: 12px; letter-spacing: .025em; }
 .travelerRedesign .dayInfo strong { font: 700 16px/1.2 var(--font-serif), serif; }
-.travelerRedesign .dayInfo em { max-width: 180px; overflow: hidden; color: var(--smf-muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.travelerRedesign .dayInfo em { max-width: 180px; overflow: hidden; color: var(--smf-muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 
 .travelerRedesign .detail {
   padding: 34px clamp(24px, 5vw, 66px) 76px;
@@ -328,9 +329,10 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   background: var(--smf-paper);
 }
 .travelerRedesign .programmeOperationalNote strong { color: var(--smf-warning); }
-.travelerRedesign .setCurrentStep { min-height: 40px; border-radius: 9px; }
+.travelerRedesign .setCurrentStep { min-height: 44px; border-radius: 9px; }
 .travelerRedesign .programmeRating { min-height: 44px; }
-.travelerRedesign .programmeRating button { width: 42px; height: 42px; }
+.travelerRedesign .programmeRating button { width: 44px; height: 44px; color: var(--smf-control-muted); }
+.travelerRedesign .programmeRating button.active { color: var(--gold); }
 .travelerRedesign .journal,
 .travelerRedesign .dayContext { border: 0; border-radius: 14px; background: var(--smf-paper); box-shadow: none; }
 .travelerRedesign .journal { padding: 16px; }
@@ -567,11 +569,11 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 }
 .agencyBrand > span { width: 40px; height: 40px; border-radius: 12px; background: var(--smf-brand-deep); }
 .agencyBrand strong { font: 800 16px/1.15 var(--font-sans), sans-serif; }
-.agencyBrand small { color: var(--smf-muted); font-size: 9px; letter-spacing: .08em; }
+.agencyBrand small { color: var(--smf-muted); font-size: 12px; letter-spacing: .04em; }
 .agencyUser > i { border-radius: 11px; background: var(--smf-accent); }
-.agencyUser span small { font-size: 10px; }
+.agencyUser span small { font-size: 12px; }
 .agencyUser span b { font-size: 13px; }
-.agencyUser button { min-width: 40px; min-height: 40px; border-color: var(--smf-line); }
+.agencyUser button { min-width: 44px; min-height: 44px; border-color: var(--smf-line); }
 
 .agencyHero {
   min-height: 0;
@@ -590,7 +592,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   border-right: 1px solid var(--smf-line);
   background: var(--smf-surface);
 }
-.agencySidebar > label { color: var(--smf-muted); font-size: 10px; letter-spacing: .06em; }
+.agencySidebar > label { color: var(--smf-muted); font-size: 12px; letter-spacing: .04em; }
 .agencySelect { min-height: 48px; border-color: var(--smf-line); border-radius: 10px; }
 .agencySelect select { font-size: 13px; }
 .agencySidebar nav a { min-height: 44px; border-radius: 9px; font-size: 13px; }
@@ -615,14 +617,14 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 }
 .agencyStats article:first-child { padding-left: 0; border-left: 0; }
 .agencyStats article > svg { width: 36px; height: 36px; border-radius: 10px; color: var(--smf-brand); background: #e8f1ee; }
-.agencyStats small { color: var(--smf-muted); font-size: 9px; letter-spacing: .06em; }
+.agencyStats small { color: var(--smf-muted); font-size: 12px; letter-spacing: .04em; }
 .agencyStats b { font: 700 25px/1 var(--font-serif), serif; }
 .agencySectionHead { align-items: center; margin-bottom: 18px; }
 .agencySectionHead small { display: none; }
 .agencySectionHead h2 { margin: 0; font: 700 29px/1.12 var(--font-serif), serif; letter-spacing: -.02em; }
 .agencySectionActions > .newTripButton { min-height: 44px; padding: 0 15px; border-radius: 10px; background: var(--smf-action); font-size: 12px; }
 .tripViewToggle { border-color: var(--smf-line); border-radius: 10px; background: var(--smf-surface-soft); }
-.tripViewToggle button { width: 34px; height: 34px; }
+.tripViewToggle button { width: 44px; height: 44px; }
 .tripViewToggle button.active { background: var(--smf-brand-deep); }
 .tripFilters {
   min-height: 54px;
@@ -715,7 +717,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 }
 .tripListTools label > svg { width: 15px; pointer-events: none; }
 .tripTableWrap { border-color: var(--smf-line); border-radius: 12px; box-shadow: none; }
-.tripTable { min-width: 1220px; }
+.tripTable { min-width: 1320px; }
 .tripTable caption {
   width: 1px;
   height: 1px;
@@ -725,15 +727,20 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   clip-path: inset(50%);
   white-space: nowrap;
 }
-.tripTable th { padding: 12px; color: var(--smf-ink-soft); background: #e9efec; font-size: 10px; letter-spacing: .04em; }
-.tripTable td { padding: 13px 12px; border-bottom-color: #e7e4dc; font-size: 12px; }
+.tripTable th { padding: 12px; color: var(--smf-ink-soft); background: #e9efec; font-size: 12px; letter-spacing: .025em; white-space: nowrap; }
+.tripTable td { padding: 13px 12px; border-bottom-color: #e7e4dc; font-size: 13px; }
+.tripTable th:last-child,
+.tripTable td:last-child { position: sticky; right: 0; z-index: 2; background: var(--smf-surface); box-shadow: -10px 0 18px rgba(20,43,53,.05); }
+.tripTable th:last-child { z-index: 4; background: #e9efec; }
+.tripTable tr.generating td:last-child { background: #fffbf1; }
+.tripTable th:nth-child(5) { min-width: 92px; }
 .tripNameCell b { font: 700 15px/1.2 var(--font-sans), sans-serif; }
 .tripNameCell span, .tripNameCell small { font-size: 11px; }
-.status { padding: 5px 8px; border-radius: 7px; font-size: 9px; letter-spacing: .03em; }
+.status { padding: 5px 8px; border-radius: 7px; font-size: 11px; letter-spacing: .02em; }
 .dateCell { font-size: 12px; }
-.travelerCell { font-size: 11px; }
+.travelerCell { font-size: 12px; }
 .tableActions.inline { min-width: 410px; }
-.tableActions a, .tableActions button { min-height: 36px; padding: 7px 9px; border-radius: 8px; font-size: 10px; }
+.tableActions a, .tableActions button { min-height: 44px; padding: 8px 10px; border-radius: 8px; font-size: 12px; }
 .tableActions .primary { background: var(--smf-action); }
 .tripAdminCard {
   padding: 20px;
@@ -902,7 +909,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 .superadminBrand { padding: 0 7px 28px; color: white; }
 .superadminBrand > span { background: var(--smf-accent); }
 .superadminBrand strong { font-size: 16px; }
-.superadminBrand small { margin-top: 3px; color: #c9d6d4; font-size: 9px; }
+.superadminBrand small { margin-top: 3px; color: #d9e3e1; font-size: 12px; }
 .superadminTopbar nav { display: grid; gap: 6px; margin: 0; }
 .superadminTopbar nav a {
   min-height: 46px;
@@ -1697,7 +1704,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 }
 .loginPattern { opacity: .07; }
 .loginBrand { font-size: 15px; }
-.loginBrand > span { border-radius: 12px; background: var(--smf-accent); }
+.loginBrand > span { border-radius: 12px; background: var(--smf-accent); font-size: 12px; }
 .loginStoryCopy > p,
 .loginEyebrow { display: none; }
 .loginStoryCopy h1 {
@@ -1716,6 +1723,8 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 .codeInput { min-height: 50px; border-color: var(--smf-line); border-radius: 10px; background: white; }
 .codeInput input { font-size: 16px; }
 .loginSubmit { min-height: 50px; border-radius: 10px; background: var(--smf-action); }
+.loginHelp { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 2px 7px; font-size: 12px; }
+.loginHelp a { min-height: 44px; display: inline-flex; align-items: center; }
 .loginHelp { font-size: 13px; }
 .activationBox form { margin-top: 24px; }
 .activationBox form > label { margin-top: 16px; }
@@ -2119,9 +2128,9 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 @media (max-width: 700px) {
   .travelerRedesign .topbar { height: 62px; padding: 0 14px; }
   .travelerRedesign .brandMark,
-  .travelerRedesign .agencyLogo { width: 38px; height: 38px; flex-basis: 38px; }
+  .travelerRedesign .agencyLogo { width: 44px; height: 44px; flex-basis: 44px; }
   .travelerRedesign .brand strong { max-width: 52vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .travelerRedesign .brand small { font-size: 8px; }
+  .travelerRedesign .brand small { font-size: 11px; }
   .travelerRedesign .hero,
   .travelerRedesign .journeyPicker { display: none; }
   .travelerRedesign .tabs {
@@ -2343,8 +2352,9 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   .agencyHero { padding: 23px 18px; }
   .agencyHero h1 { font-size: 28px; }
   .agencyContent { padding: 22px 14px 70px; }
-  .agencyStats { margin-inline: -14px; padding-inline: 14px; }
+  .agencyStats { margin-inline: 0; padding-inline: 0; }
   .agencyStats article { padding-inline: 15px; }
+  .agencyStats article:first-child { padding-left: 0; }
   .agencySectionHead { align-items: center; }
   .agencySectionHead h2 { font-size: 25px; }
   .tripFilters {
@@ -2407,7 +2417,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
     margin-bottom: 5px;
     color: var(--smf-muted);
     content: attr(data-label);
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 850;
     letter-spacing: .06em;
     text-transform: uppercase;
