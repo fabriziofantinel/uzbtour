@@ -15,6 +15,8 @@ Completato e verificato:
 - retry idempotenti per spese, movimenti di cassa e feedback;
 - importo EUR storico memorizzato insieme al tasso applicato alle nuove spese;
 - coordinate puntuali di siti e hotel disponibili nel contratto del programma;
+- `pg_stat_statements` 1.12 attivata in produzione con audit automatico di ruolo,
+  integrità, cache hit e query aggregate;
 - runtime Vercel in `fra1` con `DATABASE_URL` pooled e build/deploy verificati.
 
 Ancora da consolidare:
@@ -24,7 +26,7 @@ Ancora da consolidare:
   [`013_runtime_role_grants.sql`](../../database/migrations/013_runtime_role_grants.sql). Fino ad
   allora il runtime usa temporaneamente `neondb_owner` pooled;
 - branch Neon automatico e isolato per ogni Preview Vercel;
-- baseline p95 e osservazione di `pg_stat_statements` per almeno sette giorni;
+- raccogliere almeno sette giorni di statistiche prima di fissare la baseline p95 definitiva;
 - backfill verificato di coordinate puntuali e importi EUR storici dove la fonte è disponibile;
 - RLS e contract migration solo dopo l’attivazione del ruolo runtime limitato.
 

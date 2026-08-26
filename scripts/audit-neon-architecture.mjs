@@ -6,7 +6,7 @@ if (!databaseUrl) throw new Error("DATABASE_URL non configurata");
 const endpoint = new URL(databaseUrl);
 const sql = neon(databaseUrl);
 
-const [version, database, extensions, tables, indexes, foreignKeysWithoutLeadingIndex, settings] = await Promise.all([
+const [version, database, extensions, tables, indexes, foreignKeysWithoutLeadingIndex, settings, runtimeRole, integrity, cache, migrations] = await Promise.all([
   sql`SELECT version() AS version`,
   sql`
     SELECT current_database() AS database_name,
@@ -67,7 +67,50 @@ const [version, database, extensions, tables, indexes, foreignKeysWithoutLeading
     )
     ORDER BY name
   `,
+  sql`
+    SELECT current_user AS role_name, role.rolsuper, role.rolcreatedb,
+      role.rolcreaterole, role.rolbypassrls,
+      EXISTS (
+        SELECT 1
+        FROM pg_auth_members membership
+        JOIN pg_roles granted_role ON granted_role.oid = membership.roleid
+        WHERE membership.member = role.oid AND granted_role.rolname = 'neon_superuser'
+      ) AS inherits_neon_superuser
+    FROM pg_roles role
+    WHERE role.rolname = current_user
+  `,
+  sql`
+    SELECT
+      (SELECT count(*)::int FROM pg_constraint
+        WHERE NOT convalidated AND connamespace = 'public'::regnamespace) AS unvalidated_constraints,
+      (SELECT count(*)::int FROM pg_index WHERE NOT indisvalid OR NOT indisready) AS invalid_indexes
+  `,
+  sql`
+    SELECT COALESCE(
+      round(100 * sum(heap_blks_hit)::numeric /
+        NULLIF(sum(heap_blks_hit) + sum(heap_blks_read), 0), 2), 100
+    ) AS table_cache_hit_percent
+    FROM pg_statio_user_tables
+  `,
+  sql`
+    SELECT version, applied_at::text
+    FROM platform_schema_migrations
+    ORDER BY applied_at, version
+  `,
 ]);
+
+const queryStats = extensions.some((extension) => extension.extname === "pg_stat_statements")
+  ? await sql`
+      SELECT calls::bigint, round(mean_exec_time::numeric, 3) AS mean_ms,
+        round(total_exec_time::numeric, 3) AS total_ms, rows::bigint,
+        left(regexp_replace(query, '\\s+', ' ', 'g'), 240) AS query
+      FROM pg_stat_statements
+      WHERE dbid = (SELECT oid FROM pg_database WHERE datname = current_database())
+        AND query NOT ILIKE '%pg_stat_statements%'
+      ORDER BY total_exec_time DESC
+      LIMIT 20
+    `
+  : [];
 
 console.log(JSON.stringify({
   endpoint: {
@@ -77,8 +120,13 @@ console.log(JSON.stringify({
   },
   postgres: version[0],
   database: database[0],
+  runtimeRole: runtimeRole[0],
+  integrity: integrity[0],
+  cache: cache[0],
   extensions,
   settings,
+  migrations,
+  queryStats,
   tables,
   indexes,
   foreignKeysWithoutLeadingIndex,
