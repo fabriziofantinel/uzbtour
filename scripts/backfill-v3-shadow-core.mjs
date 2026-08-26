@@ -7,10 +7,10 @@ import { Client } from "@neondatabase/serverless";
 const migrationVersion = "017_v3_shadow_core_backfill";
 const modelVersion = "3.2.1-shadow-core";
 const apply = process.argv.includes("--apply");
-const migrationUrl = process.env.DATABASE_MIGRATION_URL;
+const migrationUrl = process.env.DATABASE_MIGRATION_URL ?? process.env.DATABASE_URL_UNPOOLED;
 
 if (!migrationUrl) {
-  throw new Error("DATABASE_MIGRATION_URL non configurata: richiesto il ruolo owner di migrazione");
+  throw new Error("Connessione owner diretta non configurata per il backfill core");
 }
 
 const sqlUrl = new URL("../database/backfill-v3-shadow-core.sql", import.meta.url);

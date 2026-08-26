@@ -6,11 +6,11 @@ import { Client } from "@neondatabase/serverless";
 
 const migrationVersion = "016_v3_target_foundation";
 const modelVersion = "3.2.0";
-const migrationUrl = process.env.DATABASE_MIGRATION_URL;
+const migrationUrl = process.env.DATABASE_MIGRATION_URL ?? process.env.DATABASE_URL_UNPOOLED;
 
 if (!migrationUrl) {
   throw new Error(
-    "DATABASE_MIGRATION_URL non configurata: il DDL non può usare il ruolo runtime",
+    "DATABASE_MIGRATION_URL o DATABASE_URL_UNPOOLED non configurata: il DDL non può usare il ruolo runtime",
   );
 }
 

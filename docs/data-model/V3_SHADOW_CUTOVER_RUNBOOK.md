@@ -110,3 +110,12 @@ Le letture v3 dei domini operativi sono attivabili in modo indipendente:
 Ogni lettura v3 imposta `app.agency_id` nella stessa transazione read-only e
 mantiene invariato il contratto restituito al frontend. L'attivazione avviene
 prima in Preview; Production viene abilitata solo dopo lo smoke test autenticato.
+
+Il gate runtime si esegue con la connessione applicativa, non con il ruolo owner:
+
+```powershell
+npm run smoke:v3:operational-read
+```
+
+Il test confronta i cinque domini della prima ondata e verifica che, cambiando
+`app.agency_id` con un tenant inesistente, nessuna riga v3 risulti visibile.
