@@ -959,6 +959,44 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 .codeInput input { font-size: 16px; }
 .loginSubmit { min-height: 50px; border-radius: 10px; background: var(--smf-action); }
 .loginHelp { font-size: 13px; }
+.activationBox form { margin-top: 24px; }
+.activationBox form > label { margin-top: 16px; }
+.activationBox form > label:first-child { margin-top: 0; }
+.activationLoading {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--smf-muted);
+  font-size: 14px;
+}
+.activationLoading svg { width: 20px; color: var(--smf-brand); }
+.activationHint {
+  min-height: 18px;
+  margin: 6px 0 0;
+  color: var(--smf-success);
+  font-size: 12px;
+  font-weight: 700;
+}
+.activationHint.invalid { color: var(--smf-danger); }
+.activationLoginLink {
+  min-height: 48px;
+  margin-top: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 10px;
+  padding: 0 16px;
+  color: white;
+  background: var(--smf-action);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 800;
+}
+.activationLoginLink svg { width: 18px; }
+.activationBox .loginError { display: flex; align-items: flex-start; gap: 7px; font-size: 13px; line-height: 1.45; }
+.activationBox .loginError svg { flex: 0 0 auto; width: 17px; }
 
 /* ---------- Editor e revisione ---------- */
 
