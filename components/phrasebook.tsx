@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Languages, Search, ShieldAlert, Utensils, MapPin, MessageCircle, ShoppingBag } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, Copy, Languages, Search, ShieldAlert, Utensils, MapPin, MessageCircle, ShoppingBag, X } from "lucide-react";
 
 type Category = "Base" | "Spostamenti" | "Cibo" | "Acquisti" | "Emergenze";
 
@@ -60,6 +60,9 @@ const phrases: Phrase[] = [
 export default function Phrasebook() {
   const [category, setCategory] = useState<Category | "Tutte">("Tutte");
   const [query, setQuery] = useState("");
+  const [copiedPhrase, setCopiedPhrase] = useState("");
+  const [copyStatus, setCopyStatus] = useState("");
+  const copyTimerRef = useRef<number | null>(null);
 
   const visiblePhrases = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("it");
@@ -70,6 +73,25 @@ export default function Phrasebook() {
     });
   }, [category, query]);
 
+  useEffect(() => () => {
+    if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current);
+  }, []);
+
+  async function copyPhrase(key: string, value: string, language: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedPhrase(key);
+      setCopyStatus(`Frase in ${language} copiata.`);
+      if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = window.setTimeout(() => {
+        setCopiedPhrase("");
+        setCopyStatus("");
+      }, 2_000);
+    } catch {
+      setCopyStatus("Copia non disponibile su questo dispositivo.");
+    }
+  }
+
   return (
     <section className="phrasebookPage">
       <header className="phrasebookHero">
@@ -78,13 +100,14 @@ export default function Phrasebook() {
       </header>
 
       <div className="phrasebookTools">
-        <label><Search size={17}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca una frase…" aria-label="Cerca nel frasario"/></label>
+        <label className="phraseSearch" htmlFor="phrase-search"><Search size={17}/><input id="phrase-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca in italiano, uzbeko o russo" autoComplete="off"/>{query && <button type="button" onClick={() => setQuery("")} aria-label="Cancella ricerca"><X/></button>}</label>
         <div className="phraseCategories" aria-label="Categorie del frasario">
-          <button className={category === "Tutte" ? "active" : ""} onClick={() => setCategory("Tutte")}>Tutte</button>
+          <button type="button" className={category === "Tutte" ? "active" : ""} aria-pressed={category === "Tutte"} onClick={() => setCategory("Tutte")}>Tutte</button>
           {categories.map(({ name, icon: Icon }) => (
-            <button key={name} className={category === name ? "active" : ""} onClick={() => setCategory(name)}><Icon size={14}/>{name}</button>
+            <button type="button" key={name} className={category === name ? "active" : ""} aria-pressed={category === name} onClick={() => setCategory(name)}><Icon size={14}/>{name}</button>
           ))}
         </div>
+        <p className="phraseResultCount" role="status">{visiblePhrases.length} {visiblePhrases.length === 1 ? "frase disponibile" : "frasi disponibili"}</p>
       </div>
 
       <div className="languageNote">
@@ -93,19 +116,23 @@ export default function Phrasebook() {
       </div>
 
       <div className="phraseList">
-        {visiblePhrases.map((phrase) => (
+        {visiblePhrases.map((phrase) => {
+          const uzbekKey = `${phrase.italian}-uz`;
+          const russianKey = `${phrase.italian}-ru`;
+          return (
           <article key={`${phrase.category}-${phrase.italian}`}>
             <span className="phraseCategory">{phrase.category}</span>
             <h3>{phrase.italian}</h3>
             <div className="phraseTranslations">
-              <div><small>UZBEKO</small><strong lang="uz">{phrase.uzbek}</strong><em>{phrase.uzbekPronunciation}</em></div>
-              <div><small>RUSSO</small><strong lang="ru">{phrase.russian}</strong><em>{phrase.russianPronunciation}</em></div>
+              <div><small>UZBEKO</small><strong lang="uz">{phrase.uzbek}</strong><em>Pronuncia: {phrase.uzbekPronunciation}</em><button type="button" className={copiedPhrase === uzbekKey ? "copied" : ""} onClick={() => void copyPhrase(uzbekKey, phrase.uzbek, "uzbeko")} aria-label={`Copia la frase uzbeka ${phrase.uzbek}`}>{copiedPhrase === uzbekKey ? <Check/> : <Copy/>}<span>{copiedPhrase === uzbekKey ? "Copiata" : "Copia"}</span></button></div>
+              <div><small>RUSSO</small><strong lang="ru">{phrase.russian}</strong><em>Pronuncia: {phrase.russianPronunciation}</em><button type="button" className={copiedPhrase === russianKey ? "copied" : ""} onClick={() => void copyPhrase(russianKey, phrase.russian, "russo")} aria-label={`Copia la frase russa ${phrase.russian}`}>{copiedPhrase === russianKey ? <Check/> : <Copy/>}<span>{copiedPhrase === russianKey ? "Copiata" : "Copia"}</span></button></div>
             </div>
           </article>
-        ))}
+        );})}
       </div>
 
       {visiblePhrases.length === 0 && <p className="phraseEmpty">Nessuna frase trovata. Prova con un’altra parola.</p>}
+      <span className="srStatus" role="status" aria-live="polite">{copyStatus}</span>
       <p className="phrasebookFooter"><ShieldAlert size={15}/> In emergenza usa anche i numeri 112, 102 (polizia) e 103 (ambulanza) presenti in “Info utili”.</p>
     </section>
   );

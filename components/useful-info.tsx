@@ -121,7 +121,16 @@ export default function UsefulInfo() {
         <p>Contatti, conversioni e consigli pratici sempre a portata di mano.</p>
       </header>
 
-      <section className="worldClockBar" aria-label="Ora in Italia e Uzbekistan">
+      <nav className="infoQuickNav" aria-label="Vai rapidamente alle informazioni">
+        <a href="#info-time"><Clock3/>Ora e cambio</a>
+        <a href="#info-emergency"><Phone/>Emergenze</a>
+        <a href="#info-assistance"><CircleHelp/>Assistenza</a>
+        <a href="#info-tips"><ShieldCheck/>Consigli</a>
+        <a href="#info-culture"><HandHeart/>Cultura</a>
+        <a href="#info-country"><Globe2/>Il Paese</a>
+      </nav>
+
+      <section id="info-time" className="worldClockBar" aria-label="Ora in Italia e Uzbekistan">
         <article>
           <small>ORA IN ITALIA</small>
           <strong>{now ? italyTimeFormatter.format(now) : "--:--"}</strong>
@@ -147,16 +156,16 @@ export default function UsefulInfo() {
         <div className="converterFields">
           <label>
             <span>Euro</span>
-            <div><b>€</b><input inputMode="decimal" value={euro} onChange={(event) => updateEuro(event.target.value)} aria-label="Importo in euro"/></div>
+            <div><b>€</b><input inputMode="decimal" autoComplete="off" value={euro} onChange={(event) => updateEuro(event.target.value)} aria-label="Importo in euro"/></div>
           </label>
           <ArrowRightLeft size={20}/>
           <label>
             <span>Som uzbeki</span>
-            <div><b>UZS</b><input inputMode="numeric" value={som} onChange={(event) => updateSom(event.target.value)} aria-label="Importo in som uzbeki"/></div>
+            <div><b>UZS</b><input inputMode="numeric" autoComplete="off" value={som} onChange={(event) => updateSom(event.target.value)} aria-label="Importo in som uzbeki"/></div>
           </label>
         </div>
         <div className="rateEditor">
-          <label>Tasso: 1 € = <input inputMode="decimal" value={rateText} onChange={(event) => updateRate(event.target.value)} aria-label="Tasso euro som"/> UZS</label>
+          <label>Tasso: 1 € = <input inputMode="decimal" autoComplete="off" value={rateText} onChange={(event) => updateRate(event.target.value)} aria-label="Tasso euro som"/> UZS</label>
           <small>
             {Number.isFinite(parsedRate) && parsedRate > 0 && <>100 € = {somFormatter.format(parsedRate * 100)} UZS · 100.000 UZS = € {euroFormatter.format(100000 / parsedRate)}. </>}
             {rateDate && <>Aggiornato al {rateDate}. </>}
@@ -166,7 +175,7 @@ export default function UsefulInfo() {
         </div>
       </section>
 
-      <section className="infoSection emergencySection">
+      <section id="info-emergency" className="infoSection emergencySection">
         <div className="infoSectionHead"><ShieldCheck size={22}/><div><small>IN CASO DI NECESSITÀ</small><h3>Numeri di emergenza</h3></div></div>
         <div className="emergencyGrid">
           <CallCard number="112" label="Emergenza unica" detail="Coordinamento di tutti i servizi"/>
@@ -178,7 +187,7 @@ export default function UsefulInfo() {
         <a className="sourceLink" href="https://ambtashkent.esteri.it/it/chi-siamo/numeri-di-emergenza/" target="_blank" rel="noreferrer">Fonte ufficiale: Ambasciata d’Italia a Tashkent <ExternalLink size={12}/></a>
       </section>
 
-      <div className="infoColumns">
+      <div id="info-assistance" className="infoColumns">
         <section className="infoCard consularCard">
           <div className="infoCardTitle"><Landmark size={20}/><h3>Ambasciata e Unità di Crisi</h3></div>
           <a className="bigContact" href="tel:+998908081369"><small>EMERGENZE CONSOLARI IN UZBEKISTAN</small><strong>+998 90 808 13 69</strong></a>
@@ -218,7 +227,7 @@ export default function UsefulInfo() {
         <a className="sourceLink" href="https://www.gov.uk/government/publications/uzbekistan-list-of-medical-facilitiespractitioners/uzbekistan-medical-facilities" target="_blank" rel="noreferrer">Elenco istituzionale aggiornato delle strutture <ExternalLink size={12}/></a>
       </section>
 
-      <div className="tipsGrid">
+      <div id="info-tips" className="tipsGrid">
         <section className="tipCard">
           <div className="infoCardTitle"><ShieldCheck size={20}/><h3>Documenti e sicurezza</h3></div>
           <ul>
@@ -314,7 +323,7 @@ export default function UsefulInfo() {
         </div>
       </section>
 
-      <section className="infoSection cultureSection">
+      <section id="info-culture" className="infoSection cultureSection">
         <div className="infoSectionHead"><HandHeart size={22}/><div><small>USI E TRADIZIONI</small><h3>Piccoli gesti che fanno la differenza</h3></div></div>
         <div className="cultureGrid">
           <article><Coffee size={20}/><h4>Il rituale del tè</h4><p>Può capitare che le prime piala vengano versate e rimesse nella teiera per amalgamare l’infuso. Accettare il tè è un gesto di ospitalità.</p></article>
@@ -327,7 +336,7 @@ export default function UsefulInfo() {
         <a className="sourceLink" href="https://ich.unesco.org/en/RL/palov-culture-and-tradition-01166" target="_blank" rel="noreferrer">Fonte UNESCO: cultura e tradizione del palov <ExternalLink size={12}/></a>
       </section>
 
-      <section className="infoSection countryContext">
+      <section id="info-country" className="infoSection countryContext">
         <div className="infoSectionHead"><Globe2 size={22}/><div><small>CAPIRE IL PAESE</small><h3>Uzbekistan contemporaneo</h3></div></div>
         <div className="contextFacts">
           <div><strong>38,4 milioni</strong><span>Abitanti ad aprile 2026: il Paese più popoloso dell’Asia Centrale.</span></div>

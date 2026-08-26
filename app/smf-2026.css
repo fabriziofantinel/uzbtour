@@ -1040,6 +1040,75 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 }
 .travelerRedesign .phraseTranslations strong { font-size: 17px; }
 .travelerRedesign .phraseTranslations em { font-size: 19px; line-height: 1.4; }
+.travelerRedesign .infoQuickNav {
+  display: flex;
+  gap: 7px;
+  margin: 0 0 22px;
+  padding: 5px;
+  overflow-x: auto;
+  border: 1px solid var(--smf-line);
+  border-radius: 12px;
+  background: var(--smf-surface);
+  scrollbar-width: thin;
+}
+.travelerRedesign .infoQuickNav a {
+  min-height: 44px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 13px;
+  border-radius: 8px;
+  color: var(--smf-ink);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 750;
+}
+.travelerRedesign .infoQuickNav a:hover { background: var(--smf-surface-soft); }
+.travelerRedesign .infoQuickNav svg { width: 17px; color: var(--trail-primary); }
+.travelerRedesign .usefulPage [id] { scroll-margin-top: 92px; }
+.travelerRedesign .worldClockBar strong,
+.travelerRedesign .expenseCurrencyTotals strong,
+.travelerRedesign .contextFacts strong { font-variant-numeric: tabular-nums; }
+.travelerRedesign .converterFields input,
+.travelerRedesign .rateEditor input { font-size: 16px; }
+.travelerRedesign .phrasebookTools { position: relative; margin: 18px 0 14px; border-color: var(--smf-line); background: var(--smf-surface); }
+.travelerRedesign .phraseSearch { min-height: 50px; border: 1px solid var(--smf-line); background: var(--smf-surface-soft); }
+.travelerRedesign .phraseSearch:focus-within { border-color: var(--smf-action); box-shadow: 0 0 0 3px rgba(47,102,246,.14); }
+.travelerRedesign .phraseSearch input { min-height: 48px; font-size: 16px; }
+.travelerRedesign .phraseSearch > button {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 9px;
+  color: var(--smf-muted);
+  background: transparent;
+}
+.travelerRedesign .phraseSearch > button svg { width: 18px; }
+.travelerRedesign .phrasebookTools .phraseCategories { margin: 10px 0 0; }
+.travelerRedesign .phraseResultCount { margin: 9px 2px 0; color: var(--smf-muted); font-size: 12px; }
+.travelerRedesign .phraseTranslations > div { position: relative; padding: 12px 58px 12px 12px; }
+.travelerRedesign .phraseTranslations strong { font-size: 15px; line-height: 1.35; }
+.travelerRedesign .phraseTranslations em { margin-top: 8px; font-size: 18px; font-weight: 800; line-height: 1.4; }
+.travelerRedesign .phraseTranslations button {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 42px;
+  min-height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--smf-line);
+  border-radius: 9px;
+  color: var(--smf-action);
+  background: white;
+}
+.travelerRedesign .phraseTranslations button svg { width: 17px; }
+.travelerRedesign .phraseTranslations button span { display: none; }
+.travelerRedesign .phraseTranslations button.copied { color: var(--smf-success); border-color: #b8d4cb; background: #edf6f2; }
 .travelerRedesign .challengeTabs { scroll-padding-inline: 16px; }
 .travelerRedesign .challengeTabs button { min-height: 46px; gap: 7px; }
 .travelerRedesign .challengeTabs button > svg { width: 18px; height: 18px; }
@@ -1380,6 +1449,49 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   .travelerRedesign .contestUploadBar { align-items: stretch; }
   .travelerRedesign .contestUploadBar .evidencePicker { min-height: 48px; }
   .travelerRedesign .challengeEmpty { min-height: 118px; margin: 14px 0; padding: 18px 15px; }
+  .travelerRedesign .infoQuickNav {
+    position: sticky;
+    z-index: 34;
+    top: 62px;
+    margin: 0 -16px 20px;
+    padding: 7px 16px;
+    border-inline: 0;
+    border-radius: 0;
+    background: rgba(255,253,250,.97);
+    box-shadow: 0 10px 24px rgba(20,43,53,.07);
+    backdrop-filter: blur(14px);
+    scrollbar-width: none;
+  }
+  .travelerRedesign .infoQuickNav::-webkit-scrollbar { display: none; }
+  .travelerRedesign .infoQuickNav a { min-height: 48px; scroll-snap-align: start; }
+  .travelerRedesign .usefulPage [id] { scroll-margin-top: 126px; }
+  .travelerRedesign .worldClockBar { grid-template-columns: 1fr 1fr; }
+  .travelerRedesign .worldClockBar > div { grid-column: 1 / -1; grid-row: 2; min-height: 44px; grid-auto-flow: column; justify-content: center; }
+  .travelerRedesign .worldClockBar article { padding: 15px 10px; }
+  .travelerRedesign .worldClockBar strong { font-size: 29px; }
+  .travelerRedesign .converterFields label > div { min-height: 58px; }
+  .travelerRedesign .converterFields input { font-size: 20px; }
+  .travelerRedesign .phrasebookTools {
+    position: sticky;
+    z-index: 34;
+    top: 62px;
+    margin: 0 -16px 16px;
+    padding: 10px 16px 8px;
+    border-inline: 0;
+    border-radius: 0;
+    background: rgba(255,253,250,.98);
+    box-shadow: 0 10px 24px rgba(20,43,53,.07);
+  }
+  .travelerRedesign .phrasebookTools .phraseCategories { margin: 8px -16px 0; padding: 0 16px 3px; border: 0; border-radius: 0; background: transparent; scrollbar-width: none; }
+  .travelerRedesign .phrasebookTools .phraseCategories::-webkit-scrollbar { display: none; }
+  .travelerRedesign .phraseResultCount { margin-top: 5px; font-size: 11px; }
+  .travelerRedesign .phraseList > article { padding: 18px 0; }
+  .travelerRedesign .phraseList h3 { font-size: 21px; }
+  .travelerRedesign .phraseTranslations { gap: 10px; }
+  .travelerRedesign .phraseTranslations > div { padding: 14px 58px 14px 14px; }
+  .travelerRedesign .phraseTranslations strong { font-size: 14px; }
+  .travelerRedesign .phraseTranslations em { font-size: 19px; }
+  .travelerRedesign .phraseTranslations button { width: 44px; min-height: 44px; }
 
   .agencyHero { padding: 23px 18px; }
   .agencyHero h1 { font-size: 28px; }
