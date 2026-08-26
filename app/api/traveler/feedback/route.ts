@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { getSql } from "@/lib/db";
 import { assertTravelerPartyScope } from "@/lib/platform/traveler-experience";
-import { assertProgrammeFeedbackSchema } from "@/lib/platform/schema-readiness";
+import { assertArchitectureHardeningSchema, assertProgrammeFeedbackSchema } from "@/lib/platform/schema-readiness";
 
 export const runtime = "nodejs";
 
@@ -11,6 +11,7 @@ export async function POST(request: Request) {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
     await assertProgrammeFeedbackSchema();
+    await assertArchitectureHardeningSchema();
     const body = await request.json().catch(() => null) as Record<string, unknown> | null;
     const departureId = String(body?.departureId || "");
     const partyId = String(body?.partyId || "");
@@ -18,7 +19,10 @@ export async function POST(request: Request) {
     const targetId = String(body?.targetId || "");
     const targetType = String(body?.targetType || "");
     const rating = Number(body?.rating);
-    if (!['itinerary_item', 'hotel'].includes(targetType) || !Number.isInteger(rating) || rating < 1 || rating > 5) {
+    const clientOperationId = body?.clientOperationId == null
+      ? crypto.randomUUID()
+      : String(body.clientOperationId);
+    if (!/^[0-9a-f-]{36}$/i.test(clientOperationId) || !['itinerary_item', 'hotel'].includes(targetType) || !Number.isInteger(rating) || rating < 1 || rating > 5) {
       return NextResponse.json({ error: "Valutazione non valida" }, { status: 400 });
     }
     const agencyId = await assertTravelerPartyScope({ userId: user.id, departureId, partyId, dayId });
@@ -49,12 +53,13 @@ export async function POST(request: Request) {
       if (!valid[0]) return NextResponse.json({ error: "Tappa non disponibile" }, { status: 404 });
       const rows = await sql`
         INSERT INTO traveler_programme_feedback (agency_id, departure_id, party_id, traveler_id,
-          trip_day_id, target_type, itinerary_item_id, rating)
+          trip_day_id, target_type, itinerary_item_id, rating, client_operation_id)
         VALUES (${agencyId}, ${departureId}, ${partyId}, ${travelerId}, ${dayId},
-          'itinerary_item', ${targetId}, ${rating})
+          'itinerary_item', ${targetId}, ${rating}, ${clientOperationId})
         ON CONFLICT (departure_id, party_id, traveler_id, itinerary_item_id)
           WHERE itinerary_item_id IS NOT NULL
-        DO UPDATE SET rating = EXCLUDED.rating, updated_at = NOW()
+        DO UPDATE SET rating = EXCLUDED.rating,
+          client_operation_id = EXCLUDED.client_operation_id, updated_at = NOW()
         RETURNING id::text, rating, updated_at::text
       `;
       return NextResponse.json({ feedback: rows[0] });
@@ -73,11 +78,12 @@ export async function POST(request: Request) {
     if (!valid[0]) return NextResponse.json({ error: "Pernottamento non disponibile" }, { status: 404 });
     const rows = await sql`
       INSERT INTO traveler_programme_feedback (agency_id, departure_id, party_id, traveler_id,
-        trip_day_id, target_type, hotel_id, rating)
-      VALUES (${agencyId}, ${departureId}, ${partyId}, ${travelerId}, ${dayId}, 'hotel', ${targetId}, ${rating})
+        trip_day_id, target_type, hotel_id, rating, client_operation_id)
+      VALUES (${agencyId}, ${departureId}, ${partyId}, ${travelerId}, ${dayId}, 'hotel', ${targetId}, ${rating}, ${clientOperationId})
       ON CONFLICT (departure_id, party_id, traveler_id, trip_day_id, hotel_id)
         WHERE hotel_id IS NOT NULL
-      DO UPDATE SET rating = EXCLUDED.rating, updated_at = NOW()
+      DO UPDATE SET rating = EXCLUDED.rating,
+        client_operation_id = EXCLUDED.client_operation_id, updated_at = NOW()
       RETURNING id::text, rating, updated_at::text
     `;
     return NextResponse.json({ feedback: rows[0] });

@@ -208,8 +208,16 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     const local = converted.reduce((sum, movement) => sum + movement.localAmount, 0);
     return euro > 0 && local > 0 ? local / euro : officialEurRate;
   }, [experience.cashMovements, officialEurRate]);
-  const totalSpentEuro = totals.UZS === 0 ? totals.EUR
-    : appliedEurRate ? totals.EUR + totals.UZS / appliedEurRate : null;
+  const totalSpentEuro = useMemo(() => {
+    let total = 0;
+    for (const expense of experience.expenses) {
+      if (expense.baseAmount != null) total += expense.baseAmount;
+      else if (expense.currency === "EUR") total += expense.amount;
+      else if (expense.currency === "UZS" && appliedEurRate) total += expense.amount / appliedEurRate;
+      else return null;
+    }
+    return total;
+  }, [appliedEurRate, experience.expenses]);
   const dayTotals = useMemo(() => experience.expenses.reduce((sum, expense) => {
     if (expense.dayId === day?.id && (expense.currency === "EUR" || expense.currency === "UZS")) sum[expense.currency] += expense.amount;
     return sum;
@@ -259,8 +267,13 @@ export default function TravelExperience({ initialExperience, userName, isAgency
   }
   function requestNearbyVisit() {
     if (!day) return;
-    const candidates = day.items.filter((item) => item.type === "visit"
-      && item.latitude != null && item.longitude != null);
+    const candidates = day.items.flatMap((item) => {
+      if (item.type !== "visit") return [];
+      const site = relatedSite(day, item);
+      const latitude = item.latitude ?? site?.latitude ?? null;
+      const longitude = item.longitude ?? site?.longitude ?? null;
+      return latitude == null || longitude == null ? [] : [{ item, latitude, longitude }];
+    });
     if (candidates.length === 0) {
       setLocationState("unavailable");
       setSuggestedItemId(null);
@@ -276,8 +289,8 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     setLocationMessage("Cerco la visita più vicina…");
     navigator.geolocation.getCurrentPosition((position) => {
       const current = { latitude: position.coords.latitude, longitude: position.coords.longitude };
-      const nearest = candidates.map((item) => ({ item, distance: distanceMetres(current, {
-        latitude: item.latitude!, longitude: item.longitude!,
+      const nearest = candidates.map((candidate) => ({ item: candidate.item, distance: distanceMetres(current, {
+        latitude: candidate.latitude, longitude: candidate.longitude,
       }) })).sort((left, right) => left.distance - right.distance)[0];
       if (!nearest || nearest.distance > 350) {
         setLocationState("unavailable");
@@ -312,7 +325,7 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     try {
       const response = await fetch("/api/traveler/feedback", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ departureId: experience.journey.departureId, partyId: experience.journey.partyId, dayId, targetType, targetId, rating }),
+        body: JSON.stringify({ departureId: experience.journey.departureId, partyId: experience.journey.partyId, dayId, targetType, targetId, rating, clientOperationId: crypto.randomUUID() }),
       });
       const result = await response.json().catch(() => ({})) as { error?: string };
       if (!response.ok) throw new Error(result.error || "Valutazione non salvata");
@@ -344,7 +357,7 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     if (!localAmount || !euroAmount) { setError("Inserisci importi validi per calcolare il cambio applicato."); return; }
     setSaving("cash"); setError("");
     try {
-      const result = await postJournal({ action: "cash", dayId: day.id, kind, localAmount, euroAmount, feeEuro: null }) as { movement: { id: string; createdAt: string } };
+      const result = await postJournal({ action: "cash", dayId: day.id, kind, localAmount, euroAmount, feeEuro: null, clientOperationId: crypto.randomUUID() }) as { movement: { id: string; createdAt: string } };
       setExperience((current) => ({ ...current, cashMovements: [{ id: result.movement.id, dayId: day.id, dayNumber: day.number, kind, euroAmount, localAmount, localCurrency: "UZS", feeEuro: null, addedBy: userName, createdAt: result.movement.createdAt }, ...current.cashMovements] }));
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Movimento non salvato"); }
     finally { setSaving(""); }
@@ -378,11 +391,12 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     if (!amount || amount <= 0) { setError("Inserisci un importo valido."); return false; }
     setSaving("expense"); setError("");
     try {
-      const response = await fetch("/api/traveler/expenses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ departureId: experience.journey.departureId, partyId: experience.journey.partyId, dayId: expenseDayId, label: input.label, amount, currency: input.currency }) });
+      const exchangeRateToBase = input.currency === "EUR" ? 1 : appliedEurRate ? 1 / appliedEurRate : null;
+      const response = await fetch("/api/traveler/expenses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ departureId: experience.journey.departureId, partyId: experience.journey.partyId, dayId: expenseDayId, label: input.label, amount, currency: input.currency, exchangeRateToBase, clientOperationId: crypto.randomUUID() }) });
       const result = await response.json() as { id?: string; error?: string };
       if (!response.ok || !result.id) throw new Error(result.error || "Spesa non salvata");
       const expenseDay = experience.days.find((entry) => entry.id === expenseDayId);
-      setExperience((current) => ({ ...current, expenses: [{ id: result.id!, dayId: expenseDayId || null, dayNumber: expenseDay?.number ?? null, label: input.label, amount, currency: input.currency, paidBy: userName, createdAt: new Date().toISOString() }, ...current.expenses] }));
+      setExperience((current) => ({ ...current, expenses: [{ id: result.id!, dayId: expenseDayId || null, dayNumber: expenseDay?.number ?? null, label: input.label, amount, currency: input.currency, baseCurrency: "EUR", exchangeRateToBase, baseAmount: exchangeRateToBase == null ? null : Math.round(amount * exchangeRateToBase * 10_000) / 10_000, paidBy: userName, createdAt: new Date().toISOString() }, ...current.expenses] }));
       return true;
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Spesa non salvata"); return false; }
     finally { setSaving(""); }

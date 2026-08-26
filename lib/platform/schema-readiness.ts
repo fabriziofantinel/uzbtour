@@ -68,3 +68,7 @@ export function assertProgrammeFeedbackSchema() {
 export function assertNormalizedImportSchema() {
   return assertSchemaVersions(["011_normalized_import_document"]);
 }
+
+export function assertArchitectureHardeningSchema() {
+  return assertSchemaVersions(["012_neon_architecture_hardening"]);
+}

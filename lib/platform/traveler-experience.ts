@@ -2,6 +2,7 @@ import { getSql } from "@/lib/db";
 import { PlatformRequestError } from "./http";
 import { geocodeCity } from "./geocoding";
 import { assertProgrammeFeedbackSchema } from "./schema-readiness";
+import { assertArchitectureHardeningSchema } from "./schema-readiness";
 
 type Row = Record<string, unknown>;
 
@@ -74,7 +75,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
     `,
     transaction`
       SELECT link.trip_day_id::text, site.id::text, site.name, site.google_url,
-        site.official_url, city.name AS city
+        site.official_url, site.latitude, site.longitude, city.name AS city
       FROM trip_day_sites link
       JOIN trip_days day ON day.id = link.trip_day_id
       JOIN visit_sites site ON site.id = link.site_id
@@ -84,7 +85,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
     `,
     transaction`
       SELECT link.trip_day_id::text, hotel.id::text, hotel.name, hotel.google_url,
-        hotel.website_url, city.name AS city
+        hotel.website_url, hotel.latitude, hotel.longitude, city.name AS city
       FROM trip_day_hotels link
       JOIN trip_days day ON day.id = link.trip_day_id
       JOIN hotels hotel ON hotel.id = link.hotel_id
@@ -123,7 +124,8 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
     `,
     transaction`
       SELECT expense.id::text, expense.trip_day_id::text, day.day_number,
-        expense.label, expense.amount, expense.currency, expense.paid_by_name,
+        expense.label, expense.amount, expense.currency, expense.base_currency,
+        expense.exchange_rate_to_base, expense.base_amount, expense.paid_by_name,
         expense.created_at::text
       FROM party_expenses expense
       LEFT JOIN trip_days day ON day.id = expense.trip_day_id
@@ -325,10 +327,14 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
         sites: sites.filter((site) => String(site.trip_day_id) === id).map((site) => ({
           id: String(site.id), name: String(site.name), city: String(site.city),
           googleUrl: String(site.google_url), officialUrl: stringValue(site.official_url),
+          latitude: site.latitude == null ? null : Number(site.latitude),
+          longitude: site.longitude == null ? null : Number(site.longitude),
         })),
         hotels: hotels.filter((hotel) => String(hotel.trip_day_id) === id).map((hotel) => ({
           id: String(hotel.id), name: String(hotel.name), city: String(hotel.city),
           googleUrl: String(hotel.google_url), websiteUrl: stringValue(hotel.website_url),
+          latitude: hotel.latitude == null ? null : Number(hotel.latitude),
+          longitude: hotel.longitude == null ? null : Number(hotel.longitude),
           rating: hotelRatings.get(`${id}:${String(hotel.id)}`) ?? null,
         })),
       };
@@ -350,6 +356,9 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       id: String(row.id), dayId: row.trip_day_id ? String(row.trip_day_id) : null,
       dayNumber: row.day_number == null ? null : Number(row.day_number), label: String(row.label),
       amount: Number(row.amount), currency: String(row.currency), paidBy: String(row.paid_by_name),
+      baseCurrency: String(row.base_currency || "EUR"),
+      exchangeRateToBase: row.exchange_rate_to_base == null ? null : Number(row.exchange_rate_to_base),
+      baseAmount: row.base_amount == null ? null : Number(row.base_amount),
       createdAt: String(row.created_at),
     })),
     notes: (noteRows as Row[]).map((row) => ({
@@ -427,7 +436,10 @@ export async function addTravelerExpense(input: {
   label: string;
   amount: number;
   currency: "EUR" | "USD" | "UZS" | "GBP";
+  clientOperationId: string;
+  exchangeRateToBase?: number | null;
 }) {
+  await assertArchitectureHardeningSchema();
   const sql = getSql();
   const allowed = await sql`
     SELECT d.agency_id::text
@@ -448,16 +460,32 @@ export async function addTravelerExpense(input: {
     LIMIT 1
   `;
   if (!allowed[0]) throw new PlatformRequestError("Viaggio o giornata non disponibili");
+  const exchangeRateToBase = input.currency === "EUR" ? 1 : input.exchangeRateToBase ?? null;
+  const baseAmount = exchangeRateToBase == null
+    ? null
+    : Math.round(input.amount * exchangeRateToBase * 10_000) / 10_000;
   const rows = await sql`
-    INSERT INTO party_expenses (
+    WITH inserted AS (
+      INSERT INTO party_expenses (
       agency_id, departure_id, party_id, trip_day_id, label, amount, currency,
-      paid_by_user_id, paid_by_name
-    ) VALUES (
+      paid_by_user_id, paid_by_name, client_operation_id, base_currency,
+      exchange_rate_to_base, base_amount
+      ) VALUES (
       ${String(allowed[0].agency_id)}, ${input.departureId}, ${input.partyId},
       ${input.dayId ?? null}, ${input.label}, ${input.amount}, ${input.currency},
-      ${input.userId}, ${input.userName}
+      ${input.userId}, ${input.userName}, ${input.clientOperationId}, 'EUR',
+      ${exchangeRateToBase}, ${baseAmount}
+      )
+      ON CONFLICT (party_id, client_operation_id)
+        WHERE client_operation_id IS NOT NULL
+      DO NOTHING
+      RETURNING id
     )
-    RETURNING id::text
+    SELECT id::text FROM inserted
+    UNION ALL
+    SELECT id::text FROM party_expenses
+    WHERE party_id = ${input.partyId} AND client_operation_id = ${input.clientOperationId}
+    LIMIT 1
   `;
   return String(rows[0].id);
 }
@@ -519,17 +547,31 @@ export async function addTravelerRestaurant(input: {
 export async function addTravelerCashMovement(input: {
   userId: string; userName: string; departureId: string; partyId: string; dayId: string;
   kind: "withdrawal" | "exchange"; euroAmount: number | null; localAmount: number; feeEuro: number | null;
+  clientOperationId: string;
 }) {
+  await assertArchitectureHardeningSchema();
   const sql = getSql();
   const agencyId = await assertTravelerPartyScope(input);
   const rows = await sql`
-    INSERT INTO party_cash_movements (
+    WITH inserted AS (
+      INSERT INTO party_cash_movements (
       agency_id, party_id, trip_day_id, kind, euro_amount, local_amount, local_currency,
-      fee_euro, added_by_user_id, added_by_name
-    ) VALUES (
+      fee_euro, added_by_user_id, added_by_name, client_operation_id
+      ) VALUES (
       ${agencyId}, ${input.partyId}, ${input.dayId}, ${input.kind}, ${input.euroAmount},
-      ${input.localAmount}, 'UZS', ${input.feeEuro}, ${input.userId}, ${input.userName}
-    ) RETURNING id::text, created_at::text
+      ${input.localAmount}, 'UZS', ${input.feeEuro}, ${input.userId}, ${input.userName},
+      ${input.clientOperationId}
+      )
+      ON CONFLICT (party_id, client_operation_id)
+        WHERE client_operation_id IS NOT NULL
+      DO NOTHING
+      RETURNING id, created_at
+    )
+    SELECT id::text, created_at::text FROM inserted
+    UNION ALL
+    SELECT id::text, created_at::text FROM party_cash_movements
+    WHERE party_id = ${input.partyId} AND client_operation_id = ${input.clientOperationId}
+    LIMIT 1
   `;
   return { id: String(rows[0].id), createdAt: String(rows[0].created_at) };
 }
