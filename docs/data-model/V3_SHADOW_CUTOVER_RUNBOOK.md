@@ -64,6 +64,9 @@ ha superato il proprio gate di riconciliazione.
 | Media e ricordi | `023_v3_traveler_experience_runtime` | `V3_TRAVELER_EXPERIENCE_SHADOW_READ` | trigger transazionale `sync_v3_media_asset` / `sync_v3_memory` | `public` |
 | Quiz, giochi, missioni e bingo | `023_v3_traveler_experience_runtime` | `V3_TRAVELER_EXPERIENCE_SHADOW_READ` | trigger transazionale `sync_v3_activity_result` | `public` |
 | Contest fotografici | `023_v3_traveler_experience_runtime` | `V3_TRAVELER_EXPERIENCE_SHADOW_READ` | trigger transazionale `sync_v3_contest_entry` | `public` |
+| Identità, agenzie e agenti | `024_v3_iam_agency_runtime` | gate di riconciliazione DB | trigger transazionali `sync_v3_platform_user`, `sync_v3_agency`, `sync_v3_agency_membership` | `public` |
+| Paesi, città, siti, hotel e contenuti condivisi | `025_v3_reference_catalog_runtime` | gate di riconciliazione DB | cinque trigger transazionali del catalogo `ref` | `public` |
+| Template, versioni, partenze e programma materializzato | `026_v3_travel_catalog_runtime` | gate di riconciliazione DB | nove trigger coordinati da `sync_v3_travel_row` | `public` |
 
 Le feature flag devono essere abilitate prima in Preview e poi in Production.
 Il cutover delle letture non è implicito nell'abilitazione del dual-write.
