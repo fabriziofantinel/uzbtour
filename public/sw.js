@@ -1,4 +1,4 @@
-const CACHE_NAME = "uzb-tour-offline-v1";
+const CACHE_NAME = "smf-travel-offline-v2";
 const OFFLINE_URL = "/offline.html";
 const STATIC_FILES = [OFFLINE_URL, "/app-icon.svg"];
 

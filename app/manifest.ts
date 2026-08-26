@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Programmi, documenti, ricordi e attività per ogni viaggio.",
     start_url: "/",
     display: "standalone",
-    background_color: "#f7f3eb",
-    theme_color: "#0b6462",
+    background_color: "#f7f3ea",
+    theme_color: "#153f43",
     orientation: "portrait-primary",
     icons: [
       {
