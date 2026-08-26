@@ -647,6 +647,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 .tripFilters > label,
 .tripFilters > .tripSearch { height: 40px; border-color: var(--smf-line); font-size: 13px; }
 .tripSearch {
+  position: relative;
   min-width: 230px;
   margin-left: auto;
   padding: 0 9px;
