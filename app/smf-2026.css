@@ -129,7 +129,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   border-radius: 11px;
   color: var(--agency-on-primary, white);
   background: var(--trail-primary);
-  font: 800 11px/1 var(--font-sans), sans-serif;
+  font: 800 12px/1 var(--font-sans), sans-serif;
   font-style: normal;
 }
 .travelerRedesign .agencyButton,
@@ -567,10 +567,12 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   background: rgba(255,253,250,.95);
   backdrop-filter: blur(16px);
 }
-.agencyBrand > span { width: 40px; height: 40px; border-radius: 12px; background: var(--smf-brand-deep); }
+.agencyBrand { min-height: 44px; }
+.agencyBrand > span { width: 44px; height: 44px; border-radius: 12px; background: var(--smf-brand-deep); }
 .agencyBrand strong { font: 800 16px/1.15 var(--font-sans), sans-serif; }
 .agencyBrand small { color: var(--smf-muted); font-size: 12px; letter-spacing: .04em; }
 .agencyUser > i { border-radius: 11px; background: var(--smf-accent); }
+.agencyUser > i { font-size: 12px; }
 .agencyUser span small { font-size: 12px; }
 .agencyUser span b { font-size: 13px; }
 .agencyUser button { min-width: 44px; min-height: 44px; border-color: var(--smf-line); }
@@ -594,7 +596,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 }
 .agencySidebar > label { color: var(--smf-muted); font-size: 12px; letter-spacing: .04em; }
 .agencySelect { min-height: 48px; border-color: var(--smf-line); border-radius: 10px; }
-.agencySelect select { font-size: 13px; }
+.agencySelect select { width: 100%; min-height: 44px; font-size: 13px; }
 .agencySidebar nav a { min-height: 44px; border-radius: 9px; font-size: 13px; }
 .agencySidebar nav a.active { color: var(--smf-brand-deep); background: #e8f1ee; }
 .agencyContent { padding: 30px clamp(20px, 3vw, 44px) 80px; }
@@ -642,7 +644,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   border-radius: 999px;
   color: inherit;
   background: color-mix(in srgb, currentColor 10%, transparent);
-  font-size: 10px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 .tripFilters > button.active { background: var(--smf-brand-deep); }
@@ -707,6 +709,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 }
 .tripListTools select {
   min-width: 0;
+  min-height: 44px;
   appearance: none;
   border: 0;
   outline: 0;
@@ -735,13 +738,15 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 .tripTable tr.generating td:last-child { background: #fffbf1; }
 .tripTable th:nth-child(5) { min-width: 92px; }
 .tripNameCell b { font: 700 15px/1.2 var(--font-sans), sans-serif; }
-.tripNameCell span, .tripNameCell small { font-size: 11px; }
+.tripNameCell span, .tripNameCell small { font-size: 12px; }
 .status { padding: 5px 8px; border-radius: 7px; font-size: 11px; letter-spacing: .02em; }
 .dateCell { font-size: 12px; }
 .travelerCell { font-size: 12px; }
 .tableActions.inline { min-width: 410px; }
 .tableActions a, .tableActions button { min-height: 44px; padding: 8px 10px; border-radius: 8px; font-size: 12px; }
 .tableActions .primary { background: var(--smf-action); }
+.tripGeneration.compact b,
+.tripGeneration.compact small { font-size: 12px; }
 .tripAdminCard {
   padding: 20px;
   border-color: var(--smf-line);
@@ -906,7 +911,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   border-right: 1px solid var(--smf-line);
   background: var(--smf-brand-deep);
 }
-.superadminBrand { padding: 0 7px 28px; color: white; }
+.superadminBrand { min-width: 44px; min-height: 44px; padding: 0 7px 28px; color: white; }
 .superadminBrand > span { background: var(--smf-accent); }
 .superadminBrand strong { font-size: 16px; }
 .superadminBrand small { margin-top: 3px; color: #d9e3e1; font-size: 12px; }
@@ -926,7 +931,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   color: white;
 }
 .superadminActor > svg { color: #f0b176; }
-.superadminActor button { color: white; background: rgba(255,255,255,.1); }
+.superadminActor button { min-width: 44px; min-height: 44px; color: white; background: rgba(255,255,255,.1); }
 .superadminShell { width: min(1180px, calc(100% - 56px)); padding: 46px 0 82px; }
 .superadminHero,
 .registryHead { align-items: center; margin-bottom: 30px; }
@@ -956,7 +961,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 }
 .superadminStats article:first-child { border-left: 0; }
 .superadminStats article > span { width: 44px; height: 44px; border-radius: 12px; }
-.superadminStats small { color: var(--smf-muted); font-size: 10px; }
+.superadminStats small { color: var(--smf-muted); font-size: 12px; }
 .superadminStats strong { font: 700 38px/1 var(--font-serif), serif; }
 .superadminStats p { font-size: 12px; }
 .superadminQuick {
@@ -1012,7 +1017,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 .superadminOperationLinks strong,
 .superadminOperationLinks small { display: block; min-width: 0; }
 .superadminOperationLinks strong { font-size: 14px; }
-.superadminOperationLinks small { margin-top: 4px; color: var(--smf-muted); font-size: 11px; line-height: 1.4; }
+.superadminOperationLinks small { margin-top: 4px; color: var(--smf-muted); font-size: 12px; line-height: 1.4; }
 .superadminOperationLinks > a:focus-visible { outline: 3px solid var(--smf-focus); outline-offset: 3px; border-radius: 10px; }
 .superadminRatios {
   align-self: start;
@@ -1036,7 +1041,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 .superadminRatios b,
 .superadminRatios small { display: block; }
 .superadminRatios b { font: 700 26px/1 var(--font-serif), serif; font-variant-numeric: tabular-nums; }
-.superadminRatios small { margin-top: 4px; color: #c9d6d4; font-size: 10px; }
+.superadminRatios small { margin-top: 4px; color: #d9e3e1; font-size: 12px; }
 .superadminRatios svg { width: 22px; color: #f0b176; }
 .agencyRegistryForm,
 .agencyRegistryList > article { border-color: var(--smf-line); border-radius: 14px; box-shadow: none; }
@@ -2130,7 +2135,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   .travelerRedesign .brandMark,
   .travelerRedesign .agencyLogo { width: 44px; height: 44px; flex-basis: 44px; }
   .travelerRedesign .brand strong { max-width: 52vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .travelerRedesign .brand small { font-size: 11px; }
+  .travelerRedesign .brand small { font-size: 12px; }
   .travelerRedesign .hero,
   .travelerRedesign .journeyPicker { display: none; }
   .travelerRedesign .tabs {
@@ -2149,7 +2154,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
     box-shadow: 0 -10px 32px rgba(20,43,53,.08);
     backdrop-filter: blur(16px);
   }
-  .travelerRedesign .tabs button { min-width: 0; min-height: 64px; padding: 7px 2px; font-size: 10px; }
+  .travelerRedesign .tabs button { min-width: 0; min-height: 64px; padding: 7px 2px; font-size: 12px; }
   .travelerRedesign .tabs button.active::after { inset: 0 24% auto; }
   .travelerRedesign .travelMainContent { min-height: calc(100svh - 62px); padding-bottom: calc(82px + env(safe-area-inset-bottom)); }
   .travelerRedesign .dashboard { display: block; min-height: auto; background: var(--smf-paper); }
@@ -2171,6 +2176,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   .travelerRedesign .dayInfo strong { overflow: hidden; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
   .travelerRedesign .detail { padding: 20px 16px 44px; }
   .travelerRedesign .detailHead h2 { font-size: clamp(29px, 9vw, 39px); }
+  .travelerRedesign .detailHead .tag { font-size: 12px; }
   .travelerRedesign .detailHead .pager { display: none; }
   .travelerRedesign .proximityPanel { grid-template-columns: 40px minmax(0,1fr); margin: 20px 0 27px; }
   .travelerRedesign .locateButton,
@@ -2184,7 +2190,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   .travelerRedesign .programmeStepIcon svg { width: 19px; height: 19px; }
   .travelerRedesign .programmeStepBody { padding-left: 7px; }
   .travelerRedesign .programmeRating { flex-wrap: wrap; gap: 4px; overflow: visible; }
-  .travelerRedesign .programmeRating > span { flex-basis: 100%; margin-right: 4px; font-size: 11px; }
+  .travelerRedesign .programmeRating > span { flex-basis: 100%; margin-right: 4px; font-size: 12px; }
   .travelerRedesign .programmeRating > div { gap: 3px; }
   .travelerRedesign .programmeRating button { width: 44px; height: 44px; }
   .travelerRedesign .collection,
@@ -2432,7 +2438,8 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   .tripTable td:nth-child(8) { grid-column: 1 / -1; }
   .tripTable .contentCell { white-space: normal; }
   .tripTable .tripGeneration.compact { display: grid; margin: 0 0 6px; padding: 10px; }
-  .tripTable .tripGeneration.compact small { display: block; font-size: 10px; }
+  .tripTable .tripGeneration.compact small { display: block; font-size: 12px; }
+  .tripTable .tripGeneration.compact :is(a, button) { min-height: 44px; padding: 8px 10px; font-size: 12px; }
   .tripTable .tableActions.inline { min-width: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
   .tripTable .tableActions.inline a,
   .tripTable .tableActions.inline button { width: 100%; min-height: 44px; justify-content: center; font-size: 11px; white-space: normal; }
