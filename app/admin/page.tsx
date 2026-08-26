@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { Building2, MapPinned, Plus, UsersRound } from "lucide-react";
+import { ArrowRight, Building2, LogIn, MapPinned, Plus, UsersRound } from "lucide-react";
 import { getSuperadminSummary } from "@/lib/platform/superadmin-repository";
 
 export default async function SuperadminHome() {
   const summary = await getSuperadminSummary();
+  const tripsPerAgency = summary.agencies ? summary.trips / summary.agencies : 0;
+  const travelersPerTrip = summary.trips ? summary.travelers / summary.trips : 0;
   return (
     <div className="superadminShell">
       <section className="superadminHero">
@@ -17,9 +19,17 @@ export default async function SuperadminHome() {
         <article><span><UsersRound/></span><div><small>VIAGGIATORI</small><strong>{summary.travelers}</strong><p>Profili associati alle famiglie</p></div></article>
       </section>
 
-      <section className="superadminQuick">
-        <div><small>GESTIONE</small><h2>Amministra le agenzie</h2><p>Inserisci i dati anagrafici e assegna gli agenti autorizzati.</p></div>
-        <Link href="/admin/agenzie">Apri elenco agenzie <Building2 size={18}/></Link>
+      <section className="superadminOperations">
+        <div className="superadminOperationsHead"><h2>Operazioni principali</h2><p>Gestisci organizzazioni e verifica l’esperienza con i permessi reali degli utenti.</p></div>
+        <div className="superadminOperationLinks">
+          <Link href="/admin/agenzie"><Building2/><span><strong>Agenzie e agenti</strong><small>Anagrafiche, identità visiva e utenti dell’agenzia</small></span><ArrowRight/></Link>
+          <Link href="/admin/utenti"><LogIn/><span><strong>Login come utente</strong><small>Apri una sessione con gli stessi ruoli del profilo scelto</small></span><ArrowRight/></Link>
+        </div>
+        <aside className="superadminRatios" aria-label="Indicatori medi della piattaforma">
+          <h3>Indicatori medi</h3>
+          <div><span><b>{tripsPerAgency.toLocaleString("it-IT", { maximumFractionDigits: 1 })}</b><small>viaggi per agenzia</small></span><MapPinned/></div>
+          <div><span><b>{travelersPerTrip.toLocaleString("it-IT", { maximumFractionDigits: 1 })}</b><small>viaggiatori per viaggio</small></span><UsersRound/></div>
+        </aside>
       </section>
     </div>
   );
