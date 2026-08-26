@@ -17,18 +17,16 @@ Completato e verificato:
 - coordinate puntuali di siti e hotel disponibili nel contratto del programma;
 - `pg_stat_statements` 1.12 attivata in produzione con audit automatico di ruolo,
   integrità, cache hit e query aggregate;
+- ruolo SQL `smf_app` senza attributi amministrativi né membership `neon_superuser`,
+  policy 013 applicata e 108 chiamate runtime autenticate verificate;
 - runtime Vercel in `fra1` con `DATABASE_URL` pooled e build/deploy verificati.
 
 Ancora da consolidare:
 
-- ruolo runtime PostgreSQL privo di privilegi amministrativi. I ruoli creati tramite Neon API/CLI
-  ereditano `neon_superuser`; usare un ruolo SQL dedicato e applicare la migrazione
-  [`013_runtime_role_grants.sql`](../../database/migrations/013_runtime_role_grants.sql). Fino ad
-  allora il runtime usa temporaneamente `neondb_owner` pooled;
 - branch Neon automatico e isolato per ogni Preview Vercel;
 - raccogliere almeno sette giorni di statistiche prima di fissare la baseline p95 definitiva;
 - backfill verificato di coordinate puntuali e importi EUR storici dove la fonte è disponibile;
-- RLS e contract migration solo dopo l’attivazione del ruolo runtime limitato.
+- RLS e contract migration dopo test multi-tenant dedicati sul branch di collaudo.
 
 ## 1. Baseline verificata
 
@@ -38,12 +36,14 @@ Ancora da consolidare:
 | Data access | SQL nativo parametrizzato, `@neondatabase/serverless` 1.1, protocollo HTTP |
 | Connessione runtime | una funzione `neon(DATABASE_URL)` riutilizzata per istanza Fluid Compute |
 | Migrazioni | script JavaScript imperativi `migrate.mjs` e `migrate-platform.mjs` |
-| Modello | schema legacy mono-viaggio + schema piattaforma multi-tenant 001-011 |
+| Modello | schema legacy mono-viaggio + schema piattaforma multi-tenant 001-015 |
 | Storage | metadati in Neon, oggetti privati in Cloudflare R2 |
 | Carico | read-heavy sul programma; burst di upload/scritture mobile; job asincroni SQS/Lambda |
-| Regione dati | Neon/AWS in `eu-central-1`; deployment Vercel precedente mostrava funzioni generali in `iad1` |
+| Regione dati | Neon/AWS in `eu-central-1`; Vercel Functions in `fra1` |
 
-Il catalogo live (`pg_catalog`, cardinalità e `pg_stat_*`) non è stato interrogato perché la shell locale non possiede la `DATABASE_URL` e l’esportazione dei segreti Vercel è stata intenzionalmente bloccata. Le conclusioni contrassegnate **da confermare live** richiedono l’esecuzione read-only di `scripts/audit-neon-architecture.mjs` tramite un canale autorizzato.
+Il catalogo live è stato verificato dopo le migrazioni: database circa 14,8 MB,
+cache hit tabelle 99,16%, nessun indice invalido e nessun vincolo non validato.
+`pg_stat_statements` raccoglie ora la baseline delle query di produzione.
 
 ## 2. Valutazione sintetica
 
