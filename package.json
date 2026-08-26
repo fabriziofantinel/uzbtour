@@ -30,6 +30,8 @@
     "db:migrate:v3:experience": "node --env-file=.env.local scripts/migrate-v3-traveler-experience-runtime.mjs --apply",
     "db:migrate:v3:core:dry-run": "node --env-file=.env.local scripts/migrate-v3-core-foundation-runtime.mjs",
     "db:migrate:v3:core": "node --env-file=.env.local scripts/migrate-v3-core-foundation-runtime.mjs --apply",
+    "db:migrate:v3:final:dry-run": "node --env-file=.env.local scripts/migrate-v3-final-domains-runtime.mjs",
+    "db:migrate:v3:final": "node --env-file=.env.local scripts/migrate-v3-final-domains-runtime.mjs --apply",
     "check:v3:runtime-boundaries": "node scripts/check-v3-runtime-boundaries.mjs",
     "db:validate:v3": "node --env-file=.env.local scripts/validate-v3-target.mjs",
     "db:link-neon-user": "node --env-file=.env.local scripts/link-neon-auth-user.mjs",

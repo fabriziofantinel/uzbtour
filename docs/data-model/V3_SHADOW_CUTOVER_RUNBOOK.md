@@ -67,6 +67,9 @@ ha superato il proprio gate di riconciliazione.
 | Identità, agenzie e agenti | `024_v3_iam_agency_runtime` | gate di riconciliazione DB | trigger transazionali `sync_v3_platform_user`, `sync_v3_agency`, `sync_v3_agency_membership` | `public` |
 | Paesi, città, siti, hotel e contenuti condivisi | `025_v3_reference_catalog_runtime` | gate di riconciliazione DB | cinque trigger transazionali del catalogo `ref` | `public` |
 | Template, versioni, partenze e programma materializzato | `026_v3_travel_catalog_runtime` | gate di riconciliazione DB | nove trigger coordinati da `sync_v3_travel_row` | `public` |
+| Famiglie, viaggiatori, membership, inviti e privacy | `027_v3_party_privacy_runtime` | gate di riconciliazione DB | quattro trigger transazionali con consenso minori `default-deny` | `public` |
+| Documenti, biglietti, importazioni, job e audit | `028_v3_documents_import_runtime` | gate di riconciliazione DB | cinque trigger transazionali nel dominio `ops` | `public` |
+| Informazioni utili, frasi e contenuti generati | `029_v3_content_localization_runtime` | gate di riconciliazione DB | tre trigger transazionali con archivio dei contenuti rimossi | `public` |
 
 Le feature flag devono essere abilitate prima in Preview e poi in Production.
 Il cutover delle letture non è implicito nell'abilitazione del dual-write.
@@ -82,3 +85,14 @@ transazione: una foto temporanea ha alimentato `ops.media_assets`,
 `journey.memories`, `journey.activity_attempts`, `journey.activity_evidence` e
 `journey.photo_contest_entries`; il gate ha restituito `1/1/1` e il successivo
 `ROLLBACK` non ha lasciato dati di prova.
+
+Le migrazioni `027`-`029` si eseguono insieme con:
+
+```powershell
+npm run db:migrate:v3:final:dry-run
+npm run db:migrate:v3:final
+```
+
+Il runner usa un advisory lock, timeout espliciti, checksum immutabili e una
+transazione unica. I gate verificano tutti i dodici trigger e impediscono al
+ruolo runtime di leggere le mappe tecniche delle identità e dei contenuti.
