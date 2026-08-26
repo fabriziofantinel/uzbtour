@@ -1032,12 +1032,60 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 .agencyRegistryForm,
 .agencyRegistryList > article { border-color: var(--smf-line); border-radius: 14px; box-shadow: none; }
 .agencyRegistryForm > header { background: var(--smf-brand-deep); }
+.agencyRegistryForm > header > div { align-items: flex-start; }
+.agencyRegistryForm > header p { max-width: 68ch; margin: 5px 0 0; color: #c9d6d4; font-size: 11px; line-height: 1.45; }
 .agencyRegistryForm fieldset { gap: 16px; }
 .agencyRegistryForm label,
 .agentForm label { font-size: 12px; }
 .agencyRegistryForm input,
 .agentForm input,
 .agentForm select { min-height: 44px; border-color: var(--smf-line); border-radius: 9px; }
+.agencyRequiredFields { background: var(--smf-surface); }
+.agencyOptionalSections {
+  display: grid;
+  gap: 10px;
+  padding: 0 24px 24px;
+  background: var(--smf-surface);
+}
+.agencyOptionalSection {
+  overflow: hidden;
+  border: 1px solid var(--smf-line);
+  border-radius: 12px;
+  background: var(--smf-paper);
+}
+.agencyOptionalSection > summary {
+  min-height: 68px;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 24px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 15px;
+  cursor: pointer;
+  list-style: none;
+}
+.agencyOptionalSection > summary::-webkit-details-marker { display: none; }
+.agencyOptionalSection > summary:hover { background: #f3f0e9; }
+.agencyOptionalSection > summary:focus-visible { outline: 3px solid var(--smf-focus); outline-offset: -3px; }
+.agencyOptionalSection > summary > svg:first-child {
+  width: 38px;
+  height: 38px;
+  padding: 9px;
+  border-radius: 10px;
+  color: var(--smf-brand);
+  background: #e8f1ee;
+}
+.agencyOptionalSection > summary > svg:last-child { width: 18px; color: var(--smf-muted); transition: transform .18s ease-out; }
+.agencyOptionalSection[open] > summary > svg:last-child { transform: rotate(180deg); }
+.agencyOptionalSection > summary span,
+.agencyOptionalSection > summary b,
+.agencyOptionalSection > summary small { display: block; min-width: 0; }
+.agencyOptionalSection > summary b { font-size: 13px; }
+.agencyOptionalSection > summary small { margin-top: 3px; color: var(--smf-muted); font-size: 10px; }
+.agencyOptionalSection > fieldset {
+  padding: 18px !important;
+  border-top: 1px solid var(--smf-line) !important;
+  background: var(--smf-surface);
+}
 .agencyRegistrySummary { min-height: 82px; }
 .agencyIdentity strong { font-size: 16px; }
 .agencyIdentity em { font-size: 12px; }
@@ -1124,6 +1172,9 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   .agentForm input,
   .agentForm select,
   .userSearch input { font-size: 16px; }
+  .agencyOptionalSections { padding: 0 18px 18px; }
+  .agencyOptionalSection > summary { min-height: 64px; padding: 10px 12px; }
+  .agencyOptionalSection > fieldset { padding: 15px !important; }
   .superadminOperations { grid-template-columns: 1fr; gap: 18px; margin-top: 26px; padding-top: 24px; }
   .superadminOperationsHead { grid-column: 1; }
   .superadminRatios { display: grid; grid-template-columns: 1fr 1fr; }

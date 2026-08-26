@@ -178,35 +178,43 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
 
       {showAgencyForm && (
         <form className="agencyRegistryForm" onSubmit={createAgency}>
-          <header><div><Building2/><span><small>NUOVA ANAGRAFICA</small><h2>Inserisci agenzia</h2></span></div><button type="button" onClick={() => setShowAgencyForm(false)} aria-label="Chiudi"><X/></button></header>
-          <fieldset>
+          <header><div><Building2/><span><small>NUOVA ANAGRAFICA</small><h2>Inserisci agenzia</h2><p>Inizia dai dati indispensabili. Le informazioni facoltative possono essere aggiunte ora o in seguito.</p></span></div><button type="button" onClick={() => setShowAgencyForm(false)} aria-label="Chiudi"><X/></button></header>
+          <fieldset className="agencyRequiredFields">
             <legend>Dati obbligatori</legend>
-            <label htmlFor="agency-name">Nome agenzia *<input id="agency-name" name="name" autoComplete="organization" required minLength={2} maxLength={160}/></label>
+            <label htmlFor="agency-name">Nome agenzia *<input id="agency-name" name="name" autoComplete="organization" required minLength={2} maxLength={160} autoFocus/></label>
             <label htmlFor="agency-reference-name">Persona di riferimento *<input id="agency-reference-name" name="referenceName" autoComplete="name" required minLength={2} maxLength={160}/></label>
             <label htmlFor="agency-reference-email">Email referente *<input id="agency-reference-email" name="referenceEmail" type="email" autoComplete="email" required maxLength={320}/></label>
             <label htmlFor="agency-reference-phone">Telefono referente *<input id="agency-reference-phone" name="referencePhone" type="tel" autoComplete="tel" required minLength={5} maxLength={40}/></label>
           </fieldset>
-          <fieldset>
-            <legend>Dati legali e aziendali facoltativi</legend>
-            <label>Ragione sociale<input name="legalName" autoComplete="organization" maxLength={200}/></label>
-            <label>Partita IVA<input name="vatNumber" inputMode="numeric" maxLength={32}/></label>
-            <label>Codice fiscale<input name="taxCode" maxLength={32}/></label>
-            <label>PEC<input name="pec" type="email" autoComplete="email" maxLength={320}/></label>
-            <label>Codice SDI<input name="sdiCode" maxLength={16}/></label>
-            <label>Email agenzia<input name="email" type="email" autoComplete="email" maxLength={320}/></label>
-            <label>Telefono agenzia<input name="phone" type="tel" autoComplete="tel" maxLength={40}/></label>
-            <label>Sito web<input name="website" type="url" autoComplete="url" placeholder="https://" maxLength={500}/></label>
-            <label className="wide">Sede legale<input name="registeredAddress" autoComplete="street-address" maxLength={300}/></label>
-            <label>Città<input name="registeredCity" autoComplete="address-level2" maxLength={120}/></label>
-            <label>CAP<input name="registeredPostalCode" autoComplete="postal-code" maxLength={20}/></label>
-            <label>Provincia<input name="registeredProvince" autoComplete="address-level1" maxLength={80}/></label>
-            <label>Paese<input name="registeredCountry" autoComplete="country-name" defaultValue="Italia" maxLength={80}/></label>
-          </fieldset>
-          <fieldset>
-            <legend>Identità visiva</legend>
-            <label>Colore principale<input name="primaryColor" type="color" defaultValue="#247A6B"/></label>
-            <label className="wide">URL del logo<input name="logoUrl" type="url" autoComplete="url" placeholder="https://agenzia.it/logo.png" maxLength={1000}/></label>
-          </fieldset>
+          <div className="agencyOptionalSections">
+            <details className="agencyOptionalSection">
+              <summary><Building2/><span><b>Dati legali e aziendali</b><small>Ragione sociale, fiscalità, contatti e sede</small></span><ChevronDown/></summary>
+              <fieldset>
+                <legend className="srOnly">Dati legali e aziendali facoltativi</legend>
+                <label>Ragione sociale<input name="legalName" autoComplete="organization" maxLength={200}/></label>
+                <label>Partita IVA<input name="vatNumber" inputMode="numeric" maxLength={32}/></label>
+                <label>Codice fiscale<input name="taxCode" maxLength={32}/></label>
+                <label>PEC<input name="pec" type="email" autoComplete="email" maxLength={320}/></label>
+                <label>Codice SDI<input name="sdiCode" maxLength={16}/></label>
+                <label>Email agenzia<input name="email" type="email" autoComplete="email" maxLength={320}/></label>
+                <label>Telefono agenzia<input name="phone" type="tel" autoComplete="tel" maxLength={40}/></label>
+                <label>Sito web<input name="website" type="url" autoComplete="url" placeholder="https://" maxLength={500}/></label>
+                <label className="wide">Sede legale<input name="registeredAddress" autoComplete="street-address" maxLength={300}/></label>
+                <label>Città<input name="registeredCity" autoComplete="address-level2" maxLength={120}/></label>
+                <label>CAP<input name="registeredPostalCode" autoComplete="postal-code" maxLength={20}/></label>
+                <label>Provincia<input name="registeredProvince" autoComplete="address-level1" maxLength={80}/></label>
+                <label>Paese<input name="registeredCountry" autoComplete="country-name" defaultValue="Italia" maxLength={80}/></label>
+              </fieldset>
+            </details>
+            <details className="agencyOptionalSection">
+              <summary><Palette/><span><b>Identità visiva</b><small>Colore e logo mostrati ai viaggiatori</small></span><ChevronDown/></summary>
+              <fieldset>
+                <legend className="srOnly">Identità visiva facoltativa</legend>
+                <label>Colore principale<input name="primaryColor" type="color" defaultValue="#247A6B"/></label>
+                <label className="wide">URL del logo<input name="logoUrl" type="url" autoComplete="url" placeholder="https://agenzia.it/logo.png" maxLength={1000}/></label>
+              </fieldset>
+            </details>
+          </div>
           <footer><button type="button" className="secondary" onClick={() => setShowAgencyForm(false)}>Annulla</button><button type="submit" disabled={busy === "agency"}>{busy === "agency" ? <><LoaderCircle className="spin"/> Salvataggio…</> : <><Save/> Salva agenzia</>}</button></footer>
         </form>
       )}
