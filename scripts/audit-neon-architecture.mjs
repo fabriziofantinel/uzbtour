@@ -1,12 +1,19 @@
 import { neon } from "@neondatabase/serverless";
 
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) throw new Error("DATABASE_URL non configurata");
+const databaseUrl =
+  process.env.DATABASE_DIRECT_URL ||
+  process.env.DATABASE_URL_UNPOOLED ||
+  process.env.DATABASE_URL;
+if (!databaseUrl) {
+  throw new Error(
+    "DATABASE_DIRECT_URL, DATABASE_URL_UNPOOLED o DATABASE_URL non configurata",
+  );
+}
 
 const endpoint = new URL(databaseUrl);
 const sql = neon(databaseUrl);
 
-const [version, database, extensions, tables, indexes, foreignKeysWithoutLeadingIndex, settings, runtimeRole, integrity, cache, migrations] = await Promise.all([
+const [version, database, extensions, tables, indexes, foreignKeysWithoutLeadingIndex, settings, runtimeRole, runtimePrivileges, integrity, cache, migrations] = await Promise.all([
   sql`SELECT version() AS version`,
   sql`
     SELECT current_database() AS database_name,
@@ -81,6 +88,12 @@ const [version, database, extensions, tables, indexes, foreignKeysWithoutLeading
   `,
   sql`
     SELECT
+      has_database_privilege(current_user, current_database(), 'CREATE') AS can_create_schema,
+      has_schema_privilege(current_user, 'public', 'CREATE') AS can_create_in_public,
+      has_schema_privilege(current_user, 'public', 'USAGE') AS can_use_public
+  `,
+  sql`
+    SELECT
       (SELECT count(*)::int FROM pg_constraint
         WHERE NOT convalidated AND connamespace = 'public'::regnamespace) AS unvalidated_constraints,
       (SELECT count(*)::int FROM pg_index WHERE NOT indisvalid OR NOT indisready) AS invalid_indexes
@@ -121,6 +134,7 @@ console.log(JSON.stringify({
   postgres: version[0],
   database: database[0],
   runtimeRole: runtimeRole[0],
+  runtimePrivileges: runtimePrivileges[0],
   integrity: integrity[0],
   cache: cache[0],
   extensions,

@@ -1,0 +1,95 @@
+import { readFile } from "node:fs/promises";
+
+import { Client } from "@neondatabase/serverless";
+
+const migrationUrl = process.env.DATABASE_MIGRATION_URL;
+if (!migrationUrl) {
+  throw new Error("DATABASE_MIGRATION_URL non configurata");
+}
+
+const smokeUrl = new URL("../database/schema-v3-smoke.sql", import.meta.url);
+const smokeSql = await readFile(smokeUrl, "utf8");
+const client = new Client(migrationUrl);
+
+try {
+  await client.connect();
+  const inventory = await client.query(`
+    SELECT
+      (SELECT count(*)::int
+         FROM information_schema.tables
+        WHERE table_schema IN ('iam','ref','travel','content','ops','journey','privacy'))
+        AS table_count,
+      (SELECT count(*)::int
+         FROM pg_class c
+         JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE c.relkind = 'r'
+          AND n.nspname IN ('iam','travel','content','ops','journey','privacy')
+          AND c.relrowsecurity) AS rls_table_count,
+      (SELECT count(*)::int
+         FROM pg_constraint
+        WHERE NOT convalidated
+          AND connamespace IN (
+            'iam'::regnamespace, 'ref'::regnamespace, 'travel'::regnamespace,
+            'content'::regnamespace, 'ops'::regnamespace,
+            'journey'::regnamespace, 'privacy'::regnamespace
+          )) AS unvalidated_constraints,
+      (SELECT count(*)::int
+         FROM pg_index i
+         JOIN pg_class c ON c.oid = i.indrelid
+         JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname IN ('iam','ref','travel','content','ops','journey','privacy')
+          AND (NOT i.indisvalid OR NOT i.indisready)) AS invalid_indexes,
+      (SELECT count(*)::int
+         FROM pg_class c
+         JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE c.relkind = 'r'
+          AND n.nspname IN ('iam','travel','content','ops','journey','privacy')
+          AND c.relrowsecurity
+          AND NOT (n.nspname = 'iam' AND c.relname = 'agencies')
+          AND EXISTS (
+            SELECT 1 FROM pg_attribute a
+             WHERE a.attrelid = c.oid AND a.attname = 'agency_id' AND NOT a.attisdropped
+          )
+          AND NOT EXISTS (
+            SELECT 1
+              FROM pg_index i
+              JOIN pg_attribute a
+                ON a.attrelid = c.oid AND a.attnum = i.indkey[0]
+             WHERE i.indrelid = c.oid AND i.indisvalid AND i.indisready
+               AND a.attname = 'agency_id'
+          )) AS tenant_tables_without_leading_index
+  `);
+
+  const result = inventory.rows[0];
+  const shadowCoreInstalled = result.table_count === 62;
+  let shadowCore = null;
+  if (shadowCoreInstalled) {
+    shadowCore = (
+      await client.query(`
+        SELECT
+          (SELECT count(*)::int FROM ops.schema_migrations
+            WHERE version = '3.2.1-shadow-core') AS marker_count,
+          (SELECT count(*)::int FROM (
+            SELECT entity_type, target_id FROM ops.legacy_id_map
+            GROUP BY entity_type, target_id HAVING count(*) > 1
+          ) duplicated) AS duplicate_target_ids
+      `)
+    ).rows[0];
+  }
+  if (
+    ![60, 62].includes(result.table_count) ||
+    result.rls_table_count !== (shadowCoreInstalled ? 49 : 47) ||
+    result.unvalidated_constraints !== 0 ||
+    result.invalid_indexes !== 0 ||
+    result.tenant_tables_without_leading_index !== 0 ||
+    (shadowCoreInstalled &&
+      (shadowCore?.marker_count !== 1 || shadowCore?.duplicate_target_ids !== 0))
+  ) {
+    throw new Error(`Validazione catalogo fallita: ${JSON.stringify({ ...result, shadowCore })}`);
+  }
+
+  await client.query(smokeSql);
+  console.log(JSON.stringify({ status: "passed", ...result, shadowCore }));
+} finally {
+  await client.end().catch(() => undefined);
+}
