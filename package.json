@@ -20,6 +20,8 @@
     "db:migrate:v3:expenses:dry-run": "node --env-file=.env.local scripts/migrate-v3-expense-runtime.mjs",
     "db:migrate:v3:expenses": "node --env-file=.env.local scripts/migrate-v3-expense-runtime.mjs --apply",
     "smoke:v3:expenses": "node --env-file=.env.local scripts/smoke-v3-expense-runtime.mjs",
+    "db:migrate:v3:journal:dry-run": "node --env-file=.env.local scripts/migrate-v3-journey-journal-runtime.mjs",
+    "db:migrate:v3:journal": "node --env-file=.env.local scripts/migrate-v3-journey-journal-runtime.mjs --apply",
     "db:validate:v3": "node --env-file=.env.local scripts/validate-v3-target.mjs",
     "db:link-neon-user": "node --env-file=.env.local scripts/link-neon-auth-user.mjs",
     "db:set-platform-role": "node --env-file=.env.local scripts/set-platform-role.mjs",

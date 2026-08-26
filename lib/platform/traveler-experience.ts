@@ -9,6 +9,14 @@ import {
   deleteTravelerExpenseDualWrite,
   v3ExpenseDualWriteEnabled,
 } from "./v3-expenses";
+import {
+  addTravelerCashMovementDualWrite,
+  addTravelerRestaurantDualWrite,
+  compareV3JourneyJournalShadow,
+  deleteTravelerCashMovementDualWrite,
+  saveTravelerNoteDualWrite,
+  v3JourneyJournalDualWriteEnabled,
+} from "./v3-journey-journal";
 
 type Row = Record<string, unknown>;
 
@@ -229,6 +237,14 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
     departureId,
     partyId,
     legacyRows: expenseRows as Row[],
+  });
+  await compareV3JourneyJournalShadow({
+    agencyId,
+    departureId,
+    partyId,
+    legacyCash: cashRows as Row[],
+    legacyNotes: noteRows as Row[],
+    legacyRestaurants: restaurantRows as Row[],
   });
 
   const items = itemRows as Row[];
@@ -541,6 +557,9 @@ export async function saveTravelerNote(input: {
 }) {
   const sql = getSql();
   const agencyId = await assertTravelerPartyScope(input);
+  if (v3JourneyJournalDualWriteEnabled()) {
+    return saveTravelerNoteDualWrite({ agencyId, ...input });
+  }
   const rows = await sql`
     INSERT INTO party_day_notes (agency_id, party_id, trip_day_id, text, updated_by_user_id, updated_by_name)
     VALUES (${agencyId}, ${input.partyId}, ${input.dayId}, ${input.text}, ${input.userId}, ${input.userName})
@@ -557,6 +576,9 @@ export async function addTravelerRestaurant(input: {
 }) {
   const sql = getSql();
   const agencyId = await assertTravelerPartyScope(input);
+  if (v3JourneyJournalDualWriteEnabled()) {
+    return addTravelerRestaurantDualWrite({ agencyId, ...input });
+  }
   const rows = await sql`
     INSERT INTO party_restaurants (agency_id, party_id, trip_day_id, name, added_by_user_id, added_by_name)
     VALUES (${agencyId}, ${input.partyId}, ${input.dayId}, ${input.name}, ${input.userId}, ${input.userName})
@@ -573,6 +595,9 @@ export async function addTravelerCashMovement(input: {
   await assertArchitectureHardeningSchema();
   const sql = getSql();
   const agencyId = await assertTravelerPartyScope(input);
+  if (v3JourneyJournalDualWriteEnabled()) {
+    return addTravelerCashMovementDualWrite({ agencyId, ...input });
+  }
   const rows = await sql`
     WITH inserted AS (
       INSERT INTO party_cash_movements (
@@ -600,6 +625,10 @@ export async function addTravelerCashMovement(input: {
 export async function deleteTravelerCashMovement(input: {
   userId: string; departureId: string; partyId: string; movementId: string;
 }) {
+  if (v3JourneyJournalDualWriteEnabled()) {
+    const agencyId = await assertTravelerPartyScope(input);
+    return deleteTravelerCashMovementDualWrite({ agencyId, ...input });
+  }
   const sql = getSql();
   const rows = await sql`
     DELETE FROM party_cash_movements movement
