@@ -987,6 +987,48 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 }
 .travelerRedesign .phraseTranslations strong { font-size: 17px; }
 .travelerRedesign .phraseTranslations em { font-size: 19px; line-height: 1.4; }
+.travelerRedesign .challengeTabs { scroll-padding-inline: 16px; }
+.travelerRedesign .challengeTabs button { min-height: 46px; gap: 7px; }
+.travelerRedesign .challengeTabs button > svg { width: 18px; height: 18px; }
+.travelerRedesign .challengeTabs button > span { white-space: nowrap; }
+.travelerRedesign .challengeTabs button > b {
+  min-width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--trail-primary);
+  background: white;
+  font-size: 10px;
+}
+.travelerRedesign .challengePanel { min-width: 0; }
+.travelerRedesign .challengePanel:focus { outline: 0; }
+.travelerRedesign .challengePanel:focus-visible { outline: 3px solid rgba(47,102,246,.25); outline-offset: 5px; }
+.travelerRedesign .challengeEmpty {
+  min-height: 132px;
+  margin: 18px 0;
+  padding: 22px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px dashed #b8c3bf;
+  border-radius: 14px;
+  color: var(--smf-muted);
+  background: transparent;
+}
+.travelerRedesign .challengeEmpty > span {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--trail-primary);
+  background: #e8f1ee;
+}
+.travelerRedesign .challengeEmpty svg { width: 21px; }
+.travelerRedesign .challengeEmpty h3 { margin: 0 0 4px; font: 700 19px/1.2 var(--font-serif), serif; }
+.travelerRedesign .challengeEmpty p { margin: 0; font-size: 14px; line-height: 1.5; }
 
 /* ---------- Accesso e attivazione ---------- */
 
@@ -1210,6 +1252,65 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   .travelerRedesign .expenseCurrencyTotals > div { padding: 8px 12px; }
   .travelerRedesign .expenseCurrencyTotals .grandTotal { grid-column: 1 / -1; margin-top: 12px; padding: 13px 0 0; border: 0; border-top: 1px solid rgba(255,255,255,.18); }
   .travelerRedesign .financeActions { grid-template-columns: 1fr; }
+  .travelerRedesign .challengesHero,
+  .travelerRedesign .quizHero,
+  .travelerRedesign .gamesHero,
+  .travelerRedesign .contestHubHero {
+    min-height: 0;
+    padding: 6px 0 18px;
+  }
+  .travelerRedesign .challengesHero h2,
+  .travelerRedesign .quizHero h2,
+  .travelerRedesign .gamesHero h2 { font-size: 30px; }
+  .travelerRedesign .challengeTabs {
+    position: sticky;
+    z-index: 35;
+    top: 62px;
+    gap: 6px;
+    margin: 0 -16px 20px;
+    padding: 7px 16px;
+    border-inline: 0;
+    border-radius: 0;
+    background: rgba(255,253,250,.97);
+    box-shadow: 0 10px 24px rgba(20,43,53,.07);
+    backdrop-filter: blur(14px);
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+  .travelerRedesign .challengeTabs::-webkit-scrollbar { display: none; }
+  .travelerRedesign .challengeTabs button { min-height: 48px; padding: 0 13px; scroll-snap-align: center; }
+  .travelerRedesign .challengeDayPicker {
+    margin: 0 -16px 22px;
+    padding: 4px 16px 9px;
+    border-inline: 0;
+    border-radius: 0;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+  .travelerRedesign .challengeDayPicker::-webkit-scrollbar { display: none; }
+  .travelerRedesign .challengeDayPicker button { min-width: 126px; min-height: 62px; scroll-snap-align: start; }
+  .travelerRedesign .missionDayHeading,
+  .travelerRedesign .bingoHeading,
+  .travelerRedesign .dualContestDayHeading,
+  .travelerRedesign .gamesDayHead { align-items: flex-start; }
+  .travelerRedesign .missionList > article {
+    grid-template-columns: 42px minmax(0,1fr);
+    gap: 11px;
+    padding: 15px 0;
+  }
+  .travelerRedesign .missionList > article > :is(.evidencePicker,.missionStatus) {
+    grid-column: 2;
+    width: 100%;
+    min-height: 48px;
+    margin-top: 3px;
+  }
+  .travelerRedesign .missionList h4 { font-size: 18px; line-height: 1.25; }
+  .travelerRedesign .missionList p { font-size: 14px; line-height: 1.5; }
+  .travelerRedesign .dualContestGrid { grid-template-columns: 1fr; }
+  .travelerRedesign .dualContestCard { padding: 16px; }
+  .travelerRedesign .contestUploadBar { align-items: stretch; }
+  .travelerRedesign .contestUploadBar .evidencePicker { min-height: 48px; }
+  .travelerRedesign .challengeEmpty { min-height: 118px; margin: 14px 0; padding: 18px 15px; }
 
   .agencyHero { padding: 23px 18px; }
   .agencyHero h1 { font-size: 28px; }
