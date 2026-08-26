@@ -741,12 +741,116 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 }
 .tripAdminCard h3 { font: 700 21px/1.2 var(--font-serif), serif; }
 .newTripForm {
-  grid-template-columns: minmax(220px, 1.2fr) minmax(180px, .8fr) minmax(260px, 1fr) auto;
-  padding: 20px;
+  grid-template-columns: minmax(250px, .8fr) minmax(360px, 1.2fr);
+  gap: 16px 24px;
+  padding: 24px;
   border: 0;
   border-radius: 14px;
   background: var(--smf-surface);
   box-shadow: var(--smf-shadow);
+}
+.newTripForm .formIntro {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+}
+.newTripForm .formIntro b { color: var(--smf-ink); font: 700 21px/1.2 var(--font-serif), serif; }
+.newTripForm .formIntro span { max-width: 42ch; color: var(--smf-muted); font-size: 12px; line-height: 1.5; }
+.newTripWorkflow {
+  grid-column: 1;
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.newTripWorkflow li {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 48px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--smf-line);
+}
+.newTripWorkflow li:last-child { border-bottom: 0; }
+.newTripWorkflow li > b {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  color: var(--smf-brand-deep);
+  background: #e9f1ee;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.newTripWorkflow li span,
+.newTripWorkflow li strong,
+.newTripWorkflow li small { display: block; }
+.newTripWorkflow li strong { color: var(--smf-ink); font-size: 12px; }
+.newTripWorkflow li small { margin-top: 2px; color: var(--smf-muted); font-size: 10px; }
+.newTripForm .quoteTemplate { grid-column: 1; align-self: end; padding: 12px; }
+.newTripForm .quoteTemplate a { min-height: 40px; }
+.newTripFields {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 13px;
+  background: var(--smf-paper);
+}
+.newTripFields > label:first-child { display: grid; gap: 7px; }
+.newTripFields > label:first-child input { margin: 0; background: var(--smf-surface); }
+.newTripFields > p { margin: -7px 0 0; color: var(--smf-muted); font-size: 10px; line-height: 1.45; }
+.quoteUploadField {
+  position: relative;
+  min-height: 132px;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  gap: 13px;
+  align-items: center;
+  padding: 18px;
+  border: 1px dashed var(--smf-line-strong);
+  border-radius: 12px;
+  background: var(--smf-surface);
+  cursor: pointer;
+}
+.quoteUploadField:hover { border-color: var(--smf-brand); background: #fbfdfc; }
+.quoteUploadField:focus-within { outline: 3px solid var(--smf-focus); outline-offset: 2px; }
+.quoteUploadField.selected { border-style: solid; border-color: color-mix(in srgb, var(--smf-brand) 45%, var(--smf-line)); }
+.quoteUploadField input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  opacity: 0;
+}
+.quoteUploadIcon {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  color: var(--smf-brand);
+  background: #e9f1ee;
+}
+.quoteUploadIcon svg { width: 22px; }
+.quoteUploadField > span:nth-of-type(2) { min-width: 0; }
+.quoteUploadField > span:nth-of-type(2) b,
+.quoteUploadField > span:nth-of-type(2) small { display: block; }
+.quoteUploadField > span:nth-of-type(2) b { overflow-wrap: anywhere; color: var(--smf-ink); font-size: 13px; }
+.quoteUploadField > span:nth-of-type(2) small { margin-top: 4px; color: var(--smf-muted); font-size: 10px; }
+.quoteUploadField > strong { color: var(--smf-action); font-size: 11px; white-space: nowrap; }
+.newTripActions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  padding-top: 16px;
+  border-top: 1px solid var(--smf-line);
 }
 .newTripForm label { color: var(--smf-ink-soft); font-size: 11px; }
 .newTripForm label > span { color: var(--smf-muted); font-weight: 500; }
@@ -1817,6 +1921,10 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   .agencySidebar { min-height: 0; padding: 14px 18px; border: 0; border-bottom: 1px solid var(--smf-line); }
   .agencyStats { overflow-x: auto; }
   .agencyStats article { min-width: 145px; }
+  .newTripForm { grid-template-columns: 1fr 1.25fr; gap: 16px; }
+  .newTripFields { padding: 16px; }
+  .quoteUploadField { grid-template-columns: 42px minmax(0, 1fr); }
+  .quoteUploadField > strong { grid-column: 2; }
   .superadminPage { padding-left: 0; padding-top: 66px; }
   .superadminTopbar {
     inset: 0 0 auto;
@@ -2145,7 +2253,18 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   .tripTable .tableActions.inline { min-width: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
   .tripTable .tableActions.inline a,
   .tripTable .tableActions.inline button { width: 100%; min-height: 44px; justify-content: center; font-size: 11px; white-space: normal; }
-  .newTripForm { grid-template-columns: 1fr; }
+  .newTripForm { grid-template-columns: 1fr; padding: 18px; }
+  .newTripForm .formIntro,
+  .newTripWorkflow,
+  .newTripForm .quoteTemplate,
+  .newTripFields,
+  .newTripActions { grid-column: 1; grid-row: auto; }
+  .newTripWorkflow { grid-template-columns: repeat(3, 1fr); gap: 7px; }
+  .newTripWorkflow li { min-height: 0; grid-template-columns: 30px 1fr; padding: 9px; border: 1px solid var(--smf-line); border-radius: 10px; }
+  .newTripWorkflow li small { display: none; }
+  .quoteUploadField { min-height: 116px; }
+  .newTripActions { position: sticky; bottom: 8px; z-index: 2; margin: 0 -8px -8px; padding: 12px 8px 8px; background: color-mix(in srgb, var(--smf-surface) 95%, transparent); }
+  .newTripActions button { flex: 1; }
   .newTripForm .pdfField { grid-column: auto; }
   .quoteTemplate { grid-column: auto; }
   .journeyManagePage > header { min-height: 62px; grid-template-columns: 44px 1fr auto; gap: 6px; padding-inline: 10px; }
@@ -2252,6 +2371,15 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   .loginStory > small { display: none; }
   .loginPanel { min-height: calc(100svh - 214px); padding: 28px 0 40px; }
   .loginBox h2 { font-size: 30px; }
+}
+
+@media (max-width: 430px) {
+  .newTripWorkflow { grid-template-columns: 1fr; }
+  .newTripWorkflow li { grid-template-columns: 30px minmax(0, 1fr); }
+  .newTripWorkflow li small { display: block; }
+  .newTripFields { padding: 14px; }
+  .quoteUploadField { grid-template-columns: 40px minmax(0, 1fr); padding: 14px; }
+  .quoteUploadField > strong { grid-column: 1 / -1; }
 }
 
 @media (prefers-reduced-motion: reduce) {

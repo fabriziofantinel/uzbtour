@@ -3,7 +3,7 @@
 import Link from "next/link";
 import {
   Building2, CalendarDays, CheckCircle2, ChevronDown, CircleAlert,
-  BookOpen, Download, Eye, LayoutGrid, List, LoaderCircle, LogOut, MapPinned, Play, Plus, Sparkles,
+  BookOpen, Download, Eye, FileCheck2, LayoutGrid, List, LoaderCircle, LogOut, MapPinned, Play, Plus, Sparkles,
   Search, SlidersHorizontal, Trash2, UsersRound, X,
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
@@ -76,6 +76,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
   const [overview, setOverview] = useState(initialOverview);
   const [selectedAgencyId, setSelectedAgencyId] = useState(initialOverview.agencies[0]?.id ?? "");
   const [showNewTrip, setShowNewTrip] = useState(false);
+  const [selectedProgrammeName, setSelectedProgrammeName] = useState("");
   const [tripPeriod, setTripPeriod] = useState<"all" | "upcoming" | "ongoing" | "past">("all");
   const [tripView, setTripView] = useState<"list" | "cards">("list");
   const [tripSort, setTripSort] = useState<"date-asc" | "date-desc" | "name">("date-asc");
@@ -211,6 +212,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
   async function createTrip(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!agency) return;
+    const formElement = event.currentTarget;
     setBusy("new-trip");
     setError("");
     setNotice("");
@@ -238,6 +240,8 @@ export default function AgencyDashboard({ initialOverview }: Props) {
         }),
       }));
       await uploadProgramme(created.trip.id, file);
+      formElement.reset();
+      setSelectedProgrammeName("");
       setShowNewTrip(false);
       setNotice("Viaggio creato e documento accodato per l’analisi.");
     } catch (caught) {
@@ -467,15 +471,28 @@ export default function AgencyDashboard({ initialOverview }: Props) {
 
             {showNewTrip && (
               <form id="new-trip-form" className="newTripForm" onSubmit={createTrip} aria-busy={busy === "new-trip"}>
-                <div className="formIntro"><b>Importa il preventivo accettato</b><span>Il documento creerà testata, itinerario e anagrafiche condivise.</span></div>
+                <div className="formIntro"><b>Crea il viaggio dal preventivo</b><span>Carica il documento accettato dal cliente. L’app preparerà testata, itinerario e anagrafiche per la tua revisione.</span></div>
+                <ol className="newTripWorkflow" aria-label="Fasi di creazione del viaggio">
+                  <li><b>1</b><span><strong>Carica</strong><small>PDF, DOC o DOCX</small></span></li>
+                  <li><b>2</b><span><strong>Attendi</strong><small>Estrazione automatica</small></span></li>
+                  <li><b>3</b><span><strong>Revisiona</strong><small>Controllo prima di pubblicare</small></span></li>
+                </ol>
                 <div className="quoteTemplate">
                   <Download/>
                   <span><b>Modello preventivo SMF Travel</b><small>Usalo per ridurre gli errori di interpretazione.</small></span>
                   <a href="/templates/modello-preventivo-smf-travel.docx" download>Scarica DOCX</a>
                 </div>
-                <label htmlFor="trip-title">Nome pratica <span>(facoltativo)</span><input id="trip-title" name="title" maxLength={160} autoComplete="off" placeholder="Se vuoto useremo il nome del file"/></label>
-                <label className="pdfField" htmlFor="trip-programme">Preventivo PDF, DOC o DOCX *<input id="trip-programme" name="programme" type="file" aria-describedby="trip-programme-help" accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" required/><small id="trip-programme-help">Dimensione massima 4,5 MB. Il file originale sarà conservato nei documenti del viaggio.</small></label>
-                <div><button type="button" className="secondary" disabled={busy === "new-trip"} onClick={() => setShowNewTrip(false)}>Annulla</button><button type="submit" disabled={busy === "new-trip"}>{busy === "new-trip" ? <><LoaderCircle className="spin"/> Creazione…</> : <>Crea viaggio</>}</button></div>
+                <div className="newTripFields">
+                  <label htmlFor="trip-title">Nome pratica <span>(facoltativo)</span><input id="trip-title" name="title" maxLength={160} autoComplete="off" placeholder="Se vuoto useremo il nome del file"/></label>
+                  <label className={`quoteUploadField ${selectedProgrammeName ? "selected" : ""}`} htmlFor="trip-programme">
+                    <input id="trip-programme" name="programme" type="file" aria-describedby="trip-programme-help" accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" required onChange={(event) => setSelectedProgrammeName(event.target.files?.[0]?.name ?? "")}/>
+                    <span className="quoteUploadIcon">{selectedProgrammeName ? <FileCheck2/> : <Plus/>}</span>
+                    <span><b>{selectedProgrammeName || "Seleziona il preventivo"}</b><small id="trip-programme-help">PDF, DOC o DOCX · massimo 4,5 MB</small></span>
+                    <strong>{selectedProgrammeName ? "Cambia file" : "Scegli file"}</strong>
+                  </label>
+                  <p>Il file originale sarà conservato nei documenti privati del viaggio.</p>
+                </div>
+                <div className="newTripActions"><button type="button" className="secondary" disabled={busy === "new-trip"} onClick={() => { setShowNewTrip(false); setSelectedProgrammeName(""); }}>Annulla</button><button type="submit" disabled={busy === "new-trip"}>{busy === "new-trip" ? <><LoaderCircle className="spin"/> Creazione…</> : <>Crea e avvia analisi</>}</button></div>
               </form>
             )}
 
