@@ -1502,9 +1502,156 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 .journeyManageHero { color: white; background: var(--smf-brand-deep); }
 .reviewHero h1,
 .journeyManageHero h1 { font-family: var(--font-serif), serif; letter-spacing: -.025em; }
+.journeyManagePage > header { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; padding-inline: clamp(16px, 4vw, 52px); }
+.journeyManagePage > header > a,
+.journeyManagePage > header nav :is(a, span) {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--smf-ink-soft);
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+.journeyManagePage > header nav { display: flex; align-items: center; gap: 5px; padding: 4px; border-radius: 10px; background: var(--smf-surface-soft); }
+.journeyManagePage > header nav :is(a, span) { min-height: 38px; padding: 0 11px; border-radius: 8px; }
+.journeyManagePage > header nav span[aria-current="page"] { color: white; background: var(--smf-brand-deep); }
+.journeyManagePage > header nav svg,
+.journeyManagePage > header > a svg { width: 17px; }
+.journeyAgencyName { align-self: center; justify-self: end; color: var(--smf-muted) !important; font-size: 12px !important; }
+.journeyManageHero { padding-block: 32px; }
+.journeyManageHero h1 { max-width: 960px; margin: 7px 0; font-size: clamp(31px, 4vw, 46px); text-wrap: balance; }
+.journeyManageHero p { margin: 0; color: #d5e0df; font-size: 13px; }
 .reviewShell,
 .programmeLayout,
 .journeyManageShell { width: min(1160px, calc(100% - 32px)); }
+.journeyManageShell { padding-top: 26px; }
+.journeyPeopleSummary {
+  display: flex;
+  margin-bottom: 30px;
+  padding-bottom: 22px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--smf-line);
+}
+.journeyPeopleSummary article {
+  min-width: 160px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 25px;
+  border-left: 1px solid var(--smf-line);
+}
+.journeyPeopleSummary article:first-child { padding-left: 0; border-left: 0; }
+.journeyPeopleSummary article > svg { width: 36px; height: 36px; padding: 8px; border-radius: 10px; color: var(--smf-brand); background: #e8f1ee; }
+.journeyPeopleSummary article.pending > svg { color: var(--smf-warning); background: #fff2d8; }
+.journeyPeopleSummary span,
+.journeyPeopleSummary small,
+.journeyPeopleSummary strong { display: block; }
+.journeyPeopleSummary small { color: var(--smf-muted); font-size: 9px; font-weight: 850; letter-spacing: .06em; }
+.journeyPeopleSummary strong { margin-top: 2px; font: 700 25px/1 var(--font-serif), serif; font-variant-numeric: tabular-nums; }
+.journeyManageHead { align-items: center; margin-bottom: 18px; }
+.journeyManageHead small { color: var(--smf-accent); font-size: 9px; letter-spacing: .08em; }
+.journeyManageHead h2 { margin: 3px 0 0; font: 700 30px/1.1 var(--font-serif), serif; letter-spacing: -.02em; }
+.journeyManageHead button { min-height: 44px; border-radius: 10px; background: var(--smf-action); font-size: 12px; }
+.journeyManagePage .agencyMessage { min-height: 46px; padding: 12px 14px; border-radius: 10px; font-size: 13px; }
+.journeyManagePage .agencyMessage svg { width: 18px; flex: 0 0 auto; }
+.journeyManagePage .activationLinkBox {
+  grid-template-columns: 42px minmax(190px, .85fr) minmax(260px, 1.4fr) auto;
+  align-items: end;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 16px 52px 16px 16px;
+  border: 0;
+  border-radius: 13px;
+  background: #fff4d9;
+  box-shadow: 0 8px 24px rgba(20,43,53,.07);
+}
+.journeyManagePage .activationLinkBox > svg { width: 42px; height: 42px; align-self: center; padding: 10px; border-radius: 11px; color: #7a5b18; background: #f5deb0; }
+.journeyManagePage .activationLinkBox > span { align-self: center; }
+.journeyManagePage .activationLinkBox b { font-size: 13px; }
+.journeyManagePage .activationLinkBox small { margin-top: 4px; line-height: 1.4; }
+.journeyManagePage .activationLinkBox label { display: grid; gap: 5px; font-size: 10px; font-weight: 800; }
+.journeyManagePage .activationLinkBox input { min-width: 0; width: 100%; margin: 0; padding-inline: 10px; font-size: 13px; }
+.journeyManagePage .activationLinkBox > button:not(.activationDismiss) { min-height: 44px; padding: 0 13px; border: 0; border-radius: 9px; color: white; background: var(--smf-action); font-size: 12px; font-weight: 800; }
+.journeyManagePage .activationLinkBox > button.copied { background: var(--smf-success); }
+.journeyManagePage .activationDismiss { width: 36px; height: 36px; top: 9px; right: 9px; }
+.journeyManagePage .familyCreateForm {
+  grid-template-columns: minmax(230px, 1.2fr) minmax(220px, 1fr) auto;
+  align-items: end;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: 18px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--smf-surface);
+  box-shadow: var(--smf-shadow);
+}
+.familyCreateForm > div small,
+.familyCreateForm > div strong,
+.travelerFormIntro small,
+.travelerFormIntro strong { display: block; }
+.familyCreateForm > div small,
+.travelerFormIntro small { color: var(--smf-accent); font-size: 9px; font-weight: 850; letter-spacing: .08em; }
+.familyCreateForm > div strong,
+.travelerFormIntro strong { margin-top: 4px; font: 700 19px/1.2 var(--font-serif), serif; }
+.familyCreateForm > div p,
+.travelerFormIntro p { margin: 5px 0 0; color: var(--smf-muted); font-size: 11px; line-height: 1.45; }
+.journeyManagePage :is(.familyCreateForm, .travelerCreateForm) label { color: var(--smf-ink-soft); font-size: 11px; }
+.journeyManagePage :is(.familyCreateForm, .travelerCreateForm) label > span { color: var(--smf-muted); font-weight: 500; }
+.journeyManagePage :is(.familyCreateForm, .travelerCreateForm) input,
+.journeyManagePage :is(.familyCreateForm, .travelerCreateForm) select { width: 100%; min-height: 46px; font-size: 14px; }
+.familyCreateForm footer,
+.travelerCreateForm footer { display: flex; justify-content: flex-end; gap: 8px; }
+.journeyManagePage :is(.familyCreateForm, .travelerCreateForm) footer button { min-height: 44px; justify-content: center; border-radius: 9px; font-size: 12px; }
+.journeyManagePage :is(.familyCreateForm, .travelerCreateForm) footer button.secondary { border: 1px solid var(--smf-line); color: var(--smf-ink-soft); background: var(--smf-surface); }
+.familyCards { gap: 14px; }
+.familyCards > article { padding: 0; overflow: hidden; }
+.familyCards > article > header { min-height: 76px; padding: 15px 17px; border-bottom: 1px solid var(--smf-line); background: var(--smf-surface-soft); }
+.familyCards > article > header > span { min-width: 0; grid-template-columns: 38px minmax(0, 1fr); column-gap: 10px; }
+.familyCards > article > header > span > svg { width: 38px; height: 38px; padding: 9px; border-radius: 11px; color: var(--smf-brand); background: #e8f1ee; }
+.familyCards > article > header b { overflow-wrap: anywhere; font-size: 15px; }
+.familyCards > article > header small { margin-top: 2px; color: var(--smf-muted); font-size: 11px; }
+.familyCards > article > header button { min-height: 42px; border-radius: 9px; background: var(--smf-action); font-size: 11px; }
+.journeyManagePage .travelerCreateForm {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 13px;
+  margin: 0;
+  padding: 17px;
+  border-radius: 0;
+  background: #eef4f1;
+}
+.travelerFormIntro { grid-column: 1 / -1; margin-bottom: 2px; }
+.travelerCreateForm > label:nth-of-type(1),
+.travelerCreateForm > label:nth-of-type(2) { grid-column: span 6; }
+.travelerCreateForm > label:nth-of-type(3),
+.travelerCreateForm > label:nth-of-type(4),
+.travelerCreateForm > label:nth-of-type(5) { grid-column: span 4; }
+.travelerCreateForm footer { grid-column: 1 / -1; }
+.familyTravelers { gap: 0; margin: 0; padding: 0 17px; }
+.familyTravelers > div {
+  min-width: 0;
+  min-height: 64px;
+  padding: 10px 0;
+  border: 0;
+  border-bottom: 1px solid var(--smf-line);
+  border-radius: 0;
+  grid-template-columns: 40px minmax(0, 1fr) auto auto;
+  gap: 11px;
+}
+.familyTravelers > div:last-child { border-bottom: 0; }
+.familyTravelers i { width: 38px; height: 38px; border-radius: 11px; background: var(--smf-brand-deep); }
+.familyTravelers span b { overflow-wrap: anywhere; font-size: 13px; }
+.familyTravelers span small { margin-top: 3px; overflow-wrap: anywhere; color: var(--smf-muted); font-size: 11px; }
+.familyTravelers em { color: var(--smf-muted); font-size: 11px; }
+.familyTravelers > div > strong { min-width: 76px; padding: 6px 8px; border-radius: 7px; text-align: center; font-size: 9px; }
+.familyTravelersEmpty { min-height: 94px !important; display: flex !important; align-items: center; justify-content: center; gap: 10px !important; color: var(--smf-muted); }
+.familyTravelersEmpty > svg { width: 34px; height: 34px; padding: 8px; border-radius: 10px; color: var(--smf-brand); background: #e8f1ee; }
+.familyTravelersEmpty span { display: block; }
+.familyTravelersEmpty strong,
+.familyTravelersEmpty small { display: block; }
+.familyTravelersEmpty strong { color: var(--smf-ink); font-size: 13px; }
+.familyTravelersEmpty small { margin-top: 2px; }
 .reviewGeneral,
 .reviewDay,
 .programmeBlock,
@@ -1860,6 +2007,51 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   .newTripForm { grid-template-columns: 1fr; }
   .newTripForm .pdfField { grid-column: auto; }
   .quoteTemplate { grid-column: auto; }
+  .journeyManagePage > header { min-height: 62px; grid-template-columns: 44px 1fr auto; gap: 6px; padding-inline: 10px; }
+  .journeyManagePage > header > a { width: 44px; justify-content: center; font-size: 0; }
+  .journeyManagePage > header > a svg { width: 20px; }
+  .journeyManagePage > header nav { justify-self: center; }
+  .journeyManagePage > header nav :is(a, span) { min-width: 44px; min-height: 42px; justify-content: center; padding-inline: 10px; font-size: 0; }
+  .journeyManagePage > header nav svg { width: 20px; }
+  .journeyAgencyName { max-width: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px !important; }
+  .journeyManageHero { padding: 24px 16px; }
+  .journeyManageHero h1 { font-size: clamp(29px, 9vw, 38px); }
+  .journeyManageHero p { align-items: flex-start; font-size: 12px; line-height: 1.5; }
+  .journeyManageShell { width: 100%; padding: 18px 14px 64px; }
+  .journeyPeopleSummary { margin-inline: -14px; padding-inline: 14px; scroll-snap-type: x proximity; scrollbar-width: none; }
+  .journeyPeopleSummary::-webkit-scrollbar { display: none; }
+  .journeyPeopleSummary article { min-width: 142px; padding-inline: 16px; scroll-snap-align: start; }
+  .journeyPeopleSummary article:first-child { padding-left: 0; }
+  .journeyManageHead { align-items: center; }
+  .journeyManageHead h2 { font-size: 25px; }
+  .journeyManageHead button { width: 44px; height: 44px; justify-content: center; padding: 0; font-size: 0; }
+  .journeyManageHead button svg { width: 19px; }
+  .journeyManagePage .activationLinkBox {
+    grid-template-columns: 42px minmax(0, 1fr);
+    align-items: center;
+    padding: 14px 48px 14px 14px;
+  }
+  .journeyManagePage .activationLinkBox label,
+  .journeyManagePage .activationLinkBox > button:not(.activationDismiss) { grid-column: 1 / -1; }
+  .journeyManagePage .activationLinkBox > button:not(.activationDismiss) { min-height: 48px; }
+  .journeyManagePage .activationLinkBox input { font-size: 16px; }
+  .journeyManagePage .familyCreateForm { grid-template-columns: 1fr; padding: 16px; }
+  .familyCreateForm footer { width: 100%; }
+  .familyCreateForm footer button { flex: 1; }
+  .familyCards > article > header { align-items: stretch; flex-direction: column; }
+  .familyCards > article > header button { width: 100%; min-height: 46px; justify-content: center; }
+  .journeyManagePage .travelerCreateForm { grid-template-columns: 1fr; padding: 16px; }
+  .travelerCreateForm > label:nth-of-type(n),
+  .travelerCreateForm footer,
+  .travelerFormIntro { grid-column: 1; }
+  .journeyManagePage :is(.familyCreateForm, .travelerCreateForm) input,
+  .journeyManagePage :is(.familyCreateForm, .travelerCreateForm) select { min-height: 48px; font-size: 16px; }
+  .travelerCreateForm footer { display: grid; grid-template-columns: 1fr 1fr; }
+  .familyTravelers { padding-inline: 14px; }
+  .familyTravelers > div { grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; }
+  .familyTravelers em { display: none; }
+  .familyTravelers > div > strong { grid-column: 3; }
+  .familyTravelersEmpty { display: grid !important; grid-template-columns: 36px minmax(0, 1fr) !important; justify-content: start; }
   .superadminShell { width: min(100% - 24px, 1180px); padding-top: 30px; }
   .superadminHero, .registryHead { align-items: flex-start; }
   .superadminStats { grid-template-columns: 1fr; }
