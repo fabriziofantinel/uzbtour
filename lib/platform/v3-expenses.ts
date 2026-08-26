@@ -185,11 +185,11 @@ export async function addTravelerExpenseDualWrite(input: {
         LEFT JOIN travel.departure_days departure_day
           ON departure_day.departure_id = expense.departure_id
           AND departure_day.template_day_id = expense.trip_day_id
-        LEFT JOIN ops.legacy_id_map user_map
-          ON user_map.source_system = 'public-v2' AND user_map.entity_type = 'user'
-          AND user_map.legacy_id = expense.paid_by_user_id
         LEFT JOIN travel.traveler_profiles payer
-          ON payer.agency_id = expense.agency_id AND payer.user_id = user_map.target_id
+          ON payer.agency_id = expense.agency_id
+          AND payer.user_id = app.resolve_legacy_user_id(
+            expense.paid_by_user_id, expense.agency_id
+          )
         ON CONFLICT (party_id, client_operation_id) DO NOTHING
         RETURNING id
       )

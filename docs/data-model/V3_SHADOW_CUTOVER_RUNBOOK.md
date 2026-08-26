@@ -64,3 +64,7 @@ ha superato il proprio gate di riconciliazione.
 
 Le feature flag devono essere abilitate prima in Preview e poi in Production.
 Il cutover delle letture non è implicito nell'abilitazione del dual-write.
+
+Le identità testuali legacy vengono risolte esclusivamente tramite
+`app.resolve_legacy_user_id(text, uuid)` (`021_v3_runtime_identity_resolver`).
+Il ruolo `smf_app` non deve avere `SELECT` diretto su `ops.legacy_id_map`.

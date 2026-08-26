@@ -139,14 +139,13 @@ export async function saveTravelerNoteDualWrite(input: {
     txn`
       WITH actor AS (
         SELECT traveler.id
-        FROM ops.legacy_id_map user_map
-        JOIN travel.traveler_profiles traveler
-          ON traveler.agency_id = ${input.agencyId} AND traveler.user_id = user_map.target_id
+        FROM travel.traveler_profiles traveler
         JOIN travel.party_memberships membership
           ON membership.agency_id = traveler.agency_id
           AND membership.party_id = ${input.partyId} AND membership.traveler_id = traveler.id
-        WHERE user_map.source_system = 'public-v2' AND user_map.entity_type = 'user'
-          AND user_map.legacy_id = ${input.userId} AND membership.status = 'active'
+        WHERE traveler.agency_id = ${input.agencyId}
+          AND traveler.user_id = app.resolve_legacy_user_id(${input.userId}, ${input.agencyId})
+          AND membership.status = 'active'
       ), departure_day AS (
         SELECT id FROM travel.departure_days
         WHERE agency_id = ${input.agencyId} AND departure_id = ${input.departureId}
@@ -223,11 +222,11 @@ export async function addTravelerRestaurantDualWrite(input: {
       ), source_actor AS (
         SELECT traveler.id
         FROM source
-        JOIN ops.legacy_id_map user_map
-          ON user_map.source_system = 'public-v2' AND user_map.entity_type = 'user'
-          AND user_map.legacy_id = source.added_by_user_id
         JOIN travel.traveler_profiles traveler
-          ON traveler.agency_id = source.agency_id AND traveler.user_id = user_map.target_id
+          ON traveler.agency_id = source.agency_id
+          AND traveler.user_id = app.resolve_legacy_user_id(
+            source.added_by_user_id, source.agency_id
+          )
       ), target AS (
         INSERT INTO journey.restaurant_visits
           (id, agency_id, departure_id, party_id, departure_day_id, name,
@@ -262,14 +261,13 @@ export async function addTravelerCashMovementDualWrite(input: {
     txn`
       WITH actor AS (
         SELECT traveler.id
-        FROM ops.legacy_id_map user_map
-        JOIN travel.traveler_profiles traveler
-          ON traveler.agency_id = ${input.agencyId} AND traveler.user_id = user_map.target_id
+        FROM travel.traveler_profiles traveler
         JOIN travel.party_memberships membership
           ON membership.agency_id = traveler.agency_id
           AND membership.party_id = ${input.partyId} AND membership.traveler_id = traveler.id
-        WHERE user_map.source_system = 'public-v2' AND user_map.entity_type = 'user'
-          AND user_map.legacy_id = ${input.userId} AND membership.status = 'active'
+        WHERE traveler.agency_id = ${input.agencyId}
+          AND traveler.user_id = app.resolve_legacy_user_id(${input.userId}, ${input.agencyId})
+          AND membership.status = 'active'
       ), departure_day AS (
         SELECT id FROM travel.departure_days
         WHERE agency_id = ${input.agencyId} AND departure_id = ${input.departureId}
@@ -295,11 +293,11 @@ export async function addTravelerCashMovementDualWrite(input: {
       ), source_actor AS (
         SELECT traveler.id
         FROM source
-        JOIN ops.legacy_id_map user_map
-          ON user_map.source_system = 'public-v2' AND user_map.entity_type = 'user'
-          AND user_map.legacy_id = source.added_by_user_id
         JOIN travel.traveler_profiles traveler
-          ON traveler.agency_id = source.agency_id AND traveler.user_id = user_map.target_id
+          ON traveler.agency_id = source.agency_id
+          AND traveler.user_id = app.resolve_legacy_user_id(
+            source.added_by_user_id, source.agency_id
+          )
       ), target AS (
         INSERT INTO journey.cash_movements
           (id, agency_id, departure_id, party_id, departure_day_id, kind,
