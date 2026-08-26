@@ -1138,6 +1138,44 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 .impersonationIdentity { min-width: 0; overflow-wrap: anywhere; }
 .agencyBrandingForm img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .impersonationTools { margin-bottom: 15px; }
+.impersonationFilters {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 12px;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--smf-line) transparent;
+}
+.impersonationFilters button {
+  min-height: 40px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 11px;
+  border: 1px solid var(--smf-line);
+  border-radius: 9px;
+  color: var(--smf-ink-soft);
+  background: var(--smf-surface);
+  font: 750 12px/1 var(--font-sans), sans-serif;
+  cursor: pointer;
+}
+.impersonationFilters button:hover { border-color: var(--smf-line-strong); background: var(--smf-surface-soft); }
+.impersonationFilters button.active { border-color: var(--smf-brand-deep); color: white; background: var(--smf-brand-deep); }
+.impersonationFilters button b {
+  min-width: 22px;
+  padding: 4px 6px;
+  border-radius: 7px;
+  color: var(--smf-muted);
+  background: var(--smf-paper);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.impersonationFilters button.active b { color: var(--smf-brand-deep); background: white; }
+.impersonationFilters button:focus-visible { outline: 3px solid var(--smf-focus); outline-offset: 2px; }
 .impersonationDialog > i {
   background: #eee8f5;
   color: #4a2f70;
@@ -1175,6 +1213,9 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   .agencyOptionalSections { padding: 0 18px 18px; }
   .agencyOptionalSection > summary { min-height: 64px; padding: 10px 12px; }
   .agencyOptionalSection > fieldset { padding: 15px !important; }
+  .impersonationFilters { margin-inline: -12px; padding-inline: 12px; scroll-snap-type: x proximity; scrollbar-width: none; }
+  .impersonationFilters::-webkit-scrollbar { display: none; }
+  .impersonationFilters button { min-height: 44px; scroll-snap-align: start; }
   .superadminOperations { grid-template-columns: 1fr; gap: 18px; margin-top: 26px; padding-top: 24px; }
   .superadminOperationsHead { grid-column: 1; }
   .superadminRatios { display: grid; grid-template-columns: 1fr 1fr; }

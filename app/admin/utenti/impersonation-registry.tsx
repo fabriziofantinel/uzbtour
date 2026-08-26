@@ -10,6 +10,7 @@ const agencyRoleLabels: Record<string, string> = {
 
 export default function ImpersonationRegistry({ initialUsers }: { initialUsers: ImpersonationUser[] }) {
   const [query, setQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"all" | "agency" | "traveler" | "superadmin" | "invited">("all");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [selectedUser, setSelectedUser] = useState<ImpersonationUser | null>(null);
@@ -17,10 +18,24 @@ export default function ImpersonationRegistry({ initialUsers }: { initialUsers: 
   const dialogRef = useRef<HTMLElement>(null);
   const users = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("it");
-    if (!needle) return initialUsers;
-    return initialUsers.filter((user) => [user.name, user.email, ...user.agencyNames]
-      .some((value) => value.toLocaleLowerCase("it").includes(needle)));
-  }, [initialUsers, query]);
+    return initialUsers.filter((user) => {
+      const roleMatches = roleFilter === "all"
+        || roleFilter === "agency" && user.agencyRoles.length > 0
+        || roleFilter === "traveler" && user.isTraveler
+        || roleFilter === "superadmin" && user.platformRole === "superadmin"
+        || roleFilter === "invited" && user.status === "invited";
+      const queryMatches = !needle || [user.name, user.email, ...user.agencyNames]
+        .some((value) => value.toLocaleLowerCase("it").includes(needle));
+      return roleMatches && queryMatches;
+    });
+  }, [initialUsers, query, roleFilter]);
+  const roleCounts = useMemo(() => ({
+    all: initialUsers.length,
+    agency: initialUsers.filter((user) => user.agencyRoles.length > 0).length,
+    traveler: initialUsers.filter((user) => user.isTraveler).length,
+    superadmin: initialUsers.filter((user) => user.platformRole === "superadmin").length,
+    invited: initialUsers.filter((user) => user.status === "invited").length,
+  }), [initialUsers]);
 
   useEffect(() => {
     if (!selectedUser) return;
@@ -68,10 +83,17 @@ export default function ImpersonationRegistry({ initialUsers }: { initialUsers: 
       </section>
       <div className="impersonationWarning"><ShieldCheck/><span><b>Sessione controllata</b><small>Non servono le credenziali dell’utente. Una fascia viola consentirà sempre di tornare al superadmin.</small></span></div>
       {error && !selectedUser && <div className="superadminMessage error" role="alert"><CircleAlert size={18}/>{error}</div>}
+      <div className="impersonationFilters" role="group" aria-label="Filtra gli utenti per ruolo">
+        <button type="button" className={roleFilter === "all" ? "active" : ""} aria-pressed={roleFilter === "all"} onClick={() => setRoleFilter("all")}>Tutti <b>{roleCounts.all}</b></button>
+        <button type="button" className={roleFilter === "agency" ? "active" : ""} aria-pressed={roleFilter === "agency"} onClick={() => setRoleFilter("agency")}>Agenzia <b>{roleCounts.agency}</b></button>
+        <button type="button" className={roleFilter === "traveler" ? "active" : ""} aria-pressed={roleFilter === "traveler"} onClick={() => setRoleFilter("traveler")}>Viaggiatori <b>{roleCounts.traveler}</b></button>
+        <button type="button" className={roleFilter === "superadmin" ? "active" : ""} aria-pressed={roleFilter === "superadmin"} onClick={() => setRoleFilter("superadmin")}>Superadmin <b>{roleCounts.superadmin}</b></button>
+        <button type="button" className={roleFilter === "invited" ? "active" : ""} aria-pressed={roleFilter === "invited"} onClick={() => setRoleFilter("invited")}>Da attivare <b>{roleCounts.invited}</b></button>
+      </div>
       <div className="registryTools impersonationTools">
         <label className="userSearch" htmlFor="user-search"><Search/><span className="srOnly">Cerca utente</span><input id="user-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca per nome, email o agenzia…" autoComplete="off"/></label>
         <span className="registryResultCount" aria-live="polite">{users.length} {users.length === 1 ? "utente" : "utenti"}</span>
-        {query && <button type="button" className="registryClear" onClick={() => setQuery("")}><X/> Azzera ricerca</button>}
+        {(query || roleFilter !== "all") && <button type="button" className="registryClear" onClick={() => { setQuery(""); setRoleFilter("all"); }}><X/> Azzera filtri</button>}
       </div>
       <section className="impersonationList">
         {users.map((user) => (
@@ -92,7 +114,7 @@ export default function ImpersonationRegistry({ initialUsers }: { initialUsers: 
             </button>
           </article>
         ))}
-        {users.length === 0 && <div className="registryEmpty"><UserRound/><h2>Nessun utente trovato</h2><p>Nessun profilo corrisponde a “{query}”.</p><button type="button" onClick={() => setQuery("")}><X/> Azzera ricerca</button></div>}
+        {users.length === 0 && <div className="registryEmpty"><UserRound/><h2>Nessun utente trovato</h2><p>Nessun profilo corrisponde ai filtri selezionati{query ? ` e alla ricerca “${query}”` : ""}.</p><button type="button" onClick={() => { setQuery(""); setRoleFilter("all"); }}><X/> Azzera filtri</button></div>}
       </section>
       {selectedUser && (
         <div className="agencyDeleteBackdrop" role="presentation" onMouseDown={(event) => {
