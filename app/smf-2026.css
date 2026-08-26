@@ -362,14 +362,65 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 .authUtilityPage {
   min-height: 100svh;
   display: grid;
-  place-items: center;
-  padding: 32px 18px;
+  grid-template-columns: minmax(0, .9fr) minmax(420px, 1.1fr);
   color: var(--smf-ink);
-  background:
-    radial-gradient(circle at 12% 18%, rgba(239,125,77,.14), transparent 28rem),
-    linear-gradient(145deg, var(--smf-brand-deep), #0f2f35 43%, var(--smf-paper) 43%);
+  background: var(--smf-paper);
 }
-.authUtilityPage > * { width: min(440px, 100%); }
+.authUtilityStory {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(30px, 6vw, 72px);
+  color: white;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(255,255,255,.08) 0 1px, transparent 2px) 0 0/28px 28px,
+    var(--smf-brand-deep);
+}
+.authUtilityStory::after {
+  position: absolute;
+  right: -180px;
+  bottom: -210px;
+  width: 520px;
+  height: 520px;
+  border: 84px solid rgba(255,255,255,.045);
+  border-radius: 50%;
+  content: "";
+}
+.authUtilityBrand {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 12px;
+  color: white !important;
+  text-decoration: none;
+}
+.authUtilityBrand span {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--smf-brand-deep);
+  background: white;
+  font-size: 11px;
+  font-weight: 900;
+}
+.authUtilityBrand strong { font-size: 17px; }
+.authUtilityStoryCopy { position: relative; z-index: 1; max-width: 480px; }
+.authUtilityStoryCopy > p { margin: 0 0 14px; color: var(--smf-accent); font-size: 10px; font-weight: 850; letter-spacing: .18em; }
+.authUtilityStoryCopy h1 { margin: 0 0 24px; color: white; font: 700 clamp(38px, 5vw, 62px)/1.02 var(--font-serif), serif; letter-spacing: -.035em; }
+.authUtilityStoryCopy span { display: flex; align-items: center; gap: 9px; color: #cbd9d7; font-size: 13px; }
+.authUtilityStoryCopy svg { width: 17px; }
+.authUtilityPanel { min-width: 0; display: grid; place-items: center; padding: clamp(28px, 6vw, 70px); }
+.authUtilityBox { width: min(440px, 100%); }
+.authUtilityIcon { display: grid; width: 52px; height: 52px; margin-bottom: 18px; place-items: center; border-radius: 14px; color: var(--smf-accent-strong); background: #f8e9df; }
+.authUtilityIcon svg { width: 23px; }
+.authUtilityIntro { margin: 0 0 22px; color: var(--smf-muted); font: 400 15px/1.6 var(--font-serif), serif; }
 .authUtilityPage :is([data-slot="card"], form) {
   border-color: var(--smf-line);
   border-radius: 18px;
@@ -396,6 +447,28 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 }
 .authUtilityPage a { color: var(--smf-brand-deep); font-weight: 750; }
 .authUtilityPage [role="alert"] { color: var(--smf-danger); }
+.authUtilityBack {
+  display: inline-flex;
+  min-height: 44px;
+  margin-top: 18px;
+  align-items: center;
+  gap: 7px;
+  text-decoration: none;
+}
+.authUtilityBack svg { width: 16px; }
+.authUtilityPage :is(a, button, input):focus-visible { outline: 3px solid rgba(11,100,98,.22); outline-offset: 2px; }
+@media (max-width: 760px) {
+  .authUtilityPage { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .authUtilityStory { min-height: 186px; padding: 22px 20px; }
+  .authUtilityBrand span { width: 38px; height: 38px; border-radius: 10px; }
+  .authUtilityStoryCopy > p { margin-bottom: 7px; font-size: 8px; }
+  .authUtilityStoryCopy h1 { margin-bottom: 0; font-size: 30px; }
+  .authUtilityStoryCopy span { display: none; }
+  .authUtilityPanel { place-items: start center; padding: 26px 18px calc(34px + env(safe-area-inset-bottom)); }
+  .authUtilityIcon { width: 46px; height: 46px; margin-bottom: 13px; }
+  .authUtilityIntro { margin-bottom: 18px; font-size: 14px; }
+  .authUtilityPage form { padding: 22px 18px; }
+}
 .travelerRedesign .overviewDayList { margin-top: 24px; border-block: 1px solid var(--smf-line); }
 .travelerRedesign .overviewDayList button { min-height: 68px; border: 0; border-bottom: 1px solid var(--smf-line); border-radius: 0; background: transparent; }
 .travelerRedesign .overviewDayList button:last-child { border-bottom: 0; }
