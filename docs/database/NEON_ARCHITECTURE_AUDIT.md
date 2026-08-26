@@ -3,6 +3,31 @@
 Data audit: 26 agosto 2026
 Ambito: modello multi-tenant, importazione preventivi, programma, famiglie, spese multi-valuta, media, quiz/sfide e feedback.
 
+## Stato di implementazione al 26 agosto 2026
+
+Completato e verificato:
+
+- migrazione `012_neon_architecture_hardening` applicata prima su branch Neon e poi in produzione;
+- punto di ripristino pre-migrazione `pre-012-2026-08-26` creato senza compute;
+- zero vincoli non validati e zero indici invalidi dopo la migrazione;
+- rimosso tutto il DDL dalle request Next.js e introdotti controlli di readiness in sola lettura;
+- aggregate in una singola transazione HTTP le letture principali di programma, dashboard e viaggio;
+- retry idempotenti per spese, movimenti di cassa e feedback;
+- importo EUR storico memorizzato insieme al tasso applicato alle nuove spese;
+- coordinate puntuali di siti e hotel disponibili nel contratto del programma;
+- runtime Vercel in `fra1` con `DATABASE_URL` pooled e build/deploy verificati.
+
+Ancora da consolidare:
+
+- ruolo runtime PostgreSQL privo di privilegi amministrativi. I ruoli creati tramite Neon API/CLI
+  ereditano `neon_superuser`; usare un ruolo SQL dedicato e applicare la migrazione
+  [`013_runtime_role_grants.sql`](../../database/migrations/013_runtime_role_grants.sql). Fino ad
+  allora il runtime usa temporaneamente `neondb_owner` pooled;
+- branch Neon automatico e isolato per ogni Preview Vercel;
+- baseline p95 e osservazione di `pg_stat_statements` per almeno sette giorni;
+- backfill verificato di coordinate puntuali e importi EUR storici dove la fonte è disponibile;
+- RLS e contract migration solo dopo l’attivazione del ruolo runtime limitato.
+
 ## 1. Baseline verificata
 
 | Area | Stato osservato |
