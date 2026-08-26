@@ -632,7 +632,16 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   background: var(--smf-surface);
 }
 .tripFilters > span { font-size: 12px; }
-.tripFilters > button { min-height: 36px; border-radius: 8px; font-size: 12px; }
+.tripFilters > button { min-height: 36px; display: inline-flex; align-items: center; gap: 7px; border-radius: 8px; font-size: 12px; }
+.tripFilters > button b {
+  min-width: 20px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  color: inherit;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
 .tripFilters > button.active { background: var(--smf-brand-deep); }
 .tripFilters > label,
 .tripFilters > .tripSearch { height: 40px; border-color: var(--smf-line); font-size: 13px; }
@@ -654,9 +663,66 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 .clearTripSearch { width: 30px; height: 30px; display: grid; place-items: center; flex: 0 0 30px; padding: 0; border: 0; border-radius: 8px; color: var(--smf-muted); background: transparent; }
 .clearTripSearch:hover { color: var(--smf-ink); background: var(--smf-surface-soft); }
 .clearTripSearch svg { width: 15px; height: 15px; }
-.tripResultCount { margin: -8px 0 10px; color: var(--smf-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.tripListTools {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -5px 0 10px;
+}
+.tripResultCount { margin: 0; color: var(--smf-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.clearAllTripFilters {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--smf-brand-deep);
+  background: #e8f1ee;
+  font-size: 11px;
+  font-weight: 800;
+}
+.clearAllTripFilters svg { width: 14px; }
+.tripListTools > label {
+  height: 38px;
+  min-width: 205px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  padding: 0 9px;
+  border: 1px solid var(--smf-line);
+  border-radius: 9px;
+  color: var(--smf-muted);
+  background: var(--smf-surface);
+  font-size: 10px;
+  font-weight: 750;
+}
+.tripListTools select {
+  min-width: 0;
+  appearance: none;
+  border: 0;
+  outline: 0;
+  color: var(--smf-ink);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 750;
+}
+.tripListTools label > svg { width: 15px; pointer-events: none; }
 .tripTableWrap { border-color: var(--smf-line); border-radius: 12px; box-shadow: none; }
 .tripTable { min-width: 1220px; }
+.tripTable caption {
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 .tripTable th { padding: 12px; color: var(--smf-ink-soft); background: #e9efec; font-size: 10px; letter-spacing: .04em; }
 .tripTable td { padding: 13px 12px; border-bottom-color: #e7e4dc; font-size: 12px; }
 .tripNameCell b { font: 700 15px/1.2 var(--font-sans), sans-serif; }
@@ -1713,8 +1779,84 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   .agencyStats article { padding-inline: 15px; }
   .agencySectionHead { align-items: center; }
   .agencySectionHead h2 { font-size: 25px; }
-  .tripFilters { align-items: stretch; }
-  .tripSearch { order: 2; width: 100%; min-width: 0; margin-left: 0; }
+  .tripFilters {
+    margin-inline: -14px;
+    padding: 8px 14px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    align-items: center;
+    border-inline: 0;
+    border-radius: 0;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+  .tripFilters::-webkit-scrollbar { display: none; }
+  .tripFilters > span,
+  .tripFilters > button { flex: 0 0 auto; scroll-snap-align: start; }
+  .tripFilters > button { min-height: 44px; }
+  .tripSearch {
+    width: 100%;
+    min-width: 100%;
+    min-height: 48px;
+    flex: 0 0 100%;
+    margin-left: 6px;
+    scroll-snap-align: start;
+  }
+  .tripSearch input { font-size: 16px; }
+  .tripListTools { align-items: stretch; flex-wrap: wrap; margin-top: 2px; }
+  .tripResultCount { display: flex; align-items: center; min-height: 38px; }
+  .clearAllTripFilters { min-height: 38px; }
+  .tripListTools > label { order: 3; width: 100%; min-width: 0; min-height: 44px; margin-left: 0; }
+  .tripListTools select { font-size: 16px; }
+  .tripTableWrap { overflow: visible; border: 0; border-radius: 0; background: transparent; }
+  .tripTable,
+  .tripTable tbody { min-width: 0; display: block; }
+  .tripTable thead { display: none; }
+  .tripTable tbody { display: grid; gap: 10px; }
+  .tripTable tr {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0;
+    overflow: hidden;
+    border: 1px solid var(--smf-line);
+    border-radius: 13px;
+    background: var(--smf-surface);
+  }
+  .tripTable td,
+  .tripTable th:first-child,
+  .tripTable td:first-child {
+    position: static;
+    min-width: 0;
+    padding: 12px;
+    border: 0;
+    border-top: 1px solid var(--smf-line);
+    background: transparent !important;
+  }
+  .tripTable td::before {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--smf-muted);
+    content: attr(data-label);
+    font-size: 9px;
+    font-weight: 850;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  .tripTable td:nth-child(2) { grid-column: 1 / -1; grid-row: 1; padding: 15px 12px; border-top: 0; background: var(--smf-surface-soft) !important; }
+  .tripTable td:nth-child(2)::before { display: none; }
+  .tripTable td:nth-child(1) { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; }
+  .tripTable td:nth-child(1)::before { margin: 0 auto 0 0; }
+  .tripTable td:nth-child(5) { text-align: left; }
+  .tripTable td:nth-child(6),
+  .tripTable td:nth-child(7),
+  .tripTable td:nth-child(8) { grid-column: 1 / -1; }
+  .tripTable .contentCell { white-space: normal; }
+  .tripTable .tripGeneration.compact { display: grid; margin: 0 0 6px; padding: 10px; }
+  .tripTable .tripGeneration.compact small { display: block; font-size: 10px; }
+  .tripTable .tableActions.inline { min-width: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .tripTable .tableActions.inline a,
+  .tripTable .tableActions.inline button { width: 100%; min-height: 44px; justify-content: center; font-size: 11px; white-space: normal; }
   .newTripForm { grid-template-columns: 1fr; }
   .newTripForm .pdfField { grid-column: auto; }
   .quoteTemplate { grid-column: auto; }

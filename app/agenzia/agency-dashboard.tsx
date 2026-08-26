@@ -16,6 +16,7 @@ import {
 type Props = { initialOverview: PlatformOverview };
 type AgencyTrip = PlatformOverview["agencies"][number]["trips"][number];
 type AgencyDeparture = AgencyTrip["departures"][number];
+type TripRow = { trip: AgencyTrip; departure: AgencyDeparture | null };
 
 type UploadAuthorization = {
   key: string;
@@ -77,6 +78,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
   const [showNewTrip, setShowNewTrip] = useState(false);
   const [tripPeriod, setTripPeriod] = useState<"all" | "upcoming" | "ongoing" | "past">("all");
   const [tripView, setTripView] = useState<"list" | "cards">("list");
+  const [tripSort, setTripSort] = useState<"date-asc" | "date-desc" | "name">("date-asc");
   const [travelerFilter, setTravelerFilter] = useState("");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
@@ -104,28 +106,50 @@ export default function AgencyDashboard({ initialOverview }: Props) {
     }
     return imports;
   }, [agency?.id, overview.recentImports]);
-  const filteredDepartures = useMemo(() => {
-    const today = todayInRome();
-    const traveler = travelerFilter.trim().toLocaleLowerCase("it");
-    const rows: Array<{ trip: AgencyTrip; departure: AgencyDeparture | null }> = [];
+  const allDepartures = useMemo(() => {
+    const rows: TripRow[] = [];
     for (const trip of agency?.trips ?? []) {
       if (trip.departures.length === 0) rows.push({ trip, departure: null });
       else for (const departure of trip.departures) rows.push({ trip, departure });
     }
-    return rows.filter(({ trip, departure }) => {
+    return rows;
+  }, [agency]);
+  const tripPeriodCounts = useMemo(() => {
+    const today = todayInRome();
+    return allDepartures.reduce((counts, { trip, departure }) => {
+      const startDate = departure?.startsOn ?? trip.startsOn;
+      const endDate = departure?.endsOn ?? trip.endsOn;
+      counts.all += 1;
+      if (endDate && endDate < today) counts.past += 1;
+      else if (startDate && endDate && startDate <= today && endDate >= today) counts.ongoing += 1;
+      else counts.upcoming += 1;
+      return counts;
+    }, { all: 0, upcoming: 0, ongoing: 0, past: 0 });
+  }, [allDepartures]);
+  const filteredDepartures = useMemo(() => {
+    const today = todayInRome();
+    const query = travelerFilter.trim().toLocaleLowerCase("it");
+    const rows = allDepartures.filter(({ trip, departure }) => {
       const startDate = departure?.startsOn ?? trip.startsOn;
       const endDate = departure?.endsOn ?? trip.endsOn;
       const periodMatches = tripPeriod === "all" || (
         tripPeriod === "past" ? Boolean(endDate && endDate < today) :
         tripPeriod === "ongoing" ? Boolean(startDate && endDate && startDate <= today && endDate >= today) :
-        !startDate || startDate > today
+        !endDate || endDate >= today && !(startDate && startDate <= today && endDate && endDate >= today)
       );
-      const peopleMatches = !traveler || Boolean(departure?.travelerNames.some(
-        (name) => name.toLocaleLowerCase("it").includes(traveler)
-      ));
-      return periodMatches && peopleMatches;
+      const searchable = [trip.title, trip.destinationCountry, departure?.title, ...(departure?.travelerNames ?? [])]
+        .filter(Boolean).join(" ").toLocaleLowerCase("it");
+      return periodMatches && (!query || searchable.includes(query));
     });
-  }, [agency, travelerFilter, tripPeriod]);
+    return rows.sort((left, right) => {
+      if (tripSort === "name") return (left.departure?.title || left.trip.title).localeCompare(
+        right.departure?.title || right.trip.title, "it", { sensitivity: "base" }
+      );
+      const leftDate = left.departure?.startsOn ?? left.trip.startsOn ?? "9999-12-31";
+      const rightDate = right.departure?.startsOn ?? right.trip.startsOn ?? "9999-12-31";
+      return tripSort === "date-desc" ? rightDate.localeCompare(leftDate) : leftDate.localeCompare(rightDate);
+    });
+  }, [allDepartures, travelerFilter, tripPeriod, tripSort]);
   const activeImportKey = overview.recentImports
     .filter((item) => activeImportStatuses.has(item.status))
     .map((item) => `${item.id}:${item.status}`)
@@ -457,16 +481,21 @@ export default function AgencyDashboard({ initialOverview }: Props) {
 
             <div className="tripFilters" role="group" aria-label="Filtra i viaggi">
               <span><SlidersHorizontal/> Stato</span>
-              <button type="button" aria-pressed={tripPeriod === "upcoming"} className={tripPeriod === "upcoming" ? "active" : ""} onClick={() => setTripPeriod("upcoming")}>Da fare</button>
-              <button type="button" aria-pressed={tripPeriod === "ongoing"} className={tripPeriod === "ongoing" ? "active" : ""} onClick={() => setTripPeriod("ongoing")}>In corso</button>
-              <button type="button" aria-pressed={tripPeriod === "past"} className={tripPeriod === "past" ? "active" : ""} onClick={() => setTripPeriod("past")}>Fatti</button>
-              <button type="button" aria-pressed={tripPeriod === "all"} className={tripPeriod === "all" ? "active" : ""} onClick={() => setTripPeriod("all")}>Tutti</button>
-              <div className="tripSearch"><Search/><label className="srOnly" htmlFor="traveler-filter">Cerca per viaggiatore</label><input id="traveler-filter" type="search" value={travelerFilter} onChange={(event) => setTravelerFilter(event.target.value)} placeholder="Cerca viaggiatore…"/>{travelerFilter && <button type="button" className="clearTripSearch" aria-label="Cancella ricerca" onClick={() => setTravelerFilter("")}><X/></button>}</div>
+              <button type="button" aria-pressed={tripPeriod === "all"} className={tripPeriod === "all" ? "active" : ""} onClick={() => setTripPeriod("all")}>Tutti <b>{tripPeriodCounts.all}</b></button>
+              <button type="button" aria-pressed={tripPeriod === "upcoming"} className={tripPeriod === "upcoming" ? "active" : ""} onClick={() => setTripPeriod("upcoming")}>Da fare <b>{tripPeriodCounts.upcoming}</b></button>
+              <button type="button" aria-pressed={tripPeriod === "ongoing"} className={tripPeriod === "ongoing" ? "active" : ""} onClick={() => setTripPeriod("ongoing")}>In corso <b>{tripPeriodCounts.ongoing}</b></button>
+              <button type="button" aria-pressed={tripPeriod === "past"} className={tripPeriod === "past" ? "active" : ""} onClick={() => setTripPeriod("past")}>Fatti <b>{tripPeriodCounts.past}</b></button>
+              <div className="tripSearch"><Search/><label className="srOnly" htmlFor="traveler-filter">Cerca viaggio, destinazione o viaggiatore</label><input id="traveler-filter" type="search" value={travelerFilter} onChange={(event) => setTravelerFilter(event.target.value)} placeholder="Cerca viaggio o viaggiatore…"/>{travelerFilter && <button type="button" className="clearTripSearch" aria-label="Cancella ricerca" onClick={() => setTravelerFilter("")}><X/></button>}</div>
             </div>
-            <p className="tripResultCount" aria-live="polite">{filteredDepartures.length} {filteredDepartures.length === 1 ? "risultato" : "risultati"}</p>
+            <div className="tripListTools">
+              <p className="tripResultCount" aria-live="polite">{filteredDepartures.length} {filteredDepartures.length === 1 ? "viaggio visualizzato" : "viaggi visualizzati"}</p>
+              {(tripPeriod !== "all" || travelerFilter) && <button type="button" className="clearAllTripFilters" onClick={clearTripFilters}><X/> Azzera filtri</button>}
+              <label htmlFor="trip-sort">Ordina per<select id="trip-sort" value={tripSort} onChange={(event) => setTripSort(event.target.value as typeof tripSort)}><option value="date-asc">Partenza più vicina</option><option value="date-desc">Partenza più recente</option><option value="name">Nome viaggio</option></select><ChevronDown/></label>
+            </div>
 
             {tripView === "list" && <div className="tripTableWrap">
               <table className="tripTable">
+                <caption>Elenco viaggi e partenze dell’agenzia</caption>
                 <thead><tr><th>Stato</th><th>Viaggio / preventivo</th><th>Partenza</th><th>Rientro</th><th>Famiglie</th><th>Viaggiatori</th><th>Contenuti</th><th>Azioni</th></tr></thead>
                 <tbody>
               {filteredDepartures.map(({ trip, departure }) => {
@@ -483,13 +512,13 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                 const validationStatus = trip.status === "active" ? "validated" : "draft";
                 return (
                 <tr className={importIsActive || contentIsActive ? "generating" : ""} key={`${trip.id}-${departure?.id ?? "draft"}`}>
-                  <td><span className={`status ${validationStatus}`}>{validationStatus === "validated" ? "Validato" : "Bozza"}</span><small className="departureStatus">{departure ? (statusLabels[departure.status] ?? departure.status) : "Senza partenza"}</small></td>
-                  <td className="tripNameCell"><b>{departure?.title || trip.title}</b><span>{trip.destinationCountry || "Destinazione da revisionare"}</span><small>Programma: {trip.title}</small></td>
-                  <td className="dateCell">{formatTravelDate(startsOn)}</td>
-                  <td className="dateCell">{formatTravelDate(endsOn)}</td>
-                  <td className="numberCell">{departure?.partyCount ?? 0}</td>
-                  <td className="travelerCell">{departure?.travelerNames.join(", ") || "—"}</td>
-                  <td className="contentCell">
+                  <td data-label="Stato"><span className={`status ${validationStatus}`}>{validationStatus === "validated" ? "Validato" : "Bozza"}</span><small className="departureStatus">{departure ? (statusLabels[departure.status] ?? departure.status) : "Senza partenza"}</small></td>
+                  <td data-label="Viaggio" className="tripNameCell"><b>{departure?.title || trip.title}</b><span>{trip.destinationCountry || "Destinazione da revisionare"}</span><small>Programma: {trip.title}</small></td>
+                  <td data-label="Partenza" className="dateCell">{formatTravelDate(startsOn)}</td>
+                  <td data-label="Rientro" className="dateCell">{formatTravelDate(endsOn)}</td>
+                  <td data-label="Famiglie" className="numberCell">{departure?.partyCount ?? 0}</td>
+                  <td data-label="Viaggiatori" className="travelerCell">{departure?.travelerNames.join(", ") || "—"}</td>
+                  <td data-label="Contenuti" className="contentCell">
                   {latestImport && (
                     <div className={`tripGeneration compact ${latestImport.status}`}>
                       <div>
@@ -526,7 +555,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                   )}
                   {!latestImport && !content && <span>—</span>}
                   </td>
-                  <td><div className="tableActions inline">
+                  <td data-label="Azioni"><div className="tableActions inline">
                     {departure && <Link className="primary" href={`/agenzia/viaggi/${departure.id}/programma`}><BookOpen/> Apri programma</Link>}
                     {departure && <Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Famiglie</Link>}
                     {trip.status === "active" && <button type="button" onClick={() => openDeparture(trip.id, trip.title)}><Plus/> Nuova partenza</button>}
