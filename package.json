@@ -26,6 +26,8 @@
     "db:migrate:v3:identity": "node --env-file=.env.local scripts/migrate-v3-runtime-identity-resolver.mjs --apply",
     "db:migrate:v3:feedback:dry-run": "node --env-file=.env.local scripts/migrate-v3-programme-feedback-runtime.mjs",
     "db:migrate:v3:feedback": "node --env-file=.env.local scripts/migrate-v3-programme-feedback-runtime.mjs --apply",
+    "db:migrate:v3:experience:dry-run": "node --env-file=.env.local scripts/migrate-v3-traveler-experience-runtime.mjs",
+    "db:migrate:v3:experience": "node --env-file=.env.local scripts/migrate-v3-traveler-experience-runtime.mjs --apply",
     "check:v3:runtime-boundaries": "node scripts/check-v3-runtime-boundaries.mjs",
     "db:validate:v3": "node --env-file=.env.local scripts/validate-v3-target.mjs",
     "db:link-neon-user": "node --env-file=.env.local scripts/link-neon-auth-user.mjs",

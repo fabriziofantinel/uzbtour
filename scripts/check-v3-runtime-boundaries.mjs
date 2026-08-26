@@ -4,6 +4,7 @@ const runtimeFiles = [
   new URL("../lib/platform/v3-expenses.ts", import.meta.url),
   new URL("../lib/platform/v3-journey-journal.ts", import.meta.url),
   new URL("../lib/platform/v3-programme-feedback.ts", import.meta.url),
+  new URL("../lib/platform/v3-traveler-experience.ts", import.meta.url),
 ];
 
 const forbiddenPatterns = [
