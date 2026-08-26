@@ -3,6 +3,12 @@ import { PlatformRequestError } from "./http";
 import { geocodeCity } from "./geocoding";
 import { assertProgrammeFeedbackSchema } from "./schema-readiness";
 import { assertArchitectureHardeningSchema } from "./schema-readiness";
+import {
+  addTravelerExpenseDualWrite,
+  compareV3ExpenseShadow,
+  deleteTravelerExpenseDualWrite,
+  v3ExpenseDualWriteEnabled,
+} from "./v3-expenses";
 
 type Row = Record<string, unknown>;
 
@@ -217,6 +223,13 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
         AND feedback.party_id = ${partyId} AND profile.user_id = ${userId}
     `,
   ]);
+
+  await compareV3ExpenseShadow({
+    agencyId,
+    departureId,
+    partyId,
+    legacyRows: expenseRows as Row[],
+  });
 
   const items = itemRows as Row[];
   const cities = cityRows as Row[];
@@ -460,6 +473,10 @@ export async function addTravelerExpense(input: {
     LIMIT 1
   `;
   if (!allowed[0]) throw new PlatformRequestError("Viaggio o giornata non disponibili");
+  const agencyId = String(allowed[0].agency_id);
+  if (v3ExpenseDualWriteEnabled()) {
+    return addTravelerExpenseDualWrite({ agencyId, ...input });
+  }
   const exchangeRateToBase = input.currency === "EUR" ? 1 : input.exchangeRateToBase ?? null;
   const baseAmount = exchangeRateToBase == null
     ? null
@@ -471,7 +488,7 @@ export async function addTravelerExpense(input: {
       paid_by_user_id, paid_by_name, client_operation_id, base_currency,
       exchange_rate_to_base, base_amount
       ) VALUES (
-      ${String(allowed[0].agency_id)}, ${input.departureId}, ${input.partyId},
+      ${agencyId}, ${input.departureId}, ${input.partyId},
       ${input.dayId ?? null}, ${input.label}, ${input.amount}, ${input.currency},
       ${input.userId}, ${input.userName}, ${input.clientOperationId}, 'EUR',
       ${exchangeRateToBase}, ${baseAmount}
@@ -496,6 +513,10 @@ export async function deleteTravelerExpense(input: {
   partyId: string;
   expenseId: string;
 }) {
+  if (v3ExpenseDualWriteEnabled()) {
+    const agencyId = await assertTravelerPartyScope(input);
+    return deleteTravelerExpenseDualWrite({ agencyId, ...input });
+  }
   const sql = getSql();
   const rows = await sql`
     DELETE FROM party_expenses expense
