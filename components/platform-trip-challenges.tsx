@@ -117,7 +117,7 @@ export default function PlatformTripChallenges({ experience, userName, isAdmin, 
   const [tab, setTab] = useState<ChallengeTab>("missioni");
   const [activeDayId, setActiveDayId] = useState(experience.days[0]?.id || "");
   const [answers, setAnswers] = useState<Record<string, number>>({});
-  const [quizResult, setQuizResult] = useState<{ score: number; maximum: number; results: Array<{ id: string; correct: boolean; correctIndex: number }> } | null>(null);
+  const [quizResult, setQuizResult] = useState<{ score: number; maximum: number; results: Array<{ id: string; correct: boolean }> } | null>(null);
   const [gameAnswers, setGameAnswers] = useState<Record<string, string>>({});
   const [gameFeedback, setGameFeedback] = useState<Record<string, { correct: boolean; score: number; answer: string }>>({});
   const [busy, setBusy] = useState("");
@@ -210,7 +210,7 @@ export default function PlatformTripChallenges({ experience, userName, isAdmin, 
       const nextResults: Experience["challengeResults"] = [...retained, ...result.results.map((answer) => ({
         id: `quiz-${answer.id}-${userName}`, travelerId: "current", travelerName: userName,
         dayId: day.id, contentId: answer.id, type: "quiz", score: answer.correct ? 1 : 0,
-        maxScore: 1, status: "approved", result: { correctIndex: answer.correctIndex },
+        maxScore: 1, status: "approved", result: { correct: answer.correct },
         submittedAt: new Date().toISOString(), evidenceUrl: "",
       }))];
       setChallengeResults(nextResults); onResultsChange?.(nextResults);

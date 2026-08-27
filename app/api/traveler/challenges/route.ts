@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { getSql } from "@/lib/db";
+import {
+  readV3ChallengeAnswerSpecs,
+  v3GamificationCutoverReadEnabled,
+} from "@/lib/platform/v3-gamification";
 
 export const runtime = "nodejs";
 
@@ -127,9 +131,24 @@ export async function POST(request: Request) {
     if (!rows[0]) return NextResponse.json({ error: "Gioco non disponibile" }, { status: 404 });
     const content = rows[0].content && typeof rows[0].content === "object" && !Array.isArray(rows[0].content)
       ? rows[0].content as Record<string, unknown> : {};
+    const v3Items = v3GamificationCutoverReadEnabled()
+      ? await readV3ChallengeAnswerSpecs({
+        agencyId: String(scope[0].agency_id),
+        templateVersionId: String(scope[0].template_version_id),
+        dayId,
+        itemIds: [contentId],
+      })
+      : [];
+    if (v3GamificationCutoverReadEnabled() && (!v3Items[0]
+      || !["word_game", "order_game", "puzzle"].includes(String(v3Items[0].activity_type)))) {
+      return NextResponse.json({ error: "Gioco non disponibile nel catalogo pubblicato" }, { status: 404 });
+    }
+    const answerSpec = v3Items[0]?.answer_spec && typeof v3Items[0].answer_spec === "object"
+      && !Array.isArray(v3Items[0].answer_spec)
+      ? v3Items[0].answer_spec as Record<string, unknown> : {};
     const expected = gameAction === "city" ? String(rows[0].city || "").trim()
       : gameAction === "visitCount" ? String(rows[0].visit_count ?? "0")
-        : String(content.answer || "").trim();
+        : String(v3GamificationCutoverReadEnabled() ? answerSpec.answer : content.answer || "").trim();
     const correct = gameAction === "puzzle"
       ? true
       : Boolean(expected) && normalizedAnswer(answer) === normalizedAnswer(expected);
@@ -153,19 +172,32 @@ export async function POST(request: Request) {
     ? body.answers as Record<string, unknown> : null;
   if (!answers) return NextResponse.json({ error: "Risposte non valide" }, { status: 400 });
   const questionIds = Object.keys(answers).filter((id) => /^[0-9a-f-]{36}$/i.test(id));
-  const questions = questionIds.length ? await sql`
-    SELECT id::text, content
-    FROM generated_content
-    WHERE id = ANY(${questionIds}::uuid[]) AND trip_day_id = ${dayId}
-      AND agency_id = ${String(scope[0].agency_id)} AND content_type = 'quiz_question' AND status = 'approved'
-  ` : [];
+  const questionCandidates = questionIds.length
+    ? v3GamificationCutoverReadEnabled()
+      ? await readV3ChallengeAnswerSpecs({
+        agencyId: String(scope[0].agency_id),
+        templateVersionId: String(scope[0].template_version_id),
+        dayId,
+        itemIds: questionIds,
+      })
+      : await sql`
+          SELECT id::text, content AS answer_spec
+          FROM generated_content
+          WHERE id = ANY(${questionIds}::uuid[]) AND trip_day_id = ${dayId}
+            AND agency_id = ${String(scope[0].agency_id)}
+            AND content_type = 'quiz_question' AND status = 'approved'
+        `
+    : [];
+  const questions = v3GamificationCutoverReadEnabled()
+    ? questionCandidates.filter((question) => String(question.activity_type) === "quiz")
+    : questionCandidates;
   if (questions.length === 0 || questions.length !== questionIds.length) {
     return NextResponse.json({ error: "Completa tutte le domande disponibili" }, { status: 400 });
   }
   const results = questions.map((question) => {
-    const content = question.content as Record<string, unknown>;
+    const answerSpec = question.answer_spec as Record<string, unknown>;
     const selected = Number(answers[String(question.id)]);
-    const correctIndex = Number(content.correctIndex);
+    const correctIndex = Number(answerSpec.correctIndex);
     return { id: String(question.id), selected, correctIndex, correct: selected === correctIndex };
   });
   await sql.transaction((txn) => results.map((result) => txn`
@@ -175,10 +207,14 @@ export async function POST(request: Request) {
     ) VALUES (
       ${String(scope[0].agency_id)}, ${partyId}, ${String(scope[0].traveler_id)}, ${dayId},
       ${result.id}, 'quiz', ${result.correct ? 1 : 0}, 1, 'approved',
-      ${JSON.stringify({ selected: result.selected, correctIndex: result.correctIndex })}::jsonb
+      ${JSON.stringify({ selected: result.selected, correct: result.correct })}::jsonb
     ) ON CONFLICT (party_id, traveler_id, generated_content_id) DO UPDATE SET
       score = EXCLUDED.score, max_score = EXCLUDED.max_score, status = 'approved',
       result = EXCLUDED.result, submitted_at = NOW(), updated_at = NOW()
   `));
-  return NextResponse.json({ score: results.filter((result) => result.correct).length, maximum: results.length, results });
+  return NextResponse.json({
+    score: results.filter((result) => result.correct).length,
+    maximum: results.length,
+    results: results.map(({ id, correct }) => ({ id, correct })),
+  });
 }

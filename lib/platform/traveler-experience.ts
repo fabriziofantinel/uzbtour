@@ -31,11 +31,21 @@ import {
   readV3TravelCatalog,
   v3TravelCatalogCutoverReadEnabled,
 } from "./v3-travel-catalog";
+import {
+  readV3Gamification,
+  v3GamificationCutoverReadEnabled,
+} from "./v3-gamification";
 
 type Row = Record<string, unknown>;
 
 function stringValue(value: unknown) {
   return value == null ? "" : String(value);
+}
+
+function withoutAnswerKeys(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const { answer: _answer, correctIndex: _correctIndex, answerSpec: _answerSpec, ...safe } = value as Record<string, unknown>;
+  return safe;
 }
 
 export async function getTravelerExperience(userId: string, requestedDepartureId?: string) {
@@ -276,7 +286,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
     legacyContestEntries: contestRows as Row[],
   });
 
-  const [v3Expenses, v3Journal, v3Feedback, v3Catalog] = await Promise.all([
+  const [v3Expenses, v3Journal, v3Feedback, v3Catalog, v3Gamification] = await Promise.all([
     v3ExpenseCutoverReadEnabled()
       ? readV3ExpenseRows({ agencyId, departureId, partyId })
       : Promise.resolve(null),
@@ -289,12 +299,19 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
     v3TravelCatalogCutoverReadEnabled()
       ? readV3TravelCatalog({ agencyId, departureId, templateVersionId: versionId, partyId })
       : Promise.resolve(null),
+    v3GamificationCutoverReadEnabled()
+      ? readV3Gamification({ agencyId, departureId, templateVersionId: versionId, partyId, userId })
+      : Promise.resolve(null),
   ]);
   const activeExpenseRows = v3Expenses ?? expenseRows as Row[];
   const activeNoteRows = v3Journal?.notes ?? noteRows as Row[];
   const activeRestaurantRows = v3Journal?.restaurants ?? restaurantRows as Row[];
   const activeCashRows = v3Journal?.cash ?? cashRows as Row[];
   const activeFeedbackRows = v3Feedback ?? feedbackRows as Row[];
+  const activeChallengeRows = v3Gamification?.challenges ?? challengeRows as Row[];
+  const activePhotoRows = v3Gamification?.photos ?? photoRows as Row[];
+  const activeResultRows = v3Gamification?.results ?? resultRows as Row[];
+  const activeContestRows = v3Gamification?.contests ?? contestRows as Row[];
 
   const activeDayRows = v3Catalog?.days ?? dayRows as Row[];
   const activeItemRows = v3Catalog?.items ?? itemRows as Row[];
@@ -435,10 +452,10 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       language: String(row.language_code), category: String(row.category), term: String(row.term),
       pronunciation: stringValue(row.pronunciation), translation: String(row.translation),
     })),
-    challenges: (challengeRows as Row[]).map((row) => ({
+    challenges: activeChallengeRows.map((row) => ({
       id: String(row.id), dayId: row.trip_day_id ? String(row.trip_day_id) : null,
       dayNumber: row.day_number == null ? null : Number(row.day_number), type: String(row.content_type),
-      title: String(row.title), content: row.content,
+      title: String(row.title), content: withoutAnswerKeys(row.content),
     })),
     expenses: activeExpenseRows.map((row) => ({
       id: String(row.id), dayId: row.trip_day_id ? String(row.trip_day_id) : null,
@@ -464,7 +481,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       feeEuro: row.fee_euro == null ? null : Number(row.fee_euro),
       addedBy: String(row.added_by_name), createdAt: String(row.created_at),
     })),
-    photos: (photoRows as Row[]).map((row) => ({
+    photos: activePhotoRows.map((row) => ({
       id: String(row.id), mediaId: String(row.media_id), dayId: String(row.trip_day_id),
       dayNumber: Number(row.day_number), originalName: String(row.original_name),
       contentType: String(row.content_type), sizeBytes: row.size_bytes == null ? null : Number(row.size_bytes),
@@ -473,15 +490,15 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       downloadUrl: `/api/traveler/photos/${String(row.id)}/content?download=1`,
       canDelete: String(row.uploaded_by_user_id) === userId,
     })),
-    challengeResults: (resultRows as Row[]).map((row) => ({
+    challengeResults: activeResultRows.map((row) => ({
       id: String(row.id), travelerId: String(row.traveler_id), travelerName: String(row.display_name),
       dayId: row.trip_day_id ? String(row.trip_day_id) : null,
       contentId: String(row.generated_content_id), type: String(row.activity_type),
       score: Number(row.score), maxScore: row.max_score == null ? null : Number(row.max_score),
-      status: String(row.status), result: row.result, submittedAt: String(row.submitted_at),
+      status: String(row.status), result: withoutAnswerKeys(row.result), submittedAt: String(row.submitted_at),
       evidenceUrl: row.evidence_memory_id ? `/api/traveler/photos/${String(row.evidence_memory_id)}/content` : "",
     })),
-    contestEntries: (contestRows as Row[]).map((row) => ({
+    contestEntries: activeContestRows.map((row) => ({
       id: String(row.id), travelerId: String(row.traveler_id), travelerName: String(row.display_name),
       contentId: String(row.generated_content_id), mediaId: String(row.media_asset_id),
       slot: Number(row.participant_slot), status: String(row.status),
