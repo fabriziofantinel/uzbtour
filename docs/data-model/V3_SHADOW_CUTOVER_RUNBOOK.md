@@ -119,3 +119,22 @@ npm run smoke:v3:operational-read
 
 Il test confronta i cinque domini della prima ondata e verifica che, cambiando
 `app.agency_id` con un tenant inesistente, nessuna riga v3 risulti visibile.
+
+## Cutover letture - seconda ondata
+
+Programma, città, siti, hotel, viaggiatori, informazioni utili, frasi e biglietti
+sono attivabili insieme con `V3_TRAVEL_CATALOG_READ_SOURCE=v3`. Il rollback non
+richiede migrazioni: rimuovere la variabile o impostarla a `legacy`.
+
+Il lettore usa una transazione read-only con `app.agency_id`, conserva gli UUID
+legacy esposti al frontend e legge le coordinate geografiche PostGIS dal catalogo
+`ref`. Prima dell'attivazione eseguire con il ruolo applicativo:
+
+```powershell
+npm run smoke:v3:travel-catalog-read
+```
+
+Il gate riconcilia nove domini e verifica l'isolamento RLS con un tenant casuale.
+Quiz, giochi, missioni, bingo, media e classifiche non fanno parte di questa
+ondata: restano su `public` finché le soluzioni delle attività non saranno
+separate dal payload inviato al browser.

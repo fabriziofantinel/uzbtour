@@ -21,6 +21,7 @@
     "db:migrate:v3:expenses": "node --env-file=.env.local scripts/migrate-v3-expense-runtime.mjs --apply",
     "smoke:v3:expenses": "node --env-file=.env.local scripts/smoke-v3-expense-runtime.mjs",
     "smoke:v3:operational-read": "node --env-file=.env.local scripts/smoke-v3-operational-read-cutover.mjs",
+    "smoke:v3:travel-catalog-read": "node --env-file=.env.local scripts/smoke-v3-travel-catalog-read.mjs",
     "db:migrate:v3:journal:dry-run": "node --env-file=.env.local scripts/migrate-v3-journey-journal-runtime.mjs",
     "db:migrate:v3:journal": "node --env-file=.env.local scripts/migrate-v3-journey-journal-runtime.mjs --apply",
     "db:migrate:v3:identity:dry-run": "node --env-file=.env.local scripts/migrate-v3-runtime-identity-resolver.mjs",

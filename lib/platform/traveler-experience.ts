@@ -27,6 +27,10 @@ import {
   v3ProgrammeFeedbackCutoverReadEnabled,
 } from "./v3-programme-feedback";
 import { compareV3TravelerExperienceShadow } from "./v3-traveler-experience";
+import {
+  readV3TravelCatalog,
+  v3TravelCatalogCutoverReadEnabled,
+} from "./v3-travel-catalog";
 
 type Row = Record<string, unknown>;
 
@@ -272,7 +276,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
     legacyContestEntries: contestRows as Row[],
   });
 
-  const [v3Expenses, v3Journal, v3Feedback] = await Promise.all([
+  const [v3Expenses, v3Journal, v3Feedback, v3Catalog] = await Promise.all([
     v3ExpenseCutoverReadEnabled()
       ? readV3ExpenseRows({ agencyId, departureId, partyId })
       : Promise.resolve(null),
@@ -282,6 +286,9 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
     v3ProgrammeFeedbackCutoverReadEnabled()
       ? readV3ProgrammeFeedbackRows({ agencyId, departureId, partyId, userId })
       : Promise.resolve(null),
+    v3TravelCatalogCutoverReadEnabled()
+      ? readV3TravelCatalog({ agencyId, departureId, templateVersionId: versionId, partyId })
+      : Promise.resolve(null),
   ]);
   const activeExpenseRows = v3Expenses ?? expenseRows as Row[];
   const activeNoteRows = v3Journal?.notes ?? noteRows as Row[];
@@ -289,8 +296,18 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
   const activeCashRows = v3Journal?.cash ?? cashRows as Row[];
   const activeFeedbackRows = v3Feedback ?? feedbackRows as Row[];
 
-  const items = itemRows as Row[];
-  const cities = cityRows as Row[];
+  const activeDayRows = v3Catalog?.days ?? dayRows as Row[];
+  const activeItemRows = v3Catalog?.items ?? itemRows as Row[];
+  const activeCityRows = v3Catalog?.cities ?? cityRows as Row[];
+  const activeSiteRows = v3Catalog?.sites ?? siteRows as Row[];
+  const activeHotelRows = v3Catalog?.hotels ?? hotelRows as Row[];
+  const activeTravelerRows = v3Catalog?.travelers ?? travelerRows as Row[];
+  const activeInfoRows = v3Catalog?.usefulInfo ?? infoRows as Row[];
+  const activePhraseRows = v3Catalog?.phrases ?? phraseRows as Row[];
+  const activeTicketRows = v3Catalog?.tickets ?? ticketRows as Row[];
+
+  const items = activeItemRows;
+  const cities = activeCityRows;
   const missingCities = [...new Map(cities
     .filter((city) => city.latitude == null || city.longitude == null)
     .map((city) => [String(city.id), city])).values()];
@@ -315,9 +332,9 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       }
     });
   }
-  const sites = siteRows as Row[];
-  const hotels = hotelRows as Row[];
-  const tickets = ticketRows as Row[];
+  const sites = activeSiteRows;
+  const hotels = activeHotelRows;
+  const tickets = activeTicketRows;
   const feedback = activeFeedbackRows;
   const itemRatings = new Map(feedback
     .filter((entry) => entry.target_type === "itinerary_item")
@@ -347,8 +364,8 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
         };
       })(),
       partyName: String(selected.party_name),
-      catalogReady: cityRows.length > 0 || siteRows.length > 0,
-      travelers: (travelerRows as Row[]).map((row) => ({ name: String(row.display_name), role: String(row.role) })),
+      catalogReady: activeCityRows.length > 0 || activeSiteRows.length > 0,
+      travelers: activeTravelerRows.map((row) => ({ name: String(row.display_name), role: String(row.role) })),
     },
     availableJourneys: (journeys as Row[]).map((row) => ({
       departureId: String(row.departure_id),
@@ -356,7 +373,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       startsOn: String(row.starts_on),
       endsOn: String(row.ends_on),
     })),
-    days: (dayRows as Row[]).map((row) => {
+    days: activeDayRows.map((row) => {
       const id = String(row.id);
       return {
         id,
@@ -410,11 +427,11 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
         })),
       };
     }),
-    usefulInfo: (infoRows as Row[]).map((row) => ({
+    usefulInfo: activeInfoRows.map((row) => ({
       category: String(row.category), title: String(row.title), body: String(row.body),
       phone: stringValue(row.phone), url: stringValue(row.url),
     })),
-    phrases: (phraseRows as Row[]).map((row) => ({
+    phrases: activePhraseRows.map((row) => ({
       language: String(row.language_code), category: String(row.category), term: String(row.term),
       pronunciation: stringValue(row.pronunciation), translation: String(row.translation),
     })),
