@@ -10,11 +10,11 @@ export function v3ExpenseShadowReadEnabled() {
 }
 
 export function v3ExpenseDualWriteEnabled() {
-  return process.env.V3_EXPENSE_DUAL_WRITE === "true";
+  return process.env.V3_EXPENSE_DUAL_WRITE !== "false";
 }
 
 export function v3ExpenseCutoverReadEnabled() {
-  return process.env.V3_EXPENSE_READ_SOURCE === "v3";
+  return process.env.V3_EXPENSE_READ_SOURCE !== "legacy";
 }
 
 export async function readV3ExpenseRows(input: {

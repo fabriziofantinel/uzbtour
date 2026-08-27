@@ -5,7 +5,7 @@ import { getSql } from "@/lib/db";
 type Row = Record<string, unknown>;
 
 export function v3GamificationCutoverReadEnabled() {
-  return process.env.V3_GAMIFICATION_READ_SOURCE === "v3";
+  return process.env.V3_GAMIFICATION_READ_SOURCE !== "legacy";
 }
 
 export async function readV3ChallengeAnswerSpecs(input: {

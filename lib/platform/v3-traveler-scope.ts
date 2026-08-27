@@ -5,7 +5,7 @@ import { getSql } from "@/lib/db";
 type Row = Record<string, unknown>;
 
 export function v3TravelerScopeCutoverReadEnabled() {
-  return process.env.V3_TRAVELER_SCOPE_READ_SOURCE === "v3";
+  return process.env.V3_TRAVELER_SCOPE_READ_SOURCE !== "legacy";
 }
 
 export async function readV3TravelerJourneys(userId: string) {

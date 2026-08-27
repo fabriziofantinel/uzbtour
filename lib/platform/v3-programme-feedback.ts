@@ -10,11 +10,11 @@ export function v3ProgrammeFeedbackShadowReadEnabled() {
 }
 
 export function v3ProgrammeFeedbackDualWriteEnabled() {
-  return process.env.V3_PROGRAMME_FEEDBACK_DUAL_WRITE === "true";
+  return process.env.V3_PROGRAMME_FEEDBACK_DUAL_WRITE !== "false";
 }
 
 export function v3ProgrammeFeedbackCutoverReadEnabled() {
-  return process.env.V3_PROGRAMME_FEEDBACK_READ_SOURCE === "v3";
+  return process.env.V3_PROGRAMME_FEEDBACK_READ_SOURCE !== "legacy";
 }
 
 export async function readV3ProgrammeFeedbackRows(input: {

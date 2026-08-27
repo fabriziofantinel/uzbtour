@@ -3,7 +3,7 @@ import { getSql } from "@/lib/db";
 type Row = Record<string, unknown>;
 
 export function v3TravelCatalogCutoverReadEnabled() {
-  return process.env.V3_TRAVEL_CATALOG_READ_SOURCE === "v3";
+  return process.env.V3_TRAVEL_CATALOG_READ_SOURCE !== "legacy";
 }
 
 export async function readV3TravelCatalog(input: {

@@ -34,16 +34,20 @@ export async function getImportAgency(importId: string) {
 
 export async function getImportQueueRecord(importId: string, agencyId: string) {
   const sql = getSql();
-  const rows = await sql`
-    SELECT pj.job_type, pj.payload, pj.idempotency_key
-    FROM platform_jobs pj
-    JOIN import_jobs ij
-      ON ij.id::text = pj.payload->>'importId' AND ij.agency_id = pj.agency_id
-    WHERE ij.id = ${importId} AND ij.agency_id = ${agencyId}
-      AND pj.job_type = 'travel-programme.import'
-    ORDER BY pj.created_at DESC
-    LIMIT 1
-  `;
+  const [, rows] = await sql.transaction((txn) => [
+    txn`SELECT set_config('app.agency_id', ${agencyId}, true)`,
+    txn`
+      SELECT pj.job_type, pj.payload, pj.idempotency_key
+      FROM ops.platform_jobs pj
+      JOIN ops.import_jobs ij
+        ON ij.agency_id = pj.agency_id
+       AND (ij.id = pj.import_job_id OR ij.id::text = pj.payload->>'importId')
+      WHERE ij.id = ${importId} AND ij.agency_id = ${agencyId}
+        AND pj.job_type = 'travel-programme.import'
+      ORDER BY pj.created_at DESC
+      LIMIT 1
+    `,
+  ], { readOnly: true });
   if (!rows[0]) throw new PlatformRequestError("Lavoro di importazione non trovato");
   return {
     type: String(rows[0].job_type),
@@ -158,12 +162,10 @@ export async function saveNormalizedImportDocument(input: {
 
 export async function getPlatformJobStatus(jobId: string, agencyId: string) {
   const sql = getSql();
-  const rows = await sql`
-    SELECT status
-    FROM platform_jobs
-    WHERE id = ${jobId} AND agency_id = ${agencyId}
-    LIMIT 1
-  `;
+  const [, rows] = await sql.transaction((txn) => [
+    txn`SELECT set_config('app.agency_id', ${agencyId}, true)`,
+    txn`SELECT status FROM ops.platform_jobs WHERE id = ${jobId} AND agency_id = ${agencyId} LIMIT 1`,
+  ], { readOnly: true });
   return rows[0]?.status ? String(rows[0].status) : null;
 }
 
@@ -241,25 +243,29 @@ export async function getImportForReview(
 ): Promise<PlatformImportReview> {
   await assertNormalizedImportSchema();
   const sql = getSql();
-  const rows = await sql`
+  const [, rows] = await sql.transaction((txn) => [
+    txn`SELECT set_config('app.agency_id', ${agencyId}, true)`,
+    txn`
     SELECT
       ij.id::text, ij.agency_id::text, ij.template_id::text, ij.status,
-      ij.result, ij.error_message, ij.ai_provider, ij.created_at::text,
+      ij.result, ij.error_message, ij.result->>'legacyAiProvider' AS ai_provider,
+      ij.created_at::text,
       tt.title AS trip_title, ma.original_name AS source_file_name,
       normalized_media.original_name AS normalized_file_name
-    FROM import_jobs ij
-    JOIN trip_templates tt ON tt.id = ij.template_id AND tt.agency_id = ij.agency_id
-    JOIN travel_documents td ON td.id = ij.document_id AND td.agency_id = ij.agency_id
-    JOIN media_assets ma ON ma.id = td.media_asset_id AND ma.agency_id = ij.agency_id
-    LEFT JOIN travel_documents normalized_document
+    FROM ops.import_jobs ij
+    JOIN travel.trip_templates tt ON tt.id = ij.template_id AND tt.agency_id = ij.agency_id
+    JOIN ops.travel_documents td ON td.id = ij.source_document_id AND td.agency_id = ij.agency_id
+    JOIN ops.media_assets ma ON ma.id = td.media_asset_id AND ma.agency_id = ij.agency_id
+    LEFT JOIN ops.travel_documents normalized_document
       ON normalized_document.id = ij.normalized_document_id
       AND normalized_document.agency_id = ij.agency_id
-    LEFT JOIN media_assets normalized_media
+    LEFT JOIN ops.media_assets normalized_media
       ON normalized_media.id = normalized_document.media_asset_id
       AND normalized_media.agency_id = ij.agency_id
     WHERE ij.id = ${importId} AND ij.agency_id = ${agencyId}
     LIMIT 1
-  `;
+    `,
+  ], { readOnly: true });
   if (!rows[0]) throw new PlatformRequestError("Importazione non trovata");
   const row = rows[0];
   return {
@@ -280,16 +286,19 @@ export async function getImportForReview(
 export async function getNormalizedImportDocument(importId: string, agencyId: string) {
   await assertNormalizedImportSchema();
   const sql = getSql();
-  const rows = await sql`
+  const [, rows] = await sql.transaction((txn) => [
+    txn`SELECT set_config('app.agency_id', ${agencyId}, true)`,
+    txn`
     SELECT ma.provider, ma.bucket, ma.object_key, ma.original_name, ma.content_type
-    FROM import_jobs ij
-    JOIN travel_documents td
+    FROM ops.import_jobs ij
+    JOIN ops.travel_documents td
       ON td.id = ij.normalized_document_id AND td.agency_id = ij.agency_id
-    JOIN media_assets ma ON ma.id = td.media_asset_id AND ma.agency_id = ij.agency_id
+    JOIN ops.media_assets ma ON ma.id = td.media_asset_id AND ma.agency_id = ij.agency_id
     WHERE ij.id = ${importId} AND ij.agency_id = ${agencyId}
       AND td.status = 'ready' AND ma.status = 'ready'
     LIMIT 1
-  `;
+    `,
+  ], { readOnly: true });
   if (!rows[0]) throw new PlatformRequestError("Preventivo normalizzato non disponibile");
   return {
     provider: String(rows[0].provider), bucket: String(rows[0].bucket),
@@ -301,22 +310,25 @@ export async function getNormalizedImportDocument(importId: string, agencyId: st
 export async function getImportDeletionTarget(importId: string, agencyId: string) {
   await assertNormalizedImportSchema();
   const sql = getSql();
-  const rows = await sql`
+  const [, rows] = await sql.transaction((txn) => [
+    txn`SELECT set_config('app.agency_id', ${agencyId}, true)`,
+    txn`
     SELECT ij.status, documents.document_id::text, documents.media_asset_id::text,
       documents.provider, documents.bucket, documents.object_key
-    FROM import_jobs ij
+    FROM ops.import_jobs ij
     CROSS JOIN LATERAL (
       SELECT td.id AS document_id, ma.id AS media_asset_id,
         ma.provider, ma.bucket, ma.object_key
-      FROM travel_documents td
-      JOIN media_assets ma ON ma.id = td.media_asset_id AND ma.agency_id = td.agency_id
+      FROM ops.travel_documents td
+      JOIN ops.media_assets ma ON ma.id = td.media_asset_id AND ma.agency_id = td.agency_id
       WHERE td.agency_id = ij.agency_id
-        AND td.id IN (ij.document_id, ij.normalized_document_id)
+        AND td.id IN (ij.source_document_id, ij.normalized_document_id)
     ) documents
     WHERE ij.id = ${importId} AND ij.agency_id = ${agencyId}
       AND ij.status IN ('ready_for_review', 'failed')
       AND documents.provider = 'r2'
-  `;
+    `,
+  ], { readOnly: true });
   if (!rows[0]) throw new PlatformRequestError("La bozza non può essere eliminata");
   return rows.map((row) => ({
     status: String(row.status), documentId: String(row.document_id),
@@ -407,16 +419,19 @@ export async function publishImport(input: {
     );
   }
   const sql = getSql();
-  const versionRows = await sql`
-    SELECT tv.id::text AS version_id, ij.template_id::text
-    FROM import_jobs ij
-    JOIN trip_template_versions tv
-      ON tv.template_id = ij.template_id AND tv.agency_id = ij.agency_id
-    WHERE ij.id = ${input.importId} AND ij.agency_id = ${input.agencyId}
-      AND ij.status = 'ready_for_review'
-    ORDER BY tv.version_number DESC
-    LIMIT 1
-  `;
+  const [, versionRows] = await sql.transaction((txn) => [
+    txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
+    txn`
+      SELECT tv.id::text AS version_id, ij.template_id::text
+      FROM ops.import_jobs ij
+      JOIN travel.trip_template_versions tv
+        ON tv.template_id = ij.template_id AND tv.agency_id = ij.agency_id
+      WHERE ij.id = ${input.importId} AND ij.agency_id = ${input.agencyId}
+        AND ij.status = 'ready_for_review'
+      ORDER BY tv.version_number DESC
+      LIMIT 1
+    `,
+  ], { readOnly: true });
   if (!versionRows[0]) throw new PlatformRequestError("Importazione non pubblicabile");
   const versionId = String(versionRows[0].version_id);
   const templateId = String(versionRows[0].template_id);
@@ -426,11 +441,14 @@ export async function publishImport(input: {
     throw new PlatformRequestError("Controlla data iniziale e finale del viaggio prima di pubblicare");
   }
   const catalog = await prepareTravelCatalog(input.draft);
-  const existingDepartures = await sql`
-    SELECT id::text, code FROM departures
-    WHERE agency_id = ${input.agencyId} AND template_id = ${templateId}
-    ORDER BY created_at LIMIT 1
-  `;
+  const [, existingDepartures] = await sql.transaction((txn) => [
+    txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
+    txn`
+      SELECT id::text, code FROM travel.departures
+      WHERE agency_id = ${input.agencyId} AND template_id = ${templateId}
+      ORDER BY created_at LIMIT 1
+    `,
+  ], { readOnly: true });
   const departureId = existingDepartures[0]?.id ? String(existingDepartures[0].id) : crypto.randomUUID();
   const departureCode = existingDepartures[0]?.code
     ? String(existingDepartures[0].code)
@@ -561,5 +579,31 @@ export async function publishImport(input: {
     );
     return queries;
   });
+  const [, publishedRows] = await sql.transaction((txn) => [
+    txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
+    txn`SELECT departure.id::text
+    FROM travel.departures departure
+    JOIN travel.trip_template_versions version
+      ON version.id = departure.template_version_id
+     AND version.agency_id = departure.agency_id
+    JOIN ops.import_jobs import_job
+      ON import_job.template_id = departure.template_id
+     AND import_job.agency_id = departure.agency_id
+    WHERE departure.id = ${departureId}
+      AND departure.agency_id = ${input.agencyId}
+      AND version.status = 'published'
+      AND import_job.id = ${input.importId}
+      AND import_job.status = 'published'
+      AND EXISTS (
+        SELECT 1 FROM travel.departure_days day
+        WHERE day.agency_id = departure.agency_id
+          AND day.departure_id = departure.id
+      )
+      LIMIT 1
+    `,
+  ], { readOnly: true });
+  if (!publishedRows[0]) {
+    throw new PlatformRequestError("Pubblicazione incompleta nel modello dati consolidato");
+  }
   return { templateId, departureId, referenceTargets: catalog.targets };
 }

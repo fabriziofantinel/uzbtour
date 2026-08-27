@@ -10,11 +10,11 @@ export function v3JourneyJournalShadowReadEnabled() {
 }
 
 export function v3JourneyJournalDualWriteEnabled() {
-  return process.env.V3_JOURNEY_JOURNAL_DUAL_WRITE === "true";
+  return process.env.V3_JOURNEY_JOURNAL_DUAL_WRITE !== "false";
 }
 
 export function v3JourneyJournalCutoverReadEnabled() {
-  return process.env.V3_JOURNEY_JOURNAL_READ_SOURCE === "v3";
+  return process.env.V3_JOURNEY_JOURNAL_READ_SOURCE !== "legacy";
 }
 
 export async function readV3JourneyJournalRows(input: {

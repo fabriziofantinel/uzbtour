@@ -10,6 +10,7 @@ import {
   readV3ExpenseRows,
   v3ExpenseCutoverReadEnabled,
   v3ExpenseDualWriteEnabled,
+  v3ExpenseShadowReadEnabled,
 } from "./v3-expenses";
 import {
   addTravelerCashMovementDualWrite,
@@ -20,13 +21,18 @@ import {
   saveTravelerNoteDualWrite,
   v3JourneyJournalCutoverReadEnabled,
   v3JourneyJournalDualWriteEnabled,
+  v3JourneyJournalShadowReadEnabled,
 } from "./v3-journey-journal";
 import {
   compareV3ProgrammeFeedbackShadow,
   readV3ProgrammeFeedbackRows,
   v3ProgrammeFeedbackCutoverReadEnabled,
+  v3ProgrammeFeedbackShadowReadEnabled,
 } from "./v3-programme-feedback";
-import { compareV3TravelerExperienceShadow } from "./v3-traveler-experience";
+import {
+  compareV3TravelerExperienceShadow,
+  v3TravelerExperienceShadowReadEnabled,
+} from "./v3-traveler-experience";
 import {
   readV3TravelCatalog,
   v3TravelCatalogCutoverReadEnabled,
@@ -90,7 +96,18 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
   const partyId = String(selected.party_id);
   await assertProgrammeFeedbackSchema();
 
-  const [dayRows, itemRows, cityRows, siteRows, hotelRows, travelerRows, infoRows, phraseRows, challengeRows, expenseRows, noteRows, restaurantRows, cashRows, photoRows, resultRows, contestRows, ticketRows, feedbackRows] = await sql.transaction((transaction) => [
+  const needsLegacySnapshot =
+    !v3ExpenseCutoverReadEnabled() ||
+    !v3JourneyJournalCutoverReadEnabled() ||
+    !v3ProgrammeFeedbackCutoverReadEnabled() ||
+    !v3TravelCatalogCutoverReadEnabled() ||
+    !v3GamificationCutoverReadEnabled() ||
+    v3ExpenseShadowReadEnabled() ||
+    v3JourneyJournalShadowReadEnabled() ||
+    v3ProgrammeFeedbackShadowReadEnabled() ||
+    v3TravelerExperienceShadowReadEnabled();
+  const legacySnapshot = needsLegacySnapshot
+    ? await sql.transaction((transaction) => [
     transaction`
       SELECT id::text, day_number, day_offset, label, title, city, description,
         source_date::text, metadata
@@ -261,7 +278,11 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       WHERE feedback.agency_id = ${agencyId} AND feedback.departure_id = ${departureId}
         AND feedback.party_id = ${partyId} AND profile.user_id = ${userId}
     `,
-  ]);
+      ])
+    : Array.from({ length: 18 }, () => [] as Row[]);
+  const [dayRows, itemRows, cityRows, siteRows, hotelRows, travelerRows, infoRows,
+    phraseRows, challengeRows, expenseRows, noteRows, restaurantRows, cashRows,
+    photoRows, resultRows, contestRows, ticketRows, feedbackRows] = legacySnapshot;
 
   await compareV3ExpenseShadow({
     agencyId,
