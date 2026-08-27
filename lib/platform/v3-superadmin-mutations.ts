@@ -55,7 +55,7 @@ export async function replaceV3PlatformAgencyOwner(input:{actorId:string;agencyI
   const sql=getSql();let rows;
   try{rows=await sql`SELECT * FROM app.replace_platform_agency_owner(
     ${input.actorId},${input.agencyId}::uuid,${input.name},${input.initials},${input.username},
-    ${input.email},${input.phone},${input.tokenHash},${input.expiresAt}::timestamptz`;}
+    ${input.email},${input.phone},${input.tokenHash},${input.expiresAt}::timestamptz)`;}
   catch(error){if(isUniqueViolation(error))throw new PlatformRequestError("Username già assegnato a un altro account");throw error;}
   if(!rows[0])throw new PlatformRequestError("Responsabile non sostituito");
   return { id:String(rows[0].legacy_user_id),activationRequired:Boolean(rows[0].activation_required) };

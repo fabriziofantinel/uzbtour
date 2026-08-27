@@ -4,9 +4,9 @@ import { relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root=resolve(fileURLToPath(new URL("..",import.meta.url)));
-const immutableMigrationMax=56;
+const immutableMigrationMax=57;
 const expected={
-  database:{count:42,digest:"16e1be464b70b54960682e8d21110523623ff4a15afe683db7c159424edd0388"},
+  database:{count:43,digest:"0b51c565c4d7eb19a4a54b0e46089adccbea7d007a6c6d54227b581c5ccf1fd5"},
   layout:{count:46,digest:"ba9e9e73012a5e2dd56673ac90e0b5f9f6130480357102776f0bf9b2ac390655"},
 };
 

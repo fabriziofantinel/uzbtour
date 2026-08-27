@@ -58,7 +58,7 @@ export async function PATCH(
       logoUrl:branding.data.logoUrl, actorId: actor.id });
     return NextResponse.json({ agencies: await getAgencyRegistry(actor.id) });
   } catch (error) {
-    return platformApiError(error, "Branding dell’agenzia non aggiornato");
+    return platformApiError(error, "Aggiornamento dell’agenzia non riuscito");
   }
 }
 
