@@ -16,7 +16,7 @@ const activityTypes = [
 ] as const;
 
 const timedActivityTypes = new Set<TravelProgrammeDraft["days"][number]["activities"][number]["type"]>([
-  "transport", "flight", "train",
+  "transport", "flight", "train", "meal", "meeting",
 ]);
 
 async function jsonResponse<T>(response: Response): Promise<T> {
@@ -79,9 +79,17 @@ function dayValidationCount(day: TravelProgrammeDraft["days"][number]) {
     + day.activities.filter((activity) => activity.type === "visit").reduce((subtotal, activity) => subtotal + Number(
       !activity.placeName.trim() || !activity.placeCity.trim() || !activity.placeCountry.trim() || activity.placeValidation.needsValidation
     ), 0)
-    + Number(Boolean(day.accommodation.name.trim()) && (
-      !day.accommodation.city.trim() || !day.accommodation.country.trim() || day.accommodation.validation.needsValidation
-    ));
+    + [day.accommodation, ...day.additionalAccommodations].reduce((subtotal, accommodation) => subtotal + Number(
+      Boolean(accommodation.name.trim()) && (
+        !accommodation.city.trim() || !accommodation.country.trim() || accommodation.validation.needsValidation
+      )
+    ), 0);
+}
+
+type Accommodation = TravelProgrammeDraft["days"][number]["accommodation"];
+
+function emptyAccommodation(): Accommodation {
+  return { name: "", city: "", country: "", notes: "", validation: changedValidation("Hotel") };
 }
 
 export default function ImportReview({ initialImport }: { initialImport: PlatformImportReview }) {
@@ -166,11 +174,18 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
     setActiveDayIndex((current) => Math.max(0, Math.min(current, days.length - 1)));
   }
 
-  function addDay() {
+  function updateAccommodation(dayIndex: number, accommodationIndex: number, changes: Partial<Accommodation>) {
     if (!draft) return;
-    const days = [...draft.days, { dayNumber: draft.days.length + 1, date: "", label: "", title: "Nuova giornata", country: "", countryValidation: changedValidation("Paese"), city: "", cityValidation: changedValidation("Città"), description: "", activities: [], accommodation: { name: "", city: "", country: "", notes: "", validation: changedValidation("Hotel") } }];
-    setDraft({ ...draft, days });
-    setActiveDayIndex(days.length - 1);
+    const day = draft.days[dayIndex];
+    if (accommodationIndex === 0) {
+      updateDay(dayIndex, { accommodation: { ...day.accommodation, ...changes } });
+      return;
+    }
+    updateDay(dayIndex, {
+      additionalAccommodations: day.additionalAccommodations.map((item, index) =>
+        index === accommodationIndex - 1 ? { ...item, ...changes } : item
+      ),
+    });
   }
 
   async function save() {
@@ -303,13 +318,12 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
                 </button>;
               })}
             </div>
-            <button type="button" className="reviewDayNavigatorAdd" onClick={addDay}><Plus/> Aggiungi giornata</button>
           </aside>
 
           <section className="reviewDays">
           {draft.days.map((day, dayIndex) => activeDayIndex === dayIndex && (
             <article className="reviewDay" key={`${day.dayNumber}-${dayIndex}`}>
-              <header><span>{String(dayIndex + 1).padStart(2, "0")}</span><div><small>GIORNO {dayIndex + 1} DI {draft.days.length}</small><b>{day.title || "Senza titolo"}</b></div><button type="button" aria-label={`Rimuovi giornata ${dayIndex + 1}`} onClick={() => removeDay(dayIndex)}><Trash2/></button></header>
+              <header><span>{String(dayIndex + 1).padStart(2, "0")}</span><div><small>GIORNO {dayIndex + 1} DI {draft.days.length}</small><b>{day.title || "Senza titolo"}</b></div>{draft.days.length > 1 && <button type="button" aria-label={`Rimuovi giornata ${dayIndex + 1}`} onClick={() => removeDay(dayIndex)}><Trash2/></button>}</header>
               <div className="dayFields">
                 <label>Data<input type="date" value={day.date} onChange={(event) => updateDay(dayIndex, { date: event.target.value })}/></label>
                 <label>Paese<input value={day.country} onChange={(event) => updateDay(dayIndex, { country: event.target.value, countryValidation: changedValidation("Paese") })}/></label>
@@ -347,10 +361,10 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
                 ))}
               </div>
 
-              <div className="hotelEditor"><Hotel/><div><b>Pernottamento</b><span>Lascia vuoto se non previsto</span></div><label>Hotel<input value={day.accommodation.name} onChange={(event) => updateDay(dayIndex, { accommodation: { ...day.accommodation, name: event.target.value, validation: changedValidation("Hotel") } })}/></label><label>Città<input value={day.accommodation.city} onChange={(event) => updateDay(dayIndex, { accommodation: { ...day.accommodation, city: event.target.value, validation: changedValidation("Località dell’hotel") } })}/></label><label>Paese<input value={day.accommodation.country} onChange={(event) => updateDay(dayIndex, { accommodation: { ...day.accommodation, country: event.target.value, validation: changedValidation("Località dell’hotel") } })}/></label>{day.accommodation.name.trim() && <div className="hotelValidation"><ValidationControl validation={day.accommodation.validation} searchParts={[day.accommodation.name, day.accommodation.city, day.accommodation.country]} onChange={(validation) => updateDay(dayIndex, { accommodation: { ...day.accommodation, validation } })}/></div>}</div>
+              <div className="accommodationEditors"><div className="subheading"><b>Pernottamenti</b><button type="button" onClick={() => updateDay(dayIndex, { additionalAccommodations: [...day.additionalAccommodations, emptyAccommodation()] })}><Plus/> Nuovo pernottamento</button></div>{[day.accommodation, ...day.additionalAccommodations].map((accommodation, accommodationIndex) => <div className="hotelEditor" key={accommodationIndex}><Hotel/><div><b>Pernottamento {accommodationIndex + 1}</b><span>{accommodationIndex === 0 ? "Lascia vuoto se non previsto" : "Sistemazione aggiuntiva nella giornata"}</span></div><label>Hotel<input value={accommodation.name} onChange={(event) => updateAccommodation(dayIndex, accommodationIndex, { name: event.target.value, validation: changedValidation("Hotel") })}/></label><label>Città<input value={accommodation.city} onChange={(event) => updateAccommodation(dayIndex, accommodationIndex, { city: event.target.value, validation: changedValidation("Località dell’hotel") })}/></label><label>Paese<input value={accommodation.country} onChange={(event) => updateAccommodation(dayIndex, accommodationIndex, { country: event.target.value, validation: changedValidation("Località dell’hotel") })}/></label>{accommodationIndex > 0 && <button type="button" className="removeAccommodation" aria-label={`Rimuovi pernottamento ${accommodationIndex + 1}`} onClick={() => updateDay(dayIndex, { additionalAccommodations: day.additionalAccommodations.filter((_, index) => index !== accommodationIndex - 1) })}><Trash2/></button>}{accommodation.name.trim() && <div className="hotelValidation"><ValidationControl validation={accommodation.validation} searchParts={[accommodation.name, accommodation.city, accommodation.country]} onChange={(validation) => updateAccommodation(dayIndex, accommodationIndex, { validation })}/></div>}</div>)}</div>
             </article>
           ))}
-          {draft.days.length === 0 && <div className="reviewNoDays"><CalendarDays/><h3>Il programma non contiene giornate</h3><p>Aggiungi la prima giornata per poter completare e pubblicare il viaggio.</p><button type="button" onClick={addDay}><Plus/> Aggiungi la prima giornata</button></div>}
+          {draft.days.length === 0 && <div className="reviewNoDays"><CalendarDays/><h3>Il programma non contiene giornate</h3><p>Elimina il viaggio e ricarica il preventivo per ricostruire correttamente l’itinerario.</p></div>}
           {draft.days.length > 1 && <nav className="reviewDayPager" aria-label="Navigazione tra giornate"><button type="button" disabled={activeDayIndex === 0} onClick={() => setActiveDayIndex((index) => Math.max(0, index - 1))}><ArrowLeft/> Giorno precedente</button><span>{activeDayIndex + 1} di {draft.days.length}</span><button type="button" disabled={activeDayIndex === draft.days.length - 1} onClick={() => setActiveDayIndex((index) => Math.min(draft.days.length - 1, index + 1))}>Giorno successivo <ArrowRight/></button></nav>}
           </section>
         </div>

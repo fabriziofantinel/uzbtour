@@ -558,6 +558,25 @@
   background: var(--cream);
   border-top: 1px solid var(--line);
 }
+.accommodationEditors > .subheading {
+  border-top: 1px solid var(--line);
+}
+.accommodationEditors .hotelEditor + .hotelEditor {
+  border-top-style: dashed;
+}
+.removeAccommodation {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--surface-danger);
+  color: var(--danger);
+  display: grid;
+  place-items: center;
+}
+.removeAccommodation svg {
+  width: 15px;
+}
 .hotelEditor > svg {
   width: 31px;
   height: 31px;

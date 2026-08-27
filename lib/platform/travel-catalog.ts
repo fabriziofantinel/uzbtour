@@ -3,7 +3,7 @@ import type { TravelProgrammeDraft } from "./import-schema";
 import { countryCodeForName, geocodeCity } from "./geocoding";
 
 export type ReferenceTarget = { entityType: "country" | "city" | "site"; entityId: string; name: string };
-export type DayReferences = { cityIds: string[]; siteIds: string[]; hotelId?: string };
+export type DayReferences = { cityIds: string[]; siteIds: string[]; hotelId?: string; hotelIds: string[] };
 
 function normalizedName(value: string) {
   return value.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("it").replace(/\s+/g, " ");
@@ -71,7 +71,7 @@ export async function prepareTravelCatalog(draft: TravelProgrammeDraft, scope: {
     ...draft.destinationCountry.split(/[,;/]+/),
     ...draft.days.flatMap((day) => [
       day.country,
-      day.accommodation.country,
+      ...[day.accommodation, ...day.additionalAccommodations].map((accommodation) => accommodation.country),
       ...day.activities.filter((activity) => activity.type === "visit").map((activity) => activity.placeCountry),
     ]),
   ].map((item) => item.trim()).filter(Boolean);
@@ -110,19 +110,20 @@ export async function prepareTravelCatalog(draft: TravelProgrammeDraft, scope: {
       siteIds.push(site.id);
       targets.set(`site:${site.id}`, { entityType: "site", entityId: site.id, name: site.name });
     }
-    const hotelLocation = day.accommodation.name.trim()
-      ? await resolveCity(day.accommodation.country, day.accommodation.city)
-      : null;
-    if (hotelLocation?.city) cityIds.push(hotelLocation.city.id);
-    const hotelId = hotelLocation?.city && day.accommodation.name.trim()
-      ? await ensureHotel(scope.actorId,scope.agencyId,
-          hotelLocation.city.id,
-          hotelLocation.city.name,
-          hotelLocation.country.name,
-          day.accommodation.name
-        )
-      : undefined;
-    dayReferences.push({ cityIds: [...new Set(cityIds)], siteIds: [...new Set(siteIds)], hotelId });
+    const hotelIds: string[] = [];
+    for (const accommodation of [day.accommodation, ...day.additionalAccommodations]) {
+      if (!accommodation.name.trim()) continue;
+      const hotelLocation = await resolveCity(accommodation.country, accommodation.city);
+      if (!hotelLocation.city) continue;
+      cityIds.push(hotelLocation.city.id);
+      hotelIds.push(await ensureHotel(scope.actorId,scope.agencyId,
+        hotelLocation.city.id,
+        hotelLocation.city.name,
+        hotelLocation.country.name,
+        accommodation.name
+      ));
+    }
+    dayReferences.push({ cityIds: [...new Set(cityIds)], siteIds: [...new Set(siteIds)], hotelId: hotelIds[0], hotelIds });
   }
   return { countries, primaryCountry, dayReferences, targets: [...targets.values()] };
 }

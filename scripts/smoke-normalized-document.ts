@@ -46,13 +46,20 @@ const draft: TravelProgrammeDraft = {
       placeCountry: "",
       placeValidation: validation,
     }],
-    accommodation: {
+      accommodation: {
       name: "Hotel prova",
       city: "Tashkent",
       country: "Uzbekistan",
       notes: "Prima colazione inclusa",
       validation,
-    },
+      },
+      additionalAccommodations: [{
+        name: "Hotel seconda notte",
+        city: "Tashkent",
+        country: "Uzbekistan",
+        notes: "Pernottamento dopo la giornata",
+        validation,
+      }],
   }],
   usefulInformation: [{
     category: "Emergenze",
@@ -70,6 +77,7 @@ async function main() {
   const xml = await zip.file("word/document.xml")?.async("string");
   assert.ok(xml, "Il DOCX non contiene word/document.xml");
   const visibleText = xml.replace(/<[^>]+>/g, "");
+  assert.match(visibleText, /Hotel seconda notte/, "Il secondo pernottamento non è presente nel DOCX");
   assert.doesNotMatch(visibleText, /Incluso|Non incluso|N\/S/, "Il DOCX non deve mostrare una colonna di inclusione");
   const reread = await readNormalizedTravelDocument(bytes);
   assert.deepEqual(reread, draft, "Il payload riletto non coincide con la bozza normalizzata");

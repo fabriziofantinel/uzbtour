@@ -172,7 +172,7 @@ export async function createNormalizedTravelDocument(
         layout: TableLayoutType.FIXED,
         rows: [
           new TableRow({ children: [cell("Pernottamento", { header: true }), cell("Località", { header: true }), cell("Note", { header: true })] }),
-          new TableRow({ children: [cell(day.accommodation.name), cell([day.accommodation.city, day.accommodation.country].filter(Boolean).join(", ")), cell(day.accommodation.notes)] }),
+          ...[day.accommodation, ...day.additionalAccommodations].map((accommodation) => new TableRow({ children: [cell(accommodation.name), cell([accommodation.city, accommodation.country].filter(Boolean).join(", ")), cell(accommodation.notes)] })),
         ],
       })
     );

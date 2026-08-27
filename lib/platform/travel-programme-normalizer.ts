@@ -47,12 +47,24 @@ function activity(value: unknown, path: string, changes: string[]) {
   };
 }
 
+function accommodation(value: unknown, path: string, changes: string[]) {
+  const item = recordValue(value);
+  return item ? {
+    ...item,
+    name: text(item.name, 240, `${path}.name`, changes),
+    city: text(item.city, 240, `${path}.city`, changes),
+    country: text(item.country, 120, `${path}.country`, changes),
+    notes: text(item.notes, 2000, `${path}.notes`, changes),
+    validation: validation(item.validation, `${path}.validation`, changes),
+  } : value;
+}
+
 function day(value: unknown, index: number, changes: string[]) {
   const item = recordValue(value);
   if (!item) return value;
   const path = `days[${index}]`;
   const activities = list(item.activities, 40, `${path}.activities`, changes);
-  const accommodation = recordValue(item.accommodation);
+  const additionalAccommodations = list(item.additionalAccommodations ?? [], 10, `${path}.additionalAccommodations`, changes);
   return {
     ...item,
     date: text(item.date, 10, `${path}.date`, changes),
@@ -66,14 +78,10 @@ function day(value: unknown, index: number, changes: string[]) {
     activities: Array.isArray(activities)
       ? activities.map((entry, activityIndex) => activity(entry, `${path}.activities[${activityIndex}]`, changes))
       : activities,
-    accommodation: accommodation ? {
-      ...accommodation,
-      name: text(accommodation.name, 240, `${path}.accommodation.name`, changes),
-      city: text(accommodation.city, 240, `${path}.accommodation.city`, changes),
-      country: text(accommodation.country, 120, `${path}.accommodation.country`, changes),
-      notes: text(accommodation.notes, 2000, `${path}.accommodation.notes`, changes),
-      validation: validation(accommodation.validation, `${path}.accommodation.validation`, changes),
-    } : item.accommodation,
+    accommodation: accommodation(item.accommodation, `${path}.accommodation`, changes),
+    additionalAccommodations: Array.isArray(additionalAccommodations)
+      ? additionalAccommodations.map((entry, accommodationIndex) => accommodation(entry, `${path}.additionalAccommodations[${accommodationIndex}]`, changes))
+      : [],
   };
 }
 

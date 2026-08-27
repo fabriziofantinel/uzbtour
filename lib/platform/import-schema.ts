@@ -22,6 +22,14 @@ export const importedActivitySchema = z.object({
   placeValidation: catalogValidationSchema,
 });
 
+export const importedAccommodationSchema = z.object({
+  name: z.string().max(240),
+  city: z.string().max(240),
+  country: z.string().max(120).default(""),
+  notes: z.string().max(2000),
+  validation: catalogValidationSchema,
+});
+
 export const importedDaySchema = z.object({
   dayNumber: z.number().int().min(1).max(90),
   date: z.string().max(10).describe("Data YYYY-MM-DD oppure stringa vuota"),
@@ -33,13 +41,8 @@ export const importedDaySchema = z.object({
   cityValidation: catalogValidationSchema,
   description: z.string().max(6000),
   activities: z.array(importedActivitySchema).max(40),
-  accommodation: z.object({
-    name: z.string().max(240),
-    city: z.string().max(240),
-    country: z.string().max(120).default(""),
-    notes: z.string().max(2000),
-    validation: catalogValidationSchema,
-  }),
+  accommodation: importedAccommodationSchema,
+  additionalAccommodations: z.array(importedAccommodationSchema).max(10).default([]),
 });
 
 export const travelProgrammeDraftSchema = z.object({
@@ -75,10 +78,11 @@ export function catalogValidationIssues(draft: TravelProgrammeDraft) {
       if (!activity.placeCountry.trim()) issues.push(`${label}: sito “${site}” senza paese`);
       if (activity.placeValidation.needsValidation) issues.push(`${label}: sito “${site}” da validare`);
     }
-    if (day.accommodation.name.trim()) {
-      if (!day.accommodation.city.trim()) issues.push(`${label}: hotel senza città`);
-      if (!day.accommodation.country.trim()) issues.push(`${label}: hotel senza paese`);
-      if (day.accommodation.validation.needsValidation) issues.push(`${label}: hotel “${day.accommodation.name}” da validare`);
+    for (const accommodation of [day.accommodation, ...day.additionalAccommodations]) {
+      if (!accommodation.name.trim()) continue;
+      if (!accommodation.city.trim()) issues.push(`${label}: hotel senza città`);
+      if (!accommodation.country.trim()) issues.push(`${label}: hotel senza paese`);
+      if (accommodation.validation.needsValidation) issues.push(`${label}: hotel “${accommodation.name}” da validare`);
     }
   }
   return issues;
