@@ -36,7 +36,10 @@ export default function ActivateAccountPage() {
       const activated = await fetch("/api/auth/invitation", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "activate", token, password }) });
       const body = await activated.json().catch(() => ({})) as { error?: string };
       if (!activated.ok) throw new Error(body.error || "Attivazione non riuscita");
-      window.location.replace("/viaggio");
+      const meResponse=await fetch("/api/auth/me",{cache:"no-store"});
+      const me=await meResponse.json().catch(()=>null) as {user?:{isSuperAdmin?:boolean;isAgencyAdmin?:boolean}}|null;
+      const destination=me?.user?.isSuperAdmin?"/admin":me?.user?.isAgencyAdmin?"/agenzia":"/viaggio";
+      window.location.replace(destination);
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Attivazione non riuscita"); setBusy(false); }
   }
 
