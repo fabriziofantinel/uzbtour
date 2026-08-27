@@ -99,6 +99,7 @@
     "db:accounts:retain-superuser:dry-run": "node --env-file=.env.local scripts/retain-only-superuser-accounts.mjs",
     "db:accounts:retain-superuser": "node --env-file=.env.local scripts/retain-only-superuser-accounts.mjs --apply",
     "db:accounts:invite-superuser": "node --env-file=.env.local scripts/issue-superuser-cognito-invitation.mjs --apply",
+    "db:accounts:verify-cognito": "node --env-file=.env.local scripts/verify-cognito-cutover.mjs",
     "db:migrate:v3:feedback:dry-run": "node --env-file=.env.local scripts/migrate-v3-programme-feedback-runtime.mjs",
     "db:migrate:v3:feedback": "node --env-file=.env.local scripts/migrate-v3-programme-feedback-runtime.mjs --apply",
     "db:migrate:v3:experience:dry-run": "node --env-file=.env.local scripts/migrate-v3-traveler-experience-runtime.mjs",
