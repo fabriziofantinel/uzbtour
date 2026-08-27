@@ -1,0 +1,24 @@
+# Materiale locale e artefatti di progettazione non necessari alla build Next.js.
+.agents/
+.impeccable/
+.tmp/
+.aws-sam/
+.sam-cli-data/
+AGENTS.md
+database/
+docs/
+infra/
+scripts/
+tools/
+
+# Output locali, dipendenze e configurazioni sensibili.
+.git/
+.next/
+.vercel/
+node_modules/
+out/
+tmp/
+*.log
+*.tsbuildinfo
+.env*
+!.env.example
