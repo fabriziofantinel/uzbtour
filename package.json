@@ -45,6 +45,8 @@
     "db:migrate:v3:trip-deletion-assets": "node --env-file=.env.local scripts/migrate-v3-trip-deletion-assets-scope-fix.mjs --apply",
     "db:migrate:v3:agency-agents:dry-run": "node --env-file=.env.local scripts/migrate-v3-agency-agent-self-service.mjs",
     "db:migrate:v3:agency-agents": "node --env-file=.env.local scripts/migrate-v3-agency-agent-self-service.mjs --apply",
+    "db:migrate:v3:agency-agent-removal:dry-run": "node --env-file=.env.local scripts/migrate-v3-agency-agent-removal.mjs",
+    "db:migrate:v3:agency-agent-removal": "node --env-file=.env.local scripts/migrate-v3-agency-agent-removal.mjs --apply",
     "db:backfill:v3:dry-run": "node --env-file=.env.local scripts/backfill-v3-shadow-core.mjs",
     "db:backfill:v3": "node --env-file=.env.local scripts/backfill-v3-shadow-core.mjs --apply",
     "db:audit:v3:operational": "node --env-file=.env.local scripts/audit-v3-operational-source.mjs",

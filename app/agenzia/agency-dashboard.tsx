@@ -543,7 +543,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
               )})}
                 </tbody>
               </table>
-              {filteredDepartures.length === 0 && <div className="agencyEmpty"><MapPinned/><h3>{agency?.trips.length ? "Nessun risultato" : "Nessun viaggio ancora"}</h3><p>{agency?.trips.length ? "Modifica i filtri per visualizzare altri viaggi." : "Importa il primo preventivo accettato per creare il viaggio."}</p><button type="button" onClick={agency?.trips.length ? clearTripFilters : () => setShowNewTrip(true)}>{agency?.trips.length ? "Azzera filtri" : "Crea il primo viaggio"}</button></div>}
+              {filteredDepartures.length === 0 && <div className="agencyEmpty"><MapPinned/><h3>{agency?.trips.length ? "Nessun risultato" : "Nessun viaggio ancora"}</h3><p>{agency?.trips.length ? "Modifica i filtri per visualizzare altri viaggi." : "Usa Nuovo viaggio quando vuoi importare un preventivo accettato."}</p>{agency?.trips.length ? <button type="button" onClick={clearTripFilters}>Azzera filtri</button> : null}</div>}
             </div>}
 
             {tripView === "cards" && <div className="tripAdminGrid cards">
@@ -605,7 +605,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                   </article>
                 );
               })}
-              {filteredDepartures.length === 0 && <div className="agencyEmpty"><MapPinned/><h3>{agency?.trips.length ? "Nessun risultato" : "Nessun viaggio ancora"}</h3><p>{agency?.trips.length ? "Modifica i filtri per visualizzare altri viaggi." : "Importa il primo preventivo accettato per creare il viaggio."}</p><button type="button" onClick={agency?.trips.length ? clearTripFilters : () => setShowNewTrip(true)}>{agency?.trips.length ? "Azzera filtri" : "Crea il primo viaggio"}</button></div>}
+              {filteredDepartures.length === 0 && <div className="agencyEmpty"><MapPinned/><h3>{agency?.trips.length ? "Nessun risultato" : "Nessun viaggio ancora"}</h3><p>{agency?.trips.length ? "Modifica i filtri per visualizzare altri viaggi." : "Usa Nuovo viaggio quando vuoi importare un preventivo accettato."}</p>{agency?.trips.length ? <button type="button" onClick={clearTripFilters}>Azzera filtri</button> : null}</div>}
             </div>}
           </section>
 

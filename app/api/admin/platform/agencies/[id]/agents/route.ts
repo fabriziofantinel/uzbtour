@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requirePlatformAdmin } from "@/lib/platform/authorization";
-import { createAgencyAgent, readAgencyAgents } from "@/lib/platform/agency-agent-repository";
+import { createAgencyAgent, readAgencyAgents, removeAgencyAgent } from "@/lib/platform/agency-agent-repository";
 import { sendTravelerInvitation } from "@/lib/auth/invitation-email";
 import { platformApiError } from "@/lib/platform/http";
 
@@ -26,4 +26,15 @@ export async function POST(
         username:parsed.data.username,activationUrl}).catch(()=>false);}
     return NextResponse.json({agents:await readAgencyAgents(actor.id,id),invitationEmailSent},{status:201});
   } catch(error){return platformApiError(error,"Inserimento agente non riuscito");}
+}
+
+export async function DELETE(request:Request,context:{params:Promise<{id:string}>}){
+  try{
+    const actor=await requirePlatformAdmin();const {id}=await context.params;
+    if(!/^[0-9a-f-]{36}$/i.test(id))return NextResponse.json({error:"Agenzia non valida"},{status:400});
+    const parsed=z.object({agentId:z.string().min(8).max(100)}).safeParse(await request.json().catch(()=>null));
+    if(!parsed.success)return NextResponse.json({error:"Agente non valido"},{status:400});
+    await removeAgencyAgent(actor.id,id,parsed.data.agentId);
+    return NextResponse.json({agents:await readAgencyAgents(actor.id,id)});
+  }catch(error){return platformApiError(error,"Eliminazione agente non riuscita");}
 }

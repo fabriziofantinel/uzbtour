@@ -30,3 +30,9 @@ export async function createAgencyAgent(input: {
     ${createHash("sha256").update(token).digest("hex")},${new Date(Date.now()+14*24*60*60*1000).toISOString()}::timestamptz)`;
   return { id:String(rows[0].legacy_user_id),activationToken:Boolean(rows[0].activation_required)?token:null };
 }
+
+export async function removeAgencyAgent(actorId:string,agencyId:string,agentId:string){
+  const sql=getSql();
+  const rows=await sql`SELECT app.remove_agency_agent_v3(${actorId},${agencyId}::uuid,${agentId}) removed`;
+  return Boolean(rows[0]?.removed);
+}
