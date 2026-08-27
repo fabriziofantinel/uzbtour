@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { PlatformAuthorizationError, requireSuperAdmin } from "@/lib/platform/authorization";
+import { requireSuperAdmin } from "@/lib/platform/authorization";
 import { createAgency, getAgencyRegistry } from "@/lib/platform/superadmin-repository";
+import { sendTravelerInvitation } from "@/lib/auth/invitation-email";
+import { platformApiError } from "@/lib/platform/http";
 
 export const dynamic = "force-dynamic";
 
@@ -22,28 +24,19 @@ const agencySchema = z.object({
   email: z.union([z.literal(""), z.email()]).optional().default(""),
   website: z.union([z.literal(""), z.url()]).optional().default(""),
   referenceName: z.string().trim().min(2).max(160),
+  referenceUsername: z.string().trim().min(3).max(80).regex(/^[A-Za-z0-9][A-Za-z0-9._-]{2,79}$/),
   referenceEmail: z.email(),
   referencePhone: z.string().trim().min(5).max(40),
   primaryColor: z.string().regex(/^#[0-9a-f]{6}$/i).optional().default("#247A6B"),
   logoUrl: z.union([z.literal(""), z.url()]).optional().default(""),
 });
 
-function authorizationResponse(error: unknown) {
-  if (error instanceof PlatformAuthorizationError) {
-    return NextResponse.json({ error: error.message }, { status: error.status });
-  }
-  return null;
-}
-
 export async function GET() {
   try {
     const actor = await requireSuperAdmin();
     return NextResponse.json({ agencies: await getAgencyRegistry(actor.id) });
   } catch (error) {
-    const unauthorized = authorizationResponse(error);
-    if (unauthorized) return unauthorized;
-    console.error("Elenco agenzie non disponibile", error);
-    return NextResponse.json({ error: "Elenco agenzie non disponibile" }, { status: 503 });
+    return platformApiError(error,"Elenco agenzie non disponibile");
   }
 }
 
@@ -57,12 +50,16 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    const id = await createAgency({ ...parsed.data, actorId: actor.id });
-    return NextResponse.json({ id, agencies: await getAgencyRegistry(actor.id) }, { status: 201 });
+    const created = await createAgency({ ...parsed.data, actorId: actor.id });
+    let invitationEmailSent=false;
+    if(created.activationToken){
+      const activationUrl=new URL(`/attiva-account#token=${encodeURIComponent(created.activationToken)}`,request.url).toString();
+      invitationEmailSent=await sendTravelerInvitation({email:parsed.data.referenceEmail,
+        name:parsed.data.referenceName,username:parsed.data.referenceUsername,activationUrl}).catch(()=>false);
+    }
+    return NextResponse.json({ id:created.id, invitationEmailSent,
+      activationToken:created.activationToken, agencies: await getAgencyRegistry(actor.id) }, { status: 201 });
   } catch (error) {
-    const unauthorized = authorizationResponse(error);
-    if (unauthorized) return unauthorized;
-    console.error("Creazione agenzia non riuscita", error);
-    return NextResponse.json({ error: "Creazione agenzia non riuscita" }, { status: 503 });
+    return platformApiError(error,"Creazione agenzia non riuscita");
   }
 }

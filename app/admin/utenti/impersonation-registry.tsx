@@ -24,7 +24,7 @@ export default function ImpersonationRegistry({ initialUsers }: { initialUsers: 
         || roleFilter === "traveler" && user.isTraveler
         || roleFilter === "superadmin" && user.platformRole === "superadmin"
         || roleFilter === "invited" && user.status === "invited";
-      const queryMatches = !needle || [user.name, user.email, ...user.agencyNames]
+      const queryMatches = !needle || [user.name, user.username, user.email, user.phone, ...user.agencyNames]
         .some((value) => value.toLocaleLowerCase("it").includes(needle));
       return roleMatches && queryMatches;
     });
@@ -91,7 +91,7 @@ export default function ImpersonationRegistry({ initialUsers }: { initialUsers: 
         <button type="button" className={roleFilter === "invited" ? "active" : ""} aria-pressed={roleFilter === "invited"} onClick={() => setRoleFilter("invited")}>Da attivare <b>{roleCounts.invited}</b></button>
       </div>
       <div className="registryTools impersonationTools">
-        <label className="userSearch" htmlFor="user-search"><Search/><span className="srOnly">Cerca utente</span><input id="user-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca per nome, email o agenzia…" autoComplete="off"/></label>
+        <label className="userSearch" htmlFor="user-search"><Search/><span className="srOnly">Cerca utente</span><input id="user-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nome, username, agenzia o telefono…" autoComplete="off"/></label>
         <span className="registryResultCount" aria-live="polite">{users.length} {users.length === 1 ? "utente" : "utenti"}</span>
         {(query || roleFilter !== "all") && <button type="button" className="registryClear" onClick={() => { setQuery(""); setRoleFilter("all"); }}><X/> Azzera filtri</button>}
       </div>
@@ -100,7 +100,7 @@ export default function ImpersonationRegistry({ initialUsers }: { initialUsers: 
           <article key={user.id}>
             <i>{user.initials || user.name.slice(0, 2).toUpperCase()}</i>
             <span className="impersonationIdentity">
-              <strong>{user.name}</strong><small>{user.email || "Email non indicata"}</small>
+              <strong>{user.name}</strong><small>@{user.username} · {user.email || "Email non indicata"}</small>
               <em>{user.agencyNames.length ? user.agencyNames.join(" · ") : "Nessuna agenzia associata"}</em>
             </span>
             <span className="impersonationRoles">

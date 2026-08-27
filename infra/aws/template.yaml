@@ -51,6 +51,10 @@ Parameters:
     Type: String
     Default: ""
     AllowedPattern: "^$|^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+  ApplicationBaseUrl:
+    Type: String
+    Default: https://smf-travel.vercel.app
+    AllowedPattern: "^https://[^/]+(?:/.*)?$"
 
 Conditions:
   UseDefaultR2Endpoint: !Equals [!Ref R2Jurisdiction, none]
@@ -90,6 +94,8 @@ Resources:
             Priority: 1
       AdminCreateUserConfig:
         AllowAdminCreateUserOnly: true
+      LambdaConfig:
+        CustomMessage: !GetAtt CognitoMessageFunction.Arn
       Policies:
         PasswordPolicy:
           MinimumLength: 10
@@ -110,6 +116,66 @@ Resources:
       UserPoolTags:
         Application: smf-travel
         ManagedBy: cloudformation
+
+  CognitoMessageFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: CognitoMessageLogGroup
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: turns Cognito reset codes into app deep links while retaining the code in the message as a manual fallback
+        must:
+          - never log reset codes, usernames or recipient data
+          - only customize Cognito messages; no data-plane permissions
+        mutable: change-with-constraints
+        trust: { src: authored, conf: high }
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-cognito-message"
+      Description: Personalizza le email Cognito con link di ripristino SMF Travel
+      Runtime: nodejs22.x
+      Handler: index.handler
+      Architectures: [arm64]
+      MemorySize: 128
+      Timeout: 5
+      Tracing: Active
+      LoggingConfig:
+        LogFormat: JSON
+        ApplicationLogLevel: ERROR
+        SystemLogLevel: WARN
+      Environment:
+        Variables:
+          APPLICATION_BASE_URL: !Ref ApplicationBaseUrl
+      InlineCode: |
+        exports.handler = async function (event) {
+          if (event.triggerSource !== "CustomMessage_ForgotPassword") return event;
+          const base = process.env.APPLICATION_BASE_URL.replace(/\/$/, "");
+          const username = encodeURIComponent(event.userName);
+          const code = event.request.codeParameter;
+          const link = base + "/auth/reset-password?username=" + username + "&code=" + code;
+          event.response.emailSubject = "Ripristina la password di SMF Travel";
+          event.response.emailMessage = "<p>Hai richiesto una nuova password per lo username <strong>" +
+            event.userName.replace(/[&<>\"]/g, "") + "</strong>.</p><p><a href=\"" + link +
+            "\">Imposta la nuova password</a></p><p>In alternativa usa il codice <strong>" + code +
+            "</strong>. Se non hai richiesto tu il ripristino, ignora questa email.</p>";
+          event.response.smsMessage = "Codice SMF Travel: " + code;
+          return event;
+        };
+
+  CognitoMessageLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-cognito-message"
+      RetentionInDays: 14
+
+  CognitoMessageInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref CognitoMessageFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+      SourceArn: !GetAtt TravelUserPool.Arn
 
   TravelWebClient:
     Type: AWS::Cognito::UserPoolClient

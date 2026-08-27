@@ -21,8 +21,9 @@ function getPageCopy(path: string) {
   };
 }
 
-export default async function AuthPage({ params }: { params: Promise<{ path: string }> }) {
+export default async function AuthPage({ params,searchParams }: { params: Promise<{ path: string }>;searchParams:Promise<Record<string,string|string[]|undefined>> }) {
   const { path } = await params;
+  const query=await searchParams;
   if (path === "sign-in") redirect("/login");
   if (!RECOVERY_PATHS.has(path)) notFound();
   const copy = getPageCopy(path);
@@ -44,7 +45,9 @@ export default async function AuthPage({ params }: { params: Promise<{ path: str
         <div className="authUtilityBox">
           <span className="authUtilityIcon">{copy.icon}</span>
           <p className="authUtilityIntro">{copy.description}</p>
-          <UsernameRecovery/>
+          <UsernameRecovery confirmInitially={path==="reset-password"}
+            initialUsername={typeof query.username==="string"?query.username:""}
+            initialCode={typeof query.code==="string"?query.code:""}/>
           <Link className="authUtilityBack" href="/login"><ArrowLeft aria-hidden="true"/> Torna all’accesso</Link>
         </div>
       </section>

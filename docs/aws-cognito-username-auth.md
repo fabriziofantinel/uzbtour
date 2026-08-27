@@ -34,10 +34,18 @@ del pool e risolve il `sub` su Neon.
 
 ### Recupero password
 
-L'utente indica lo username. `ForgotPassword` invia il codice all'email
-verificata di quello specifico account; il codice e la nuova password vengono
-confermati con `ConfirmForgotPassword`. La risposta iniziale e' sempre generica
-per non rivelare se lo username esiste.
+L'utente indica lo username. `ForgotPassword` invia all'email verificata di
+quello specifico account un link che apre `/auth/reset-password` con username e
+codice gia' compilati; il codice resta visibile nella mail come fallback
+manuale. Codice e nuova password vengono confermati con
+`ConfirmForgotPassword`. La risposta iniziale resta generica per non rivelare
+se lo username esiste.
+
+Prima di autenticare Cognito, Neon distingue account non censito, invito ancora
+da accettare, account disabilitato e agenzia sospesa. Dopo l'autenticazione la
+stessa regola e' nuovamente applicata dal resolver del `sub`, quindi la
+disattivazione dell'agenzia blocca anche sessioni gia' emesse alla richiesta
+successiva.
 
 ## Configurazione
 
@@ -63,7 +71,7 @@ SES, oppure i messaggi potranno essere inviati soltanto a destinatari verificati
 
 1. creare change set CloudFormation e revisionarlo;
 2. applicare lo stack e verificare Cognito/SES;
-3. applicare la migrazione Neon 055;
+3. applicare le migrazioni Neon 055 e 056;
 4. configurare le quattro variabili Vercel;
 5. emettere l'invito monouso del superuser e disattivare gli altri account;
 6. distribuire il frontend;

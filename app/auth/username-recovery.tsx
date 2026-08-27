@@ -3,10 +3,10 @@
 import { FormEvent, useState } from "react";
 import { CheckCircle2, Eye, EyeOff, KeyRound, LoaderCircle, UserRound } from "lucide-react";
 
-export default function UsernameRecovery() {
-  const [step, setStep] = useState<"request" | "confirm" | "done">("request");
-  const [username, setUsername] = useState("");
-  const [code, setCode] = useState("");
+export default function UsernameRecovery({initialUsername="",initialCode="",confirmInitially=false}:{initialUsername?:string;initialCode?:string;confirmInitially?:boolean}) {
+  const [step, setStep] = useState<"request" | "confirm" | "done">(confirmInitially?"confirm":"request");
+  const [username, setUsername] = useState(initialUsername);
+  const [code, setCode] = useState(initialCode);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -45,7 +45,7 @@ export default function UsernameRecovery() {
     <label htmlFor="recovery-username">Username</label>
     <div className="codeInput"><UserRound/><input id="recovery-username" autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} readOnly={step === "confirm"} required minLength={3} maxLength={80}/></div>
     {step === "confirm" && <>
-      <p>Se lo username è valido, abbiamo inviato un codice all’email associata a questo specifico account.</p>
+      <p>Se lo username è valido, abbiamo inviato un link e un codice all’email associata a questo specifico account.</p>
       <label htmlFor="recovery-code">Codice ricevuto</label>
       <div className="codeInput"><KeyRound/><input id="recovery-code" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(event) => setCode(event.target.value)} required minLength={4} maxLength={12}/></div>
       <label htmlFor="recovery-password">Nuova password</label>
@@ -53,6 +53,6 @@ export default function UsernameRecovery() {
       <p className={password && !passwordValid ? "activationHint invalid" : "activationHint"}>Almeno 10 caratteri, una maiuscola, una minuscola e un numero.</p>
     </>}
     {error && <p className="loginError" role="alert">{error}</p>}
-    <button className="loginSubmit" type="submit" disabled={busy || !username.trim() || (step === "confirm" && (!code.trim() || !passwordValid))}>{busy ? <LoaderCircle className="spin"/> : <KeyRound/>}{step === "request" ? "Invia il codice" : "Salva la nuova password"}</button>
+    <button className="loginSubmit" type="submit" disabled={busy || !username.trim() || (step === "confirm" && (!code.trim() || !passwordValid))}>{busy ? <LoaderCircle className="spin"/> : <KeyRound/>}{step === "request" ? "Invia il link di ripristino" : "Salva la nuova password"}</button>
   </form>;
 }

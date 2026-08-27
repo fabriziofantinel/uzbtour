@@ -39,6 +39,7 @@ export async function readV3AgencyRegistry(actorId: string) {
       referencePhone: String(row.reference_phone), primaryColor: String(branding.primaryColor || "#247A6B"),
       logoUrl: String(branding.logoUrl || ""), tripCount: Number(row.trip_count),
       travelerCount: Number(row.traveler_count),
+      ongoingTripCount: Number(row.ongoing_trip_count), upcomingTripCount: Number(row.upcoming_trip_count),
       agents: agencyRows.filter((agent) => agent.agent_id).map((agent) => ({
         id: String(agent.agent_id), name: String(agent.agent_name),
         username: String(agent.agent_username || ""),
@@ -55,6 +56,7 @@ export async function readV3ImpersonationUsers(actorId: string) {
   const rows = await sql`SELECT * FROM app.read_superadmin_impersonation_users(${actorId})`;
   return rows.map((row) => ({
     id: String(row.legacy_user_id), name: String(row.display_name), initials: initialsFor(String(row.display_name)),
+    username: String(row.username),
     email: String(row.email), phone: String(row.phone), status: String(row.user_status),
     platformRole: String(row.platform_role) as "superadmin" | "user",
     agencyNames: Array.isArray(row.agency_names) ? row.agency_names.map(String) : [],

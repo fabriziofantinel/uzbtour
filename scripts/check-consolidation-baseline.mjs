@@ -4,10 +4,10 @@ import { relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root=resolve(fileURLToPath(new URL("..",import.meta.url)));
-const immutableMigrationMax=55;
+const immutableMigrationMax=56;
 const expected={
-  database:{count:41,digest:"e231baaaa8d38c7bbb46d3feef9dc413c011229f5e1688b664b354db4793fc86"},
-  layout:{count:46,digest:"d0deb89d4ddbcfc9eeaae11eac358de7d0c158c09db6508e7ebf9c2285ff22d0"},
+  database:{count:42,digest:"16e1be464b70b54960682e8d21110523623ff4a15afe683db7c159424edd0388"},
+  layout:{count:46,digest:"ba9e9e73012a5e2dd56673ac90e0b5f9f6130480357102776f0bf9b2ac390655"},
 };
 
 async function filesBelow(directory,predicate){

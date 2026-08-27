@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   Building2, CheckCircle2, ChevronDown, CircleAlert, LoaderCircle, Mail, MapPinned,
-  Palette, Phone, Plus, Save, Search, Trash2, UserPlus, UsersRound, X,
+  Palette, Phone, Plus, Power, PowerOff, Save, Search, Trash2, UserPlus, UsersRound, X,
 } from "lucide-react";
 import type { AgencyRegistryItem } from "@/lib/platform/superadmin-repository";
 
@@ -23,6 +23,7 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
   const [agencies, setAgencies] = useState(initialAgencies);
   const [showAgencyForm, setShowAgencyForm] = useState(false);
   const [agentAgencyId, setAgentAgencyId] = useState("");
+  const [ownerAgencyId, setOwnerAgencyId] = useState("");
   const [expandedAgencyId, setExpandedAgencyId] = useState(initialAgencies[0]?.id ?? "");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
@@ -35,8 +36,9 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
     const needle = query.trim().toLocaleLowerCase("it");
     if (!needle) return agencies;
     return agencies.filter((agency) => [
-      agency.name, agency.referenceName, agency.referenceEmail, agency.vatNumber,
-      ...agency.agents.flatMap((agent) => [agent.name, agent.email]),
+      agency.name, agency.referenceName, agency.referenceEmail, agency.referencePhone,
+      agency.registeredCity, agency.phone, agency.vatNumber,
+      ...agency.agents.flatMap((agent) => [agent.name, agent.username, agent.email, agent.phone]),
     ].filter(Boolean).some((value) => value.toLocaleLowerCase("it").includes(needle)));
   }, [agencies, query]);
 
@@ -68,11 +70,11 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
     const fields = [
       "name", "legalName", "vatNumber", "taxCode", "registeredAddress", "registeredCity",
       "registeredPostalCode", "registeredProvince", "registeredCountry", "pec", "sdiCode",
-      "phone", "email", "website", "referenceName", "referenceEmail", "referencePhone",
+      "phone", "email", "website", "referenceName", "referenceUsername", "referenceEmail", "referencePhone",
       "primaryColor", "logoUrl",
     ];
     try {
-      const result = await readJson<{ id: string; agencies: AgencyRegistryItem[] }>(
+      const result = await readJson<{ id: string; agencies: AgencyRegistryItem[]; invitationEmailSent:boolean }>(
         await fetch("/api/admin/platform/agencies", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -82,7 +84,9 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
       setAgencies(result.agencies);
       setExpandedAgencyId(result.id);
       setShowAgencyForm(false);
-      setNotice("Agenzia creata correttamente.");
+      setNotice(result.invitationEmailSent
+        ? "Agenzia e responsabile creati. L’invito personale è stato inviato via email."
+        : "Agenzia e responsabile creati. L’invito è disponibile, ma l’email non è stata inviata.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Creazione non riuscita");
     } finally {
@@ -142,6 +146,32 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
     }
   }
 
+  async function updateStatus(agency:AgencyRegistryItem,status:"active"|"suspended"){
+    setBusy(`status-${agency.id}`);setError("");setNotice("");
+    try{
+      const result=await readJson<{agencies:AgencyRegistryItem[]}>(await fetch(`/api/admin/platform/agencies/${agency.id}`,{
+        method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"status",status})
+      }));
+      setAgencies(result.agencies);
+      setNotice(status==="suspended"?`Agenzia “${agency.name}” disattivata. Gli accessi sono bloccati.`:`Agenzia “${agency.name}” attivata.`);
+    }catch(caught){setError(caught instanceof Error?caught.message:"Stato non aggiornato");}
+    finally{setBusy("");}
+  }
+
+  async function replaceOwner(event:FormEvent<HTMLFormElement>,agencyId:string){
+    event.preventDefault();setBusy(`owner-${agencyId}`);setError("");setNotice("");
+    const form=new FormData(event.currentTarget);
+    try{
+      const result=await readJson<{agencies:AgencyRegistryItem[];invitationEmailSent:boolean}>(await fetch(`/api/admin/platform/agencies/${agencyId}`,{
+        method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"replace-owner",
+          name:stringField(form,"name"),username:stringField(form,"username"),email:stringField(form,"email"),phone:stringField(form,"phone")})
+      }));
+      setAgencies(result.agencies);setOwnerAgencyId("");
+      setNotice(result.invitationEmailSent?"Responsabile sostituito e invito inviato.":"Responsabile sostituito. Invio email non disponibile.");
+    }catch(caught){setError(caught instanceof Error?caught.message:"Responsabile non sostituito");}
+    finally{setBusy("");}
+  }
+
   async function deleteAgency() {
     if (!agencyToDelete) return;
     setBusy(`delete-${agencyToDelete.id}`); setError(""); setNotice("");
@@ -184,6 +214,7 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
             <legend>Dati obbligatori</legend>
             <label htmlFor="agency-name">Nome agenzia *<input id="agency-name" name="name" autoComplete="organization" required minLength={2} maxLength={160} autoFocus/></label>
             <label htmlFor="agency-reference-name">Persona di riferimento *<input id="agency-reference-name" name="referenceName" autoComplete="name" required minLength={2} maxLength={160}/></label>
+            <label htmlFor="agency-reference-username">Username responsabile *<input id="agency-reference-username" name="referenceUsername" autoComplete="username" required minLength={3} maxLength={80} pattern="[A-Za-z0-9][A-Za-z0-9._-]{2,79}"/><small>Unico nell’app; sarà indicato nell’email di invito.</small></label>
             <label htmlFor="agency-reference-email">Email referente *<input id="agency-reference-email" name="referenceEmail" type="email" autoComplete="email" required maxLength={320}/></label>
             <label htmlFor="agency-reference-phone">Telefono referente *<input id="agency-reference-phone" name="referencePhone" type="tel" autoComplete="tel" required minLength={5} maxLength={40}/></label>
           </fieldset>
@@ -222,7 +253,7 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
 
       {agencies.length > 0 && (
         <div className="registryTools">
-          <label className="userSearch" htmlFor="agency-search"><Search/><span className="srOnly">Cerca agenzia</span><input id="agency-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cerca agenzia, referente o agente…" autoComplete="off"/></label>
+          <label className="userSearch" htmlFor="agency-search"><Search/><span className="srOnly">Cerca agenzia</span><input id="agency-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nome, referente, città o telefono…" autoComplete="off"/></label>
           <span className="registryResultCount" aria-live="polite">{filteredAgencies.length} {filteredAgencies.length === 1 ? "agenzia" : "agenzie"}</span>
           {query && <button type="button" className="registryClear" onClick={() => setQuery("")}><X/> Azzera ricerca</button>}
         </div>
@@ -236,7 +267,7 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
               <button type="button" className="agencyRegistrySummary" aria-expanded={expanded} aria-controls={`agency-detail-${agency.id}`} onClick={() => setExpandedAgencyId(expanded ? "" : agency.id)}>
                 <span className="agencyMark"><Building2/></span>
                 <span className="agencyIdentity">{agency.status !== "trial" && <small>{agency.status.toUpperCase()}</small>}<strong>{agency.name}</strong><em>{agency.referenceName} · {agency.referenceEmail}</em></span>
-                <span className="registryCounters"><b><MapPinned/> {agency.tripCount} viaggi</b><b><UsersRound/> {agency.travelerCount} viaggiatori</b><b><UserPlus/> {agency.agents.length} agenti</b></span>
+                <span className="registryCounters"><b><MapPinned/> {agency.tripCount} viaggi</b><b className={agency.ongoingTripCount?"isOngoing":""}>{agency.ongoingTripCount} in corso</b><b className={agency.upcomingTripCount?"isUpcoming":""}>{agency.upcomingTripCount} futuri</b><b><UsersRound/> {agency.travelerCount} viaggiatori</b><b><UserPlus/> {agency.agents.length} agenti</b></span>
                 <ChevronDown className={expanded ? "rotated" : ""}/>
               </button>
               {expanded && (
@@ -247,6 +278,12 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
                     <a href={`tel:${agency.referencePhone}`}><Phone/><span><small>TELEFONO</small><b>{agency.referencePhone}</b></span></a>
                     {agency.vatNumber && <span><small>PARTITA IVA</small><b>{agency.vatNumber}</b></span>}
                   </div>
+                  <div className="agencyLifecycleActions">
+                    <span><small>STATO AGENZIA</small><b>{agency.status==="suspended"?"Disattivata":"Abilitata"}</b><p>La disattivazione blocca immediatamente agenti e viaggiatori.</p></span>
+                    <button type="button" disabled={Boolean(busy)} onClick={()=>void updateStatus(agency,agency.status==="suspended"?"active":"suspended")}>
+                      {agency.status==="suspended"?<><Power/> Attiva agenzia</>:<><PowerOff/> Disattiva agenzia</>}
+                    </button>
+                  </div>
                   <form className="agencyBrandingForm" onSubmit={(event) => updateBranding(event, agency.id)}>
                     <div className="agencyBrandPreview" style={{ background: agency.primaryColor }}>{agency.logoUrl ? <img src={agency.logoUrl} alt=""/> : <Palette/>}</div>
                     <span><small>IDENTITÀ VISIVA</small><strong>Logo e colore nell’app viaggiatore</strong></span>
@@ -254,7 +291,15 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
                     <label>URL logo<input name="logoUrl" type="url" defaultValue={agency.logoUrl} placeholder="https://"/></label>
                     <button type="submit" disabled={busy === `branding-${agency.id}`}>{busy === `branding-${agency.id}` ? <><LoaderCircle className="spin"/> Salvataggio…</> : <><Save/> Salva</>}</button>
                   </form>
-                  <div className="agentsHeader"><div><small>UTENTI AGENZIA</small><h3>Agenti</h3></div><button type="button" aria-expanded={agentAgencyId === agency.id} aria-controls={`agent-form-${agency.id}`} onClick={() => setAgentAgencyId(agentAgencyId === agency.id ? "" : agency.id)}><UserPlus/> {agentAgencyId === agency.id ? "Chiudi inserimento" : "Aggiungi agente"}</button></div>
+                  <div className="agentsHeader"><div><small>UTENTI AGENZIA</small><h3>Responsabile e agenti</h3></div><span><button type="button" aria-expanded={ownerAgencyId===agency.id} aria-controls={`owner-form-${agency.id}`} onClick={()=>setOwnerAgencyId(ownerAgencyId===agency.id?"":agency.id)}><UsersRound/> Sostituisci responsabile</button><button type="button" aria-expanded={agentAgencyId === agency.id} aria-controls={`agent-form-${agency.id}`} onClick={() => setAgentAgencyId(agentAgencyId === agency.id ? "" : agency.id)}><UserPlus/> {agentAgencyId === agency.id ? "Chiudi inserimento" : "Aggiungi agente"}</button></span></div>
+                  {ownerAgencyId===agency.id&&<form className="agentForm" id={`owner-form-${agency.id}`} onSubmit={(event)=>replaceOwner(event,agency.id)}>
+                    <p className="wide">Il referente attuale perderà il ruolo di responsabile. La sostituzione è atomica: non possono esistere due responsabili attivi.</p>
+                    <label>Nome e cognome<input name="name" autoComplete="name" required minLength={2} maxLength={160}/></label>
+                    <label>Username<input name="username" autoComplete="username" required minLength={3} maxLength={80} pattern="[A-Za-z0-9][A-Za-z0-9._-]{2,79}"/></label>
+                    <label>Email<input name="email" type="email" autoComplete="email" required maxLength={320}/></label>
+                    <label>Telefono<input name="phone" type="tel" autoComplete="tel" required minLength={5} maxLength={40}/></label>
+                    <button type="submit" disabled={busy===`owner-${agency.id}`}>{busy===`owner-${agency.id}`?<><LoaderCircle className="spin"/> Sostituzione…</>:<><Save/> Conferma sostituzione</>}</button>
+                  </form>}
                   {agentAgencyId === agency.id && (
                     <form className="agentForm" id={`agent-form-${agency.id}`} onSubmit={(event) => createAgent(event, agency.id)}>
                       <label>Nome e cognome<input name="name" autoComplete="name" required minLength={2} maxLength={160}/></label>
@@ -279,7 +324,7 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
           );
         })}
         {agencies.length === 0 && <div className="registryEmpty"><Building2/><h2>Nessuna agenzia</h2><p>Inserisci la prima anagrafica per iniziare a configurare la piattaforma.</p><button type="button" onClick={() => setShowAgencyForm(true)}><Plus/> Crea la prima agenzia</button></div>}
-        {agencies.length > 0 && filteredAgencies.length === 0 && <div className="registryEmpty"><Search/><h2>Nessun risultato</h2><p>Nessuna agenzia o agente corrisponde a “{query}”.</p><button type="button" onClick={() => setQuery("")}><X/> Azzera ricerca</button></div>}
+        {agencies.length > 0 && filteredAgencies.length === 0 && <div className="registryEmpty" role="status"><Search/><h2>Nessuna agenzia trovata</h2><p>Nessun nome, referente, città o telefono corrisponde a “{query}”.</p><button type="button" onClick={() => setQuery("")}><X/> Azzera ricerca</button></div>}
       </section>
       {agencyToDelete && (
         <div className="agencyDeleteBackdrop" role="presentation" onMouseDown={(event) => {
@@ -290,7 +335,7 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
             <i><Trash2/></i>
             <small>OPERAZIONE DEFINITIVA</small>
             <h2 id="delete-agency-title">Eliminare “{agencyToDelete.name}”?</h2>
-            <p>La cancellazione comprende {agencyToDelete.tripCount} viaggi, {agencyToDelete.travelerCount} viaggiatori, famiglie, importazioni, documenti e foto. Non sarà possibile recuperare i dati.</p>
+            <p>{agencyToDelete.ongoingTripCount+agencyToDelete.upcomingTripCount>0&&<strong>Attenzione: sono presenti {agencyToDelete.ongoingTripCount} viaggi in corso e {agencyToDelete.upcomingTripCount} futuri. </strong>}La cancellazione comprende {agencyToDelete.tripCount} viaggi, {agencyToDelete.travelerCount} viaggiatori, famiglie, importazioni, documenti e foto. Non sarà possibile recuperare i dati.</p>
             {error && <div className="superadminMessage error dialogMessage" role="alert"><CircleAlert size={18}/>{error}</div>}
             <div>
               <button ref={deleteCancelRef} type="button" className="secondary" disabled={Boolean(busy)} onClick={() => setAgencyToDelete(null)}>Annulla</button>

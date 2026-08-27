@@ -23,7 +23,7 @@ function LoginContent() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: usernameValue, password: userPassword })
     });
-    const body = await response.json().catch(() => null) as { code?: string; message?: string } | null;
+    const body = await response.json().catch(() => null) as { code?: string; error?: string } | null;
     return { response, body };
   }
 
@@ -34,9 +34,23 @@ function LoginContent() {
 
     try {
       const normalizedUsername = username.trim().toLocaleLowerCase("en-US");
-      const { response: signInResponse } = await signIn(normalizedUsername, password);
+      const { response: signInResponse, body } = await signIn(normalizedUsername, password);
+      if (!signInResponse.ok && body?.code) {
+        const messages:Record<string,string>={
+          INVITATION_REQUIRED:"Account non censito: occorre richiedere un invito all’agenzia.",
+          INVITATION_PENDING:"Invito non ancora accettato: apri l’email ricevuta per attivare l’account.",
+          AGENCY_DISABLED:"Impossibile entrare: agenzia disabilitata.",
+          ACCOUNT_DISABLED:"Account disabilitato. Contatta l’assistenza.",
+          INVALID_CREDENTIALS:"Password errata.",
+        };
+        if(messages[body.code]){setError(messages[body.code]);return;}
+      }
+      if (!signInResponse.ok && body?.error) {
+        setError(body.error);
+        return;
+      }
       if (signInResponse.status === 401) {
-        setError("Username o password non corretti.");
+        setError("Password errata.");
         return;
       }
       if (signInResponse.status === 429) {
