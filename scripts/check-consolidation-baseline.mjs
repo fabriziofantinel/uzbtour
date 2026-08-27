@@ -27,7 +27,8 @@ async function fingerprint(files){
   const entries=[];
   for(const absolute of files.sort()){
     const path=relative(root,absolute).replaceAll("\\","/");
-    const hash=createHash("sha256").update(await readFile(absolute)).digest("hex");
+    const normalized=(await readFile(absolute,"utf8")).replaceAll("\r\n","\n");
+    const hash=createHash("sha256").update(normalized).digest("hex");
     entries.push({path,hash});
   }
   const digest=createHash("sha256")
