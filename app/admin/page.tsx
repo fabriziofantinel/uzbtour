@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { ArrowRight, Building2, LogIn, MapPinned, Plus, UsersRound } from "lucide-react";
 import { getSuperadminSummary } from "@/lib/platform/superadmin-repository";
+import { requireSuperAdmin } from "@/lib/platform/authorization";
 
 export default async function SuperadminHome() {
-  const summary = await getSuperadminSummary();
+  const actor = await requireSuperAdmin();
+  const summary = await getSuperadminSummary(actor.id);
   const tripsPerAgency = summary.agencies ? summary.trips / summary.agencies : 0;
   const travelersPerTrip = summary.trips ? summary.travelers / summary.trips : 0;
   return (

@@ -17,14 +17,14 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireSuperAdmin();
+    const actor = await requireSuperAdmin();
     const { id } = await params;
     const parsed = agentSchema.safeParse(await request.json().catch(() => null));
     if (!z.uuid().safeParse(id).success || !parsed.success) {
       return NextResponse.json({ error: "Dati agente non validi" }, { status: 400 });
     }
-    await createAgencyAgent({ agencyId: id, ...parsed.data });
-    const agency = (await getAgencyRegistry()).find((item) => item.id === id);
+    await createAgencyAgent({ agencyId: id, ...parsed.data, actorId: actor.id });
+    const agency = (await getAgencyRegistry(actor.id)).find((item) => item.id === id);
     return NextResponse.json({ agency }, { status: 201 });
   } catch (error) {
     if (error instanceof PlatformAuthorizationError) {

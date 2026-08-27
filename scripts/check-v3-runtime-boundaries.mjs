@@ -12,6 +12,9 @@ const runtimeFiles = [
   new URL("../lib/platform/v3-identity-access.ts", import.meta.url),
   new URL("../lib/platform/v3-invitations.ts", import.meta.url),
   new URL("../lib/platform/v3-journey-provisioning.ts", import.meta.url),
+  new URL("../lib/platform/v3-journey-management.ts", import.meta.url),
+  new URL("../lib/platform/v3-superadmin-read.ts", import.meta.url),
+  new URL("../lib/platform/v3-superadmin-mutations.ts", import.meta.url),
 ];
 
 const forbiddenPatterns = [

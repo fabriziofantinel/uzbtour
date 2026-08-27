@@ -37,8 +37,8 @@ function authorizationResponse(error: unknown) {
 
 export async function GET() {
   try {
-    await requireSuperAdmin();
-    return NextResponse.json({ agencies: await getAgencyRegistry() });
+    const actor = await requireSuperAdmin();
+    return NextResponse.json({ agencies: await getAgencyRegistry(actor.id) });
   } catch (error) {
     const unauthorized = authorizationResponse(error);
     if (unauthorized) return unauthorized;
@@ -49,7 +49,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    await requireSuperAdmin();
+    const actor = await requireSuperAdmin();
     const parsed = agencySchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) {
       return NextResponse.json(
@@ -57,8 +57,8 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    const id = await createAgency(parsed.data);
-    return NextResponse.json({ id, agencies: await getAgencyRegistry() }, { status: 201 });
+    const id = await createAgency({ ...parsed.data, actorId: actor.id });
+    return NextResponse.json({ id, agencies: await getAgencyRegistry(actor.id) }, { status: 201 });
   } catch (error) {
     const unauthorized = authorizationResponse(error);
     if (unauthorized) return unauthorized;

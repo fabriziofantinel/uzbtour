@@ -23,7 +23,7 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireSuperAdmin();
+    const actor = await requireSuperAdmin();
     const { id } = await context.params;
     if (!/^[0-9a-f-]{36}$/i.test(id)) {
       return NextResponse.json({ error: "Agenzia non valida" }, { status: 400 });
@@ -32,8 +32,8 @@ export async function PATCH(
     if (!parsed.success) {
       return NextResponse.json({ error: "Colore o indirizzo del logo non validi" }, { status: 400 });
     }
-    await updateAgencyBranding({ agencyId: id, ...parsed.data });
-    return NextResponse.json({ agencies: await getAgencyRegistry() });
+    await updateAgencyBranding({ agencyId: id, ...parsed.data, actorId: actor.id });
+    return NextResponse.json({ agencies: await getAgencyRegistry(actor.id) });
   } catch (error) {
     return platformApiError(error, "Branding dell’agenzia non aggiornato");
   }
@@ -44,7 +44,7 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireSuperAdmin();
+    const actor = await requireSuperAdmin();
     const { id } = await context.params;
     if (!/^[0-9a-f-]{36}$/i.test(id)) {
       return NextResponse.json({ error: "Agenzia non valida" }, { status: 400 });
@@ -73,7 +73,7 @@ export async function DELETE(
       deletedAgency: target.name,
       deletedFiles: target.assets.length,
       deletedUsers: deleted.deletedUsers,
-      agencies: await getAgencyRegistry(),
+      agencies: await getAgencyRegistry(actor.id),
     });
   } catch (error) {
     return platformApiError(error, "Eliminazione agenzia non riuscita");
