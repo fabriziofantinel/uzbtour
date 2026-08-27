@@ -1,4 +1,5 @@
 export type EnqueueJobInput = {
+  actorId: string;
   agencyId: string;
   type: string;
   payload: Record<string, unknown>;

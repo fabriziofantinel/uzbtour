@@ -146,12 +146,9 @@ async function save(target: ReferenceTarget, generated: Awaited<ReturnType<typeo
 
 export async function processReferenceEnrichment(jobId: string, agencyId: string, templateId: string, targets: ReferenceTarget[]) {
   const sql = getSql();
-  const claimed = await sql`
-    UPDATE platform_jobs SET status = 'processing', locked_at = NOW(), attempt_count = attempt_count + 1, updated_at = NOW()
-    WHERE id = ${jobId} AND agency_id = ${agencyId} AND status IN ('queued', 'failed')
-    RETURNING id
-  `;
-  if (!claimed[0]) throw new Error("Lavoro di arricchimento già elaborato o non disponibile");
+  const claimed = await sql`SELECT app.claim_platform_job_v3(${jobId},${agencyId},
+    'travel-reference.enrich') AS claimed`;
+  if (!Boolean(claimed[0]?.claimed)) throw new Error("Lavoro di arricchimento già elaborato o non disponibile");
   try {
     let refreshed = 0;
     for (const target of targets) {
@@ -170,12 +167,12 @@ export async function processReferenceEnrichment(jobId: string, agencyId: string
         refreshed,
       });
     }
-    const materialized = await materializeTripExperience(templateId, agencyId);
-    await sql`UPDATE platform_jobs SET status = 'completed', completed_at = NOW(), locked_at = NULL, updated_at = NOW() WHERE id = ${jobId}`;
+    const materialized = await materializeTripExperience(jobId, templateId, agencyId);
+    await sql`SELECT app.complete_platform_job_v3(${jobId},${agencyId})`;
     return { refreshed, ...materialized };
   } catch (error) {
     const message = (error instanceof Error ? error.message : String(error)).slice(0, 1200);
-    await sql`UPDATE platform_jobs SET status = 'failed', error_message = ${message}, locked_at = NULL, updated_at = NOW() WHERE id = ${jobId}`;
+    await sql`SELECT app.fail_platform_job_v3(${jobId},${agencyId},${message})`;
     throw error;
   }
 }

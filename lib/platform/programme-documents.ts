@@ -3,21 +3,17 @@ import { PlatformRequestError } from "./http";
 
 export async function requireAgencyTicketItem(input: { departureId: string; itemId: string; actorId: string }) {
   const sql = getSql();
-  const rows = await sql`
-    SELECT departure.agency_id::text, item.item_type
-    FROM departures departure
-    JOIN agency_memberships membership
-      ON membership.agency_id = departure.agency_id AND membership.user_id = ${input.actorId}
-      AND membership.role IN ('owner', 'admin', 'editor')
-    JOIN itinerary_items item
-      ON item.id = ${input.itemId} AND item.agency_id = departure.agency_id
-    JOIN trip_days day
-      ON day.id = item.trip_day_id AND day.agency_id = item.agency_id
-      AND day.template_version_id = departure.template_version_id
-    WHERE departure.id = ${input.departureId}
-      AND item.item_type IN ('flight', 'train')
-    LIMIT 1
-  `;
+  const scope=await sql`SELECT agency_id::text FROM app.read_journey_management(
+    ${input.actorId},${input.departureId}) LIMIT 1`;
+  if(!scope[0]) throw new PlatformRequestError("Volo o treno non disponibile");
+  const agencyId=String(scope[0].agency_id);
+  const [,rows]=await sql.transaction((txn)=>[
+    txn`SELECT set_config('app.agency_id',${agencyId},true)`,
+    txn`SELECT item.item_type FROM travel.departure_itinerary_items item
+      WHERE item.id=${input.itemId} AND item.agency_id=${agencyId}
+        AND item.departure_id=${input.departureId} AND item.item_type IN('flight','train')
+      LIMIT 1`,
+  ],{readOnly:true});
   if (!rows[0]) throw new PlatformRequestError("Volo o treno non disponibile");
-  return { agencyId: String(rows[0].agency_id), itemType: String(rows[0].item_type) };
+  return { agencyId, itemType: String(rows[0].item_type) };
 }

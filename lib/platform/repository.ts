@@ -367,24 +367,26 @@ export async function createTripTemplate(input: {
 
 export async function assertTripBelongsToAgency(agencyId: string, templateId: string) {
   const sql = getSql();
-  const rows = await sql`
-    SELECT id::text, title
-    FROM trip_templates
-    WHERE id = ${templateId} AND agency_id = ${agencyId}
-    LIMIT 1
-  `;
+  const [,rows]=await sql.transaction((txn)=>[
+    txn`SELECT set_config('app.agency_id',${agencyId},true)`,
+    txn`SELECT id::text,title FROM travel.trip_templates
+      WHERE id=${templateId} AND agency_id=${agencyId} LIMIT 1`,
+  ],{readOnly:true});
   if (rows.length === 0) throw new PlatformRequestError("Viaggio non trovato");
   return rows[0] as { id: string; title: string };
 }
 
 export async function assertTripHasNoProgramme(agencyId: string, templateId: string) {
   const sql = getSql();
-  const rows = await sql`
+  const [,rows] = await sql.transaction((txn)=>[
+    txn`SELECT set_config('app.agency_id',${agencyId},true)`,
+    txn`
     SELECT EXISTS (
-      SELECT 1 FROM travel_documents
+      SELECT 1 FROM ops.travel_documents
       WHERE agency_id = ${agencyId} AND template_id = ${templateId}
     ) AS value
-  `;
+    `,
+  ],{readOnly:true});
   if (Boolean(rows[0]?.value)) {
     throw new PlatformRequestError("Il viaggio ha già un programma: eliminalo per caricare un nuovo preventivo");
   }
@@ -392,20 +394,25 @@ export async function assertTripHasNoProgramme(agencyId: string, templateId: str
 
 export async function getTripEnrichmentQueueRecord(templateId: string) {
   const sql = getSql();
-  const rows = await sql`
+  const agencyRows=await sql`SELECT agency_id::text FROM app.resolve_template_agency_v3(${templateId})`;
+  if(!agencyRows[0]?.agency_id) throw new PlatformRequestError("Generazione dei contenuti non trovata");
+  const agencyId=String(agencyRows[0].agency_id);
+  const [,rows] = await sql.transaction((txn)=>[
+    txn`SELECT set_config('app.agency_id',${agencyId},true)`,
+    txn`
     SELECT
       pj.agency_id::text,
       pj.payload,
       pj.idempotency_key
-    FROM platform_jobs pj
-    LEFT JOIN import_jobs ij
-      ON ij.id::text = pj.payload->>'importId'
-      AND ij.agency_id = pj.agency_id
+    FROM ops.platform_jobs pj
+    LEFT JOIN ops.import_jobs ij
+      ON ij.id=pj.import_job_id AND ij.agency_id=pj.agency_id
     WHERE pj.job_type = 'travel-reference.enrich'
       AND COALESCE(NULLIF(pj.payload->>'templateId', '')::uuid, ij.template_id) = ${templateId}
     ORDER BY pj.created_at DESC
     LIMIT 1
-  `;
+    `,
+  ],{readOnly:true});
   if (!rows[0]) throw new PlatformRequestError("Generazione dei contenuti non trovata");
   const payload = rows[0].payload;
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
@@ -516,49 +523,10 @@ export async function registerImportedDocument(input: {
   sizeBytes: number | null;
 }) {
   const sql = getSql();
-  const mediaId = crypto.randomUUID();
-  const documentId = crypto.randomUUID();
-  const importId = crypto.randomUUID();
-  const rows = await sql`
-    WITH media AS (
-      INSERT INTO media_assets (
-        id, agency_id, uploaded_by_user_id, provider, bucket, object_key,
-        original_name, content_type, size_bytes, purpose, visibility, status
-      ) VALUES (
-        ${mediaId}, ${input.agencyId}, ${input.actorId}, ${input.provider}, ${input.bucket}, ${input.objectKey},
-        ${input.originalName}, ${input.contentType}, ${input.sizeBytes}, 'travel_programme',
-        'agency', 'ready'
-      )
-      ON CONFLICT (provider, bucket, object_key) DO UPDATE SET updated_at = NOW()
-      RETURNING id
-    ), document AS (
-      INSERT INTO travel_documents (
-        id, agency_id, template_id, media_asset_id, document_type, title, status
-      )
-      SELECT
-        ${documentId}, ${input.agencyId}, ${input.templateId}, media.id,
-        'programme', ${input.originalName}, 'processing'
-      FROM media
-      ON CONFLICT (media_asset_id) DO UPDATE SET status = 'processing'
-      RETURNING id
-    ), imported AS (
-      INSERT INTO import_jobs (
-        id, agency_id, template_id, document_id, status, created_by_user_id
-      )
-      SELECT ${importId}, ${input.agencyId}, ${input.templateId}, document.id, 'queued', ${input.actorId}
-      FROM document
-      ON CONFLICT (document_id) DO UPDATE SET updated_at = NOW()
-      RETURNING id, document_id, status, created_at
-    ), audit AS (
-      INSERT INTO audit_events (
-        agency_id, actor_user_id, entity_type, entity_id, action, changes
-      )
-      SELECT
-        ${input.agencyId}, ${input.actorId}, 'import_job', imported.id::text, 'queued',
-        ${JSON.stringify({ objectKey: input.objectKey, originalName: input.originalName })}::jsonb
-      FROM imported
-    )
-    SELECT id::text, document_id::text, status, created_at::text FROM imported
-  `;
+  if(input.provider!=="r2"||input.sizeBytes==null) throw new PlatformRequestError("Il documento deve essere archiviato su R2");
+  const rows=await sql`SELECT id::text,document_id::text,status,created_at::text
+    FROM app.register_import_document_v3(${input.actorId},${input.agencyId},${input.templateId},
+      ${input.provider},${input.bucket},${input.objectKey},${input.originalName},
+      ${input.contentType},${input.sizeBytes})`;
   return rows[0] as { id: string; document_id: string; status: string; created_at: string };
 }
