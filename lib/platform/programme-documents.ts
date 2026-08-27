@@ -1,5 +1,5 @@
 import { getSql } from "@/lib/db";
-import { PlatformRequestError } from "./http";
+import { PlatformRequestError } from "./errors";
 
 export async function requireAgencyTicketItem(input: { departureId: string; itemId: string; actorId: string }) {
   const sql = getSql();

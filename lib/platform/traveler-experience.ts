@@ -1,5 +1,5 @@
 import { getSql } from "@/lib/db";
-import { PlatformRequestError } from "./http";
+import { PlatformRequestError } from "./errors";
 import { geocodeCity } from "./geocoding";
 import { assertProgrammeFeedbackSchema } from "./schema-readiness";
 import { assertArchitectureHardeningSchema } from "./schema-readiness";

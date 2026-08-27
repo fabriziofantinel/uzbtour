@@ -100,47 +100,34 @@ async function targetContext(target: ReferenceTarget) {
   const sql = getSql();
   if (target.entityType === "country") return target.name;
   if (target.entityType === "city") {
-    const rows = await sql`SELECT cities.name || ', ' || countries.name AS context FROM cities JOIN countries ON countries.id = cities.country_id WHERE cities.id = ${target.entityId}`;
+    const rows = await sql`SELECT cities.name || ', ' || countries.name AS context FROM ref.cities JOIN ref.countries ON countries.id = cities.country_id WHERE cities.id = ${target.entityId}`;
     return String(rows[0]?.context || target.name);
   }
   const rows = await sql`
     SELECT visit_sites.name || ', ' || cities.name || ', ' || countries.name AS context
-    FROM visit_sites JOIN cities ON cities.id = visit_sites.city_id JOIN countries ON countries.id = cities.country_id
+    FROM ref.visit_sites JOIN ref.cities ON cities.id = visit_sites.city_id JOIN ref.countries ON countries.id = cities.country_id
     WHERE visit_sites.id = ${target.entityId}
   `;
   return String(rows[0]?.context || target.name);
 }
 
-async function needsRefresh(target: ReferenceTarget) {
+async function needsRefresh(jobId: string, agencyId: string, target: ReferenceTarget) {
   const sql = getSql();
-  const expected = target.entityType === "country"
-    ? ["useful_info", "phrasebook", "bingo"]
-    : ["quiz", "mission", "game", "photo_contest"];
-  const rows = await sql`
-    SELECT content_type, status, refreshed_at > NOW() - INTERVAL '180 days' AS fresh
-    FROM reference_contents
-    WHERE entity_type = ${target.entityType} AND entity_id = ${target.entityId}
-      AND locale = 'it-IT'
-  `;
-  return expected.some((type) => !rows.some((row) => String(row.content_type) === type && String(row.status) === "ready" && Boolean(row.fresh)));
+  const rows = await sql`SELECT app.reference_content_needs_refresh_v3(${jobId},${agencyId},
+    ${target.entityType},${target.entityId}) AS refresh`;
+  return Boolean(rows[0]?.refresh);
 }
 
-async function save(target: ReferenceTarget, generated: Awaited<ReturnType<typeof generate>>) {
+async function save(jobId: string, agencyId: string, target: ReferenceTarget, generated: Awaited<ReturnType<typeof generate>>) {
   const sql = getSql();
   const sections: Array<[string, unknown]> = generated.kind === "country"
     ? [["useful_info", generated.data.usefulInfo], ["phrasebook", generated.data.phrasebook], ["bingo", generated.data.bingo]]
     : [["quiz", generated.data.quiz], ["mission", generated.data.missions], ["game", generated.data.games], ["photo_contest", generated.data.photoContests]];
   const refreshDays = 180;
   await sql.transaction((txn) => sections.map(([contentType, content]) => txn`
-    INSERT INTO reference_contents (
-      entity_type, entity_id, content_type, locale, content, status, model, refreshed_at, refresh_after
-    ) VALUES (
-      ${target.entityType}, ${target.entityId}, ${String(contentType)}, 'it-IT',
-      ${JSON.stringify(content)}::jsonb, 'ready', ${generated.modelId}, NOW(), NOW() + (${refreshDays} * INTERVAL '1 day')
-    )
-    ON CONFLICT (entity_type, entity_id, content_type, locale) DO UPDATE SET
-      content = EXCLUDED.content, status = 'ready', model = EXCLUDED.model,
-      refreshed_at = NOW(), refresh_after = EXCLUDED.refresh_after, error_message = NULL, updated_at = NOW()
+    SELECT app.save_reference_content_v3(${jobId},${agencyId},${target.entityType},
+      ${target.entityId},${String(contentType)},${JSON.stringify(content)}::jsonb,
+      ${generated.modelId},NOW()+(${refreshDays}*INTERVAL '1 day'))
   `));
 }
 
@@ -152,13 +139,13 @@ export async function processReferenceEnrichment(jobId: string, agencyId: string
   try {
     let refreshed = 0;
     for (const target of targets) {
-      if (!(await needsRefresh(target))) continue;
+      if (!(await needsRefresh(jobId, agencyId, target))) continue;
       console.info("Reference target generation started", {
         entityType: target.entityType,
         entityId: target.entityId,
         name: target.name,
       });
-      await save(target, await generate(target, await targetContext(target)));
+      await save(jobId, agencyId, target, await generate(target, await targetContext(target)));
       refreshed += 1;
       console.info("Reference target generation completed", {
         entityType: target.entityType,

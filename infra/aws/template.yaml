@@ -133,7 +133,7 @@ Resources:
     DependsOn: ImportWorkerLogGroup
     Properties:
       FunctionName: !Sub "${AWS::StackName}-import-worker"
-      Description: Estrae i programmi PDF o Word da R2 con Amazon Bedrock e salva la bozza su Neon
+      Description: Elabora importazioni, contenuti e cancellazioni tenant asincrone su Neon e R2
       CodeUri: ../../
       Handler: workers/import-handler.handler
       Runtime: nodejs22.x

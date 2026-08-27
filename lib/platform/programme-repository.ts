@@ -1,5 +1,5 @@
 import { getSql } from "@/lib/db";
-import { PlatformRequestError } from "./http";
+import { PlatformRequestError } from "./errors";
 import { assertProgrammeFeedbackSchema } from "./schema-readiness";
 
 type Row = Record<string, unknown>;

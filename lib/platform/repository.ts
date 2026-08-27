@@ -1,6 +1,6 @@
 import { getSql } from "@/lib/db";
 import { getPlatformProviderConfig } from "./provider-config";
-import { PlatformRequestError } from "./http";
+import { PlatformRequestError } from "./errors";
 import type { AgencyRole, PlatformOverview } from "./types";
 
 type OverviewRow = {
@@ -331,36 +331,10 @@ export async function createTripTemplate(input: {
   const versionId = crypto.randomUUID();
   const slug = tripSlug(input.title);
   const rows = await sql`
-    WITH inserted_template AS (
-      INSERT INTO trip_templates (
-        id, agency_id, slug, title, destination_country, status,
-        default_locale, default_timezone, created_by_user_id
-      ) VALUES (
-        ${templateId}, ${input.agencyId}, ${slug}, ${input.title},
-        ${input.destinationCountry || null}, 'draft', 'it-IT', ${input.timezone}, ${input.actorId}
-      )
-      RETURNING id, agency_id, slug, title, destination_country, status, default_timezone
-    ), inserted_version AS (
-      INSERT INTO trip_template_versions (
-        id, agency_id, template_id, version_number, status, revision_note, created_by_user_id
-      ) VALUES (
-        ${versionId}, ${input.agencyId}, ${templateId}, 1, 'draft',
-        'Versione iniziale in attesa del programma di viaggio.', ${input.actorId}
-      )
-      RETURNING id
-    ), audit AS (
-      INSERT INTO audit_events (
-        agency_id, actor_user_id, entity_type, entity_id, action, changes
-      ) VALUES (
-        ${input.agencyId}, ${input.actorId}, 'trip_template', ${templateId}, 'created',
-        ${JSON.stringify({ title: input.title })}::jsonb
-      )
-    )
-    SELECT
-      t.id::text, t.agency_id::text, t.slug, t.title, t.destination_country,
-      t.status, t.default_timezone, ${versionId}::text AS version_id
-    FROM inserted_template t
-    CROSS JOIN inserted_version
+    SELECT id::text,agency_id::text,slug,title,status,default_timezone,
+      version_id::text,${input.destinationCountry}::text AS destination_country
+    FROM app.create_trip_template_v3(${input.actorId},${input.agencyId},${templateId},
+      ${versionId},${slug},${input.title},${input.timezone})
   `;
   return rows[0];
 }
@@ -425,36 +399,20 @@ export async function getTripEnrichmentQueueRecord(templateId: string) {
   };
 }
 
-export async function getTripDeletionTarget(templateId: string) {
+export async function getTripDeletionTarget(templateId: string, actorId?: string) {
   const sql = getSql();
   const trips = await sql`
     SELECT id::text, agency_id::text, title
-    FROM trip_templates
+    FROM travel.trip_templates
     WHERE id = ${templateId}
     LIMIT 1
   `;
   if (!trips[0]) throw new PlatformRequestError("Viaggio non trovato");
   const agencyId = String(trips[0].agency_id);
-  const assets = await sql`
-    SELECT DISTINCT ma.id::text, ma.provider, ma.bucket, ma.object_key
-    FROM media_assets ma
-    WHERE ma.agency_id = ${agencyId}
-      AND (
-        ma.departure_id IN (
-          SELECT id FROM departures WHERE agency_id = ${agencyId} AND template_id = ${templateId}
-        )
-        OR ma.party_id IN (
-          SELECT tp.id
-          FROM travel_parties tp
-          JOIN departures d ON d.id = tp.departure_id AND d.agency_id = tp.agency_id
-          WHERE tp.agency_id = ${agencyId} AND d.template_id = ${templateId}
-        )
-        OR ma.id IN (
-          SELECT media_asset_id FROM travel_documents
-          WHERE agency_id = ${agencyId} AND template_id = ${templateId}
-        )
-      )
-  `;
+  const assets = actorId ? await sql`
+    SELECT id::text,provider,bucket,object_key
+    FROM app.read_trip_deletion_assets_v3(${actorId},${agencyId},${templateId})
+  ` : [];
   return {
     id: String(trips[0].id),
     agencyId,
@@ -476,39 +434,9 @@ export async function deleteTripRecords(input: {
   mediaAssetIds: string[];
 }) {
   const sql = getSql();
-  const assetIds = input.mediaAssetIds.length > 0 ? input.mediaAssetIds : [crypto.randomUUID()];
-  const results = await sql.transaction((txn) => [
-    txn`
-      DELETE FROM platform_jobs
-      WHERE agency_id = ${input.agencyId}
-        AND payload->>'importId' IN (
-          SELECT id::text FROM import_jobs
-          WHERE agency_id = ${input.agencyId} AND template_id = ${input.templateId}
-        )
-    `,
-    txn`
-      DELETE FROM departures
-      WHERE agency_id = ${input.agencyId} AND template_id = ${input.templateId}
-    `,
-    txn`
-      DELETE FROM trip_templates
-      WHERE id = ${input.templateId} AND agency_id = ${input.agencyId}
-      RETURNING id
-    `,
-    txn`
-      DELETE FROM media_assets
-      WHERE agency_id = ${input.agencyId} AND id = ANY(${assetIds}::uuid[])
-    `,
-    txn`
-      INSERT INTO audit_events (
-        agency_id, actor_user_id, entity_type, entity_id, action, changes
-      ) VALUES (
-        ${input.agencyId}, ${input.actorId}, 'trip_template', ${input.templateId}, 'deleted',
-        ${JSON.stringify({ title: input.title, deletedAssets: input.mediaAssetIds.length })}::jsonb
-      )
-    `,
-  ]);
-  if (results[2].length !== 1) throw new PlatformRequestError("Eliminazione del viaggio non riuscita");
+  const rows=await sql`SELECT app.delete_trip_template_v3(${input.actorId},${input.agencyId},
+    ${input.templateId},${input.mediaAssetIds}::uuid[]) AS deleted`;
+  if (!Boolean(rows[0]?.deleted)) throw new PlatformRequestError("Eliminazione del viaggio non riuscita");
 }
 
 export async function registerImportedDocument(input: {

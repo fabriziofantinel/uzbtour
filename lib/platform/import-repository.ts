@@ -1,5 +1,5 @@
 import { getSql } from "@/lib/db";
-import { PlatformRequestError } from "./http";
+import { PlatformRequestError } from "./errors";
 import { catalogValidationIssues, travelProgrammeDraftSchema, type TravelProgrammeDraft } from "./import-schema";
 import type { PlatformImportReview } from "./types";
 import { prepareTravelCatalog } from "./travel-catalog";
@@ -289,7 +289,7 @@ export async function publishImport(input: {
   if (!startDate || !endDate || endDate < startDate) {
     throw new PlatformRequestError("Controlla data iniziale e finale del viaggio prima di pubblicare");
   }
-  const catalog = await prepareTravelCatalog(input.draft);
+  const catalog = await prepareTravelCatalog(input.draft, { actorId: input.actorId, agencyId: input.agencyId });
   const [, existingDepartures] = await sql.transaction((txn) => [
     txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
     txn`

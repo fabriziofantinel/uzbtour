@@ -1,6 +1,6 @@
 import "server-only";
 import { getSql } from "@/lib/db";
-import { PlatformRequestError } from "./http";
+import { PlatformRequestError } from "./errors";
 
 export async function createV3PlatformAgency(input: Record<string, string> & { actorId: string }) {
   const sql=getSql();const branding=JSON.stringify({primaryColor:input.primaryColor||"#247A6B",logoUrl:input.logoUrl||""});

@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 
 import { getSql } from "@/lib/db";
-import { PlatformRequestError } from "./http";
+import { PlatformRequestError } from "./errors";
 
 type Row = Record<string, unknown>;
 

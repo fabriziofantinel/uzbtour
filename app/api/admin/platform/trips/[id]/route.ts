@@ -16,8 +16,9 @@ export async function DELETE(
       return NextResponse.json({ error: "Viaggio non valido" }, { status: 400 });
     }
     await requirePlatformAdmin();
-    const target = await getTripDeletionTarget(id);
-    const actor = await requireAgencyAdmin(target.agencyId);
+    const preliminary = await getTripDeletionTarget(id);
+    const actor = await requireAgencyAdmin(preliminary.agencyId);
+    const target = await getTripDeletionTarget(id, actor.id);
     const storage = getObjectStorage();
     for (const asset of target.assets) {
       if (asset.provider !== storage.provider || asset.bucket !== storage.bucket) {

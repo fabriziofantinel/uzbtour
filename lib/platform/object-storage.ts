@@ -1,4 +1,4 @@
-import { PlatformRequestError } from "./http";
+import { PlatformRequestError } from "./errors";
 import type { ObjectStorage } from "./ports/object-storage";
 import { getPlatformProviderConfig } from "./provider-config";
 import { R2ObjectStorage } from "./r2-object-storage";

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { getSql } from "@/lib/db";
-import { PlatformRequestError } from "./http";
+import { PlatformRequestError } from "./errors";
 
 export async function readV3JourneyManagement(departureId: string, actorId: string) {
   const sql = getSql();

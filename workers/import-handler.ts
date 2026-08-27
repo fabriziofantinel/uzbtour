@@ -3,12 +3,13 @@ import { getPlatformJobStatus } from "@/lib/platform/import-repository";
 import { processTravelImport } from "@/lib/platform/process-import";
 import { loadWorkerParameters } from "@/lib/platform/worker-parameters";
 import { processReferenceEnrichment } from "@/lib/platform/reference-enrichment";
+import { processAgencyDeletion } from "@/lib/platform/agency-deletion";
 
 const messageSchema = z.object({
   version: z.literal(1),
   jobId: z.string().uuid(),
   agencyId: z.string().uuid(),
-  type: z.enum(["travel-programme.import", "travel-reference.enrich"]),
+  type: z.enum(["travel-programme.import", "travel-reference.enrich", "agency.delete"]),
   payload: z.record(z.string(), z.unknown()),
 });
 
@@ -44,12 +45,13 @@ export async function handler(event: SqsEvent): Promise<SqsBatchResponse> {
       try {
         const result = message.type === "travel-programme.import"
           ? await processTravelImport(z.string().uuid().parse(message.payload.importId), { jobId: message.jobId, agencyId: message.agencyId })
-          : await processReferenceEnrichment(
+          : message.type === "travel-reference.enrich" ? await processReferenceEnrichment(
               message.jobId,
               message.agencyId,
               z.string().uuid().parse(message.payload.templateId),
               z.array(z.object({ entityType: z.enum(["country", "city", "site"]), entityId: z.string().uuid(), name: z.string().max(240) })).parse(message.payload.targets)
-            );
+            ) : await processAgencyDeletion(message.jobId,message.agencyId,
+              z.string().uuid().parse(message.payload.deletionJobId));
         console.info("Import job completed", {
           messageId: record.messageId,
           jobId: message.jobId,
@@ -59,6 +61,7 @@ export async function handler(event: SqsEvent): Promise<SqsBatchResponse> {
           durationMs: Date.now() - startedAt,
         });
       } catch (error) {
+        if(message.type==="agency.delete") throw error;
         const status = await getPlatformJobStatus(message.jobId, message.agencyId).catch(() => null);
         if (status !== "completed" && status !== null) throw error;
         console.info(status === null ? "Obsolete import job acknowledged" : "Duplicate import job acknowledged", {
