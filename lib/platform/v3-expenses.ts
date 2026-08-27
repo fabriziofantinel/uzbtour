@@ -27,7 +27,7 @@ export async function readV3ExpenseRows(input: {
     txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
     txn`
       SELECT expense.id::text, day.template_day_id::text AS trip_day_id,
-        day.day_number, expense.label,
+        template_day.day_number, expense.label,
         expense.amount_minor::numeric / power(10::numeric, currency.minor_unit) AS amount,
         expense.currency, expense.base_currency, expense.exchange_rate_to_base,
         expense.base_amount_minor::numeric / power(10::numeric, base_currency.minor_unit) AS base_amount,
@@ -37,6 +37,10 @@ export async function readV3ExpenseRows(input: {
       JOIN ref.currencies base_currency ON base_currency.code = expense.base_currency
       LEFT JOIN travel.departure_days day
         ON day.id = expense.departure_day_id AND day.agency_id = expense.agency_id
+      LEFT JOIN travel.template_days template_day
+        ON template_day.id = day.template_day_id
+       AND template_day.agency_id = day.agency_id
+       AND template_day.template_version_id = day.template_version_id
       WHERE expense.agency_id = ${input.agencyId}
         AND expense.departure_id = ${input.departureId}
         AND expense.party_id = ${input.partyId}

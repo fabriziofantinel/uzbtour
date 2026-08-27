@@ -67,6 +67,33 @@ try {
   );
   if (mismatches.length) throw new Error(`Riconciliazione fallita: ${JSON.stringify(mismatches)}`);
 
+  const readShape = (await client.query(`SELECT
+    (SELECT count(*) FROM journey.expenses expense
+      LEFT JOIN travel.departure_days day ON day.id=expense.departure_day_id AND day.agency_id=expense.agency_id
+      LEFT JOIN travel.template_days template_day ON template_day.id=day.template_day_id
+        AND template_day.agency_id=day.agency_id AND template_day.template_version_id=day.template_version_id
+      WHERE expense.agency_id=$1 AND expense.departure_id=$2 AND expense.party_id=$3
+        AND (template_day.day_number IS NULL OR template_day.day_number>0)) expenses,
+    (SELECT count(*) FROM journey.cash_movements movement
+      JOIN travel.departure_days day ON day.id=movement.departure_day_id AND day.agency_id=movement.agency_id
+      JOIN travel.template_days template_day ON template_day.id=day.template_day_id
+        AND template_day.agency_id=day.agency_id AND template_day.template_version_id=day.template_version_id
+      WHERE movement.agency_id=$1 AND movement.departure_id=$2 AND movement.party_id=$3
+        AND template_day.day_number>0) cash_movements,
+    (SELECT count(*) FROM journey.day_notes note
+      JOIN travel.departure_days day ON day.id=note.departure_day_id AND day.agency_id=note.agency_id
+      JOIN travel.template_days template_day ON template_day.id=day.template_day_id
+        AND template_day.agency_id=day.agency_id AND template_day.template_version_id=day.template_version_id
+      WHERE note.agency_id=$1 AND note.departure_id=$2 AND note.party_id=$3
+        AND template_day.day_number>0) day_notes,
+    (SELECT count(*) FROM journey.restaurant_visits visit
+      JOIN travel.departure_days day ON day.id=visit.departure_day_id AND day.agency_id=visit.agency_id
+      JOIN travel.template_days template_day ON template_day.id=day.template_day_id
+        AND template_day.agency_id=day.agency_id AND template_day.template_version_id=day.template_version_id
+      WHERE visit.agency_id=$1 AND visit.departure_id=$2 AND visit.party_id=$3
+        AND template_day.day_number>0) restaurants
+  `, [scope.agency_id, scope.departure_id, scope.party_id])).rows[0];
+
   await client.query("SELECT set_config('app.agency_id',$1,true)", [randomUUID()]);
   const crossTenantRows = Number((await client.query(`
     SELECT
@@ -84,6 +111,7 @@ try {
     status: "passed",
     role,
     reconciledDomains: reconciliations.length,
+    queryShape: readShape,
     crossTenantRows,
   }, null, 2));
 } catch (error) {
