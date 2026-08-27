@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
   Accessibility, Building2, CalendarDays, CheckCircle2, ChevronDown, CircleAlert,
   BookOpen, Download, Eye, FileCheck2, LayoutGrid, List, LoaderCircle, LogOut, MapPinned, Play, Plus, Sparkles,
-  Search, SlidersHorizontal, Trash2, UsersRound, X,
+  Search, SlidersHorizontal, Trash2, UserPlus, UsersRound, X,
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { PlatformOverview } from "@/lib/platform/types";
@@ -445,6 +445,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
           </div>
           <nav>
             <a className="active" href="#viaggi"><MapPinned size={18}/> Viaggi</a>
+            {agency?.role === "owner" && <Link href="/agenzia/agenti"><UserPlus size={18}/> Agenti</Link>}
             <Link href="/accessibilita"><Accessibility size={18}/> Accessibilità</Link>
           </nav>
         </aside>
@@ -515,65 +516,20 @@ export default function AgencyDashboard({ initialOverview }: Props) {
             {tripView === "list" && <div className="tripTableWrap">
               <table className="tripTable">
                 <caption>Elenco viaggi e partenze dell’agenzia</caption>
-                <thead><tr><th>Stato</th><th>Viaggio / preventivo</th><th>Partenza</th><th>Rientro</th><th>Famiglie</th><th>Viaggiatori</th><th>Contenuti</th><th>Azioni</th></tr></thead>
+                <thead><tr><th>Stato</th><th>Viaggio</th><th>Periodo</th><th>Famiglie</th><th>Azioni</th></tr></thead>
                 <tbody>
               {filteredDepartures.map(({ trip, departure }) => {
                 const latestImport = latestImportByTrip.get(trip.id);
                 const importIsActive = latestImport ? activeImportStatuses.has(latestImport.status) : false;
-                const content = trip.contentGeneration;
-                const contentIsActive = content ? activeEnrichmentStatuses.has(content.status) : false;
-                const contentIsComplete = Boolean(
-                  content && content.status !== "failed" && content.expectedSections > 0 &&
-                  content.readySections === content.expectedSections
-                );
                 const startsOn = departure?.startsOn ?? trip.startsOn;
                 const endsOn = departure?.endsOn ?? trip.endsOn;
                 const validationStatus = trip.status === "active" ? "validated" : "draft";
                 return (
-                <tr className={importIsActive || contentIsActive ? "generating" : ""} key={`${trip.id}-${departure?.id ?? "draft"}`}>
+                <tr className={importIsActive ? "generating" : ""} key={`${trip.id}-${departure?.id ?? "draft"}`}>
                   <td data-label="Stato"><span className={`status ${validationStatus}`}>{validationStatus === "validated" ? "Validato" : "Bozza"}</span><small className="departureStatus">{departure ? (statusLabels[departure.status] ?? departure.status) : "Senza partenza"}</small></td>
-                  <td data-label="Viaggio" className="tripNameCell"><b>{departure?.title || trip.title}</b><span>{trip.destinationCountry || "Destinazione da revisionare"}</span><small>Programma: {trip.title}</small></td>
-                  <td data-label="Partenza" className="dateCell">{formatTravelDate(startsOn)}</td>
-                  <td data-label="Rientro" className="dateCell">{formatTravelDate(endsOn)}</td>
+                  <td data-label="Viaggio" className="tripNameCell"><b>{departure?.title || trip.title}</b><span>{trip.destinationCountry || "Destinazione da revisionare"}</span></td>
+                  <td data-label="Periodo" className="dateRangeCell"><b>{formatTravelDate(startsOn)}</b><span aria-hidden="true">→</span><b>{formatTravelDate(endsOn)}</b></td>
                   <td data-label="Famiglie" className="numberCell">{departure?.partyCount ?? 0}</td>
-                  <td data-label="Viaggiatori" className="travelerCell">{departure?.travelerNames.join(", ") || "—"}</td>
-                  <td data-label="Contenuti" className="contentCell">
-                  {latestImport && (
-                    <div className={`tripGeneration compact ${latestImport.status}`}>
-                      <div>
-                        {importIsActive ? <LoaderCircle className="spin"/> : latestImport.status === "failed" ? <CircleAlert/> : <CheckCircle2/>}
-                        <span>
-                          <b>{importIsActive ? "Viaggio in generazione" : statusLabels[latestImport.status] ?? latestImport.status}</b>
-                          <small>{latestImport.status === "queued" && "Il preventivo è in attesa del worker."}</small>
-                          <small>{latestImport.status === "extracting" && "Sto leggendo testo, date, tappe e alberghi."}</small>
-                          <small>{latestImport.status === "generating" && "L’AI sta costruendo il programma da revisionare."}</small>
-                          <small>{latestImport.status === "ready_for_review" && "Il programma estratto è pronto per il controllo."}</small>
-                          <small>{latestImport.status === "failed" && "Analisi non riuscita. Il documento è salvo e puoi riprovare."}</small>
-                          <small>{latestImport.status === "published" && "Programma revisionato e pubblicato."}</small>
-                        </span>
-                      </div>
-                      {importIsActive && <i role="progressbar" aria-label="Avanzamento importazione" aria-valuemin={0} aria-valuemax={100} aria-valuenow={importProgress(latestImport.status)}><span style={{ width: `${importProgress(latestImport.status)}%` }}/></i>}
-                      {latestImport.status === "failed" && <button type="button" disabled={Boolean(busy)} onClick={() => void processImport(latestImport.id)}>{busy === `process-${latestImport.id}` ? <LoaderCircle className="spin"/> : <Play/>} Riprova</button>}
-                      {latestImport.status === "ready_for_review" && <a href={`/agenzia/importazioni/${latestImport.id}`}><Eye/> Revisiona</a>}
-                    </div>
-                  )}
-                  {content && (
-                    <div className={`tripGeneration compact ${contentIsComplete ? "published" : content.status}`}>
-                      <div>
-                        {contentIsActive ? <LoaderCircle className="spin"/> : contentIsComplete ? <CheckCircle2/> : <CircleAlert/>}
-                        <span>
-                          <b>{contentIsActive ? "Generazione contenuti del viaggio" : contentIsComplete ? "Viaggio completo" : "Contenuti da completare"}</b>
-                          <small>{content.readySections}/{content.expectedSections} sezioni pronte: info utili, frasario, bingo, quiz, missioni, giochi e contest.</small>
-                          {content.status === "failed" && <small>{content.errorMessage || "La generazione AI non è riuscita."}</small>}
-                          {content.contestTitles.length > 0 && <small title={content.contestTitles.join(" · ")}>Contest: {content.contestTitles.slice(0, 2).join(" · ")}{content.contestTitles.length > 2 ? ` e altri ${content.contestTitles.length - 2}` : ""}</small>}
-                        </span>
-                      </div>
-                      {contentIsActive && content.expectedSections > 0 && <i role="progressbar" aria-label="Avanzamento generazione contenuti" aria-valuemin={0} aria-valuemax={content.expectedSections} aria-valuenow={content.readySections}><span style={{ width: `${Math.max(8, Math.round(content.readySections / content.expectedSections * 100))}%` }}/></i>}
-                      {content.status === "failed" && <button type="button" disabled={Boolean(busy)} onClick={() => void retryEnrichment(trip.id)}>{busy === `enrichment-${trip.id}` ? <LoaderCircle className="spin"/> : <Play/>} Riprova contenuti</button>}
-                    </div>
-                  )}
-                  {!latestImport && !content && <span>—</span>}
-                  </td>
                   <td data-label="Azioni"><div className="tableActions inline">
                     {departure && <Link className="primary" href={`/agenzia/viaggi/${departure.id}/programma`}><BookOpen/> Apri programma</Link>}
                     {departure && <Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Famiglie</Link>}
