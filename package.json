@@ -55,6 +55,8 @@
     "db:migrate:v3:publish-template-scope": "node --env-file=.env.local scripts/migrate-v3-publish-template-scope-qualification.mjs --apply",
     "db:migrate:v3:publish-tenant-context:dry-run": "node --env-file=.env.local scripts/migrate-v3-publish-tenant-context.mjs",
     "db:migrate:v3:publish-tenant-context": "node --env-file=.env.local scripts/migrate-v3-publish-tenant-context.mjs --apply",
+    "db:migrate:v3:async-content-publish-gate:dry-run": "node --env-file=.env.local scripts/migrate-v3-async-content-publish-gate.mjs",
+    "db:migrate:v3:async-content-publish-gate": "node --env-file=.env.local scripts/migrate-v3-async-content-publish-gate.mjs --apply",
     "db:backfill:v3:dry-run": "node --env-file=.env.local scripts/backfill-v3-shadow-core.mjs",
     "db:backfill:v3": "node --env-file=.env.local scripts/backfill-v3-shadow-core.mjs --apply",
     "db:audit:v3:operational": "node --env-file=.env.local scripts/audit-v3-operational-source.mjs",
