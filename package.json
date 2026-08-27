@@ -48,6 +48,7 @@
     "smoke:v3:media-mutations": "node --env-file=.env.local scripts/smoke-v3-media-mutation-authorization.mjs",
     "db:migrate:v3:identity-auth:dry-run": "node --env-file=.env.local scripts/migrate-v3-identity-authorization-cutover.mjs",
     "db:migrate:v3:identity-auth": "node --env-file=.env.local scripts/migrate-v3-identity-authorization-cutover.mjs --apply",
+    "db:migrate:v3:identity-contract": "node --env-file=.env.local scripts/migrate-v3-identity-result-contract-fix.mjs --apply",
     "smoke:v3:identity-auth": "node --env-file=.env.local scripts/smoke-v3-identity-authorization-cutover.mjs",
     "db:migrate:v3:invitation-auth:dry-run": "node --env-file=.env.local scripts/migrate-v3-invitation-activation-cutover.mjs",
     "db:migrate:v3:invitation-auth": "node --env-file=.env.local scripts/migrate-v3-invitation-activation-cutover.mjs --apply",
