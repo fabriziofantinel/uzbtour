@@ -5,6 +5,7 @@ import {
   readV3ChallengeAnswerSpecs,
   v3GamificationCutoverReadEnabled,
 } from "@/lib/platform/v3-gamification";
+import { resolveTravelerContext } from "@/lib/platform/traveler-experience";
 
 export const runtime = "nodejs";
 
@@ -24,19 +25,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Sfida non valida" }, { status: 400 });
   }
   const sql = getSql();
-  const scope = await sql`
-    SELECT departure.agency_id::text, departure.template_version_id::text,
-      profile.id::text AS traveler_id
-    FROM traveler_profiles profile
-    JOIN party_memberships membership ON membership.traveler_id = profile.id AND membership.status = 'active'
-    JOIN travel_parties party ON party.id = membership.party_id AND party.agency_id = membership.agency_id
-    JOIN departures departure ON departure.id = party.departure_id AND departure.agency_id = party.agency_id
-    JOIN trip_days day ON day.id = ${dayId} AND day.agency_id = departure.agency_id
-      AND day.template_version_id = departure.template_version_id
-    WHERE profile.user_id = ${user.id} AND party.id = ${partyId} AND departure.id = ${departureId}
-    LIMIT 1
-  `;
-  if (!scope[0]) return NextResponse.json({ error: "Sfida non disponibile" }, { status: 403 });
+  const travelerContext = await resolveTravelerContext({ userId: user.id, departureId, partyId, dayId });
+  if (!travelerContext) return NextResponse.json({ error: "Sfida non disponibile" }, { status: 403 });
+  const scope = [{
+    agency_id: travelerContext.agencyId,
+    template_version_id: travelerContext.templateVersionId,
+    traveler_id: travelerContext.travelerId,
+  }];
   if (body?.action === "photoEvidence") {
     const contentId = String(body.contentId || "");
     const mediaId = String(body.mediaId || "");

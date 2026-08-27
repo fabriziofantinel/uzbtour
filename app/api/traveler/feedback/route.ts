@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { getSql } from "@/lib/db";
-import { assertTravelerPartyScope } from "@/lib/platform/traveler-experience";
+import { resolveTravelerContext } from "@/lib/platform/traveler-experience";
 import { assertArchitectureHardeningSchema, assertProgrammeFeedbackSchema } from "@/lib/platform/schema-readiness";
 import {
   saveTravelerProgrammeFeedbackDualWrite,
@@ -29,19 +29,11 @@ export async function POST(request: Request) {
     if (!/^[0-9a-f-]{36}$/i.test(clientOperationId) || !['itinerary_item', 'hotel'].includes(targetType) || !Number.isInteger(rating) || rating < 1 || rating > 5) {
       return NextResponse.json({ error: "Valutazione non valida" }, { status: 400 });
     }
-    const agencyId = await assertTravelerPartyScope({ userId: user.id, departureId, partyId, dayId });
+    const context = await resolveTravelerContext({ userId: user.id, departureId, partyId, dayId });
+    if (!context) return NextResponse.json({ error: "Viaggiatore non disponibile" }, { status: 403 });
+    const agencyId = context.agencyId;
+    const travelerId = context.travelerId;
     const sql = getSql();
-    const profiles = await sql`
-      SELECT profile.id::text
-      FROM traveler_profiles profile
-      JOIN party_memberships membership
-        ON membership.traveler_id = profile.id AND membership.agency_id = profile.agency_id
-        AND membership.party_id = ${partyId} AND membership.status = 'active'
-      WHERE profile.agency_id = ${agencyId} AND profile.user_id = ${user.id}
-      LIMIT 1
-    `;
-    if (!profiles[0]) return NextResponse.json({ error: "Viaggiatore non disponibile" }, { status: 403 });
-    const travelerId = String(profiles[0].id);
 
     if (v3ProgrammeFeedbackDualWriteEnabled()) {
       const feedback = await saveTravelerProgrammeFeedbackDualWrite({

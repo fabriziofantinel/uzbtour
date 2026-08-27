@@ -37,7 +37,7 @@ import {
 } from "./v3-gamification";
 import {
   readV3TravelerJourneys,
-  resolveV3TravelerScope,
+  resolveV3TravelerContext,
   v3TravelerScopeCutoverReadEnabled,
 } from "./v3-traveler-scope";
 
@@ -519,14 +519,21 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
 export async function assertTravelerPartyScope(input: {
   userId: string; departureId: string; partyId: string; dayId?: string | null;
 }) {
+  const context = await resolveTravelerContext(input);
+  if (!context) throw new PlatformRequestError("Viaggio, famiglia o giornata non disponibili");
+  return context.agencyId;
+}
+
+export async function resolveTravelerContext(input: {
+  userId: string; departureId: string; partyId: string; dayId?: string | null;
+}) {
   if (v3TravelerScopeCutoverReadEnabled()) {
-    const agencyId = await resolveV3TravelerScope(input);
-    if (!agencyId) throw new PlatformRequestError("Viaggio, famiglia o giornata non disponibili");
-    return agencyId;
+    return resolveV3TravelerContext(input);
   }
   const sql = getSql();
   const rows = await sql`
-    SELECT departure.agency_id::text
+    SELECT departure.agency_id::text,departure.template_version_id::text,
+      profile.id::text AS traveler_id
     FROM traveler_profiles profile
     JOIN party_memberships membership ON membership.traveler_id = profile.id AND membership.status = 'active'
     JOIN travel_parties party ON party.id = membership.party_id AND party.agency_id = membership.agency_id
@@ -540,8 +547,12 @@ export async function assertTravelerPartyScope(input: {
       ))
     LIMIT 1
   `;
-  if (!rows[0]) throw new PlatformRequestError("Viaggio, famiglia o giornata non disponibili");
-  return String(rows[0].agency_id);
+  if (!rows[0]) return null;
+  return {
+    agencyId: String(rows[0].agency_id),
+    templateVersionId: String(rows[0].template_version_id),
+    travelerId: String(rows[0].traveler_id),
+  };
 }
 
 export async function addTravelerExpense(input: {
