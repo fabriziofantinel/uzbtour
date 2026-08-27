@@ -26,6 +26,7 @@ const forbiddenPatterns = [
   /\b(?:FROM|JOIN)\s+ops\.legacy_id_map\b/i,
   /\bSELECT\b[\s\S]*?\bops\.legacy_id_map\b/i,
   /\b(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+(?:public\.)?(?:party_expenses|party_day_notes|party_restaurants|party_cash_movements|traveler_programme_feedback|party_activity_results|party_photo_contest_entries|party_memories|media_assets|generated_content)\b/i,
+  /\b(?:FROM|JOIN)\s+(?:public\.)?(?:party_expenses|party_day_notes|party_restaurants|party_cash_movements|traveler_programme_feedback|party_activity_results|party_photo_contest_entries|party_memories|generated_content)\b/i,
 ];
 
 const violations = [];

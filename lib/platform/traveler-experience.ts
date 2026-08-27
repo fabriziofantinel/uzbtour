@@ -1,45 +1,28 @@
-import { getSql } from "@/lib/db";
 import { PlatformRequestError } from "./errors";
 import { geocodeCity } from "./geocoding";
 import { assertProgrammeFeedbackSchema } from "./schema-readiness";
 import { assertArchitectureHardeningSchema } from "./schema-readiness";
 import {
   addTravelerExpenseV3,
-  compareV3ExpenseShadow,
   deleteTravelerExpenseV3,
   readV3ExpenseRows,
-  v3ExpenseCutoverReadEnabled,
-  v3ExpenseShadowReadEnabled,
 } from "./v3-expenses";
 import {
   readV3JourneyJournalRows,
-  compareV3JourneyJournalShadow,
-  v3JourneyJournalCutoverReadEnabled,
-  v3JourneyJournalShadowReadEnabled,
 } from "./v3-journey-journal";
 import { addTravelerCashMovementV3, addTravelerRestaurantV3, deleteTravelerCashMovementV3, saveTravelerNoteV3 } from "./v3-journey-mutations";
 import {
-  compareV3ProgrammeFeedbackShadow,
   readV3ProgrammeFeedbackRows,
-  v3ProgrammeFeedbackCutoverReadEnabled,
-  v3ProgrammeFeedbackShadowReadEnabled,
 } from "./v3-programme-feedback";
 import {
-  compareV3TravelerExperienceShadow,
-  v3TravelerExperienceShadowReadEnabled,
-} from "./v3-traveler-experience";
-import {
   readV3TravelCatalog,
-  v3TravelCatalogCutoverReadEnabled,
 } from "./v3-travel-catalog";
 import {
   readV3Gamification,
-  v3GamificationCutoverReadEnabled,
 } from "./v3-gamification";
 import {
   readV3TravelerJourneys,
   resolveV3TravelerContext,
-  v3TravelerScopeCutoverReadEnabled,
 } from "./v3-traveler-scope";
 
 type Row = Record<string, unknown>;
@@ -55,32 +38,7 @@ function withoutAnswerKeys(value: unknown) {
 }
 
 export async function getTravelerExperience(userId: string, requestedDepartureId?: string) {
-  const sql = getSql();
-  const journeys = v3TravelerScopeCutoverReadEnabled()
-    ? await readV3TravelerJourneys(userId)
-    : await sql`
-    SELECT d.id::text AS departure_id, d.agency_id::text, d.template_version_id::text,
-      d.title, d.code, d.starts_on::text, d.ends_on::text, d.timezone, d.status,
-      tp.id::text AS party_id, tp.name AS party_name, tt.destination_country,
-      a.name AS agency_name, a.branding AS agency_branding
-    FROM traveler_profiles profile
-    JOIN party_memberships membership
-      ON membership.traveler_id = profile.id AND membership.status = 'active'
-    JOIN travel_parties tp
-      ON tp.id = membership.party_id AND tp.agency_id = membership.agency_id
-    JOIN departures d
-      ON d.id = tp.departure_id AND d.agency_id = tp.agency_id
-    JOIN trip_templates tt
-      ON tt.id = d.template_id AND tt.agency_id = d.agency_id
-    JOIN agencies a ON a.id = d.agency_id
-    WHERE profile.user_id = ${userId}
-      AND d.status NOT IN ('cancelled', 'archived')
-    ORDER BY
-      CASE WHEN CURRENT_DATE BETWEEN d.starts_on AND d.ends_on THEN 0
-           WHEN d.starts_on >= CURRENT_DATE THEN 1 ELSE 2 END,
-      CASE WHEN d.starts_on >= CURRENT_DATE THEN d.starts_on END ASC,
-      d.starts_on DESC
-  `;
+  const journeys = await readV3TravelerJourneys(userId);
   if (journeys.length === 0) return null;
   const selected = (requestedDepartureId
     ? journeys.find((row) => String(row.departure_id) === requestedDepartureId)
@@ -91,261 +49,29 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
   const partyId = String(selected.party_id);
   await assertProgrammeFeedbackSchema();
 
-  const needsLegacySnapshot =
-    !v3ExpenseCutoverReadEnabled() ||
-    !v3JourneyJournalCutoverReadEnabled() ||
-    !v3ProgrammeFeedbackCutoverReadEnabled() ||
-    !v3TravelCatalogCutoverReadEnabled() ||
-    !v3GamificationCutoverReadEnabled() ||
-    v3ExpenseShadowReadEnabled() ||
-    v3JourneyJournalShadowReadEnabled() ||
-    v3ProgrammeFeedbackShadowReadEnabled() ||
-    v3TravelerExperienceShadowReadEnabled();
-  const legacySnapshot = needsLegacySnapshot
-    ? await sql.transaction((transaction) => [
-    transaction`
-      SELECT id::text, day_number, day_offset, label, title, city, description,
-        source_date::text, metadata
-      FROM trip_days
-      WHERE agency_id = ${agencyId} AND template_version_id = ${versionId}
-      ORDER BY day_number
-    `,
-    transaction`
-      SELECT item.id::text, item.trip_day_id::text, item.item_type, item.title,
-        item.description, item.starts_at::text, item.ends_at::text, item.sort_order,
-        item.metadata, place.latitude, place.longitude
-      FROM itinerary_items item
-      JOIN trip_days day ON day.id = item.trip_day_id AND day.agency_id = item.agency_id
-      LEFT JOIN places place ON place.id = item.place_id AND place.agency_id = item.agency_id
-      WHERE item.agency_id = ${agencyId} AND day.template_version_id = ${versionId}
-      ORDER BY day.day_number, item.sort_order
-    `,
-    transaction`
-      SELECT link.trip_day_id::text, city.id::text, city.name, city.google_url,
-        city.latitude, city.longitude, country.name AS country
-      FROM trip_day_cities link
-      JOIN trip_days day ON day.id = link.trip_day_id
-      JOIN cities city ON city.id = link.city_id
-      JOIN countries country ON country.id = city.country_id
-      WHERE day.agency_id = ${agencyId} AND day.template_version_id = ${versionId}
-      ORDER BY day.day_number, city.name
-    `,
-    transaction`
-      SELECT link.trip_day_id::text, site.id::text, site.name, site.google_url,
-        site.official_url, site.latitude, site.longitude, city.name AS city
-      FROM trip_day_sites link
-      JOIN trip_days day ON day.id = link.trip_day_id
-      JOIN visit_sites site ON site.id = link.site_id
-      JOIN cities city ON city.id = site.city_id
-      WHERE day.agency_id = ${agencyId} AND day.template_version_id = ${versionId}
-      ORDER BY day.day_number, site.name
-    `,
-    transaction`
-      SELECT link.trip_day_id::text, hotel.id::text, hotel.name, hotel.google_url,
-        hotel.website_url, hotel.latitude, hotel.longitude, city.name AS city
-      FROM trip_day_hotels link
-      JOIN trip_days day ON day.id = link.trip_day_id
-      JOIN hotels hotel ON hotel.id = link.hotel_id
-      JOIN cities city ON city.id = hotel.city_id
-      WHERE day.agency_id = ${agencyId} AND day.template_version_id = ${versionId}
-      ORDER BY day.day_number, hotel.name
-    `,
-    transaction`
-      SELECT profile.display_name, membership.role
-      FROM party_memberships membership
-      JOIN traveler_profiles profile ON profile.id = membership.traveler_id
-      WHERE membership.party_id = ${partyId} AND membership.status = 'active'
-      ORDER BY membership.role, profile.display_name
-    `,
-    transaction`
-      SELECT category, title, body, phone, url
-      FROM useful_information
-      WHERE agency_id = ${agencyId} AND template_version_id = ${versionId}
-      ORDER BY sort_order, title
-    `,
-    transaction`
-      SELECT language_code, category, term, pronunciation, translation
-      FROM phrasebook_entries
-      WHERE agency_id = ${agencyId} AND template_version_id = ${versionId}
-      ORDER BY sort_order, language_code, term
-    `,
-    transaction`
-      SELECT content.id::text, content.trip_day_id::text, day.day_number,
-        content.content_type, content.title, content.content
-      FROM generated_content content
-      LEFT JOIN trip_days day ON day.id = content.trip_day_id
-      WHERE content.agency_id = ${agencyId}
-        AND content.template_version_id = ${versionId}
-        AND content.status = 'approved'
-      ORDER BY COALESCE(day.day_number, 0), content.sort_order
-    `,
-    transaction`
-      SELECT expense.id::text, expense.trip_day_id::text, day.day_number,
-        expense.label, expense.amount, expense.currency, expense.base_currency,
-        expense.exchange_rate_to_base, expense.base_amount, expense.paid_by_name,
-        expense.created_at::text
-      FROM party_expenses expense
-      LEFT JOIN trip_days day ON day.id = expense.trip_day_id
-      WHERE expense.agency_id = ${agencyId} AND expense.departure_id = ${departureId}
-        AND expense.party_id = ${partyId}
-      ORDER BY expense.created_at DESC
-    `,
-    transaction`
-      SELECT note.id::text, note.trip_day_id::text, day.day_number, note.text,
-        note.updated_by_name, note.updated_at::text
-      FROM party_day_notes note
-      JOIN trip_days day ON day.id = note.trip_day_id AND day.agency_id = note.agency_id
-      WHERE note.agency_id = ${agencyId} AND note.party_id = ${partyId}
-      ORDER BY day.day_number
-    `,
-    transaction`
-      SELECT restaurant.id::text, restaurant.trip_day_id::text, day.day_number,
-        restaurant.name, restaurant.added_by_name, restaurant.created_at::text
-      FROM party_restaurants restaurant
-      JOIN trip_days day ON day.id = restaurant.trip_day_id AND day.agency_id = restaurant.agency_id
-      WHERE restaurant.agency_id = ${agencyId} AND restaurant.party_id = ${partyId}
-      ORDER BY restaurant.created_at DESC
-    `,
-    transaction`
-      SELECT movement.id::text, movement.trip_day_id::text, day.day_number,
-        movement.kind, movement.euro_amount, movement.local_amount, movement.local_currency,
-        movement.fee_euro, movement.added_by_name, movement.created_at::text
-      FROM party_cash_movements movement
-      JOIN trip_days day ON day.id = movement.trip_day_id AND day.agency_id = movement.agency_id
-      WHERE movement.agency_id = ${agencyId} AND movement.party_id = ${partyId}
-      ORDER BY movement.created_at DESC
-    `,
-    transaction`
-      SELECT memory.id::text, memory.trip_day_id::text, day.day_number,
-        asset.id::text AS media_id, asset.original_name, asset.content_type, asset.size_bytes,
-        asset.uploaded_by_user_id, uploader.display_name AS added_by, memory.created_at::text
-      FROM party_memories memory
-      JOIN media_assets asset ON asset.id = memory.media_asset_id AND asset.agency_id = memory.agency_id
-      JOIN trip_days day ON day.id = memory.trip_day_id AND day.agency_id = memory.agency_id
-      LEFT JOIN platform_users uploader ON uploader.id = asset.uploaded_by_user_id
-      WHERE memory.agency_id = ${agencyId} AND memory.party_id = ${partyId} AND asset.status = 'ready'
-      ORDER BY memory.created_at DESC
-    `,
-    transaction`
-      SELECT result.id::text, result.traveler_id::text, profile.display_name,
-        result.trip_day_id::text, result.generated_content_id::text, result.activity_type,
-        result.score, result.max_score, result.status, result.result, result.submitted_at::text,
-        memory.id::text AS evidence_memory_id
-      FROM party_activity_results result
-      JOIN traveler_profiles profile ON profile.id = result.traveler_id AND profile.agency_id = result.agency_id
-      LEFT JOIN party_memories memory ON memory.party_id = result.party_id
-        AND memory.media_asset_id = CASE
-          WHEN result.result->>'mediaId' ~ '^[0-9a-fA-F-]{36}$' THEN (result.result->>'mediaId')::uuid
-          ELSE NULL
-        END
-      WHERE result.agency_id = ${agencyId} AND result.party_id = ${partyId}
-      ORDER BY result.submitted_at DESC
-    `,
-    transaction`
-      SELECT entry.id::text, entry.traveler_id::text, profile.display_name,
-        entry.generated_content_id::text, entry.media_asset_id::text, entry.participant_slot,
-        entry.status, entry.score, entry.reason, entry.is_winner, entry.submitted_at::text,
-        memory.id::text AS memory_id
-      FROM party_photo_contest_entries entry
-      JOIN traveler_profiles profile ON profile.id = entry.traveler_id AND profile.agency_id = entry.agency_id
-      LEFT JOIN party_memories memory ON memory.media_asset_id = entry.media_asset_id AND memory.party_id = entry.party_id
-      WHERE entry.agency_id = ${agencyId} AND entry.party_id = ${partyId}
-      ORDER BY entry.submitted_at DESC
-    `,
-    transaction`
-      SELECT document.id::text, document.itinerary_item_id::text, document.title,
-        asset.content_type, asset.size_bytes, document.created_at::text
-      FROM itinerary_item_documents document
-      JOIN media_assets asset ON asset.id = document.media_asset_id AND asset.agency_id = document.agency_id
-      JOIN itinerary_items item
-        ON item.id = document.itinerary_item_id AND item.agency_id = document.agency_id
-      JOIN trip_days day ON day.id = item.trip_day_id AND day.agency_id = item.agency_id
-      WHERE document.agency_id = ${agencyId} AND document.departure_id = ${departureId}
-        AND day.template_version_id = ${versionId} AND asset.status = 'ready'
-      ORDER BY document.created_at
-    `,
-    transaction`
-      SELECT feedback.trip_day_id::text, feedback.target_type,
-        feedback.itinerary_item_id::text, feedback.hotel_id::text, feedback.rating
-      FROM traveler_programme_feedback feedback
-      JOIN traveler_profiles profile
-        ON profile.id = feedback.traveler_id AND profile.agency_id = feedback.agency_id
-      WHERE feedback.agency_id = ${agencyId} AND feedback.departure_id = ${departureId}
-        AND feedback.party_id = ${partyId} AND profile.user_id = ${userId}
-    `,
-      ])
-    : Array.from({ length: 18 }, () => [] as Row[]);
-  const [dayRows, itemRows, cityRows, siteRows, hotelRows, travelerRows, infoRows,
-    phraseRows, challengeRows, expenseRows, noteRows, restaurantRows, cashRows,
-    photoRows, resultRows, contestRows, ticketRows, feedbackRows] = legacySnapshot;
-
-  await compareV3ExpenseShadow({
-    agencyId,
-    departureId,
-    partyId,
-    legacyRows: expenseRows as Row[],
-  });
-  await compareV3JourneyJournalShadow({
-    agencyId,
-    departureId,
-    partyId,
-    legacyCash: cashRows as Row[],
-    legacyNotes: noteRows as Row[],
-    legacyRestaurants: restaurantRows as Row[],
-  });
-  await compareV3ProgrammeFeedbackShadow({
-    agencyId,
-    departureId,
-    partyId,
-    userId,
-    legacyRows: feedbackRows as Row[],
-  });
-  await compareV3TravelerExperienceShadow({
-    agencyId,
-    departureId,
-    partyId,
-    legacyPhotos: photoRows as Row[],
-    legacyResults: resultRows as Row[],
-    legacyContestEntries: contestRows as Row[],
-  });
-
-  const [v3Expenses, v3Journal, v3Feedback, v3Catalog, v3Gamification] = await Promise.all([
-    v3ExpenseCutoverReadEnabled()
-      ? readV3ExpenseRows({ agencyId, departureId, partyId })
-      : Promise.resolve(null),
-    v3JourneyJournalCutoverReadEnabled()
-      ? readV3JourneyJournalRows({ agencyId, departureId, partyId })
-      : Promise.resolve(null),
-    v3ProgrammeFeedbackCutoverReadEnabled()
-      ? readV3ProgrammeFeedbackRows({ agencyId, departureId, partyId, userId })
-      : Promise.resolve(null),
-    v3TravelCatalogCutoverReadEnabled()
-      ? readV3TravelCatalog({ agencyId, departureId, templateVersionId: versionId, partyId })
-      : Promise.resolve(null),
-    v3GamificationCutoverReadEnabled()
-      ? readV3Gamification({ agencyId, departureId, templateVersionId: versionId, partyId, userId })
-      : Promise.resolve(null),
+  const [activeExpenseRows, v3Journal, activeFeedbackRows, v3Catalog, v3Gamification] = await Promise.all([
+    readV3ExpenseRows({ agencyId, departureId, partyId }),
+    readV3JourneyJournalRows({ agencyId, departureId, partyId }),
+    readV3ProgrammeFeedbackRows({ agencyId, departureId, partyId, userId }),
+    readV3TravelCatalog({ agencyId, departureId, templateVersionId: versionId, partyId }),
+    readV3Gamification({ agencyId, departureId, templateVersionId: versionId, partyId, userId }),
   ]);
-  const activeExpenseRows = v3Expenses ?? expenseRows as Row[];
-  const activeNoteRows = v3Journal?.notes ?? noteRows as Row[];
-  const activeRestaurantRows = v3Journal?.restaurants ?? restaurantRows as Row[];
-  const activeCashRows = v3Journal?.cash ?? cashRows as Row[];
-  const activeFeedbackRows = v3Feedback ?? feedbackRows as Row[];
-  const activeChallengeRows = v3Gamification?.challenges ?? challengeRows as Row[];
-  const activePhotoRows = v3Gamification?.photos ?? photoRows as Row[];
-  const activeResultRows = v3Gamification?.results ?? resultRows as Row[];
-  const activeContestRows = v3Gamification?.contests ?? contestRows as Row[];
-
-  const activeDayRows = v3Catalog?.days ?? dayRows as Row[];
-  const activeItemRows = v3Catalog?.items ?? itemRows as Row[];
-  const activeCityRows = v3Catalog?.cities ?? cityRows as Row[];
-  const activeSiteRows = v3Catalog?.sites ?? siteRows as Row[];
-  const activeHotelRows = v3Catalog?.hotels ?? hotelRows as Row[];
-  const activeTravelerRows = v3Catalog?.travelers ?? travelerRows as Row[];
-  const activeInfoRows = v3Catalog?.usefulInfo ?? infoRows as Row[];
-  const activePhraseRows = v3Catalog?.phrases ?? phraseRows as Row[];
-  const activeTicketRows = v3Catalog?.tickets ?? ticketRows as Row[];
-
+  const activeNoteRows = v3Journal.notes;
+  const activeRestaurantRows = v3Journal.restaurants;
+  const activeCashRows = v3Journal.cash;
+  const activeChallengeRows = v3Gamification.challenges;
+  const activePhotoRows = v3Gamification.photos;
+  const activeResultRows = v3Gamification.results;
+  const activeContestRows = v3Gamification.contests;
+  const activeDayRows = v3Catalog.days;
+  const activeItemRows = v3Catalog.items;
+  const activeCityRows = v3Catalog.cities;
+  const activeSiteRows = v3Catalog.sites;
+  const activeHotelRows = v3Catalog.hotels;
+  const activeTravelerRows = v3Catalog.travelers;
+  const activeInfoRows = v3Catalog.usefulInfo;
+  const activePhraseRows = v3Catalog.phrases;
+  const activeTicketRows = v3Catalog.tickets;
   const items = activeItemRows;
   const cities = activeCityRows;
   const missingCities = [...new Map(cities
@@ -538,34 +264,8 @@ export async function assertTravelerPartyScope(input: {
 export async function resolveTravelerContext(input: {
   userId: string; departureId: string; partyId: string; dayId?: string | null;
 }) {
-  if (v3TravelerScopeCutoverReadEnabled()) {
-    return resolveV3TravelerContext(input);
-  }
-  const sql = getSql();
-  const rows = await sql`
-    SELECT departure.agency_id::text,departure.template_version_id::text,
-      profile.id::text AS traveler_id
-    FROM traveler_profiles profile
-    JOIN party_memberships membership ON membership.traveler_id = profile.id AND membership.status = 'active'
-    JOIN travel_parties party ON party.id = membership.party_id AND party.agency_id = membership.agency_id
-    JOIN departures departure ON departure.id = party.departure_id AND departure.agency_id = party.agency_id
-    WHERE profile.user_id = ${input.userId} AND party.id = ${input.partyId}
-      AND departure.id = ${input.departureId}
-      AND (${input.dayId ?? null}::uuid IS NULL OR EXISTS (
-        SELECT 1 FROM trip_days day WHERE day.id = ${input.dayId ?? null}::uuid
-          AND day.agency_id = departure.agency_id
-          AND day.template_version_id = departure.template_version_id
-      ))
-    LIMIT 1
-  `;
-  if (!rows[0]) return null;
-  return {
-    agencyId: String(rows[0].agency_id),
-    templateVersionId: String(rows[0].template_version_id),
-    travelerId: String(rows[0].traveler_id),
-  };
+  return resolveV3TravelerContext(input);
 }
-
 export async function addTravelerExpense(input: {
   userId: string;
   userName: string;
@@ -579,7 +279,6 @@ export async function addTravelerExpense(input: {
   exchangeRateToBase?: number | null;
 }) {
   await assertArchitectureHardeningSchema();
-  const sql = getSql();
   const agencyId = await assertTravelerPartyScope(input);
   return addTravelerExpenseV3({ agencyId, ...input });
 }
