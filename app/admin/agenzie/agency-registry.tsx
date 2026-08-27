@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   Building2, CheckCircle2, ChevronDown, CircleAlert, LoaderCircle, Mail, MapPinned,
-  Palette, Phone, Plus, Power, PowerOff, Save, Search, Trash2, UserPlus, UsersRound, X,
+  Pencil, Phone, Plus, Power, PowerOff, Save, Search, Trash2, UserPlus, UsersRound, X,
 } from "lucide-react";
 import type { AgencyRegistryItem } from "@/lib/platform/superadmin-repository";
 
@@ -22,8 +22,9 @@ function stringField(form: FormData, name: string) {
 export default function AgencyRegistry({ initialAgencies }: { initialAgencies: AgencyRegistryItem[] }) {
   const [agencies, setAgencies] = useState(initialAgencies);
   const [showAgencyForm, setShowAgencyForm] = useState(false);
-  const [agentAgencyId, setAgentAgencyId] = useState("");
   const [ownerAgencyId, setOwnerAgencyId] = useState("");
+  const [ownerContactAgencyId, setOwnerContactAgencyId] = useState("");
+  const [usernameState, setUsernameState] = useState<Record<string,"idle"|"checking"|"available"|"taken">>({});
   const [expandedAgencyId, setExpandedAgencyId] = useState(initialAgencies[0]?.id ?? "");
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
@@ -41,6 +42,19 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
       ...agency.agents.flatMap((agent) => [agent.name, agent.username, agent.email, agent.phone]),
     ].filter(Boolean).some((value) => value.toLocaleLowerCase("it").includes(needle)));
   }, [agencies, query]);
+
+  async function checkUsername(key:string,username:string){
+    const normalized=username.trim();
+    if(!/^[A-Za-z0-9][A-Za-z0-9._-]{2,79}$/.test(normalized)){setUsernameState((state)=>({...state,[key]:"idle"}));return false;}
+    setUsernameState((state)=>({...state,[key]:"checking"}));
+    try{
+      const result=await readJson<{available:boolean}>(await fetch("/api/platform/username-availability",{
+        method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:normalized})
+      }));
+      setUsernameState((state)=>({...state,[key]:result.available?"available":"taken"}));
+      return result.available;
+    }catch{setUsernameState((state)=>({...state,[key]:"idle"}));return false;}
+  }
 
   useEffect(() => {
     if (!agencyToDelete) return;
@@ -67,11 +81,11 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
     event.preventDefault();
     setBusy("agency"); setError(""); setNotice("");
     const form = new FormData(event.currentTarget);
+    if(!await checkUsername("new-agency",stringField(form,"referenceUsername"))){setError("Username già presente o non verificabile. Scegline un altro.");setBusy("");return;}
     const fields = [
       "name", "legalName", "vatNumber", "taxCode", "registeredAddress", "registeredCity",
       "registeredPostalCode", "registeredProvince", "registeredCountry", "pec", "sdiCode",
       "phone", "email", "website", "referenceName", "referenceUsername", "referenceEmail", "referencePhone",
-      "primaryColor", "logoUrl",
     ];
     try {
       const result = await readJson<{ id: string; agencies: AgencyRegistryItem[]; invitationEmailSent:boolean }>(
@@ -94,58 +108,6 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
     }
   }
 
-  async function updateBranding(event: FormEvent<HTMLFormElement>, agencyId: string) {
-    event.preventDefault();
-    setBusy(`branding-${agencyId}`); setError(""); setNotice("");
-    const form = new FormData(event.currentTarget);
-    try {
-      const result = await readJson<{ agencies: AgencyRegistryItem[] }>(
-        await fetch(`/api/admin/platform/agencies/${agencyId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            primaryColor: stringField(form, "primaryColor"),
-            logoUrl: stringField(form, "logoUrl"),
-          }),
-        })
-      );
-      setAgencies(result.agencies);
-      setNotice("Logo e colore dell’agenzia aggiornati.");
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Branding non aggiornato");
-    } finally {
-      setBusy("");
-    }
-  }
-
-  async function createAgent(event: FormEvent<HTMLFormElement>, agencyId: string) {
-    event.preventDefault();
-    setBusy(`agent-${agencyId}`); setError(""); setNotice("");
-    const form = new FormData(event.currentTarget);
-    try {
-      const result = await readJson<{ agency: AgencyRegistryItem; invitationEmailSent: boolean; activationToken: string | null }>(
-        await fetch(`/api/admin/platform/agencies/${agencyId}/agents`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: stringField(form, "name"),
-            username: stringField(form, "username"),
-            email: stringField(form, "email"),
-            phone: stringField(form, "phone"),
-            role: stringField(form, "role"),
-          }),
-        })
-      );
-      setAgencies((current) => current.map((agency) => agency.id === agencyId ? result.agency : agency));
-      setAgentAgencyId("");
-      setNotice(result.invitationEmailSent ? "Agente censito. L’invito personale è stato inviato via email." : "Agente censito. Invio email non disponibile: rigenera l’invito dopo la configurazione SES.");
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Inserimento agente non riuscito");
-    } finally {
-      setBusy("");
-    }
-  }
-
   async function updateStatus(agency:AgencyRegistryItem,status:"active"|"suspended"){
     setBusy(`status-${agency.id}`);setError("");setNotice("");
     try{
@@ -161,14 +123,28 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
   async function replaceOwner(event:FormEvent<HTMLFormElement>,agencyId:string){
     event.preventDefault();setBusy(`owner-${agencyId}`);setError("");setNotice("");
     const form=new FormData(event.currentTarget);
+    if(!await checkUsername(`owner-${agencyId}`,stringField(form,"username"))){setError("Username già presente o non verificabile. Scegline un altro.");setBusy("");return;}
     try{
       const result=await readJson<{agencies:AgencyRegistryItem[];invitationEmailSent:boolean}>(await fetch(`/api/admin/platform/agencies/${agencyId}`,{
         method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"replace-owner",
           name:stringField(form,"name"),username:stringField(form,"username"),email:stringField(form,"email"),phone:stringField(form,"phone")})
       }));
       setAgencies(result.agencies);setOwnerAgencyId("");
-      setNotice(result.invitationEmailSent?"Responsabile sostituito e invito inviato.":"Responsabile sostituito. Invio email non disponibile.");
+      setNotice(result.invitationEmailSent?"Nuovo responsabile creato, precedente rimosso e invito inviato.":"Nuovo responsabile creato e precedente rimosso. Invio email non disponibile.");
     }catch(caught){setError(caught instanceof Error?caught.message:"Responsabile non sostituito");}
+    finally{setBusy("");}
+  }
+
+  async function updateOwnerContact(event:FormEvent<HTMLFormElement>,agencyId:string){
+    event.preventDefault();setBusy(`owner-contact-${agencyId}`);setError("");setNotice("");
+    const form=new FormData(event.currentTarget);
+    try{
+      const result=await readJson<{agencies:AgencyRegistryItem[]}>(await fetch(`/api/admin/platform/agencies/${agencyId}`,{
+        method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"update-owner-contact",
+          email:stringField(form,"email"),phone:stringField(form,"phone")})
+      }));
+      setAgencies(result.agencies);setOwnerContactAgencyId("");setNotice("Email e telefono del responsabile aggiornati.");
+    }catch(caught){setError(caught instanceof Error?caught.message:"Dati del responsabile non aggiornati");}
     finally{setBusy("");}
   }
 
@@ -184,7 +160,6 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
       }>(await fetch(`/api/admin/platform/agencies/${agencyToDelete.id}`, { method: "DELETE" }));
       setAgencies(result.agencies);
       setExpandedAgencyId("");
-      setAgentAgencyId("");
       setAgencyToDelete(null);
       setNotice(
         `Cancellazione di “${result.deletedAgency}” avviata. File, viaggiatori e viaggi ` +
@@ -214,7 +189,7 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
             <legend>Dati obbligatori</legend>
             <label htmlFor="agency-name">Nome agenzia *<input id="agency-name" name="name" autoComplete="organization" required minLength={2} maxLength={160} autoFocus/></label>
             <label htmlFor="agency-reference-name">Persona di riferimento *<input id="agency-reference-name" name="referenceName" autoComplete="name" required minLength={2} maxLength={160}/></label>
-            <label htmlFor="agency-reference-username">Username responsabile *<input id="agency-reference-username" name="referenceUsername" autoComplete="username" required minLength={3} maxLength={80} pattern="[A-Za-z0-9][A-Za-z0-9._-]{2,79}"/><small>Unico nell’app; sarà indicato nell’email di invito.</small></label>
+            <label htmlFor="agency-reference-username">Username responsabile *<input id="agency-reference-username" name="referenceUsername" autoComplete="username" required minLength={3} maxLength={80} pattern="[A-Za-z0-9][A-Za-z0-9._-]{2,79}" onBlur={(event)=>void checkUsername("new-agency",event.currentTarget.value)} aria-describedby="new-agency-username-status"/><small id="new-agency-username-status" className={`usernameStatus ${usernameState["new-agency"]??"idle"}`} aria-live="polite">{usernameState["new-agency"]==="checking"?"Verifica in corso…":usernameState["new-agency"]==="available"?"Username disponibile":usernameState["new-agency"]==="taken"?"Username già presente":"Unico nell’app; sarà indicato nell’email di invito."}</small></label>
             <label htmlFor="agency-reference-email">Email referente *<input id="agency-reference-email" name="referenceEmail" type="email" autoComplete="email" required maxLength={320}/></label>
             <label htmlFor="agency-reference-phone">Telefono referente *<input id="agency-reference-phone" name="referencePhone" type="tel" autoComplete="tel" required minLength={5} maxLength={40}/></label>
           </fieldset>
@@ -236,14 +211,6 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
                 <label>CAP<input name="registeredPostalCode" autoComplete="postal-code" maxLength={20}/></label>
                 <label>Provincia<input name="registeredProvince" autoComplete="address-level1" maxLength={80}/></label>
                 <label>Paese<input name="registeredCountry" autoComplete="country-name" defaultValue="Italia" maxLength={80}/></label>
-              </fieldset>
-            </details>
-            <details className="agencyOptionalSection">
-              <summary><Palette/><span><b>Identità visiva</b><small>Colore e logo mostrati ai viaggiatori</small></span><ChevronDown/></summary>
-              <fieldset>
-                <legend className="srOnly">Identità visiva facoltativa</legend>
-                <label>Colore principale<input name="primaryColor" type="color" defaultValue="#247A6B"/></label>
-                <label className="wide">URL del logo<input name="logoUrl" type="url" autoComplete="url" placeholder="https://agenzia.it/logo.png" maxLength={1000}/></label>
               </fieldset>
             </details>
           </div>
@@ -278,41 +245,30 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
                     <a href={`tel:${agency.referencePhone}`}><Phone/><span><small>TELEFONO</small><b>{agency.referencePhone}</b></span></a>
                     {agency.vatNumber && <span><small>PARTITA IVA</small><b>{agency.vatNumber}</b></span>}
                   </div>
-                  <div className="agencyLifecycleActions">
-                    <span><small>STATO AGENZIA</small><b>{agency.status==="suspended"?"Disattivata":"Abilitata"}</b><p>La disattivazione blocca immediatamente agenti e viaggiatori.</p></span>
-                    <button type="button" disabled={Boolean(busy)} onClick={()=>void updateStatus(agency,agency.status==="suspended"?"active":"suspended")}>
-                      {agency.status==="suspended"?<><Power/> Attiva agenzia</>:<><PowerOff/> Disattiva agenzia</>}
-                    </button>
-                  </div>
-                  <form className="agencyBrandingForm" onSubmit={(event) => updateBranding(event, agency.id)}>
-                    <div className="agencyBrandPreview" style={{ background: agency.primaryColor }}>{agency.logoUrl ? <img src={agency.logoUrl} alt=""/> : <Palette/>}</div>
-                    <span><small>IDENTITÀ VISIVA</small><strong>Logo e colore nell’app viaggiatore</strong></span>
-                    <label>Colore<input name="primaryColor" type="color" defaultValue={agency.primaryColor}/></label>
-                    <label>URL logo<input name="logoUrl" type="url" defaultValue={agency.logoUrl} placeholder="https://"/></label>
-                    <button type="submit" disabled={busy === `branding-${agency.id}`}>{busy === `branding-${agency.id}` ? <><LoaderCircle className="spin"/> Salvataggio…</> : <><Save/> Salva</>}</button>
-                  </form>
-                  <div className="agentsHeader"><div><small>UTENTI AGENZIA</small><h3>Responsabile e agenti</h3></div><span><button type="button" aria-expanded={ownerAgencyId===agency.id} aria-controls={`owner-form-${agency.id}`} onClick={()=>setOwnerAgencyId(ownerAgencyId===agency.id?"":agency.id)}><UsersRound/> Sostituisci responsabile</button><button type="button" aria-expanded={agentAgencyId === agency.id} aria-controls={`agent-form-${agency.id}`} onClick={() => setAgentAgencyId(agentAgencyId === agency.id ? "" : agency.id)}><UserPlus/> {agentAgencyId === agency.id ? "Chiudi inserimento" : "Aggiungi agente"}</button></span></div>
+                  <div className="agentsHeader"><div><small>UTENTI AGENZIA</small><h3>Responsabile e agenti</h3></div><span><button type="button" className="secondaryAction" aria-expanded={ownerContactAgencyId===agency.id} aria-controls={`owner-contact-form-${agency.id}`} onClick={()=>{setOwnerContactAgencyId(ownerContactAgencyId===agency.id?"":agency.id);setOwnerAgencyId("");}}><Pencil/> Modifica dati responsabile</button><button type="button" aria-expanded={ownerAgencyId===agency.id} aria-controls={`owner-form-${agency.id}`} onClick={()=>{setOwnerAgencyId(ownerAgencyId===agency.id?"":agency.id);setOwnerContactAgencyId("");}}><UsersRound/> Sostituisci responsabile</button></span></div>
+                  {ownerContactAgencyId===agency.id&&<form className="agentForm ownerContactForm" id={`owner-contact-form-${agency.id}`} onSubmit={(event)=>updateOwnerContact(event,agency.id)}>
+                    <p className="wide">Nome, cognome e username restano invariati. Puoi aggiornare soltanto i recapiti.</p>
+                    <label>Email<input name="email" type="email" autoComplete="email" required maxLength={320} defaultValue={agency.referenceEmail}/></label>
+                    <label>Telefono<input name="phone" type="tel" autoComplete="tel" required minLength={5} maxLength={40} defaultValue={agency.referencePhone}/></label>
+                    <button type="submit" disabled={busy===`owner-contact-${agency.id}`}>{busy===`owner-contact-${agency.id}`?<><LoaderCircle className="spin"/> Salvataggio…</>:<><Save/> Salva recapiti</>}</button>
+                  </form>}
                   {ownerAgencyId===agency.id&&<form className="agentForm" id={`owner-form-${agency.id}`} onSubmit={(event)=>replaceOwner(event,agency.id)}>
-                    <p className="wide">Il referente attuale perderà il ruolo di responsabile. La sostituzione è atomica: non possono esistere due responsabili attivi.</p>
+                    <p className="wide">Il nuovo responsabile riceverà il link personale di attivazione. Il precedente responsabile sarà rimosso dall’agenzia.</p>
                     <label>Nome e cognome<input name="name" autoComplete="name" required minLength={2} maxLength={160}/></label>
-                    <label>Username<input name="username" autoComplete="username" required minLength={3} maxLength={80} pattern="[A-Za-z0-9][A-Za-z0-9._-]{2,79}"/></label>
+                    <label>Username<input name="username" autoComplete="username" required minLength={3} maxLength={80} pattern="[A-Za-z0-9][A-Za-z0-9._-]{2,79}" onBlur={(event)=>void checkUsername(`owner-${agency.id}`,event.currentTarget.value)} aria-describedby={`owner-username-status-${agency.id}`}/><small id={`owner-username-status-${agency.id}`} className={`usernameStatus ${usernameState[`owner-${agency.id}`]??"idle"}`} aria-live="polite">{usernameState[`owner-${agency.id}`]==="checking"?"Verifica in corso…":usernameState[`owner-${agency.id}`]==="available"?"Username disponibile":usernameState[`owner-${agency.id}`]==="taken"?"Username già presente":"Deve essere unico nell’app."}</small></label>
                     <label>Email<input name="email" type="email" autoComplete="email" required maxLength={320}/></label>
                     <label>Telefono<input name="phone" type="tel" autoComplete="tel" required minLength={5} maxLength={40}/></label>
                     <button type="submit" disabled={busy===`owner-${agency.id}`}>{busy===`owner-${agency.id}`?<><LoaderCircle className="spin"/> Sostituzione…</>:<><Save/> Conferma sostituzione</>}</button>
                   </form>}
-                  {agentAgencyId === agency.id && (
-                    <form className="agentForm" id={`agent-form-${agency.id}`} onSubmit={(event) => createAgent(event, agency.id)}>
-                      <label>Nome e cognome<input name="name" autoComplete="name" required minLength={2} maxLength={160}/></label>
-                      <label>Username<input name="username" autoComplete="username" required minLength={3} maxLength={80} pattern="[A-Za-z0-9][A-Za-z0-9._-]{2,79}"/></label>
-                      <label>Email<input name="email" type="email" autoComplete="email" required maxLength={320}/></label>
-                      <label>Telefono<input name="phone" type="tel" autoComplete="tel" required minLength={5} maxLength={40}/></label>
-                      <label>Ruolo<select name="role" defaultValue="editor"><option value="admin">Amministratore</option><option value="editor">Agente</option><option value="viewer">Solo lettura</option></select></label>
-                      <button type="submit" disabled={busy === `agent-${agency.id}`}>{busy === `agent-${agency.id}` ? <><LoaderCircle className="spin"/> Registrazione…</> : <><Plus/> Registra</>}</button>
-                    </form>
-                  )}
                   <div className="agentsList">
                     {agency.agents.map((agent) => <div key={agent.id}><i>{agent.initials || agent.name.slice(0, 2).toUpperCase()}</i><span><b>{agent.name}</b><small>@{agent.username} · {agent.email} · {agent.phone || "telefono non indicato"}</small></span><em>{roleLabels[agent.role]}</em><strong className={agent.status}>{agent.status === "invited" ? "Invitato" : "Attivo"}</strong></div>)}
                     {agency.agents.length === 0 && <p>Nessun agente censito.</p>}
+                  </div>
+                  <div className={`agencyDangerZone agencyStatusZone ${agency.status==="suspended"?"isSuspended":""}`}>
+                    <span><small>STATO AGENZIA</small><b>{agency.status==="suspended"?"Agenzia disattivata":"Disattiva temporaneamente l’agenzia"}</b><p>La disattivazione blocca immediatamente agenti e viaggiatori senza cancellare i dati.</p></span>
+                    <button type="button" disabled={Boolean(busy)} onClick={()=>void updateStatus(agency,agency.status==="suspended"?"active":"suspended")}>
+                      {agency.status==="suspended"?<><Power/> Attiva agenzia</>:<><PowerOff/> Disattiva agenzia</>}
+                    </button>
                   </div>
                   <div className="agencyDangerZone">
                     <span><small>ZONA PERICOLO</small><b>Elimina definitivamente l’agenzia</b><p>Verranno rimossi tutti i viaggi, le famiglie, i viaggiatori e i file collegati.</p></span>

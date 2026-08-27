@@ -21,6 +21,7 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
   const [notice, setNotice] = useState("");
   const [activationUrl, setActivationUrl] = useState("");
   const [activationCopied, setActivationCopied] = useState(false);
+  const [usernameState,setUsernameState]=useState<Record<string,"idle"|"checking"|"available"|"taken">>({});
   const travelerCount = data.families.reduce((sum, family) => sum + family.travelers.length, 0);
   const activeTravelerCount = data.families.reduce((sum, family) => sum + family.travelers.filter((traveler) => traveler.status !== "invited").length, 0);
   const invitedTravelerCount = travelerCount - activeTravelerCount;
@@ -54,6 +55,7 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
   async function addTraveler(event: FormEvent<HTMLFormElement>, partyId: string) {
     event.preventDefault(); setBusy(`traveler-${partyId}`); setError(""); setNotice(""); setActivationUrl(""); setActivationCopied(false);
     const form = new FormData(event.currentTarget);
+    if(!await checkUsername(partyId,String(form.get("username")??""))){setError("Username già presente o non verificabile. Scegline un altro.");setBusy("");return;}
     try {
       const result = await json<{ data: JourneyData; activationToken: string | null; invitationEmailSent: boolean }>(await fetch(`/api/admin/platform/trips/${data.journey.id}/travelers`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agencyId: data.journey.agencyId, partyId, name: form.get("name"), username: form.get("username"), email: form.get("email"), phone: form.get("phone"), birthDate: form.get("birthDate"), role: form.get("role") }) }));
       setData(result.data); setTravelerFamily("");
@@ -61,6 +63,16 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
       setNotice(result.activationToken ? (result.invitationEmailSent ? "Viaggiatore registrato. L’invito personale è stato inviato via email." : "Viaggiatore registrato. L’invio email non è configurato: copia il link di attivazione.") : "Viaggiatore collegato a un account già attivo.");
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Operazione non riuscita"); }
     finally { setBusy(""); }
+  }
+
+  async function checkUsername(key:string,username:string){
+    const normalized=username.trim();
+    if(!/^[A-Za-z0-9][A-Za-z0-9._-]{2,79}$/.test(normalized)){setUsernameState((state)=>({...state,[key]:"idle"}));return false;}
+    setUsernameState((state)=>({...state,[key]:"checking"}));
+    try{
+      const result=await json<{available:boolean}>(await fetch("/api/platform/username-availability",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:normalized})}));
+      setUsernameState((state)=>({...state,[key]:result.available?"available":"taken"}));return result.available;
+    }catch{setUsernameState((state)=>({...state,[key]:"idle"}));return false;}
   }
 
   return <main className="journeyManagePage">
@@ -79,7 +91,7 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
           {travelerFamily === family.id && <form className="travelerCreateForm" id={`traveler-form-${family.id}`} onSubmit={(event) => addTraveler(event, family.id)} aria-busy={busy === `traveler-${family.id}`}>
             <div className="travelerFormIntro"><small>NUOVO ACCESSO</small><strong>Aggiungi un viaggiatore a {family.name}</strong><p>Ogni viaggiatore ha un proprio username. La stessa email può ricevere più inviti indipendenti.</p></div>
             <label htmlFor={`traveler-name-${family.id}`}>Nome e cognome *<input id={`traveler-name-${family.id}`} name="name" autoFocus autoComplete="name" required minLength={2} maxLength={160} placeholder="Nome e cognome"/></label>
-            <label htmlFor={`traveler-username-${family.id}`}>Username *<input id={`traveler-username-${family.id}`} name="username" autoComplete="username" required minLength={3} maxLength={80} pattern="[A-Za-z0-9][A-Za-z0-9._-]{2,79}" placeholder="es. mattia.rossi"/><span>Lettere, numeri, punto, trattino e underscore.</span></label>
+            <label htmlFor={`traveler-username-${family.id}`}>Username *<input id={`traveler-username-${family.id}`} name="username" autoComplete="username" required minLength={3} maxLength={80} pattern="[A-Za-z0-9][A-Za-z0-9._-]{2,79}" placeholder="es. mattia.rossi" onBlur={(event)=>void checkUsername(family.id,event.currentTarget.value)} aria-describedby={`traveler-username-status-${family.id}`}/><span id={`traveler-username-status-${family.id}`} className={`usernameStatus ${usernameState[family.id]??"idle"}`} aria-live="polite">{usernameState[family.id]==="checking"?"Verifica in corso…":usernameState[family.id]==="available"?"Username disponibile":usernameState[family.id]==="taken"?"Username già presente":"Lettere, numeri, punto, trattino e underscore."}</span></label>
             <label htmlFor={`traveler-email-${family.id}`}>Email per inviti e recupero password *<input id={`traveler-email-${family.id}`} name="email" type="email" inputMode="email" autoComplete="email" required maxLength={320} placeholder="nome@esempio.it"/></label>
             <label htmlFor={`traveler-phone-${family.id}`}>Telefono <span>(facoltativo)</span><input id={`traveler-phone-${family.id}`} name="phone" type="tel" inputMode="tel" autoComplete="tel" maxLength={60} placeholder="+39 …"/></label>
             <label htmlFor={`traveler-birth-${family.id}`}>Data di nascita <span>(facoltativa)</span><input id={`traveler-birth-${family.id}`} name="birthDate" type="date" autoComplete="bday" max={new Date().toISOString().slice(0, 10)}/></label>

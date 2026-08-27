@@ -7,6 +7,7 @@ import {
   replaceAgencyOwner,
   requestAgencyDeletion,
   updateAgencyBranding,
+  updateAgencyOwnerContact,
   updateAgencyStatus,
 } from "@/lib/platform/superadmin-repository";
 import { sendTravelerInvitation } from "@/lib/auth/invitation-email";
@@ -23,6 +24,8 @@ const statusSchema=z.object({action:z.literal("status"),status:z.enum(["trial","
 const ownerSchema=z.object({action:z.literal("replace-owner"),name:z.string().trim().min(2).max(160),
   username:z.string().trim().min(3).max(80).regex(/^[A-Za-z0-9][A-Za-z0-9._-]{2,79}$/),
   email:z.email(),phone:z.string().trim().min(5).max(40)});
+const ownerContactSchema=z.object({action:z.literal("update-owner-contact"),email:z.email(),
+  phone:z.string().trim().min(5).max(40)});
 
 export async function PATCH(
   request: Request,
@@ -38,6 +41,11 @@ export async function PATCH(
     const status=statusSchema.safeParse(payload);
     if(status.success){
       await updateAgencyStatus({actorId:actor.id,agencyId:id,status:status.data.status});
+      return NextResponse.json({agencies:await getAgencyRegistry(actor.id)});
+    }
+    const ownerContact=ownerContactSchema.safeParse(payload);
+    if(ownerContact.success){
+      await updateAgencyOwnerContact({actorId:actor.id,agencyId:id,...ownerContact.data});
       return NextResponse.json({agencies:await getAgencyRegistry(actor.id)});
     }
     const owner=ownerSchema.safeParse(payload);

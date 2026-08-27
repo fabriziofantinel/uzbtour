@@ -147,6 +147,16 @@ export async function replaceAgencyOwner(input:{actorId:string;agencyId:string;n
   return {id:result.id,activationToken:result.activationRequired?token:null};
 }
 
+export async function updateAgencyOwnerContact(input:{actorId:string;agencyId:string;email:string;phone:string}){
+  const {updateV3PlatformAgencyOwnerContact}=await import("./v3-superadmin-mutations");
+  await updateV3PlatformAgencyOwnerContact(input);
+}
+
+export async function isUsernameAvailable(actorId:string,username:string){
+  const {readV3UsernameAvailability}=await import("./v3-superadmin-mutations");
+  return readV3UsernameAvailability(actorId,username.trim().toLocaleLowerCase("en-US"));
+}
+
 export async function requestAgencyDeletion(input: { actorId: string; agencyId: string; reason: string }) {
   const sql = getSql();
   const rows=await sql`SELECT job_id::text,agency_name,status,phase

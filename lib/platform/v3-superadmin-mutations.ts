@@ -61,6 +61,17 @@ export async function replaceV3PlatformAgencyOwner(input:{actorId:string;agencyI
   return { id:String(rows[0].legacy_user_id),activationRequired:Boolean(rows[0].activation_required) };
 }
 
+export async function updateV3PlatformAgencyOwnerContact(input:{actorId:string;agencyId:string;email:string;phone:string}){
+  const sql=getSql();const rows=await sql`SELECT app.update_platform_agency_owner_contact(
+    ${input.actorId},${input.agencyId}::uuid,${input.email},${input.phone}) updated`;
+  if(!rows[0]?.updated)throw new PlatformRequestError("Responsabile non trovato");
+}
+
+export async function readV3UsernameAvailability(actorId:string,username:string){
+  const sql=getSql();const rows=await sql`SELECT app.is_username_available(${actorId},${username}) available`;
+  return Boolean(rows[0]?.available);
+}
+
 export async function provisionV3PlatformAgencyAgent(input:{actorId:string;agencyId:string;name:string;initials:string;username:string;email:string;phone:string;role:"admin"|"editor"|"viewer";tokenHash:string;expiresAt:string}){
   const sql=getSql();const rows=await sql`SELECT app.provision_platform_agency_agent(
     ${input.actorId},${input.agencyId}::uuid,${input.name},${input.initials},${input.username},
