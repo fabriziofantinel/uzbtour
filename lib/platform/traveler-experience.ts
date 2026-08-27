@@ -4,25 +4,20 @@ import { geocodeCity } from "./geocoding";
 import { assertProgrammeFeedbackSchema } from "./schema-readiness";
 import { assertArchitectureHardeningSchema } from "./schema-readiness";
 import {
-  addTravelerExpenseDualWrite,
+  addTravelerExpenseV3,
   compareV3ExpenseShadow,
-  deleteTravelerExpenseDualWrite,
+  deleteTravelerExpenseV3,
   readV3ExpenseRows,
   v3ExpenseCutoverReadEnabled,
-  v3ExpenseDualWriteEnabled,
   v3ExpenseShadowReadEnabled,
 } from "./v3-expenses";
 import {
-  addTravelerCashMovementDualWrite,
-  addTravelerRestaurantDualWrite,
-  compareV3JourneyJournalShadow,
-  deleteTravelerCashMovementDualWrite,
   readV3JourneyJournalRows,
-  saveTravelerNoteDualWrite,
+  compareV3JourneyJournalShadow,
   v3JourneyJournalCutoverReadEnabled,
-  v3JourneyJournalDualWriteEnabled,
   v3JourneyJournalShadowReadEnabled,
 } from "./v3-journey-journal";
+import { addTravelerCashMovementV3, addTravelerRestaurantV3, deleteTravelerCashMovementV3, saveTravelerNoteV3 } from "./v3-journey-mutations";
 import {
   compareV3ProgrammeFeedbackShadow,
   readV3ProgrammeFeedbackRows,
@@ -586,37 +581,7 @@ export async function addTravelerExpense(input: {
   await assertArchitectureHardeningSchema();
   const sql = getSql();
   const agencyId = await assertTravelerPartyScope(input);
-  if (v3ExpenseDualWriteEnabled()) {
-    return addTravelerExpenseDualWrite({ agencyId, ...input });
-  }
-  const exchangeRateToBase = input.currency === "EUR" ? 1 : input.exchangeRateToBase ?? null;
-  const baseAmount = exchangeRateToBase == null
-    ? null
-    : Math.round(input.amount * exchangeRateToBase * 10_000) / 10_000;
-  const rows = await sql`
-    WITH inserted AS (
-      INSERT INTO party_expenses (
-      agency_id, departure_id, party_id, trip_day_id, label, amount, currency,
-      paid_by_user_id, paid_by_name, client_operation_id, base_currency,
-      exchange_rate_to_base, base_amount
-      ) VALUES (
-      ${agencyId}, ${input.departureId}, ${input.partyId},
-      ${input.dayId ?? null}, ${input.label}, ${input.amount}, ${input.currency},
-      ${input.userId}, ${input.userName}, ${input.clientOperationId}, 'EUR',
-      ${exchangeRateToBase}, ${baseAmount}
-      )
-      ON CONFLICT (party_id, client_operation_id)
-        WHERE client_operation_id IS NOT NULL
-      DO NOTHING
-      RETURNING id
-    )
-    SELECT id::text FROM inserted
-    UNION ALL
-    SELECT id::text FROM party_expenses
-    WHERE party_id = ${input.partyId} AND client_operation_id = ${input.clientOperationId}
-    LIMIT 1
-  `;
-  return String(rows[0].id);
+  return addTravelerExpenseV3({ agencyId, ...input });
 }
 
 export async function deleteTravelerExpense(input: {
@@ -625,62 +590,22 @@ export async function deleteTravelerExpense(input: {
   partyId: string;
   expenseId: string;
 }) {
-  if (v3ExpenseDualWriteEnabled()) {
-    const agencyId = await assertTravelerPartyScope(input);
-    return deleteTravelerExpenseDualWrite({ agencyId, ...input });
-  }
-  const sql = getSql();
-  const rows = await sql`
-    DELETE FROM party_expenses expense
-    USING traveler_profiles profile, party_memberships membership, travel_parties party
-    WHERE expense.id = ${input.expenseId}
-      AND expense.departure_id = ${input.departureId}
-      AND expense.party_id = ${input.partyId}
-      AND party.id = expense.party_id
-      AND party.departure_id = expense.departure_id
-      AND membership.party_id = party.id
-      AND membership.agency_id = party.agency_id
-      AND membership.status = 'active'
-      AND profile.id = membership.traveler_id
-      AND profile.user_id = ${input.userId}
-    RETURNING expense.id::text
-  `;
-  if (!rows[0]) throw new PlatformRequestError("Spesa non disponibile");
+  const agencyId = await assertTravelerPartyScope(input);
+  return deleteTravelerExpenseV3({ agencyId, ...input });
 }
 
 export async function saveTravelerNote(input: {
   userId: string; userName: string; departureId: string; partyId: string; dayId: string; text: string;
 }) {
-  const sql = getSql();
   const agencyId = await assertTravelerPartyScope(input);
-  if (v3JourneyJournalDualWriteEnabled()) {
-    return saveTravelerNoteDualWrite({ agencyId, ...input });
-  }
-  const rows = await sql`
-    INSERT INTO party_day_notes (agency_id, party_id, trip_day_id, text, updated_by_user_id, updated_by_name)
-    VALUES (${agencyId}, ${input.partyId}, ${input.dayId}, ${input.text}, ${input.userId}, ${input.userName})
-    ON CONFLICT (party_id, trip_day_id) DO UPDATE SET text = EXCLUDED.text,
-      updated_by_user_id = EXCLUDED.updated_by_user_id, updated_by_name = EXCLUDED.updated_by_name,
-      updated_at = NOW()
-    RETURNING id::text, updated_at::text
-  `;
-  return { id: String(rows[0].id), updatedAt: String(rows[0].updated_at) };
+  return saveTravelerNoteV3({ agencyId, ...input });
 }
 
 export async function addTravelerRestaurant(input: {
   userId: string; userName: string; departureId: string; partyId: string; dayId: string; name: string;
 }) {
-  const sql = getSql();
   const agencyId = await assertTravelerPartyScope(input);
-  if (v3JourneyJournalDualWriteEnabled()) {
-    return addTravelerRestaurantDualWrite({ agencyId, ...input });
-  }
-  const rows = await sql`
-    INSERT INTO party_restaurants (agency_id, party_id, trip_day_id, name, added_by_user_id, added_by_name)
-    VALUES (${agencyId}, ${input.partyId}, ${input.dayId}, ${input.name}, ${input.userId}, ${input.userName})
-    RETURNING id::text, created_at::text
-  `;
-  return { id: String(rows[0].id), createdAt: String(rows[0].created_at) };
+  return addTravelerRestaurantV3({ agencyId, ...input });
 }
 
 export async function addTravelerCashMovement(input: {
@@ -689,58 +614,15 @@ export async function addTravelerCashMovement(input: {
   clientOperationId: string;
 }) {
   await assertArchitectureHardeningSchema();
-  const sql = getSql();
   const agencyId = await assertTravelerPartyScope(input);
-  if (v3JourneyJournalDualWriteEnabled()) {
-    return addTravelerCashMovementDualWrite({ agencyId, ...input });
-  }
-  const rows = await sql`
-    WITH inserted AS (
-      INSERT INTO party_cash_movements (
-      agency_id, party_id, trip_day_id, kind, euro_amount, local_amount, local_currency,
-      fee_euro, added_by_user_id, added_by_name, client_operation_id
-      ) VALUES (
-      ${agencyId}, ${input.partyId}, ${input.dayId}, ${input.kind}, ${input.euroAmount},
-      ${input.localAmount}, 'UZS', ${input.feeEuro}, ${input.userId}, ${input.userName},
-      ${input.clientOperationId}
-      )
-      ON CONFLICT (party_id, client_operation_id)
-        WHERE client_operation_id IS NOT NULL
-      DO NOTHING
-      RETURNING id, created_at
-    )
-    SELECT id::text, created_at::text FROM inserted
-    UNION ALL
-    SELECT id::text, created_at::text FROM party_cash_movements
-    WHERE party_id = ${input.partyId} AND client_operation_id = ${input.clientOperationId}
-    LIMIT 1
-  `;
-  return { id: String(rows[0].id), createdAt: String(rows[0].created_at) };
+  return addTravelerCashMovementV3({ agencyId, ...input });
 }
 
 export async function deleteTravelerCashMovement(input: {
   userId: string; departureId: string; partyId: string; movementId: string;
 }) {
-  if (v3JourneyJournalDualWriteEnabled()) {
-    const agencyId = await assertTravelerPartyScope(input);
-    return deleteTravelerCashMovementDualWrite({ agencyId, ...input });
-  }
-  const sql = getSql();
-  const rows = await sql`
-    DELETE FROM party_cash_movements movement
-    USING traveler_profiles profile, party_memberships membership, travel_parties party
-    WHERE movement.id = ${input.movementId}
-      AND movement.party_id = ${input.partyId}
-      AND party.id = movement.party_id
-      AND party.departure_id = ${input.departureId}
-      AND membership.party_id = party.id
-      AND membership.agency_id = party.agency_id
-      AND membership.status = 'active'
-      AND profile.id = membership.traveler_id
-      AND profile.user_id = ${input.userId}
-    RETURNING movement.id::text
-  `;
-  if (!rows[0]) throw new PlatformRequestError("Movimento non disponibile");
+  const agencyId = await assertTravelerPartyScope(input);
+  return deleteTravelerCashMovementV3({ agencyId, ...input });
 }
 
 export type TravelerExperience = NonNullable<Awaited<ReturnType<typeof getTravelerExperience>>>;

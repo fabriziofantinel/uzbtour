@@ -1,12 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
-import { getSql } from "@/lib/db";
 import { resolveTravelerContext } from "@/lib/platform/traveler-experience";
 import { assertArchitectureHardeningSchema, assertProgrammeFeedbackSchema } from "@/lib/platform/schema-readiness";
-import {
-  saveTravelerProgrammeFeedbackDualWrite,
-  v3ProgrammeFeedbackDualWriteEnabled,
-} from "@/lib/platform/v3-programme-feedback";
+import { saveTravelerProgrammeFeedbackV3 } from "@/lib/platform/v3-feedback-mutations";
 
 export const runtime = "nodejs";
 
@@ -32,11 +28,7 @@ export async function POST(request: Request) {
     const context = await resolveTravelerContext({ userId: user.id, departureId, partyId, dayId });
     if (!context) return NextResponse.json({ error: "Viaggiatore non disponibile" }, { status: 403 });
     const agencyId = context.agencyId;
-    const travelerId = context.travelerId;
-    const sql = getSql();
-
-    if (v3ProgrammeFeedbackDualWriteEnabled()) {
-      const feedback = await saveTravelerProgrammeFeedbackDualWrite({
+    const feedback = await saveTravelerProgrammeFeedbackV3({
         agencyId,
         userId: user.id,
         departureId,
@@ -47,57 +39,7 @@ export async function POST(request: Request) {
         rating,
         clientOperationId,
       });
-      return NextResponse.json({ feedback });
-    }
-
-    if (targetType === "itinerary_item") {
-      const valid = await sql`
-        SELECT 1
-        FROM itinerary_items item
-        JOIN trip_days day ON day.id = item.trip_day_id AND day.agency_id = item.agency_id
-        JOIN departures departure
-          ON departure.id = ${departureId} AND departure.agency_id = item.agency_id
-          AND departure.template_version_id = day.template_version_id
-        WHERE item.id = ${targetId} AND item.trip_day_id = ${dayId} AND item.agency_id = ${agencyId}
-        LIMIT 1
-      `;
-      if (!valid[0]) return NextResponse.json({ error: "Tappa non disponibile" }, { status: 404 });
-      const rows = await sql`
-        INSERT INTO traveler_programme_feedback (agency_id, departure_id, party_id, traveler_id,
-          trip_day_id, target_type, itinerary_item_id, rating, client_operation_id)
-        VALUES (${agencyId}, ${departureId}, ${partyId}, ${travelerId}, ${dayId},
-          'itinerary_item', ${targetId}, ${rating}, ${clientOperationId})
-        ON CONFLICT (departure_id, party_id, traveler_id, itinerary_item_id)
-          WHERE itinerary_item_id IS NOT NULL
-        DO UPDATE SET rating = EXCLUDED.rating,
-          client_operation_id = EXCLUDED.client_operation_id, updated_at = NOW()
-        RETURNING id::text, rating, updated_at::text
-      `;
-      return NextResponse.json({ feedback: rows[0] });
-    }
-
-    const valid = await sql`
-      SELECT 1
-      FROM trip_day_hotels link
-      JOIN trip_days day ON day.id = link.trip_day_id
-      JOIN departures departure
-        ON departure.id = ${departureId} AND departure.agency_id = day.agency_id
-        AND departure.template_version_id = day.template_version_id
-      WHERE link.trip_day_id = ${dayId} AND link.hotel_id = ${targetId} AND day.agency_id = ${agencyId}
-      LIMIT 1
-    `;
-    if (!valid[0]) return NextResponse.json({ error: "Pernottamento non disponibile" }, { status: 404 });
-    const rows = await sql`
-      INSERT INTO traveler_programme_feedback (agency_id, departure_id, party_id, traveler_id,
-        trip_day_id, target_type, hotel_id, rating, client_operation_id)
-      VALUES (${agencyId}, ${departureId}, ${partyId}, ${travelerId}, ${dayId}, 'hotel', ${targetId}, ${rating}, ${clientOperationId})
-      ON CONFLICT (departure_id, party_id, traveler_id, trip_day_id, hotel_id)
-        WHERE hotel_id IS NOT NULL
-      DO UPDATE SET rating = EXCLUDED.rating,
-        client_operation_id = EXCLUDED.client_operation_id, updated_at = NOW()
-      RETURNING id::text, rating, updated_at::text
-    `;
-    return NextResponse.json({ feedback: rows[0] });
+    return NextResponse.json({ feedback });
   } catch (error) {
     console.error("Salvataggio valutazione programma non riuscito", error);
     return NextResponse.json({ error: "Valutazione non salvata" }, { status: 503 });

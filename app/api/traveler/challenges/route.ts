@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
-import { getSql } from "@/lib/db";
 import {
   readV3ChallengeAnswerSpecs,
-  v3GamificationCutoverReadEnabled,
 } from "@/lib/platform/v3-gamification";
+import {
+  addV3PhotoContestEntry,
+  reviewV3ActivityEvidence,
+  saveV3ActivityItemResult,
+} from "@/lib/platform/v3-gamification-mutations";
 import { resolveTravelerContext } from "@/lib/platform/traveler-experience";
 
 export const runtime = "nodejs";
@@ -24,84 +27,57 @@ export async function POST(request: Request) {
   if (!/^[0-9a-f-]{36}$/i.test(departureId) || !/^[0-9a-f-]{36}$/i.test(partyId) || !/^[0-9a-f-]{36}$/i.test(dayId)) {
     return NextResponse.json({ error: "Sfida non valida" }, { status: 400 });
   }
-  const sql = getSql();
   const travelerContext = await resolveTravelerContext({ userId: user.id, departureId, partyId, dayId });
   if (!travelerContext) return NextResponse.json({ error: "Sfida non disponibile" }, { status: 403 });
-  const scope = [{
-    agency_id: travelerContext.agencyId,
-    template_version_id: travelerContext.templateVersionId,
-    traveler_id: travelerContext.travelerId,
-  }];
+  const agencyId = travelerContext.agencyId;
+  const templateVersionId = travelerContext.templateVersionId;
   if (body?.action === "photoEvidence") {
     const contentId = String(body.contentId || "");
     const mediaId = String(body.mediaId || "");
     if (!/^[0-9a-f-]{36}$/i.test(contentId) || !/^[0-9a-f-]{36}$/i.test(mediaId)) {
       return NextResponse.json({ error: "Foto-prova non valida" }, { status: 400 });
     }
-    const linked = await sql`
-      SELECT content.id::text, content.content_type
-      FROM generated_content content
-      JOIN media_assets media ON media.id = ${mediaId} AND media.agency_id = content.agency_id
-        AND media.party_id = ${partyId} AND media.uploaded_by_user_id = ${user.id} AND media.status = 'ready'
-      WHERE content.id = ${contentId} AND content.agency_id = ${String(scope[0].agency_id)}
-        AND content.template_version_id = ${String(scope[0].template_version_id)}
-        AND content.content_type IN ('mission', 'bingo_item', 'photo_contest')
-      LIMIT 1
-    `;
+    const linked = await readV3ChallengeAnswerSpecs({
+      agencyId, templateVersionId, dayId, itemIds: [contentId],
+    });
     if (!linked[0]) return NextResponse.json({ error: "Foto e sfida non corrispondono" }, { status: 400 });
-    const contentType = String(linked[0].content_type);
+    const contentType = String(linked[0].activity_type);
     if (contentType === "photo_contest") {
-      const slots = await sql`
-        SELECT participant_slot FROM party_photo_contest_entries
-        WHERE party_id = ${partyId} AND traveler_id = ${String(scope[0].traveler_id)}
-          AND generated_content_id = ${contentId}
-        ORDER BY participant_slot
-      `;
-      if (slots.length >= 3) return NextResponse.json({ error: "Hai già caricato 3 foto per questo contest" }, { status: 409 });
-      const used = new Set(slots.map((row) => Number(row.participant_slot)));
-      const slot = [1, 2, 3].find((candidate) => !used.has(candidate)) ?? 3;
-      const rows = await sql`
-        INSERT INTO party_photo_contest_entries (
-          agency_id, party_id, traveler_id, generated_content_id, media_asset_id, participant_slot
-        ) VALUES (
-          ${String(scope[0].agency_id)}, ${partyId}, ${String(scope[0].traveler_id)},
-          ${contentId}, ${mediaId}, ${slot}
-        ) RETURNING id::text
-      `;
-      return NextResponse.json({ id: String(rows[0].id), slot, status: "submitted" });
+      try {
+        const row = await addV3PhotoContestEntry({
+          userId: user.id, agencyId, departureId, partyId, dayId, itemId: contentId, mediaId,
+        });
+        return NextResponse.json({ id: String(row.id), slot: Number(row.participant_slot), status: "submitted" });
+      } catch (error) {
+        if (error instanceof Error && /contest entry limit reached/i.test(error.message)) {
+          return NextResponse.json({ error: "Hai già caricato 3 foto per questo contest" }, { status: 409 });
+        }
+        throw error;
+      }
     }
-    const activityType = contentType === "mission" ? "mission" : "bingo";
-    const rows = await sql`
-      INSERT INTO party_activity_results (
-        agency_id, party_id, traveler_id, trip_day_id, generated_content_id,
-        activity_type, score, max_score, status, result
-      ) VALUES (
-        ${String(scope[0].agency_id)}, ${partyId}, ${String(scope[0].traveler_id)}, ${dayId},
-        ${contentId}, ${activityType}, 0, 10, 'submitted', ${JSON.stringify({ mediaId })}::jsonb
-      ) ON CONFLICT (party_id, traveler_id, generated_content_id) DO UPDATE SET
-        trip_day_id = EXCLUDED.trip_day_id, status = 'submitted', score = 0,
-        result = EXCLUDED.result, submitted_at = NOW(), updated_at = NOW()
-      RETURNING id::text
-    `;
-    return NextResponse.json({ id: String(rows[0].id), status: "submitted" });
+    if (!["mission", "bingo"].includes(contentType)) {
+      return NextResponse.json({ error: "Foto e sfida non corrispondono" }, { status: 400 });
+    }
+    const row = await saveV3ActivityItemResult({
+      userId: user.id, agencyId, departureId, partyId, dayId, itemId: contentId,
+      score: 0, maxScore: 10, status: "submitted", result: { mediaId }, mediaId,
+    });
+    return NextResponse.json({ id: String(row.id), status: "submitted" });
   }
   if (body?.action === "reviewEvidence") {
     if (!user.isAgencyAdmin) return NextResponse.json({ error: "Solo l’amministratore può validare le foto" }, { status: 403 });
     const resultId = String(body.resultId || "");
     const approved = body.approved === true;
     if (!/^[0-9a-f-]{36}$/i.test(resultId)) return NextResponse.json({ error: "Risultato non valido" }, { status: 400 });
-    const reviewed = await sql`
-      UPDATE party_activity_results result SET
-        status = ${approved ? "approved" : "rejected"},
-        score = CASE WHEN ${approved} AND result.activity_type = 'mission' THEN 10 ELSE 0 END,
-        updated_at = NOW()
-      WHERE result.id = ${resultId} AND result.party_id = ${partyId}
-        AND result.agency_id = ${String(scope[0].agency_id)}
-        AND result.activity_type IN ('mission', 'bingo') AND result.status = 'submitted'
-      RETURNING result.id::text, result.status, result.score
-    `;
-    if (!reviewed[0]) return NextResponse.json({ error: "Foto già valutata o non disponibile" }, { status: 409 });
-    return NextResponse.json({ id: String(reviewed[0].id), status: String(reviewed[0].status), score: Number(reviewed[0].score) });
+    try {
+      const reviewed = await reviewV3ActivityEvidence({ userId: user.id, agencyId, partyId, resultId, approved });
+      return NextResponse.json({ id: String(reviewed.id), status: String(reviewed.status), score: Number(reviewed.score) });
+    } catch (error) {
+      if (error instanceof Error && /evidence not available/i.test(error.message)) {
+        return NextResponse.json({ error: "Foto già valutata o non disponibile" }, { status: 409 });
+      }
+      throw error;
+    }
   }
   const gameAction = String(body?.action || "");
   if (["game", "puzzle", "city", "visitCount"].includes(gameAction)) {
@@ -110,82 +86,35 @@ export async function POST(request: Request) {
     if (!/^[0-9a-f-]{36}$/i.test(contentId) || (gameAction !== "puzzle" && !answer)) {
       return NextResponse.json({ error: "Risposta non valida" }, { status: 400 });
     }
-    const rows = await sql`
-      SELECT content.id::text, content.content, day.city,
-        (SELECT COUNT(*)::integer FROM itinerary_items item
-         WHERE item.agency_id = content.agency_id AND item.trip_day_id = day.id
-           AND item.item_type = 'visit') AS visit_count
-      FROM generated_content content
-      JOIN trip_days day ON day.id = content.trip_day_id AND day.agency_id = content.agency_id
-      WHERE content.id = ${contentId} AND content.trip_day_id = ${dayId}
-        AND content.agency_id = ${String(scope[0].agency_id)}
-        AND content.template_version_id = ${String(scope[0].template_version_id)}
-        AND content.content_type IN ('word_game', 'order_game') AND content.status = 'approved'
-      LIMIT 1
-    `;
-    if (!rows[0]) return NextResponse.json({ error: "Gioco non disponibile" }, { status: 404 });
-    const content = rows[0].content && typeof rows[0].content === "object" && !Array.isArray(rows[0].content)
-      ? rows[0].content as Record<string, unknown> : {};
-    const v3Items = v3GamificationCutoverReadEnabled()
-      ? await readV3ChallengeAnswerSpecs({
-        agencyId: String(scope[0].agency_id),
-        templateVersionId: String(scope[0].template_version_id),
-        dayId,
-        itemIds: [contentId],
-      })
-      : [];
-    if (v3GamificationCutoverReadEnabled() && (!v3Items[0]
-      || !["word_game", "order_game", "puzzle"].includes(String(v3Items[0].activity_type)))) {
+    const v3Items = await readV3ChallengeAnswerSpecs({
+      agencyId, templateVersionId, dayId, itemIds: [contentId],
+    });
+    if (!v3Items[0]
+      || !["word_game", "order_game", "puzzle"].includes(String(v3Items[0].activity_type))) {
       return NextResponse.json({ error: "Gioco non disponibile nel catalogo pubblicato" }, { status: 404 });
     }
     const answerSpec = v3Items[0]?.answer_spec && typeof v3Items[0].answer_spec === "object"
       && !Array.isArray(v3Items[0].answer_spec)
       ? v3Items[0].answer_spec as Record<string, unknown> : {};
-    const expected = gameAction === "city" ? String(rows[0].city || "").trim()
-      : gameAction === "visitCount" ? String(rows[0].visit_count ?? "0")
-        : String(v3GamificationCutoverReadEnabled() ? answerSpec.answer : content.answer || "").trim();
+    const expected = String(answerSpec.answer || "").trim();
     const correct = gameAction === "puzzle"
       ? true
       : Boolean(expected) && normalizedAnswer(answer) === normalizedAnswer(expected);
     const score = correct ? 10 : 0;
-    const saved = await sql`
-      INSERT INTO party_activity_results (
-        agency_id, party_id, traveler_id, trip_day_id, generated_content_id,
-        activity_type, score, max_score, status, result
-      ) VALUES (
-        ${String(scope[0].agency_id)}, ${partyId}, ${String(scope[0].traveler_id)}, ${dayId},
-        ${contentId}, 'game', ${score}, 10, 'approved',
-        ${JSON.stringify({ answer, correct })}::jsonb
-      ) ON CONFLICT (party_id, traveler_id, generated_content_id) DO UPDATE SET
-        score = GREATEST(party_activity_results.score, EXCLUDED.score), max_score = 10,
-        status = 'approved', result = EXCLUDED.result, submitted_at = NOW(), updated_at = NOW()
-      RETURNING id::text, score
-    `;
-    return NextResponse.json({ id: String(saved[0].id), correct, score: Number(saved[0].score), maximum: 10, answer: correct ? "" : expected });
+    const saved = await saveV3ActivityItemResult({
+      userId: user.id, agencyId, departureId, partyId, dayId, itemId: contentId,
+      score, maxScore: 10, status: "approved", result: { answer, correct },
+    });
+    return NextResponse.json({ id: String(saved.id), correct, score, maximum: 10, answer: correct ? "" : expected });
   }
   const answers = body?.answers && typeof body.answers === "object" && !Array.isArray(body.answers)
     ? body.answers as Record<string, unknown> : null;
   if (!answers) return NextResponse.json({ error: "Risposte non valide" }, { status: 400 });
   const questionIds = Object.keys(answers).filter((id) => /^[0-9a-f-]{36}$/i.test(id));
   const questionCandidates = questionIds.length
-    ? v3GamificationCutoverReadEnabled()
-      ? await readV3ChallengeAnswerSpecs({
-        agencyId: String(scope[0].agency_id),
-        templateVersionId: String(scope[0].template_version_id),
-        dayId,
-        itemIds: questionIds,
-      })
-      : await sql`
-          SELECT id::text, content AS answer_spec
-          FROM generated_content
-          WHERE id = ANY(${questionIds}::uuid[]) AND trip_day_id = ${dayId}
-            AND agency_id = ${String(scope[0].agency_id)}
-            AND content_type = 'quiz_question' AND status = 'approved'
-        `
+    ? await readV3ChallengeAnswerSpecs({ agencyId, templateVersionId, dayId, itemIds: questionIds })
     : [];
-  const questions = v3GamificationCutoverReadEnabled()
-    ? questionCandidates.filter((question) => String(question.activity_type) === "quiz")
-    : questionCandidates;
+  const questions = questionCandidates.filter((question) => String(question.activity_type) === "quiz");
   if (questions.length === 0 || questions.length !== questionIds.length) {
     return NextResponse.json({ error: "Completa tutte le domande disponibili" }, { status: 400 });
   }
@@ -195,18 +124,13 @@ export async function POST(request: Request) {
     const correctIndex = Number(answerSpec.correctIndex);
     return { id: String(question.id), selected, correctIndex, correct: selected === correctIndex };
   });
-  await sql.transaction((txn) => results.map((result) => txn`
-    INSERT INTO party_activity_results (
-      agency_id, party_id, traveler_id, trip_day_id, generated_content_id,
-      activity_type, score, max_score, status, result
-    ) VALUES (
-      ${String(scope[0].agency_id)}, ${partyId}, ${String(scope[0].traveler_id)}, ${dayId},
-      ${result.id}, 'quiz', ${result.correct ? 1 : 0}, 1, 'approved',
-      ${JSON.stringify({ selected: result.selected, correct: result.correct })}::jsonb
-    ) ON CONFLICT (party_id, traveler_id, generated_content_id) DO UPDATE SET
-      score = EXCLUDED.score, max_score = EXCLUDED.max_score, status = 'approved',
-      result = EXCLUDED.result, submitted_at = NOW(), updated_at = NOW()
-  `));
+  for (const result of results) {
+    await saveV3ActivityItemResult({
+      userId: user.id, agencyId, departureId, partyId, dayId, itemId: result.id,
+      score: result.correct ? 1 : 0, maxScore: 1, status: "approved",
+      result: { selected: result.selected, correct: result.correct },
+    });
+  }
   return NextResponse.json({
     score: results.filter((result) => result.correct).length,
     maximum: results.length,
