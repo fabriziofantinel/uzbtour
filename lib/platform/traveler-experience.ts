@@ -360,11 +360,6 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
     const recovered = await Promise.allSettled(missingCities.map(async (city) => {
       const coordinates = await geocodeCity(String(city.name), String(city.country));
       if (!coordinates) return;
-      await sql`
-        UPDATE cities
-        SET latitude = ${coordinates.latitude}, longitude = ${coordinates.longitude}, updated_at = NOW()
-        WHERE id = ${String(city.id)} AND (latitude IS NULL OR longitude IS NULL)
-      `;
       for (const row of cities.filter((item) => String(item.id) === String(city.id))) {
         row.latitude = coordinates.latitude;
         row.longitude = coordinates.longitude;
