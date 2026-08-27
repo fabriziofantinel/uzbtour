@@ -1,6 +1,7 @@
 import { getSql } from "@/lib/db";
 import { PlatformRequestError } from "./http";
 import { createHash, randomBytes } from "node:crypto";
+import { createV3JourneyParty, provisionV3JourneyTraveler } from "./v3-journey-provisioning";
 
 function initialsFor(name: string) {
   return name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "").join("");
@@ -57,55 +58,24 @@ export async function getJourneyManagement(departureId: string, actorId: string)
 }
 
 export async function createJourneyFamily(input: { departureId: string; agencyId: string; name: string; actorId: string }) {
-  const sql = getSql();
-  const rows = await sql`
-    WITH inserted AS (
-      INSERT INTO travel_parties (agency_id, departure_id, code, name, status)
-      VALUES (${input.agencyId}, ${input.departureId}, ${familyCode(input.name)}, ${input.name}, 'invited')
-      RETURNING id
-    ), audit AS (
-      INSERT INTO audit_events (agency_id, actor_user_id, departure_id, entity_type, entity_id, action, changes)
-      SELECT ${input.agencyId}, ${input.actorId}, ${input.departureId}, 'travel_party', id::text, 'created', '{}'::jsonb FROM inserted
-    ) SELECT id::text FROM inserted
-  `;
-  return String(rows[0].id);
+  return createV3JourneyParty({ ...input, code: familyCode(input.name) });
 }
 
 export async function addJourneyTraveler(input: {
   agencyId: string; partyId: string; name: string; email: string; phone: string;
   birthDate?: string; role: "organizer" | "member"; actorId: string;
 }) {
-  const sql = getSql();
   const normalizedEmail = input.email.trim().toLocaleLowerCase("en-US");
-  let users = await sql`SELECT id, status FROM platform_users WHERE LOWER(email) = ${normalizedEmail} LIMIT 1`;
-  if (!users[0]) users = await sql`
-    INSERT INTO platform_users (id, display_name, initials, email, phone, auth_provider, status)
-    VALUES (${`traveler:${crypto.randomUUID()}`}, ${input.name}, ${initialsFor(input.name)}, ${normalizedEmail}, ${input.phone || null}, 'neon', 'invited')
-    RETURNING id, status
-  `;
-  const userId = String(users[0].id);
-  const profiles = await sql`
-    INSERT INTO traveler_profiles (agency_id, user_id, display_name, email, phone, birth_date)
-    VALUES (${input.agencyId}, ${userId}, ${input.name}, ${normalizedEmail}, ${input.phone || null}, ${input.birthDate || null})
-    ON CONFLICT (agency_id, user_id) DO UPDATE SET
-      display_name = EXCLUDED.display_name, email = EXCLUDED.email, phone = EXCLUDED.phone,
-      birth_date = COALESCE(EXCLUDED.birth_date, traveler_profiles.birth_date), updated_at = NOW()
-    RETURNING id::text
-  `;
-  const travelerId = String(profiles[0].id);
-  await sql`
-    INSERT INTO party_memberships (agency_id, party_id, traveler_id, role, status)
-    VALUES (${input.agencyId}, ${input.partyId}, ${travelerId}, ${input.role}, 'invited')
-    ON CONFLICT (party_id, traveler_id) DO UPDATE SET role = EXCLUDED.role, status = 'invited'
-  `;
-  if (String(users[0].status) === "active") return { travelerId, activationToken: null };
   const token = randomBytes(32).toString("base64url");
-  await sql`
-    UPDATE user_invitations SET used_at = NOW() WHERE user_id = ${userId} AND used_at IS NULL
-  `;
-  await sql`
-    INSERT INTO user_invitations (user_id, created_by_user_id, token_hash, expires_at)
-    VALUES (${userId}, ${input.actorId}, ${createHash("sha256").update(token).digest("hex")}, NOW() + INTERVAL '14 days')
-  `;
-  return { travelerId, activationToken: token };
+  const result = await provisionV3JourneyTraveler({
+    ...input,
+    email: normalizedEmail,
+    initials: initialsFor(input.name),
+    tokenHash: createHash("sha256").update(token).digest("hex"),
+    expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+  });
+  return {
+    travelerId: result.travelerId,
+    activationToken: result.activationRequired ? token : null,
+  };
 }
