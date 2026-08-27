@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAgencyAdmin } from "@/lib/platform/authorization";
+import { requirePlatformAdmin } from "@/lib/platform/authorization";
 import { platformApiError } from "@/lib/platform/http";
 import { getObjectStorage } from "@/lib/platform/object-storage";
 import { deleteTripRecords, getTripDeletionTarget } from "@/lib/platform/repository";
@@ -15,8 +15,7 @@ export async function DELETE(
     if (!/^[0-9a-f-]{36}$/i.test(id)) {
       return NextResponse.json({ error: "Viaggio non valido" }, { status: 400 });
     }
-    const preliminary = await getTripDeletionTarget(id);
-    const actor = await requireAgencyAdmin(preliminary.agencyId);
+    const actor = await requirePlatformAdmin();
     const target = await getTripDeletionTarget(id, actor.id);
     const storage = getObjectStorage();
     for (const asset of target.assets) {

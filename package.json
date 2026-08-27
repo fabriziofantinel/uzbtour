@@ -39,6 +39,8 @@
     "db:migrate:v3:agency-details": "node --env-file=.env.local scripts/migrate-v3-agency-details-management.mjs --apply",
     "db:migrate:v3:import-document-scope:dry-run": "node --env-file=.env.local scripts/migrate-v3-import-document-template-scope-fix.mjs",
     "db:migrate:v3:import-document-scope": "node --env-file=.env.local scripts/migrate-v3-import-document-template-scope-fix.mjs --apply",
+    "db:migrate:v3:trip-deletion-target:dry-run": "node --env-file=.env.local scripts/migrate-v3-trip-deletion-target-authorization.mjs",
+    "db:migrate:v3:trip-deletion-target": "node --env-file=.env.local scripts/migrate-v3-trip-deletion-target-authorization.mjs --apply",
     "db:backfill:v3:dry-run": "node --env-file=.env.local scripts/backfill-v3-shadow-core.mjs",
     "db:backfill:v3": "node --env-file=.env.local scripts/backfill-v3-shadow-core.mjs --apply",
     "db:audit:v3:operational": "node --env-file=.env.local scripts/audit-v3-operational-source.mjs",

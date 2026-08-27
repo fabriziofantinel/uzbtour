@@ -279,20 +279,18 @@ export async function getTripEnrichmentQueueRecord(templateId: string) {
   };
 }
 
-export async function getTripDeletionTarget(templateId: string, actorId?: string) {
+export async function getTripDeletionTarget(templateId: string, actorId: string) {
   const sql = getSql();
   const trips = await sql`
     SELECT id::text, agency_id::text, title
-    FROM travel.trip_templates
-    WHERE id = ${templateId}
-    LIMIT 1
+    FROM app.resolve_trip_deletion_target_v3(${actorId},${templateId})
   `;
   if (!trips[0]) throw new PlatformRequestError("Viaggio non trovato");
   const agencyId = String(trips[0].agency_id);
-  const assets = actorId ? await sql`
+  const assets = await sql`
     SELECT id::text,provider,bucket,object_key
     FROM app.read_trip_deletion_assets_v3(${actorId},${agencyId},${templateId})
-  ` : [];
+  `;
   return {
     id: String(trips[0].id),
     agencyId,
