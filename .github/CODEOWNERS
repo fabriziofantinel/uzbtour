@@ -1,0 +1,10 @@
+# Consolidated data model and runtime boundaries
+/database/ @aifabriziofantinel-it
+/scripts/check-consolidation-baseline.mjs @aifabriziofantinel-it
+/scripts/check-migration-safety.mjs @aifabriziofantinel-it
+/scripts/check-v3-runtime-boundaries.mjs @aifabriziofantinel-it
+
+# Approved visual language and user-facing surfaces
+/DESIGN.md @aifabriziofantinel-it
+/PRODUCT.md @aifabriziofantinel-it
+/app/ @aifabriziofantinel-it

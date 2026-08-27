@@ -6,8 +6,14 @@
     "node": ">=20.9.0"
   },
   "scripts": {
+    "prebuild": "npm run quality:guard",
     "dev": "next dev",
     "build": "next build",
+    "quality:baseline": "node scripts/check-consolidation-baseline.mjs",
+    "quality:baseline:report": "node scripts/check-consolidation-baseline.mjs --report",
+    "quality:migrations": "node scripts/check-migration-safety.mjs",
+    "quality:guard": "npm run quality:baseline && npm run quality:migrations && npm run check:v3:runtime-boundaries && tsc --noEmit",
+    "quality:gate": "npm run build",
     "start": "next start",
     "db:migrate": "node --env-file=.env.local scripts/migrate.mjs",
     "db:migrate:platform": "node --env-file=.env.local scripts/migrate-platform.mjs",
