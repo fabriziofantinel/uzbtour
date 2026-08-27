@@ -64,6 +64,7 @@ export async function POST(request: Request) {
       sizeBytes: object.sizeBytes,
     });
     const job = await getJobQueue().enqueue({
+      actorId: actor.id,
       agencyId,
       type: "travel-programme.import",
       payload: {

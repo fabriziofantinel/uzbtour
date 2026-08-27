@@ -19,7 +19,7 @@ function normalizedName(value: string) {
   return value.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("it").replace(/\s+/g, " ");
 }
 
-function countryCodeForName(countryName: string) {
+export function countryCodeForName(countryName: string) {
   const target = normalizedName(countryName);
   if (!target) return "";
   if (!countryCodesByName) {

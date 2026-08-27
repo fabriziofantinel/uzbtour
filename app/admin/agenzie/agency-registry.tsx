@@ -148,16 +148,16 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
       const result = await readJson<{
         agencies: AgencyRegistryItem[];
         deletedAgency: string;
-        deletedFiles: number;
-        deletedUsers: number;
+        deletionJobId: string;
+        queued: true;
       }>(await fetch(`/api/admin/platform/agencies/${agencyToDelete.id}`, { method: "DELETE" }));
       setAgencies(result.agencies);
       setExpandedAgencyId("");
       setAgentAgencyId("");
       setAgencyToDelete(null);
       setNotice(
-        `Agenzia “${result.deletedAgency}” eliminata con tutti i viaggi e i viaggiatori. ` +
-        `${result.deletedFiles} file rimossi e ${result.deletedUsers} account non più utilizzati cancellati.`
+        `Cancellazione di “${result.deletedAgency}” avviata. File, viaggiatori e viaggi ` +
+        `saranno rimossi in sicurezza dal processo asincrono.`
       );
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Eliminazione non riuscita");

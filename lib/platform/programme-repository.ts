@@ -1,5 +1,5 @@
 import { getSql } from "@/lib/db";
-import { PlatformRequestError } from "./http";
+import { PlatformRequestError } from "./errors";
 import { assertProgrammeFeedbackSchema } from "./schema-readiness";
 
 type Row = Record<string, unknown>;
@@ -40,16 +40,23 @@ export async function getAgencyProgramme(departureId: string, actorId: string) {
   const [, dayRows, itemRows, hotelRows, documentRows] = await sql.transaction((transaction) => [
     transaction`SELECT set_config('app.agency_id', ${agencyId}, true)`,
     transaction`
-      SELECT id::text, day_number, day_offset,
-        COALESCE(metadata->>'legacyLabel', '') AS label,
-        title, COALESCE(metadata->>'legacyCity', '') AS city, description
-      FROM travel.template_days
-      WHERE agency_id = ${agencyId} AND template_version_id = ${versionId}
-      ORDER BY day_number
+      SELECT departure_day.id::text,template_day.day_number,template_day.day_offset,
+        COALESCE(departure_day.label_override,template_day.metadata->>'legacyLabel','') AS label,
+        COALESCE(departure_day.title_override,template_day.title) AS title,
+        COALESCE(departure_day.city_override,template_day.metadata->>'legacyCity','') AS city,
+        COALESCE(departure_day.description_override,template_day.description) AS description
+      FROM travel.template_days template_day
+      JOIN travel.departure_days departure_day
+        ON departure_day.template_day_id=template_day.id
+       AND departure_day.agency_id=template_day.agency_id
+       AND departure_day.departure_id=${departureId}
+      WHERE template_day.agency_id=${agencyId}
+        AND template_day.template_version_id=${versionId}
+      ORDER BY template_day.day_number
     `,
     transaction`
-      SELECT COALESCE(item.source_template_item_id, item.id)::text AS id,
-        day.template_day_id::text AS trip_day_id, item.item_type, item.title,
+      SELECT item.id::text AS id,
+        day.id::text AS trip_day_id, item.item_type, item.title,
         item.description,
         CASE WHEN item.scheduled_start_at IS NULL THEN NULL
           ELSE to_char(item.scheduled_start_at AT TIME ZONE departure.timezone, 'HH24:MI:SS') END AS starts_at,
@@ -67,17 +74,18 @@ export async function getAgencyProgramme(departureId: string, actorId: string) {
       ORDER BY day.service_date, item.sort_order, item.id
     `,
     transaction`
-      SELECT accommodation.id::text, accommodation.trip_day_id::text,
-        accommodation.name, accommodation.notes, accommodation.sort_order
-      FROM accommodations accommodation
-      JOIN trip_days day ON day.id = accommodation.trip_day_id
-        AND day.agency_id = accommodation.agency_id
-      WHERE accommodation.agency_id = ${agencyId} AND day.template_version_id = ${versionId}
-      ORDER BY day.day_number, accommodation.sort_order, accommodation.id
+      SELECT stay.id::text,day.id::text AS trip_day_id,
+        stay.name_snapshot AS name,stay.notes,stay.sort_order
+      FROM travel.departure_accommodation_stays stay
+      JOIN travel.departure_days day ON day.id=stay.departure_day_id
+        AND day.agency_id=stay.agency_id AND day.departure_id=stay.departure_id
+      WHERE stay.agency_id=${agencyId} AND stay.departure_id=${departureId}
+        AND stay.operational_status<>'cancelled'
+      ORDER BY day.service_date,stay.sort_order,stay.id
     `,
     transaction`
       SELECT document.id::text,
-        COALESCE(item.source_template_item_id, item.id)::text AS itinerary_item_id,
+        item.id::text AS itinerary_item_id,
         document.title,
         asset.content_type, asset.size_bytes, document.created_at::text
       FROM ops.travel_documents document
@@ -152,80 +160,12 @@ export async function updateAgencyProgrammeDay(input: {
   hotels: Array<{ id: string; name: string; notes: string; sortOrder: number }>;
 }) {
   const sql = getSql();
-  const scope = await sql`
-    SELECT d.agency_id::text, d.template_version_id::text
-    FROM departures d
-    JOIN agency_memberships membership
-      ON membership.agency_id = d.agency_id AND membership.user_id = ${input.actorId}
-      AND membership.role IN ('owner', 'admin', 'editor')
-    JOIN trip_days day ON day.id = ${input.dayId}
-      AND day.agency_id = d.agency_id AND day.template_version_id = d.template_version_id
-    WHERE d.id = ${input.departureId}
-    LIMIT 1
-  `;
-  if (!scope[0]) throw new PlatformRequestError("Giornata non disponibile");
-  const agencyId = String(scope[0].agency_id);
-  const versionId = String(scope[0].template_version_id);
-  const itemIds = input.items.map((item) => item.id);
-  const hotelIds = input.hotels.map((hotel) => hotel.id);
-  const validItems = itemIds.length === 0 ? [] : await sql`
-    SELECT item.id::text
-    FROM itinerary_items item
-    JOIN trip_days day ON day.id = item.trip_day_id AND day.agency_id = item.agency_id
-    WHERE item.id = ANY(${itemIds}::uuid[]) AND item.trip_day_id = ${input.dayId}
-      AND item.agency_id = ${agencyId} AND day.template_version_id = ${versionId}
-  `;
-  const validHotels = hotelIds.length === 0 ? [] : await sql`
-    SELECT accommodation.id::text
-    FROM accommodations accommodation
-    JOIN trip_days day ON day.id = accommodation.trip_day_id
-      AND day.agency_id = accommodation.agency_id
-    WHERE accommodation.id = ANY(${hotelIds}::uuid[]) AND accommodation.trip_day_id = ${input.dayId}
-      AND accommodation.agency_id = ${agencyId} AND day.template_version_id = ${versionId}
-  `;
-  if (validItems.length !== itemIds.length || validHotels.length !== hotelIds.length) {
-    throw new PlatformRequestError("Il programma contiene elementi non validi");
-  }
-  await sql.transaction((txn) => [
-    txn`
-      UPDATE trip_days SET label = ${input.label}, title = ${input.title}, city = ${input.city},
-        description = ${input.description}
-      WHERE id = ${input.dayId} AND agency_id = ${agencyId} AND template_version_id = ${versionId}
-    `,
-    ...input.items.map((item) => txn`
-      UPDATE itinerary_items SET title = ${item.title}, description = ${item.description},
-        starts_at = ${item.startsAt || null}, ends_at = ${item.endsAt || null}, sort_order = ${item.sortOrder}
-      WHERE id = ${item.id} AND trip_day_id = ${input.dayId} AND agency_id = ${agencyId}
-    `),
-    ...input.hotels.map((hotel) => txn`
-      UPDATE accommodations SET name = ${hotel.name}, notes = ${hotel.notes}, sort_order = ${hotel.sortOrder}
-      WHERE id = ${hotel.id} AND trip_day_id = ${input.dayId} AND agency_id = ${agencyId}
-    `),
-    txn`
-      INSERT INTO audit_events (agency_id, actor_user_id, departure_id, entity_type, entity_id, action, changes)
-      VALUES (${agencyId}, ${input.actorId}, ${input.departureId}, 'trip_day', ${input.dayId},
-        'updated', ${JSON.stringify({ sharedTemplateVersionId: versionId })}::jsonb)
-    `,
-  ]);
-  const [, synchronized] = await sql.transaction((txn) => [
-    txn`SELECT set_config('app.agency_id', ${agencyId}, true)`,
-    txn`SELECT day.id::text
-    FROM travel.template_days day
-    JOIN travel.departure_days departure_day
-      ON departure_day.template_day_id = day.id
-     AND departure_day.agency_id = day.agency_id
-     AND departure_day.departure_id = ${input.departureId}
-    WHERE day.id = ${input.dayId}
-      AND day.agency_id = ${agencyId}
-      AND day.template_version_id = ${versionId}
-      AND day.title = ${input.title}
-      AND day.description = ${input.description}
-      LIMIT 1
-    `,
-  ], { readOnly: true });
-  if (!synchronized[0]) {
-    throw new PlatformRequestError("Aggiornamento non consolidato nel programma operativo");
-  }
+  const rows = await sql`SELECT app.update_departure_programme_day_v3(
+    ${input.actorId},${input.departureId},${input.dayId},${input.label},${input.title},
+    ${input.city},${input.description},${JSON.stringify(input.items)}::jsonb,
+    ${JSON.stringify(input.hotels)}::jsonb
+  ) AS updated`;
+  if (!Boolean(rows[0]?.updated)) throw new PlatformRequestError("Giornata non disponibile");
 }
 
 function departureCode(title: string) {
@@ -242,47 +182,10 @@ export async function createDepartureFromProgramme(input: {
   title: string;
 }) {
   const sql = getSql();
-  const legacyScope = await sql`
-    SELECT template.agency_id::text
-    FROM trip_templates template
-    JOIN agency_memberships membership
-      ON membership.agency_id = template.agency_id
-     AND membership.user_id = ${input.actorId}
-     AND membership.role IN ('owner', 'admin', 'editor')
-    WHERE template.id = ${input.templateId}
-    LIMIT 1
-  `;
-  if (!legacyScope[0]) throw new PlatformRequestError("Pubblica il programma prima di creare una nuova partenza");
-  const agencyId = String(legacyScope[0].agency_id);
-  const [, templates] = await sql.transaction((txn) => [
-    txn`SELECT set_config('app.agency_id', ${agencyId}, true)`,
-    txn`
-    SELECT template.id::text, template.agency_id::text, template.title, template.default_timezone,
-      version.id::text AS version_id
-    FROM travel.trip_templates template
-    JOIN LATERAL (
-      SELECT id FROM travel.trip_template_versions
-      WHERE template_id = template.id AND agency_id = template.agency_id AND status = 'published'
-      ORDER BY version_number DESC LIMIT 1
-    ) version ON TRUE
-    WHERE template.id = ${input.templateId} AND template.agency_id = ${agencyId}
-      AND template.status = 'active'
-    LIMIT 1
-    `,
-  ], { readOnly: true });
-  if (!templates[0]) throw new PlatformRequestError("Pubblica il programma prima di creare una nuova partenza");
-  const template = templates[0] as Row;
-  const title = input.title || String(template.title);
-  const rows = await sql`
-    INSERT INTO departures (
-      agency_id, template_id, template_version_id, code, title, starts_on, ends_on,
-      timezone, status, published_at
-    ) VALUES (
-      ${String(template.agency_id)}, ${input.templateId}, ${String(template.version_id)},
-      ${departureCode(title)}, ${title}, ${input.startsOn}, ${input.endsOn},
-      ${String(template.default_timezone)}, 'confirmed', NOW()
-    )
-    RETURNING id::text
-  `;
+  const departureId=crypto.randomUUID();
+  const title=input.title||"Nuova partenza";
+  const rows=await sql`SELECT app.create_departure_from_programme_v3(${input.actorId},
+    ${input.templateId},${departureId},${departureCode(title)},${title},${input.startsOn},${input.endsOn})::text AS id`;
+  if(!rows[0]?.id) throw new PlatformRequestError("Pubblica il programma prima di creare una nuova partenza");
   return String(rows[0].id);
 }

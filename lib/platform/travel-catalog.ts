@@ -1,6 +1,6 @@
 import { getSql } from "@/lib/db";
 import type { TravelProgrammeDraft } from "./import-schema";
-import { geocodeCity } from "./geocoding";
+import { countryCodeForName, geocodeCity } from "./geocoding";
 
 export type ReferenceTarget = { entityType: "country" | "city" | "site"; entityId: string; name: string };
 export type DayReferences = { cityIds: string[]; siteIds: string[]; hotelId?: string };
@@ -13,35 +13,31 @@ function googleUrl(label: string) {
   return `https://www.google.com/search?q=${encodeURIComponent(label)}`;
 }
 
-async function ensureCountry(name: string) {
+async function ensureCountry(actorId: string, agencyId: string, name: string) {
   const sql = getSql();
   const rows = await sql`
-    INSERT INTO countries (name, normalized_name, google_url)
-    VALUES (${name.trim()}, ${normalizedName(name)}, ${googleUrl(name)})
-    ON CONFLICT (normalized_name) DO UPDATE SET name = EXCLUDED.name, google_url = EXCLUDED.google_url, updated_at = NOW()
-    RETURNING id::text, name
+    SELECT id::text,name FROM app.upsert_reference_catalog_v3(${actorId},${agencyId},
+      'country',NULL,${countryCodeForName(name)},${name.trim()},${normalizedName(name)},
+      ${googleUrl(name)},NULL,NULL)
   `;
   return { id: String(rows[0].id), name: String(rows[0].name) };
 }
 
-async function ensureCity(countryId: string, countryName: string, name: string) {
+async function ensureCity(actorId: string, agencyId: string, countryId: string, countryName: string, name: string) {
   const sql = getSql();
   const rows = await sql`
-    INSERT INTO cities (country_id, name, normalized_name, google_url)
-    VALUES (${countryId}, ${name.trim()}, ${normalizedName(name)}, ${googleUrl(`${name}, ${countryName}`)})
-    ON CONFLICT (country_id, normalized_name) DO UPDATE SET name = EXCLUDED.name, google_url = EXCLUDED.google_url, updated_at = NOW()
-    RETURNING id::text, name, latitude, longitude
+    SELECT id::text,name,latitude,longitude FROM app.upsert_reference_catalog_v3(
+      ${actorId},${agencyId},'city',${countryId},NULL,${name.trim()},${normalizedName(name)},
+      ${googleUrl(`${name}, ${countryName}`)},NULL,NULL)
   `;
   const city = rows[0];
   if (city.latitude == null || city.longitude == null) {
     try {
       const coordinates = await geocodeCity(String(city.name), countryName);
       if (coordinates) {
-        await sql`
-          UPDATE cities
-          SET latitude = ${coordinates.latitude}, longitude = ${coordinates.longitude}, updated_at = NOW()
-          WHERE id = ${String(city.id)} AND (latitude IS NULL OR longitude IS NULL)
-        `;
+        await sql`SELECT id FROM app.upsert_reference_catalog_v3(${actorId},${agencyId},
+          'city',${countryId},NULL,${name.trim()},${normalizedName(name)},
+          ${googleUrl(`${name}, ${countryName}`)},${coordinates.latitude},${coordinates.longitude})`;
       }
     } catch (error) {
       console.warn(`Coordinate non recuperate per ${String(city.name)}`, error instanceof Error ? error.message : error);
@@ -50,29 +46,27 @@ async function ensureCity(countryId: string, countryName: string, name: string) 
   return { id: String(city.id), name: String(city.name) };
 }
 
-async function ensureSite(cityId: string, cityName: string, countryName: string, name: string) {
+async function ensureSite(actorId: string, agencyId: string, cityId: string, cityName: string, countryName: string, name: string) {
   const sql = getSql();
   const rows = await sql`
-    INSERT INTO visit_sites (city_id, name, normalized_name, google_url)
-    VALUES (${cityId}, ${name.trim()}, ${normalizedName(name)}, ${googleUrl(`${name}, ${cityName}, ${countryName}`)})
-    ON CONFLICT (city_id, normalized_name) DO UPDATE SET name = EXCLUDED.name, google_url = EXCLUDED.google_url, updated_at = NOW()
-    RETURNING id::text, name
+    SELECT id::text,name FROM app.upsert_reference_catalog_v3(${actorId},${agencyId},
+      'site',${cityId},NULL,${name.trim()},${normalizedName(name)},
+      ${googleUrl(`${name}, ${cityName}, ${countryName}`)},NULL,NULL)
   `;
   return { id: String(rows[0].id), name: String(rows[0].name) };
 }
 
-async function ensureHotel(cityId: string, cityName: string, countryName: string, name: string) {
+async function ensureHotel(actorId: string, agencyId: string, cityId: string, cityName: string, countryName: string, name: string) {
   const sql = getSql();
   const rows = await sql`
-    INSERT INTO hotels (city_id, name, normalized_name, google_url)
-    VALUES (${cityId}, ${name.trim()}, ${normalizedName(name)}, ${googleUrl(`${name}, ${cityName}, ${countryName}`)})
-    ON CONFLICT (city_id, normalized_name) DO UPDATE SET name = EXCLUDED.name, google_url = EXCLUDED.google_url, updated_at = NOW()
-    RETURNING id::text
+    SELECT id::text FROM app.upsert_reference_catalog_v3(${actorId},${agencyId},
+      'hotel',${cityId},NULL,${name.trim()},${normalizedName(name)},
+      ${googleUrl(`${name}, ${cityName}, ${countryName}`)},NULL,NULL)
   `;
   return String(rows[0].id);
 }
 
-export async function prepareTravelCatalog(draft: TravelProgrammeDraft) {
+export async function prepareTravelCatalog(draft: TravelProgrammeDraft, scope: { actorId: string; agencyId: string }) {
   const countryNames = [
     ...draft.destinationCountry.split(/[,;/]+/),
     ...draft.days.flatMap((day) => [
@@ -83,7 +77,7 @@ export async function prepareTravelCatalog(draft: TravelProgrammeDraft) {
   ].map((item) => item.trim()).filter(Boolean);
   const uniqueCountryNames = [...new Map(countryNames.map((name) => [normalizedName(name), name])).values()];
   if (uniqueCountryNames.length === 0) throw new Error("Indica almeno un paese prima di pubblicare");
-  const countries = await Promise.all(uniqueCountryNames.map(ensureCountry));
+  const countries = await Promise.all(uniqueCountryNames.map((name)=>ensureCountry(scope.actorId,scope.agencyId,name)));
   const primaryCountry = countries[0];
   const countryByName = new Map(countries.map((country) => [normalizedName(country.name), country]));
   const targets = new Map<string, ReferenceTarget>();
@@ -95,7 +89,7 @@ export async function prepareTravelCatalog(draft: TravelProgrammeDraft) {
     const cacheKey = `${country.id}:${normalizedName(cityName)}`;
     let city = cityCache.get(cacheKey);
     if (!city && cityName.trim()) {
-      city = await ensureCity(country.id, country.name, cityName);
+      city = await ensureCity(scope.actorId,scope.agencyId,country.id, country.name, cityName);
       cityCache.set(cacheKey, city);
       targets.set(`city:${city.id}`, { entityType: "city", entityId: city.id, name: city.name });
     }
@@ -112,7 +106,7 @@ export async function prepareTravelCatalog(draft: TravelProgrammeDraft) {
       const location = await resolveCity(activity.placeCountry, activity.placeCity);
       if (!location.city) continue;
       cityIds.push(location.city.id);
-      const site = await ensureSite(location.city.id, location.city.name, location.country.name, siteName);
+      const site = await ensureSite(scope.actorId,scope.agencyId,location.city.id, location.city.name, location.country.name, siteName);
       siteIds.push(site.id);
       targets.set(`site:${site.id}`, { entityType: "site", entityId: site.id, name: site.name });
     }
@@ -121,7 +115,7 @@ export async function prepareTravelCatalog(draft: TravelProgrammeDraft) {
       : null;
     if (hotelLocation?.city) cityIds.push(hotelLocation.city.id);
     const hotelId = hotelLocation?.city && day.accommodation.name.trim()
-      ? await ensureHotel(
+      ? await ensureHotel(scope.actorId,scope.agencyId,
           hotelLocation.city.id,
           hotelLocation.city.name,
           hotelLocation.country.name,

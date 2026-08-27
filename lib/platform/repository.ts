@@ -1,6 +1,6 @@
 import { getSql } from "@/lib/db";
 import { getPlatformProviderConfig } from "./provider-config";
-import { PlatformRequestError } from "./http";
+import { PlatformRequestError } from "./errors";
 import type { AgencyRole, PlatformOverview } from "./types";
 
 type OverviewRow = {
@@ -62,132 +62,12 @@ export async function getPlatformOverview(
   actor: { id: string; name: string }
 ): Promise<PlatformOverview> {
   const sql = getSql();
-  const [overviewRows, importRows, referenceRows, enrichmentRows] = await sql.transaction((transaction) => [transaction`
-    WITH latest_imports AS (
-      SELECT DISTINCT ON (agency_id, template_id)
-        agency_id,
-        template_id,
-        result
-      FROM import_jobs
-      WHERE result IS NOT NULL
-        AND status IN ('ready_for_review', 'published')
-      ORDER BY agency_id, template_id, created_at DESC
-    )
-    SELECT
-      a.id::text AS agency_id,
-      a.slug AS agency_slug,
-      a.name AS agency_name,
-      a.status AS agency_status,
-      am.role AS agency_role,
-      tt.id::text AS template_id,
-      tt.title AS template_title,
-      tt.status AS template_status,
-      COALESCE(NULLIF(li.result->>'destinationCountry', ''), tt.destination_country) AS destination_country,
-      COALESCE(NULLIF(li.result->>'startDate', ''), tt.starts_on::text) AS template_starts_on,
-      COALESCE(NULLIF(li.result->>'endDate', ''), tt.ends_on::text) AS template_ends_on,
-      d.id::text AS departure_id,
-      d.code AS departure_code,
-      d.title AS departure_title,
-      d.starts_on::text AS starts_on,
-      d.ends_on::text AS ends_on,
-      d.status AS departure_status,
-      COUNT(DISTINCT tp.id)::text AS party_count,
-      STRING_AGG(DISTINCT traveler.display_name, '|' ORDER BY traveler.display_name) AS traveler_names
-    FROM agency_memberships am
-    JOIN agencies a ON a.id = am.agency_id
-    LEFT JOIN trip_templates tt ON tt.agency_id = a.id
-    LEFT JOIN latest_imports li ON li.agency_id = a.id AND li.template_id = tt.id
-    LEFT JOIN departures d ON d.template_id = tt.id AND d.agency_id = a.id
-    LEFT JOIN travel_parties tp ON tp.departure_id = d.id AND tp.agency_id = a.id
-    LEFT JOIN party_memberships pm ON pm.party_id = tp.id AND pm.agency_id = a.id AND pm.status <> 'removed'
-    LEFT JOIN traveler_profiles traveler ON traveler.id = pm.traveler_id AND traveler.agency_id = a.id
-    WHERE am.user_id = ${actor.id} AND am.role IN ('owner', 'admin', 'editor')
-    GROUP BY a.id, a.slug, a.name, a.status, am.role, tt.id, tt.title, tt.status,
-      tt.destination_country, tt.starts_on, tt.ends_on, li.result,
-      d.id, d.code, d.title, d.starts_on, d.ends_on, d.status
-    ORDER BY a.name, tt.title NULLS LAST, d.starts_on DESC NULLS LAST
-  `, transaction`
-    SELECT
-      ij.id::text,
-      ij.agency_id::text,
-      ij.template_id::text,
-      tt.title AS trip_title,
-      ma.original_name AS file_name,
-      ij.status,
-      ij.created_at::text,
-      ij.error_message
-    FROM import_jobs ij
-    JOIN agency_memberships am
-      ON am.agency_id = ij.agency_id AND am.user_id = ${actor.id}
-      AND am.role IN ('owner', 'admin', 'editor')
-    JOIN trip_templates tt ON tt.id = ij.template_id AND tt.agency_id = ij.agency_id
-    JOIN travel_documents td ON td.id = ij.document_id AND td.agency_id = ij.agency_id
-    JOIN media_assets ma ON ma.id = td.media_asset_id AND ma.agency_id = ij.agency_id
-    ORDER BY ij.created_at DESC
-    LIMIT 12
-  `, transaction`
-    WITH latest_versions AS (
-      SELECT DISTINCT ON (ttv.template_id)
-        ttv.id, ttv.template_id
-      FROM trip_template_versions ttv
-      JOIN trip_templates tt ON tt.id = ttv.template_id AND tt.agency_id = ttv.agency_id
-      JOIN agency_memberships am ON am.agency_id = tt.agency_id
-      WHERE am.user_id = ${actor.id} AND am.role IN ('owner', 'admin', 'editor')
-      ORDER BY ttv.template_id, ttv.version_number DESC
-    ), trip_entities AS (
-      SELECT tc.template_id, 'country'::text AS entity_type, tc.country_id AS entity_id
-      FROM trip_countries tc
-      JOIN trip_templates tt ON tt.id = tc.template_id
-      JOIN agency_memberships am ON am.agency_id = tt.agency_id
-      WHERE am.user_id = ${actor.id} AND am.role IN ('owner', 'admin', 'editor')
-      UNION
-      SELECT lv.template_id, 'city'::text, tdc.city_id
-      FROM latest_versions lv
-      JOIN trip_days td ON td.template_version_id = lv.id
-      JOIN trip_day_cities tdc ON tdc.trip_day_id = td.id
-      UNION
-      SELECT lv.template_id, 'site'::text, tds.site_id
-      FROM latest_versions lv
-      JOIN trip_days td ON td.template_version_id = lv.id
-      JOIN trip_day_sites tds ON tds.trip_day_id = td.id
-    )
-    SELECT
-      te.template_id::text,
-      te.entity_type,
-      te.entity_id::text,
-      rc.content_type,
-      rc.status,
-      rc.content
-    FROM trip_entities te
-    LEFT JOIN reference_contents rc
-      ON rc.entity_type = te.entity_type
-      AND rc.entity_id = te.entity_id
-      AND rc.locale = 'it-IT'
-  `, transaction`
-    SELECT DISTINCT ON (resolved.template_id)
-      resolved.template_id::text,
-      resolved.status,
-      resolved.error_message,
-      resolved.updated_at::text
-    FROM (
-      SELECT
-        COALESCE(NULLIF(pj.payload->>'templateId', '')::uuid, ij.template_id) AS template_id,
-        pj.status,
-        pj.error_message,
-        pj.updated_at,
-        pj.created_at
-      FROM platform_jobs pj
-      LEFT JOIN import_jobs ij
-        ON ij.id::text = pj.payload->>'importId'
-        AND ij.agency_id = pj.agency_id
-      JOIN agency_memberships am ON am.agency_id = pj.agency_id
-      WHERE pj.job_type = 'travel-reference.enrich'
-        AND am.user_id = ${actor.id}
-        AND am.role IN ('owner', 'admin', 'editor')
-    ) resolved
-    WHERE resolved.template_id IS NOT NULL
-    ORDER BY resolved.template_id, resolved.created_at DESC
-  `]);
+  const [overviewRows, importRows, referenceRows, enrichmentRows] = await Promise.all([
+    sql`SELECT * FROM app.read_agency_overview_v3(${actor.id})`,
+    sql`SELECT * FROM app.read_agency_recent_imports_v3(${actor.id})`,
+    sql`SELECT * FROM app.read_agency_reference_contents_v3(${actor.id})`,
+    sql`SELECT * FROM app.read_agency_enrichment_jobs_v3(${actor.id})`,
+  ]);
   const rows = overviewRows as OverviewRow[];
 
   const agencies = new Map<string, PlatformOverview["agencies"][number]>();
@@ -331,60 +211,36 @@ export async function createTripTemplate(input: {
   const versionId = crypto.randomUUID();
   const slug = tripSlug(input.title);
   const rows = await sql`
-    WITH inserted_template AS (
-      INSERT INTO trip_templates (
-        id, agency_id, slug, title, destination_country, status,
-        default_locale, default_timezone, created_by_user_id
-      ) VALUES (
-        ${templateId}, ${input.agencyId}, ${slug}, ${input.title},
-        ${input.destinationCountry || null}, 'draft', 'it-IT', ${input.timezone}, ${input.actorId}
-      )
-      RETURNING id, agency_id, slug, title, destination_country, status, default_timezone
-    ), inserted_version AS (
-      INSERT INTO trip_template_versions (
-        id, agency_id, template_id, version_number, status, revision_note, created_by_user_id
-      ) VALUES (
-        ${versionId}, ${input.agencyId}, ${templateId}, 1, 'draft',
-        'Versione iniziale in attesa del programma di viaggio.', ${input.actorId}
-      )
-      RETURNING id
-    ), audit AS (
-      INSERT INTO audit_events (
-        agency_id, actor_user_id, entity_type, entity_id, action, changes
-      ) VALUES (
-        ${input.agencyId}, ${input.actorId}, 'trip_template', ${templateId}, 'created',
-        ${JSON.stringify({ title: input.title })}::jsonb
-      )
-    )
-    SELECT
-      t.id::text, t.agency_id::text, t.slug, t.title, t.destination_country,
-      t.status, t.default_timezone, ${versionId}::text AS version_id
-    FROM inserted_template t
-    CROSS JOIN inserted_version
+    SELECT id::text,agency_id::text,slug,title,status,default_timezone,
+      version_id::text,${input.destinationCountry}::text AS destination_country
+    FROM app.create_trip_template_v3(${input.actorId},${input.agencyId},${templateId},
+      ${versionId},${slug},${input.title},${input.timezone})
   `;
   return rows[0];
 }
 
 export async function assertTripBelongsToAgency(agencyId: string, templateId: string) {
   const sql = getSql();
-  const rows = await sql`
-    SELECT id::text, title
-    FROM trip_templates
-    WHERE id = ${templateId} AND agency_id = ${agencyId}
-    LIMIT 1
-  `;
+  const [,rows]=await sql.transaction((txn)=>[
+    txn`SELECT set_config('app.agency_id',${agencyId},true)`,
+    txn`SELECT id::text,title FROM travel.trip_templates
+      WHERE id=${templateId} AND agency_id=${agencyId} LIMIT 1`,
+  ],{readOnly:true});
   if (rows.length === 0) throw new PlatformRequestError("Viaggio non trovato");
   return rows[0] as { id: string; title: string };
 }
 
 export async function assertTripHasNoProgramme(agencyId: string, templateId: string) {
   const sql = getSql();
-  const rows = await sql`
+  const [,rows] = await sql.transaction((txn)=>[
+    txn`SELECT set_config('app.agency_id',${agencyId},true)`,
+    txn`
     SELECT EXISTS (
-      SELECT 1 FROM travel_documents
+      SELECT 1 FROM ops.travel_documents
       WHERE agency_id = ${agencyId} AND template_id = ${templateId}
     ) AS value
-  `;
+    `,
+  ],{readOnly:true});
   if (Boolean(rows[0]?.value)) {
     throw new PlatformRequestError("Il viaggio ha già un programma: eliminalo per caricare un nuovo preventivo");
   }
@@ -392,20 +248,25 @@ export async function assertTripHasNoProgramme(agencyId: string, templateId: str
 
 export async function getTripEnrichmentQueueRecord(templateId: string) {
   const sql = getSql();
-  const rows = await sql`
+  const agencyRows=await sql`SELECT agency_id::text FROM app.resolve_template_agency_v3(${templateId})`;
+  if(!agencyRows[0]?.agency_id) throw new PlatformRequestError("Generazione dei contenuti non trovata");
+  const agencyId=String(agencyRows[0].agency_id);
+  const [,rows] = await sql.transaction((txn)=>[
+    txn`SELECT set_config('app.agency_id',${agencyId},true)`,
+    txn`
     SELECT
       pj.agency_id::text,
       pj.payload,
       pj.idempotency_key
-    FROM platform_jobs pj
-    LEFT JOIN import_jobs ij
-      ON ij.id::text = pj.payload->>'importId'
-      AND ij.agency_id = pj.agency_id
+    FROM ops.platform_jobs pj
+    LEFT JOIN ops.import_jobs ij
+      ON ij.id=pj.import_job_id AND ij.agency_id=pj.agency_id
     WHERE pj.job_type = 'travel-reference.enrich'
       AND COALESCE(NULLIF(pj.payload->>'templateId', '')::uuid, ij.template_id) = ${templateId}
     ORDER BY pj.created_at DESC
     LIMIT 1
-  `;
+    `,
+  ],{readOnly:true});
   if (!rows[0]) throw new PlatformRequestError("Generazione dei contenuti non trovata");
   const payload = rows[0].payload;
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
@@ -418,36 +279,20 @@ export async function getTripEnrichmentQueueRecord(templateId: string) {
   };
 }
 
-export async function getTripDeletionTarget(templateId: string) {
+export async function getTripDeletionTarget(templateId: string, actorId?: string) {
   const sql = getSql();
   const trips = await sql`
     SELECT id::text, agency_id::text, title
-    FROM trip_templates
+    FROM travel.trip_templates
     WHERE id = ${templateId}
     LIMIT 1
   `;
   if (!trips[0]) throw new PlatformRequestError("Viaggio non trovato");
   const agencyId = String(trips[0].agency_id);
-  const assets = await sql`
-    SELECT DISTINCT ma.id::text, ma.provider, ma.bucket, ma.object_key
-    FROM media_assets ma
-    WHERE ma.agency_id = ${agencyId}
-      AND (
-        ma.departure_id IN (
-          SELECT id FROM departures WHERE agency_id = ${agencyId} AND template_id = ${templateId}
-        )
-        OR ma.party_id IN (
-          SELECT tp.id
-          FROM travel_parties tp
-          JOIN departures d ON d.id = tp.departure_id AND d.agency_id = tp.agency_id
-          WHERE tp.agency_id = ${agencyId} AND d.template_id = ${templateId}
-        )
-        OR ma.id IN (
-          SELECT media_asset_id FROM travel_documents
-          WHERE agency_id = ${agencyId} AND template_id = ${templateId}
-        )
-      )
-  `;
+  const assets = actorId ? await sql`
+    SELECT id::text,provider,bucket,object_key
+    FROM app.read_trip_deletion_assets_v3(${actorId},${agencyId},${templateId})
+  ` : [];
   return {
     id: String(trips[0].id),
     agencyId,
@@ -469,39 +314,9 @@ export async function deleteTripRecords(input: {
   mediaAssetIds: string[];
 }) {
   const sql = getSql();
-  const assetIds = input.mediaAssetIds.length > 0 ? input.mediaAssetIds : [crypto.randomUUID()];
-  const results = await sql.transaction((txn) => [
-    txn`
-      DELETE FROM platform_jobs
-      WHERE agency_id = ${input.agencyId}
-        AND payload->>'importId' IN (
-          SELECT id::text FROM import_jobs
-          WHERE agency_id = ${input.agencyId} AND template_id = ${input.templateId}
-        )
-    `,
-    txn`
-      DELETE FROM departures
-      WHERE agency_id = ${input.agencyId} AND template_id = ${input.templateId}
-    `,
-    txn`
-      DELETE FROM trip_templates
-      WHERE id = ${input.templateId} AND agency_id = ${input.agencyId}
-      RETURNING id
-    `,
-    txn`
-      DELETE FROM media_assets
-      WHERE agency_id = ${input.agencyId} AND id = ANY(${assetIds}::uuid[])
-    `,
-    txn`
-      INSERT INTO audit_events (
-        agency_id, actor_user_id, entity_type, entity_id, action, changes
-      ) VALUES (
-        ${input.agencyId}, ${input.actorId}, 'trip_template', ${input.templateId}, 'deleted',
-        ${JSON.stringify({ title: input.title, deletedAssets: input.mediaAssetIds.length })}::jsonb
-      )
-    `,
-  ]);
-  if (results[2].length !== 1) throw new PlatformRequestError("Eliminazione del viaggio non riuscita");
+  const rows=await sql`SELECT app.delete_trip_template_v3(${input.actorId},${input.agencyId},
+    ${input.templateId},${input.mediaAssetIds}::uuid[]) AS deleted`;
+  if (!Boolean(rows[0]?.deleted)) throw new PlatformRequestError("Eliminazione del viaggio non riuscita");
 }
 
 export async function registerImportedDocument(input: {
@@ -516,49 +331,10 @@ export async function registerImportedDocument(input: {
   sizeBytes: number | null;
 }) {
   const sql = getSql();
-  const mediaId = crypto.randomUUID();
-  const documentId = crypto.randomUUID();
-  const importId = crypto.randomUUID();
-  const rows = await sql`
-    WITH media AS (
-      INSERT INTO media_assets (
-        id, agency_id, uploaded_by_user_id, provider, bucket, object_key,
-        original_name, content_type, size_bytes, purpose, visibility, status
-      ) VALUES (
-        ${mediaId}, ${input.agencyId}, ${input.actorId}, ${input.provider}, ${input.bucket}, ${input.objectKey},
-        ${input.originalName}, ${input.contentType}, ${input.sizeBytes}, 'travel_programme',
-        'agency', 'ready'
-      )
-      ON CONFLICT (provider, bucket, object_key) DO UPDATE SET updated_at = NOW()
-      RETURNING id
-    ), document AS (
-      INSERT INTO travel_documents (
-        id, agency_id, template_id, media_asset_id, document_type, title, status
-      )
-      SELECT
-        ${documentId}, ${input.agencyId}, ${input.templateId}, media.id,
-        'programme', ${input.originalName}, 'processing'
-      FROM media
-      ON CONFLICT (media_asset_id) DO UPDATE SET status = 'processing'
-      RETURNING id
-    ), imported AS (
-      INSERT INTO import_jobs (
-        id, agency_id, template_id, document_id, status, created_by_user_id
-      )
-      SELECT ${importId}, ${input.agencyId}, ${input.templateId}, document.id, 'queued', ${input.actorId}
-      FROM document
-      ON CONFLICT (document_id) DO UPDATE SET updated_at = NOW()
-      RETURNING id, document_id, status, created_at
-    ), audit AS (
-      INSERT INTO audit_events (
-        agency_id, actor_user_id, entity_type, entity_id, action, changes
-      )
-      SELECT
-        ${input.agencyId}, ${input.actorId}, 'import_job', imported.id::text, 'queued',
-        ${JSON.stringify({ objectKey: input.objectKey, originalName: input.originalName })}::jsonb
-      FROM imported
-    )
-    SELECT id::text, document_id::text, status, created_at::text FROM imported
-  `;
+  if(input.provider!=="r2"||input.sizeBytes==null) throw new PlatformRequestError("Il documento deve essere archiviato su R2");
+  const rows=await sql`SELECT id::text,document_id::text,status,created_at::text
+    FROM app.register_import_document_v3(${input.actorId},${input.agencyId},${input.templateId},
+      ${input.provider},${input.bucket},${input.objectKey},${input.originalName},
+      ${input.contentType},${input.sizeBytes})`;
   return rows[0] as { id: string; document_id: string; status: string; created_at: string };
 }

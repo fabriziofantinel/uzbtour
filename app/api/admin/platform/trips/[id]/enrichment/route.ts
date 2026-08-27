@@ -16,8 +16,9 @@ export async function POST(
       return NextResponse.json({ error: "Viaggio non valido" }, { status: 400 });
     }
     const queued = await getTripEnrichmentQueueRecord(id);
-    await requireAgencyAdmin(queued.agencyId);
+    const actor=await requireAgencyAdmin(queued.agencyId);
     const job = await getJobQueue().enqueue({
+      actorId: actor.id,
       agencyId: queued.agencyId,
       type: "travel-reference.enrich",
       payload: queued.payload,

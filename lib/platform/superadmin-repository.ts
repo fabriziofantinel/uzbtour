@@ -1,7 +1,8 @@
 import { getSql } from "@/lib/db";
-import { PlatformRequestError } from "./http";
+import { PlatformRequestError } from "./errors";
 import { readV3AgencyRegistry, readV3ImpersonationUsers, readV3SuperadminSummary } from "./v3-superadmin-read";
 import { createV3PlatformAgency, provisionV3PlatformAgencyAgent, updateV3PlatformAgencyBranding } from "./v3-superadmin-mutations";
+import { getJobQueue } from "./job-queue";
 
 export type SuperadminSummary = {
   agencies: number;
@@ -117,77 +118,17 @@ export async function updateAgencyBranding(input: {
   await updateV3PlatformAgencyBranding(input);
 }
 
-export async function getAgencyDeletionTarget(agencyId: string) {
+export async function requestAgencyDeletion(input: { actorId: string; agencyId: string; reason: string }) {
   const sql = getSql();
-  const agencies = await sql`
-    SELECT id::text, name
-    FROM agencies
-    WHERE id = ${agencyId}
-    LIMIT 1
-  `;
-  if (!agencies[0]) throw new PlatformRequestError("Agenzia non trovata");
-
-  const [assets, users] = await Promise.all([
-    sql`
-      SELECT id::text, provider, bucket, object_key
-      FROM media_assets
-      WHERE agency_id = ${agencyId}
-      ORDER BY created_at
-    `,
-    sql`
-      SELECT DISTINCT user_id
-      FROM (
-        SELECT user_id FROM agency_memberships WHERE agency_id = ${agencyId}
-        UNION
-        SELECT user_id FROM traveler_profiles
-        WHERE agency_id = ${agencyId} AND user_id IS NOT NULL
-      ) candidates
-    `,
-  ]);
-
-  return {
-    id: String(agencies[0].id),
-    name: String(agencies[0].name),
-    assets: assets.map((row) => ({
-      id: String(row.id),
-      provider: String(row.provider),
-      bucket: String(row.bucket),
-      objectKey: String(row.object_key),
-    })),
-    candidateUserIds: users.map((row) => String(row.user_id)),
-  };
-}
-
-export async function deleteAgencyRecords(input: {
-  agencyId: string;
-  candidateUserIds: string[];
-}) {
-  const sql = getSql();
-  const candidateUserIds = input.candidateUserIds.length > 0
-    ? input.candidateUserIds
-    : [`deleted-agency:${crypto.randomUUID()}`];
-  const results = await sql.transaction((transaction) => [
-    transaction`DELETE FROM departures WHERE agency_id = ${input.agencyId}`,
-    transaction`
-      DELETE FROM agencies
-      WHERE id = ${input.agencyId}
-      RETURNING id
-    `,
-    transaction`
-      DELETE FROM platform_users users
-      WHERE users.id = ANY(${candidateUserIds}::text[])
-        AND users.platform_role <> 'superadmin'
-        AND NOT EXISTS (
-          SELECT 1 FROM agency_memberships memberships WHERE memberships.user_id = users.id
-        )
-        AND NOT EXISTS (
-          SELECT 1 FROM traveler_profiles travelers WHERE travelers.user_id = users.id
-        )
-      RETURNING id
-    `,
-  ]);
-  if (results[1].length !== 1) throw new PlatformRequestError("Eliminazione dell’agenzia non riuscita");
-  return { deletedUsers: results[2].length };
+  const rows=await sql`SELECT job_id::text,agency_name,status,phase
+    FROM app.request_agency_deletion_v3(${input.actorId},${input.agencyId},${input.reason})`;
+  if(!rows[0]) throw new PlatformRequestError("Richiesta di eliminazione non registrata");
+  const deletionJobId=String(rows[0].job_id);
+  const queueJob=await getJobQueue().enqueue({
+    actorId:input.actorId,agencyId:input.agencyId,type:"agency.delete",
+    payload:{deletionJobId},idempotencyKey:`agency-delete:${deletionJobId}`,
+  });
+  return { deletionJobId,queueJobId:queueJob.id,agencyName:String(rows[0].agency_name),status:String(rows[0].status),phase:String(rows[0].phase) };
 }
 
 function initialsFor(name: string) {

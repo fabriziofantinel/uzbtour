@@ -24,6 +24,7 @@ export async function POST(
     }
     const published = await publishImport({ importId: id, agencyId, actorId: actor.id, draft: imported.draft });
     const enrichmentJob = await getJobQueue().enqueue({
+      actorId: actor.id,
       agencyId,
       type: "travel-reference.enrich",
       payload: {

@@ -5,10 +5,8 @@
 .aws-sam/
 .sam-cli-data/
 AGENTS.md
-database/
 docs/
 infra/
-scripts/
 tools/
 
 # Output locali, dipendenze e configurazioni sensibili.

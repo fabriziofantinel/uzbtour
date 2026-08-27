@@ -7,18 +7,10 @@ import type { EnqueueJobInput, EnqueuedJob, JobQueue } from "./ports/job-queue";
 class DatabaseJobQueue implements JobQueue {
   async enqueue(input: EnqueueJobInput): Promise<EnqueuedJob> {
     const sql = getSql();
-    const rows = await sql`
-      INSERT INTO platform_jobs (
-        agency_id, job_type, provider, status, payload, idempotency_key, available_at
-      ) VALUES (
-        ${input.agencyId}, ${input.type}, 'database', 'queued',
-        ${JSON.stringify(input.payload)}::jsonb, ${input.idempotencyKey},
-        ${input.availableAt?.toISOString() ?? new Date().toISOString()}
-      )
-      ON CONFLICT (agency_id, idempotency_key) DO UPDATE SET
-        updated_at = platform_jobs.updated_at
-      RETURNING id::text, provider, status
-    `;
+    const rows = await sql`SELECT id::text,provider,status FROM app.enqueue_platform_job_v3(
+      ${input.actorId},${input.agencyId},${input.type},'database',
+      ${JSON.stringify(input.payload)}::jsonb,${input.idempotencyKey},
+      ${input.availableAt?.toISOString() ?? new Date().toISOString()})`;
     const row = rows[0] as EnqueuedJob | undefined;
     if (!row) throw new Error("Impossibile accodare il lavoro");
     return row;
@@ -46,26 +38,10 @@ function getSqsClient() {
 class SqsJobQueue implements JobQueue {
   async enqueue(input: EnqueueJobInput): Promise<EnqueuedJob> {
     const sql = getSql();
-    const rows = await sql`
-      INSERT INTO platform_jobs (
-        agency_id, job_type, provider, status, payload, idempotency_key, available_at
-      ) VALUES (
-        ${input.agencyId}, ${input.type}, 'sqs', 'queued',
-        ${JSON.stringify(input.payload)}::jsonb, ${input.idempotencyKey},
-        ${input.availableAt?.toISOString() ?? new Date().toISOString()}
-      )
-      ON CONFLICT (agency_id, idempotency_key) DO UPDATE SET
-        status = CASE
-          WHEN platform_jobs.status IN ('failed', 'dead_letter') THEN 'queued'
-          ELSE platform_jobs.status
-        END,
-        error_message = CASE
-          WHEN platform_jobs.status IN ('failed', 'dead_letter') THEN NULL
-          ELSE platform_jobs.error_message
-        END,
-        updated_at = NOW()
-      RETURNING id::text, provider, status
-    `;
+    const rows = await sql`SELECT id::text,provider,status FROM app.enqueue_platform_job_v3(
+      ${input.actorId},${input.agencyId},${input.type},'sqs',
+      ${JSON.stringify(input.payload)}::jsonb,${input.idempotencyKey},
+      ${input.availableAt?.toISOString() ?? new Date().toISOString()})`;
     const row = rows[0] as EnqueuedJob | undefined;
     if (!row) throw new Error("Impossibile registrare il lavoro SQS");
     if (row.status !== "queued") return row;
@@ -84,11 +60,8 @@ class SqsJobQueue implements JobQueue {
       return row;
     } catch (error) {
       const message = (error instanceof Error ? error.message : "Invio SQS non riuscito").slice(0, 1200);
-      await sql`
-        UPDATE platform_jobs
-        SET status = 'failed', error_message = ${message}, updated_at = NOW()
-        WHERE id = ${row.id}
-      `;
+      await sql`SELECT app.fail_platform_job_dispatch_v3(${input.actorId},${input.agencyId},
+        ${row.id},${message})`;
       throw error;
     }
   }

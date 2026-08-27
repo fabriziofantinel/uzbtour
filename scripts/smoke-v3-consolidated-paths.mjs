@@ -35,7 +35,9 @@ const [imports, programme, runtime, migrations] = await Promise.all([
       (SELECT count(*)::int FROM journey.expenses) AS expenses,
       (SELECT count(*)::int FROM journey.cash_movements) AS cash_movements,
       (SELECT count(*)::int FROM journey.programme_feedback) AS feedback,
-      (SELECT count(*)::int FROM content.activities) AS activities
+      (SELECT count(*)::int FROM content.activities) AS activities,
+      (SELECT count(*)::int FROM travel.template_accommodation_stays) AS template_stays,
+      (SELECT count(*)::int FROM travel.departure_accommodation_stays) AS departure_stays
   `,
   sql`
     SELECT count(*)::int AS count
@@ -45,12 +47,15 @@ const [imports, programme, runtime, migrations] = await Promise.all([
       '028_v3_documents_import_runtime',
       '030_v3_operational_read_cutover',
       '031_v3_gamification_read_cutover',
-      '032_v3_traveler_scope_read_cutover'
+      '032_v3_traveler_scope_read_cutover',
+      '044_v3_ops_import_write_cutover',
+      '045_v3_operational_stays',
+      '046_v3_programme_write_cutover'
     ])
   `,
 ]);
 
-if (Number(migrations[0]?.count ?? 0) !== 5) {
+if (Number(migrations[0]?.count ?? 0) !== 8) {
   throw new Error("Migrazioni V3 richieste non complete");
 }
 
@@ -90,6 +95,8 @@ if (ownerSql) {
             WHERE agency_id = ${scope.agency_id} AND departure_id = ${scope.departure_id}) AS days,
           (SELECT count(*)::int FROM travel.departure_itinerary_items
             WHERE agency_id = ${scope.agency_id} AND departure_id = ${scope.departure_id}) AS items,
+          (SELECT count(*)::int FROM travel.departure_accommodation_stays
+            WHERE agency_id = ${scope.agency_id} AND departure_id = ${scope.departure_id}) AS stays,
           (SELECT count(*)::int FROM ops.travel_documents
             WHERE agency_id = ${scope.agency_id} AND departure_id = ${scope.departure_id}) AS documents,
           (SELECT count(*)::int FROM content.activities

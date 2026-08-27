@@ -2,11 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireSuperAdmin } from "@/lib/platform/authorization";
 import { platformApiError } from "@/lib/platform/http";
-import { getObjectStorage } from "@/lib/platform/object-storage";
 import {
-  deleteAgencyRecords,
-  getAgencyDeletionTarget,
   getAgencyRegistry,
+  requestAgencyDeletion,
   updateAgencyBranding,
 } from "@/lib/platform/superadmin-repository";
 
@@ -50,31 +48,16 @@ export async function DELETE(
       return NextResponse.json({ error: "Agenzia non valida" }, { status: 400 });
     }
 
-    const target = await getAgencyDeletionTarget(id);
-    if (target.assets.length > 0) {
-      const storage = getObjectStorage();
-      for (const asset of target.assets) {
-        if (asset.provider !== storage.provider || asset.bucket !== storage.bucket) {
-          return NextResponse.json(
-            { error: "Lo storage dell’agenzia non è coerente con la configurazione attiva" },
-            { status: 409 }
-          );
-        }
-      }
-      for (const asset of target.assets) await storage.delete(asset.objectKey);
-    }
-
-    const deleted = await deleteAgencyRecords({
-      agencyId: target.id,
-      candidateUserIds: target.candidateUserIds,
+    const deletion = await requestAgencyDeletion({
+      actorId:actor.id,agencyId:id,reason:"Cancellazione richiesta dal superadmin tramite pannello piattaforma",
     });
     return NextResponse.json({
       ok: true,
-      deletedAgency: target.name,
-      deletedFiles: target.assets.length,
-      deletedUsers: deleted.deletedUsers,
+      queued: true,
+      deletionJobId: deletion.deletionJobId,
+      deletedAgency: deletion.agencyName,
       agencies: await getAgencyRegistry(actor.id),
-    });
+    },{ status: 202 });
   } catch (error) {
     return platformApiError(error, "Eliminazione agenzia non riuscita");
   }

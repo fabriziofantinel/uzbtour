@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { PlatformAuthorizationError } from "./authorization";
+import { PlatformRequestError } from "./errors";
 
-export class PlatformRequestError extends Error {}
+export { PlatformRequestError } from "./errors";
 
 export function platformApiError(error: unknown, fallback: string) {
   if (error instanceof PlatformAuthorizationError) {

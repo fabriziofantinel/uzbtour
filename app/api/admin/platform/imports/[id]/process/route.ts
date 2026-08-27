@@ -19,10 +19,11 @@ export async function POST(
       return NextResponse.json({ error: "Importazione non valida" }, { status: 400 });
     }
     const agencyId = await getImportAgency(id);
-    await requireAgencyAdmin(agencyId);
+    const actor=await requireAgencyAdmin(agencyId);
     if (getPlatformProviderConfig().jobQueue === "sqs") {
       const queued = await getImportQueueRecord(id, agencyId);
       const job = await getJobQueue().enqueue({
+        actorId: actor.id,
         agencyId,
         type: queued.type,
         payload: queued.payload,

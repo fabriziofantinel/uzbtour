@@ -75,7 +75,7 @@ export async function DELETE(
   try {
     const { id } = await context.params;
     const agencyId = await getImportAgency(id);
-    await requireAgencyAdmin(agencyId);
+    const actor=await requireAgencyAdmin(agencyId);
     const targets = await getImportDeletionTarget(id, agencyId);
     const storage = getObjectStorage("r2");
     if (targets.some((target) => storage.bucket !== target.bucket)) {
@@ -85,6 +85,7 @@ export async function DELETE(
     await deleteImportDraftRecords({
       importId: id,
       agencyId,
+      actorId: actor.id,
       documentIds: targets.map((target) => target.documentId),
       mediaAssetIds: targets.map((target) => target.mediaAssetId),
     });
