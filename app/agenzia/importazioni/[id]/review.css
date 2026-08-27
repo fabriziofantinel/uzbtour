@@ -420,8 +420,7 @@
   font: 700 16px var(--font-serif);
 }
 .reviewDay > header button,
-.removeActivity,
-.reviewUseful article button {
+.removeActivity {
   display: grid;
   place-items: center;
   width: 31px;
@@ -432,8 +431,7 @@
   color: var(--rust-deep);
 }
 .reviewDay > header button svg,
-.removeActivity svg,
-.reviewUseful article button svg {
+.removeActivity svg {
   width: 15px;
 }
 .dayFields {
@@ -604,70 +602,6 @@
   border: 1px dashed var(--border-strong);
   border-radius: 10px;
   background: var(--surface-brand);
-}
-.reviewUseful article {
-  display: grid;
-  grid-template-columns: 140px minmax(180px, 1fr) minmax(240px, 2fr) minmax(140px, .8fr) minmax(170px, 1fr) 36px;
-  gap: 8px;
-  align-items: start;
-  margin-bottom: 8px;
-  padding: 11px;
-  background: var(--surface-raised);
-  border: 1px solid var(--line);
-  border-radius: 9px;
-}
-.reviewUseful article label {
-  min-width: 0;
-}
-.reviewUseful article label input,
-.reviewUseful article label textarea {
-  margin: 0;
-}
-.reviewUseful article label {
-  display: grid;
-  gap: 6px;
-}
-.reviewUseful article .usefulBody textarea {
-  min-height: 68px;
-}
-.reviewUseful article > button { align-self: end; margin-bottom: 5px; }
-.addUsefulInfo {
-  min-height: 42px;
-  border: 0;
-  border-radius: 9px;
-  padding: 0 13px;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--on-brand);
-  background: var(--teal);
-  font-size: var(--text-small);
-  font-weight: 850;
-}
-.addUsefulInfo svg { width: 16px; }
-.reviewUsefulEmpty {
-  padding: 28px;
-  display: grid;
-  justify-items: center;
-  gap: 10px;
-  border: 1px dashed var(--border-strong);
-  border-radius: 12px;
-  color: var(--muted);
-  text-align: center;
-}
-.reviewUsefulEmpty > svg { color: var(--rust); }
-.reviewUsefulEmpty p { max-width: 54ch; margin: 0; line-height: 1.5; }
-.reviewUsefulEmpty button {
-  min-height: 42px;
-  border: 0;
-  border-radius: 9px;
-  padding: 0 14px;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--on-brand);
-  background: var(--teal);
-  font-weight: 850;
 }
 .reviewActions {
   position: sticky;
@@ -897,11 +831,6 @@
     border: 1px dashed var(--border-strong);
     border-radius: 10px;
   }
-  .reviewUseful article {
-    grid-template-columns: 1fr 1fr 44px;
-  }
-  .reviewUseful article .usefulBody { grid-column: 1 / -1; }
-  .reviewUseful article > button { grid-column: 3; grid-row: 1; width: 44px; height: 44px; margin: 0; }
   .reviewHeading > span {
     display: none;
   }
@@ -924,8 +853,7 @@
     height: 44px;
   }
   .reviewDay > header button,
-  .removeActivity,
-  .reviewUseful article button {
+  .removeActivity {
     width: 44px;
     height: 44px;
   }
@@ -948,17 +876,6 @@
   }
   .hotelEditor label {
     grid-column: 1/-1;
-  }
-  .reviewUseful article {
-    grid-template-columns: 1fr 44px;
-  }
-  .reviewUseful article input:nth-child(2),
-  .reviewUseful article textarea {
-    grid-column: 1/-1;
-  }
-  .reviewUseful article button {
-    grid-column: 2;
-    grid-row: 1;
   }
   .reviewActions {
     display: grid;
@@ -987,9 +904,6 @@
   }
 }
 @media (max-width: 520px) {
-  .reviewUseful article { grid-template-columns: 1fr 44px; }
-  .reviewUseful article label { grid-column: 1 / -1; }
-  .reviewUseful article > button { grid-column: 2; grid-row: 1; }
   .reviewConfirmDialog { padding: 28px 18px 20px; }
   .reviewConfirmDialog > div:last-child { flex-direction: column-reverse; }
   .reviewConfirmDialog > div:last-child button { width: 100%; }
@@ -1005,8 +919,7 @@
   }
 
   .reviewDay > header button,
-  .removeActivity,
-  .reviewUseful article button {
+  .removeActivity {
     width: 44px;
     height: 44px;
   }

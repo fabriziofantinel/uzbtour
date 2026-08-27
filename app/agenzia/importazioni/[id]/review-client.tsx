@@ -369,19 +369,6 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
           </section>
         </div>
 
-        <section className="reviewUseful">
-          <div className="reviewHeading"><div><small>DAL DOCUMENTO</small><h2>Informazioni utili</h2></div><button type="button" className="addUsefulInfo" onClick={() => setDraft({ ...draft, usefulInformation: [...draft.usefulInformation, { category: "Generale", title: "Nuova informazione", body: "Inserisci il contenuto", phone: "", url: "" }] })}><Plus/> Aggiungi informazione</button></div>
-          {draft.usefulInformation.map((info, index) => <article key={index}>
-            <label>Categoria<input aria-label={`Categoria informazione ${index + 1}`} maxLength={80} value={info.category} onChange={(event) => setDraft({ ...draft, usefulInformation: draft.usefulInformation.map((item, position) => position === index ? { ...item, category: event.target.value } : item) })}/></label>
-            <label>Titolo<input aria-label={`Titolo informazione ${index + 1}`} maxLength={240} value={info.title} onChange={(event) => setDraft({ ...draft, usefulInformation: draft.usefulInformation.map((item, position) => position === index ? { ...item, title: event.target.value } : item) })}/></label>
-            <label className="usefulBody">Contenuto<textarea aria-label={`Contenuto informazione ${index + 1}`} maxLength={6000} value={info.body} onChange={(event) => setDraft({ ...draft, usefulInformation: draft.usefulInformation.map((item, position) => position === index ? { ...item, body: event.target.value } : item) })}/></label>
-            <label>Telefono<input type="tel" maxLength={100} value={info.phone} onChange={(event) => setDraft({ ...draft, usefulInformation: draft.usefulInformation.map((item, position) => position === index ? { ...item, phone: event.target.value } : item) })}/></label>
-            <label>Link<input type="url" maxLength={500} placeholder="https://" value={info.url} onChange={(event) => setDraft({ ...draft, usefulInformation: draft.usefulInformation.map((item, position) => position === index ? { ...item, url: event.target.value } : item) })}/></label>
-            <button type="button" aria-label={`Rimuovi informazione ${index + 1}`} onClick={() => setDraft({ ...draft, usefulInformation: draft.usefulInformation.filter((_, position) => position !== index) })}><Trash2/></button>
-          </article>)}
-          {draft.usefulInformation.length === 0 && <div className="reviewUsefulEmpty"><FileText/><p>Nessuna informazione utile estratta. Usa “Aggiungi informazione” per inserirla manualmente prima di pubblicare.</p></div>}
-        </section>
-
         <footer className="reviewActions"><div><BedDouble/><span><b>{validationsPending > 0 ? `${validationsPending} anagrafiche da validare` : "Pronto per la pubblicazione"}</b><small>{validationsPending > 0 ? "Apri Google, correggi se necessario e conferma ogni elemento." : isDirty ? "Salva le modifiche o pubblica direttamente la versione aggiornata." : `Verranno create ${draft.days.length} giornate.`}</small></span></div><button type="button" className="secondary dangerText" aria-label="Elimina bozza" onClick={removeDraft} disabled={Boolean(busy)}><Trash2/><span>Elimina bozza</span></button><button type="button" className="secondary" onClick={save} disabled={Boolean(busy) || !isDirty}>{busy === "save" ? <LoaderCircle className="spin"/> : <Save/>}<span>{busy === "save" ? "Salvataggio…" : "Salva bozza"}</span></button><button type="button" onClick={publish} disabled={Boolean(busy) || validationsPending > 0}><Send/><span>Pubblica programma</span></button></footer>
       </div>
       {pendingAction && (
