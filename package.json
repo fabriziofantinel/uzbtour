@@ -74,6 +74,8 @@
     "db:migrate:v3:agency-overview-read:dry-run": "node --env-file=.env.local scripts/migrate-v3-agency-overview-read.mjs",
     "db:migrate:v3:agency-overview-read": "node --env-file=.env.local scripts/migrate-v3-agency-overview-read.mjs --apply",
     "acceptance:v3:agency-overview-read": "node --env-file=.env.local scripts/acceptance-v3-agency-overview-read.mjs",
+    "db:migrate:v3:legacy-normalized-read-retirement:dry-run": "node --env-file=.env.local scripts/migrate-v3-legacy-normalized-read-retirement.mjs",
+    "db:migrate:v3:legacy-normalized-read-retirement": "node --env-file=.env.local scripts/migrate-v3-legacy-normalized-read-retirement.mjs --apply",
     "acceptance:v3:trip-reference-agency-deletion": "node --env-file=.env.local scripts/acceptance-v3-trip-reference-agency-deletion.mjs",
     "smoke:v3:agency-deletion-e2e": "node --env-file=.env.local scripts/smoke-v3-agency-deletion-e2e.mjs",
     "acceptance:v3:write-cutover": "node --env-file=.env.local scripts/acceptance-v3-write-cutover.mjs",
