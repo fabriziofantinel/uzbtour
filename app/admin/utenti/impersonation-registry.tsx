@@ -109,8 +109,11 @@ export default function ImpersonationRegistry({ initialUsers }: { initialUsers: 
               {user.isTraveler && <b><UserRound/> Viaggiatore</b>}
               {user.status === "invited" && <b className="pending">Invitato</b>}
             </span>
-            <button type="button" onClick={() => { setError(""); setSelectedUser(user); }} disabled={Boolean(busy)} aria-label={`Accedi come ${user.name}`}>
-              <LogIn/> Accedi come
+            <button type="button" onClick={() => { setError(""); setSelectedUser(user); }}
+              disabled={Boolean(busy)||user.status!=="active"}
+              title={user.status!=="active"?"L’utente deve prima accettare l’invito":undefined}
+              aria-label={user.status==="active"?`Accedi come ${user.name}`:`${user.name} non ancora attivo`}>
+              <LogIn/> {user.status==="active"?"Accedi come":"Da attivare"}
             </button>
           </article>
         ))}

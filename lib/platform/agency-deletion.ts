@@ -10,6 +10,8 @@ export async function processAgencyDeletion(jobId: string, agencyId: string, del
     ${deletionJobId},${agencyId},${workerId},600)`;
   if (!claimed[0]) throw new Error("Cancellazione agenzia già elaborata o non disponibile");
   if (String(claimed[0].status) === "completed" || String(claimed[0].status) === "blocked") {
+    if(String(claimed[0].status)==="completed")
+      await sql`SELECT app.finalize_agency_deletion_identities_v3(${deletionJobId})`;
     return { status: String(claimed[0].status), phase: String(claimed[0].phase) };
   }
   try {
@@ -33,7 +35,10 @@ export async function processAgencyDeletion(jobId: string, agencyId: string, del
       const step = rows[0] as Step | undefined;
       if (!step) throw new Error("Stato cancellazione agenzia non disponibile");
       phase = step.phase;
-      if (step.status === "completed") return { status: step.status, phase };
+      if (step.status === "completed") {
+        await sql`SELECT app.finalize_agency_deletion_identities_v3(${deletionJobId})`;
+        return { status: step.status, phase };
+      }
       if (step.status === "blocked") return { status: step.status, phase };
       (claimed[0] as { phase: string }).phase = phase;
     }

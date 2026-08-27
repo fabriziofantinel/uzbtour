@@ -61,12 +61,24 @@ try{
   await client.query(`INSERT INTO iam.user_identities(user_id,provider,subject)
     SELECT target_id,'cognito',$2 FROM ops.legacy_id_map WHERE legacy_id=$1`,
     [replacement.legacy_user_id,replacementSubject]);
+  const impersonationToken=createHash("sha256").update(randomUUID()).digest("hex");
+  const impersonated=(await client.query(`SELECT * FROM app.start_legacy_impersonation(
+    $1,$2,$3,clock_timestamp()+interval '1 hour',$4)`,
+    [actor,replacement.legacy_user_id,impersonationToken,"acceptance-test"])).rows[0];
+  if(!impersonated?.is_agency_admin)throw new Error("Impersonazione responsabile priva dei permessi agenzia");
+  const resolvedImpersonation=Number((await client.query(`SELECT count(*) total
+    FROM app.resolve_legacy_impersonation($1,$2)`,[actor,impersonationToken])).rows[0].total);
+  if(resolvedImpersonation!==1)throw new Error("Sessione impersonata non risolvibile");
   await client.query("SELECT app.update_platform_agency_status($1,$2,'suspended')",[actor,created.agency_id]);
   const disabled=(await client.query("SELECT app.read_username_login_state($1) state",[replacementUsername])).rows[0].state;
   const resolved=(await client.query("SELECT count(*)::integer total FROM app.resolve_cognito_authenticated_user($1)",[replacementSubject])).rows[0].total;
-  if(disabled!=="disabled_agency"||Number(resolved)!==0)throw new Error(`Blocco agenzia incompleto: ${disabled}/${resolved}`);
+  const suspendedImpersonation=Number((await client.query(`SELECT count(*) total
+    FROM app.resolve_legacy_impersonation($1,$2)`,[actor,impersonationToken])).rows[0].total);
+  if(disabled!=="disabled_agency"||Number(resolved)!==0||suspendedImpersonation!==0)
+    throw new Error(`Blocco agenzia incompleto: ${disabled}/${resolved}/${suspendedImpersonation}`);
   await client.query("ROLLBACK");open=false;
   console.log(JSON.stringify({status:"passed",gates:{atomicCreate:true,sharedEmail:true,pendingInvite:true,singleOwner:true,
-    activeAgencyAccess:true,ownerReplacement:true,suspendedAgencyBlocked:true}},null,2));
+    activeAgencyAccess:true,ownerReplacement:true,impersonationContract:true,
+    suspendedAgencyBlocked:true,impersonationInvalidatedOnSuspension:true}},null,2));
 }catch(error){if(open)await client.query("ROLLBACK").catch(()=>{});throw error;}
 finally{await client.end().catch(()=>{});}
