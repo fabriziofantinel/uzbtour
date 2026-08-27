@@ -578,7 +578,10 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                     {departure && <Link className="primary" href={`/agenzia/viaggi/${departure.id}/programma`}><BookOpen/> Apri programma</Link>}
                     {departure && <Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Famiglie</Link>}
                     {trip.status === "active" && <button type="button" onClick={() => openDeparture(trip.id, trip.title)}><Plus/> Nuova partenza</button>}
-                    <button type="button" className="danger" disabled={Boolean(busy)} onClick={() => setTripToDelete({ id: trip.id, title: trip.title })}><Trash2/> Elimina</button>
+                    <button type="button" className="danger" disabled={Boolean(busy)} onClick={() => {
+                      setError("");
+                      setTripToDelete({ id: trip.id, title: trip.title });
+                    }}><Trash2/> Elimina</button>
                   </div></td>
                 </tr>
               )})}
@@ -638,7 +641,10 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                       {departure && <Link className="primary" href={`/agenzia/viaggi/${departure.id}/programma`}><BookOpen/> Apri programma</Link>}
                       {departure && <Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Famiglie</Link>}
                       {trip.status === "active" && <button type="button" onClick={() => openDeparture(trip.id, trip.title)}><Plus/> Nuova partenza</button>}
-                      <button type="button" className="danger" disabled={Boolean(busy)} onClick={() => setTripToDelete({ id: trip.id, title: trip.title })}><Trash2/> Elimina</button>
+                      <button type="button" className="danger" disabled={Boolean(busy)} onClick={() => {
+                        setError("");
+                        setTripToDelete({ id: trip.id, title: trip.title });
+                      }}><Trash2/> Elimina</button>
                     </div>
                   </article>
                 );
@@ -659,6 +665,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
             <small>OPERAZIONE DEFINITIVA</small>
             <h2 id="delete-trip-title">Eliminare “{tripToDelete.title}”?</h2>
             <p>Verranno eliminati programma, importazioni, partenze, famiglie e file collegati. Le anagrafiche condivise e gli utenti resteranno disponibili.</p>
+            {error && <p className="dialogInlineError" role="alert"><CircleAlert/>{error}</p>}
             <div>
               <button type="button" className="secondary" disabled={Boolean(busy)} onClick={() => setTripToDelete(null)}>Annulla</button>
               <button type="button" className="danger" disabled={Boolean(busy)} onClick={() => void deleteTrip()}>{busy === `delete-${tripToDelete.id}` ? <><LoaderCircle className="spin"/> Eliminazione…</> : <><Trash2/> Elimina definitivamente</>}</button>
