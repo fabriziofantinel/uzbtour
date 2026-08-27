@@ -523,14 +523,21 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                 const importIsActive = latestImport ? activeImportStatuses.has(latestImport.status) : false;
                 const startsOn = departure?.startsOn ?? trip.startsOn;
                 const endsOn = departure?.endsOn ?? trip.endsOn;
-                const validationStatus = trip.status === "active" ? "validated" : "draft";
+                const displayStatus = importIsActive
+                  ? { className: "queued", label: "In preparazione" }
+                  : latestImport?.status === "ready_for_review"
+                    ? { className: "ready_for_review", label: "Da revisionare" }
+                    : trip.status === "active"
+                      ? { className: "validated", label: "Validato" }
+                      : { className: "draft", label: "Bozza" };
                 return (
                 <tr className={importIsActive ? "generating" : ""} key={`${trip.id}-${departure?.id ?? "draft"}`}>
-                  <td data-label="Stato"><span className={`status ${validationStatus}`}>{validationStatus === "validated" ? "Validato" : "Bozza"}</span><small className="departureStatus">{departure ? (statusLabels[departure.status] ?? departure.status) : "Senza partenza"}</small></td>
+                  <td data-label="Stato"><span className={`status ${displayStatus.className}`}>{displayStatus.label}</span><small className="departureStatus">{departure ? (statusLabels[departure.status] ?? departure.status) : "Senza partenza"}</small></td>
                   <td data-label="Viaggio" className="tripNameCell"><b>{departure?.title || trip.title}</b><span>{trip.destinationCountry || "Destinazione da revisionare"}</span></td>
                   <td data-label="Periodo" className="dateRangeCell"><b>{formatTravelDate(startsOn)}</b><span aria-hidden="true">→</span><b>{formatTravelDate(endsOn)}</b></td>
                   <td data-label="Famiglie" className="numberCell">{departure?.partyCount ?? 0}</td>
                   <td data-label="Azioni"><div className="tableActions inline">
+                    {latestImport?.status === "ready_for_review" && <Link className="primary" href={`/agenzia/importazioni/${latestImport.id}`}><Eye/> Revisiona</Link>}
                     {departure && <Link className="primary" href={`/agenzia/viaggi/${departure.id}/programma`}><BookOpen/> Apri programma</Link>}
                     {departure && <Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Famiglie</Link>}
                     {trip.status === "active" && <button type="button" onClick={() => openDeparture(trip.id, trip.title)}><Plus/> Nuova partenza</button>}
@@ -555,11 +562,17 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                 const contentIsComplete = Boolean(content && content.status !== "failed" && content.expectedSections > 0 && content.readySections === content.expectedSections);
                 const startsOn = departure?.startsOn ?? trip.startsOn;
                 const endsOn = departure?.endsOn ?? trip.endsOn;
-                const validationStatus = trip.status === "active" ? "validated" : "draft";
+                const displayStatus = importIsActive
+                  ? { className: "queued", label: "In preparazione" }
+                  : latestImport?.status === "ready_for_review"
+                    ? { className: "ready_for_review", label: "Da revisionare" }
+                    : trip.status === "active"
+                      ? { className: "validated", label: "Validato" }
+                      : { className: "draft", label: "Bozza" };
                 return (
                   <article className={`tripAdminCard journeyCard ${importIsActive || contentIsActive ? "generating" : ""}`} key={`${trip.id}-${departure?.id ?? "draft"}`}>
                     <div className="tripCardTop">
-                      <span className={`status ${validationStatus}`}>{validationStatus === "validated" ? "Validato" : "Bozza"}</span>
+                      <span className={`status ${displayStatus.className}`}>{displayStatus.label}</span>
                       <span className="journeyDepartureStatus">{departure ? (statusLabels[departure.status] ?? departure.status) : "Senza partenza"}</span>
                     </div>
                     <h3>{departure?.title || trip.title}</h3>
