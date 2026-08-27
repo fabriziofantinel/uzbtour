@@ -9,6 +9,7 @@ const runtimeFiles = [
   new URL("../lib/platform/v3-traveler-scope.ts", import.meta.url),
   new URL("../lib/platform/v3-media-download.ts", import.meta.url),
   new URL("../lib/platform/v3-media-mutations.ts", import.meta.url),
+  new URL("../lib/platform/v3-identity-access.ts", import.meta.url),
 ];
 
 const forbiddenPatterns = [
