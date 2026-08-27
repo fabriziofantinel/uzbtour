@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
-import { getSql } from "@/lib/db";
 import { getObjectStorage } from "@/lib/platform/object-storage";
 import { assertTravelerPartyScope } from "@/lib/platform/traveler-experience";
+import { isMediaObjectRegistered, registerV3MemoryUpload } from "@/lib/platform/v3-media-mutations";
 import { MAX_PHOTO_SIZE_BYTES, PHOTO_CONTENT_TYPES, safeOriginalName } from "@/lib/photos";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
+  let uploadedObjectKey = "";
   try {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
@@ -19,6 +20,7 @@ export async function POST(request: Request) {
     const agencyId = await assertTravelerPartyScope({ userId: user.id, departureId, partyId, dayId });
     const expectedPrefix = `agencies/${agencyId}/departures/${departureId}/parties/${partyId}/days/${dayId}/memories/`;
     if (!objectKey.startsWith(expectedPrefix)) return NextResponse.json({ error: "Percorso foto non valido" }, { status: 400 });
+    uploadedObjectKey = objectKey;
     const storage = getObjectStorage();
     const metadata = await storage.head(objectKey);
     if (!PHOTO_CONTENT_TYPES.includes(metadata.contentType as typeof PHOTO_CONTENT_TYPES[number]) ||
@@ -26,30 +28,25 @@ export async function POST(request: Request) {
       await storage.delete(objectKey).catch(() => undefined);
       return NextResponse.json({ error: "Il file caricato non è una foto valida" }, { status: 400 });
     }
-    const sql = getSql();
     const mediaId = crypto.randomUUID();
     const memoryId = crypto.randomUUID();
-    const rows = await sql.transaction((txn) => [
-      txn`
-        INSERT INTO media_assets (id, agency_id, departure_id, party_id, uploaded_by_user_id,
-          provider, bucket, object_key, original_name, content_type, size_bytes, purpose, visibility, status)
-        VALUES (${mediaId}, ${agencyId}, ${departureId}, ${partyId}, ${user.id}, ${storage.provider},
-          ${storage.bucket}, ${objectKey}, ${safeOriginalName(body?.originalName)}, ${metadata.contentType},
-          ${metadata.sizeBytes}, 'memory_photo', 'party', 'ready')
-      `,
-      txn`
-        INSERT INTO party_memories (id, agency_id, party_id, trip_day_id, media_asset_id, created_by_user_id)
-        VALUES (${memoryId}, ${agencyId}, ${partyId}, ${dayId}, ${mediaId}, ${user.id})
-        RETURNING id::text, created_at::text
-      `,
-    ]);
+    const originalName = safeOriginalName(body?.originalName);
+    const memory = await registerV3MemoryUpload({
+      userId: user.id, departureId, partyId, dayId, mediaId, memoryId,
+      provider: storage.provider, bucket: storage.bucket, objectKey,
+      originalName, contentType: metadata.contentType, sizeBytes: metadata.sizeBytes,
+    });
     return NextResponse.json({ photo: {
-      id: memoryId, mediaId, dayId, originalName: safeOriginalName(body?.originalName),
+      id: memory.id, mediaId, dayId, originalName,
       contentType: metadata.contentType, sizeBytes: metadata.sizeBytes, addedBy: user.name,
-      createdAt: String(rows[1][0].created_at), contentUrl: `/api/traveler/photos/${memoryId}/content`,
-      downloadUrl: `/api/traveler/photos/${memoryId}/content?download=1`, canDelete: true,
+      createdAt: memory.createdAt, contentUrl: `/api/traveler/photos/${memory.id}/content`,
+      downloadUrl: `/api/traveler/photos/${memory.id}/content?download=1`, canDelete: true,
     } });
   } catch (error) {
+    if (uploadedObjectKey) {
+      const registered = await isMediaObjectRegistered(uploadedObjectKey).catch(() => true);
+      if (!registered) await getObjectStorage().delete(uploadedObjectKey).catch(() => undefined);
+    }
     console.error("Registrazione foto viaggio non riuscita", error);
     return NextResponse.json({ error: "Foto caricata ma non registrata" }, { status: 503 });
   }

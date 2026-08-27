@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
-import { getSql } from "@/lib/db";
-import { ensurePhotoContestsTable } from "@/lib/photo-contest";
-import { ensurePhotosTable, isPhotoAdmin } from "@/lib/photos";
 import { getObjectStorage } from "@/lib/platform/object-storage";
+import { deleteV3LegacyDemoMedia } from "@/lib/platform/v3-media-mutations";
 
 export const runtime = "nodejs";
 
@@ -20,37 +18,20 @@ export async function DELETE(
   }
 
   try {
-    await ensurePhotosTable();
-    await ensurePhotoContestsTable();
-    const sql = getSql();
-    const rows = await sql`
-      SELECT p.id, p.pathname, p.uploaded_by_id,
-             EXISTS (
-               SELECT 1 FROM trip_photo_contests c
-               WHERE c.winner_photo_id = p.id AND c.status = 'completed'
-             ) AS is_contest_winner
-      FROM trip_photos p
-      WHERE p.id = ${id}
-      LIMIT 1
-    `;
-    const photo = rows[0];
-    if (!photo) return NextResponse.json({ error: "Foto non trovata" }, { status: 404 });
-
-    if (String(photo.uploaded_by_id) !== user.id && !isPhotoAdmin(user)) {
-      return NextResponse.json(
-        { error: "Puoi cancellare soltanto le tue foto" },
-        { status: 403 }
-      );
-    }
-    if (photo.is_contest_winner) {
+    const result = await deleteV3LegacyDemoMedia(user.id, "photo", id);
+    if (result.reason === "locked") {
       return NextResponse.json(
         { error: "La foto vincitrice di un concorso non può essere cancellata" },
         { status: 409 }
       );
     }
-
-    await getObjectStorage().delete(String(photo.pathname));
-    await sql`DELETE FROM trip_photos WHERE id = ${id}`;
+    if (!result.deleted || !result.objectKey) {
+      const status = result.reason === "not_found" ? 404 : 403;
+      return NextResponse.json({ error: status === 404 ? "Foto non trovata" : "Operazione non autorizzata" }, { status });
+    }
+    await getObjectStorage().delete(result.objectKey).catch((error) => {
+      console.error("Oggetto R2 orfano dopo cancellazione metadati foto", { id, error });
+    });
     return NextResponse.json({ deleted: true });
   } catch (error) {
     console.error("Cancellazione della foto non riuscita", error);
