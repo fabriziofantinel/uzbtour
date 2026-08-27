@@ -35,6 +35,11 @@ import {
   readV3Gamification,
   v3GamificationCutoverReadEnabled,
 } from "./v3-gamification";
+import {
+  readV3TravelerJourneys,
+  resolveV3TravelerScope,
+  v3TravelerScopeCutoverReadEnabled,
+} from "./v3-traveler-scope";
 
 type Row = Record<string, unknown>;
 
@@ -50,7 +55,9 @@ function withoutAnswerKeys(value: unknown) {
 
 export async function getTravelerExperience(userId: string, requestedDepartureId?: string) {
   const sql = getSql();
-  const journeys = await sql`
+  const journeys = v3TravelerScopeCutoverReadEnabled()
+    ? await readV3TravelerJourneys(userId)
+    : await sql`
     SELECT d.id::text AS departure_id, d.agency_id::text, d.template_version_id::text,
       d.title, d.code, d.starts_on::text, d.ends_on::text, d.timezone, d.status,
       tp.id::text AS party_id, tp.name AS party_name, tt.destination_country,
@@ -512,6 +519,11 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
 export async function assertTravelerPartyScope(input: {
   userId: string; departureId: string; partyId: string; dayId?: string | null;
 }) {
+  if (v3TravelerScopeCutoverReadEnabled()) {
+    const agencyId = await resolveV3TravelerScope(input);
+    if (!agencyId) throw new PlatformRequestError("Viaggio, famiglia o giornata non disponibili");
+    return agencyId;
+  }
   const sql = getSql();
   const rows = await sql`
     SELECT departure.agency_id::text
@@ -546,26 +558,7 @@ export async function addTravelerExpense(input: {
 }) {
   await assertArchitectureHardeningSchema();
   const sql = getSql();
-  const allowed = await sql`
-    SELECT d.agency_id::text
-    FROM traveler_profiles profile
-    JOIN party_memberships membership
-      ON membership.traveler_id = profile.id AND membership.status = 'active'
-    JOIN travel_parties party
-      ON party.id = membership.party_id AND party.agency_id = membership.agency_id
-    JOIN departures d ON d.id = party.departure_id AND d.agency_id = party.agency_id
-    WHERE profile.user_id = ${input.userId} AND party.id = ${input.partyId}
-      AND d.id = ${input.departureId}
-      AND (${input.dayId ?? null}::uuid IS NULL OR EXISTS (
-        SELECT 1 FROM trip_days day
-        WHERE day.id = ${input.dayId ?? null}::uuid
-          AND day.template_version_id = d.template_version_id
-          AND day.agency_id = d.agency_id
-      ))
-    LIMIT 1
-  `;
-  if (!allowed[0]) throw new PlatformRequestError("Viaggio o giornata non disponibili");
-  const agencyId = String(allowed[0].agency_id);
+  const agencyId = await assertTravelerPartyScope(input);
   if (v3ExpenseDualWriteEnabled()) {
     return addTravelerExpenseDualWrite({ agencyId, ...input });
   }
