@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
-import { getSql } from "@/lib/db";
-import { ensurePhotosTable } from "@/lib/photos";
 import { getObjectStorage } from "@/lib/platform/object-storage";
+import { resolveV3LegacyMediaDownload } from "@/lib/platform/v3-media-download";
 
 export const runtime = "nodejs";
 
@@ -24,20 +23,13 @@ export async function GET(
   }
 
   try {
-    await ensurePhotosTable();
-    const sql = getSql();
-    const rows = await sql`
-      SELECT pathname, original_name
-      FROM trip_photos
-      WHERE id = ${id}
-      LIMIT 1
-    `;
-    const photo = rows[0];
+    const photo = await resolveV3LegacyMediaDownload(user.id, "photo", id);
     if (!photo) return NextResponse.json({ error: "Foto non trovata" }, { status: 404 });
 
     const download = new URL(request.url).searchParams.get("download") === "1";
-    const url = await getObjectStorage().createDownloadUrl(String(photo.pathname), 5 * 60, {
-      contentDisposition: contentDisposition(String(photo.original_name), download)
+    const url = await getObjectStorage().createDownloadUrl(photo.objectKey, 5 * 60, {
+      contentDisposition: contentDisposition(photo.originalName, download),
+      contentType: photo.contentType,
     });
     return NextResponse.redirect(url, 307);
   } catch (error) {
