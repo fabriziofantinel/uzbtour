@@ -8,6 +8,7 @@ import {
   requestAgencyDeletion,
   updateAgencyBranding,
   updateAgencyOwnerContact,
+  updateAgencyDetails,
   updateAgencyStatus,
 } from "@/lib/platform/superadmin-repository";
 import { sendTravelerInvitation } from "@/lib/auth/invitation-email";
@@ -26,6 +27,12 @@ const ownerSchema=z.object({action:z.literal("replace-owner"),name:z.string().tr
   email:z.email(),phone:z.string().trim().min(5).max(40)});
 const ownerContactSchema=z.object({action:z.literal("update-owner-contact"),email:z.email(),
   phone:z.string().trim().min(5).max(40)});
+const agencyDetailsSchema=z.object({action:z.literal("update-details"),name:z.string().trim().min(2).max(200),
+  legalName:z.string().trim().max(240),vatNumber:z.string().trim().max(32),taxCode:z.string().trim().max(32),
+  registeredAddress:z.string().trim().max(240),registeredCity:z.string().trim().max(120),registeredPostalCode:z.string().trim().max(16),
+  registeredProvince:z.string().trim().max(80),registeredCountry:z.string().trim().max(100),pec:z.union([z.literal(""),z.email()]),
+  sdiCode:z.string().trim().max(16),phone:z.string().trim().max(40),email:z.union([z.literal(""),z.email()]),
+  website:z.union([z.literal(""),z.url()]),referenceEmail:z.email(),referencePhone:z.string().trim().min(5).max(40)});
 
 export async function PATCH(
   request: Request,
@@ -43,6 +50,9 @@ export async function PATCH(
       await updateAgencyStatus({actorId:actor.id,agencyId:id,status:status.data.status});
       return NextResponse.json({agencies:await getAgencyRegistry(actor.id)});
     }
+    const details=agencyDetailsSchema.safeParse(payload);
+    if(details.success){const {action:_,...data}=details.data;await updateAgencyDetails({actorId:actor.id,agencyId:id,data});
+      return NextResponse.json({agencies:await getAgencyRegistry(actor.id)});}
     const ownerContact=ownerContactSchema.safeParse(payload);
     if(ownerContact.success){
       await updateAgencyOwnerContact({actorId:actor.id,agencyId:id,...ownerContact.data});

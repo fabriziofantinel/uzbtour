@@ -152,6 +152,10 @@ export async function updateAgencyOwnerContact(input:{actorId:string;agencyId:st
   await updateV3PlatformAgencyOwnerContact(input);
 }
 
+export async function updateAgencyDetails(input:{actorId:string;agencyId:string;data:Record<string,string>}){
+  const {updateV3PlatformAgencyDetails}=await import("./v3-superadmin-mutations");await updateV3PlatformAgencyDetails(input);
+}
+
 export async function isUsernameAvailable(actorId:string,username:string){
   const {readV3UsernameAvailability}=await import("./v3-superadmin-mutations");
   return readV3UsernameAvailability(actorId,username.trim().toLocaleLowerCase("en-US"));

@@ -23,7 +23,7 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
   const [agencies, setAgencies] = useState(initialAgencies);
   const [showAgencyForm, setShowAgencyForm] = useState(false);
   const [ownerAgencyId, setOwnerAgencyId] = useState("");
-  const [ownerContactAgencyId, setOwnerContactAgencyId] = useState("");
+  const [editAgencyId, setEditAgencyId] = useState("");
   const [usernameState, setUsernameState] = useState<Record<string,"idle"|"checking"|"available"|"taken">>({});
   const [expandedAgencyId, setExpandedAgencyId] = useState(initialAgencies[0]?.id ?? "");
   const [busy, setBusy] = useState("");
@@ -135,16 +135,16 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
     finally{setBusy("");}
   }
 
-  async function updateOwnerContact(event:FormEvent<HTMLFormElement>,agencyId:string){
-    event.preventDefault();setBusy(`owner-contact-${agencyId}`);setError("");setNotice("");
+  async function updateAgencyDetails(event:FormEvent<HTMLFormElement>,agencyId:string){
+    event.preventDefault();setBusy(`agency-details-${agencyId}`);setError("");setNotice("");
     const form=new FormData(event.currentTarget);
     try{
       const result=await readJson<{agencies:AgencyRegistryItem[]}>(await fetch(`/api/admin/platform/agencies/${agencyId}`,{
-        method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"update-owner-contact",
-          email:stringField(form,"email"),phone:stringField(form,"phone")})
+        method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"update-details",
+          ...Object.fromEntries(["name","legalName","vatNumber","taxCode","registeredAddress","registeredCity","registeredPostalCode","registeredProvince","registeredCountry","pec","sdiCode","phone","email","website","referenceEmail","referencePhone"].map((field)=>[field,stringField(form,field)]))})
       }));
-      setAgencies(result.agencies);setOwnerContactAgencyId("");setNotice("Email e telefono del responsabile aggiornati.");
-    }catch(caught){setError(caught instanceof Error?caught.message:"Dati del responsabile non aggiornati");}
+      setAgencies(result.agencies);setEditAgencyId("");setNotice("Dati dell’agenzia aggiornati.");
+    }catch(caught){setError(caught instanceof Error?caught.message:"Dati dell’agenzia non aggiornati");}
     finally{setBusy("");}
   }
 
@@ -243,15 +243,29 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
                     <span><small>REFERENTE</small><b>{agency.referenceName}</b></span>
                     <a href={`mailto:${agency.referenceEmail}`}><Mail/><span><small>EMAIL</small><b>{agency.referenceEmail}</b></span></a>
                     <a href={`tel:${agency.referencePhone}`}><Phone/><span><small>TELEFONO</small><b>{agency.referencePhone}</b></span></a>
+                    <button type="button" className="agencyEditButton" aria-expanded={editAgencyId===agency.id} aria-controls={`agency-edit-form-${agency.id}`} onClick={()=>setEditAgencyId(editAgencyId===agency.id?"":agency.id)}><Pencil/> Modifica dati agenzia</button>
                     {agency.vatNumber && <span><small>PARTITA IVA</small><b>{agency.vatNumber}</b></span>}
                   </div>
-                  <div className="agentsHeader"><div><small>UTENTI AGENZIA</small><h3>Responsabile e agenti</h3></div><span><button type="button" className="secondaryAction" aria-expanded={ownerContactAgencyId===agency.id} aria-controls={`owner-contact-form-${agency.id}`} onClick={()=>{setOwnerContactAgencyId(ownerContactAgencyId===agency.id?"":agency.id);setOwnerAgencyId("");}}><Pencil/> Modifica dati responsabile</button><button type="button" aria-expanded={ownerAgencyId===agency.id} aria-controls={`owner-form-${agency.id}`} onClick={()=>{setOwnerAgencyId(ownerAgencyId===agency.id?"":agency.id);setOwnerContactAgencyId("");}}><UsersRound/> Sostituisci responsabile</button></span></div>
-                  {ownerContactAgencyId===agency.id&&<form className="agentForm ownerContactForm" id={`owner-contact-form-${agency.id}`} onSubmit={(event)=>updateOwnerContact(event,agency.id)}>
-                    <p className="wide">Nome, cognome e username restano invariati. Puoi aggiornare soltanto i recapiti.</p>
-                    <label>Email<input name="email" type="email" autoComplete="email" required maxLength={320} defaultValue={agency.referenceEmail}/></label>
-                    <label>Telefono<input name="phone" type="tel" autoComplete="tel" required minLength={5} maxLength={40} defaultValue={agency.referencePhone}/></label>
-                    <button type="submit" disabled={busy===`owner-contact-${agency.id}`}>{busy===`owner-contact-${agency.id}`?<><LoaderCircle className="spin"/> Salvataggio…</>:<><Save/> Salva recapiti</>}</button>
+                  {editAgencyId===agency.id&&<form className="agencyEditForm" id={`agency-edit-form-${agency.id}`} onSubmit={(event)=>updateAgencyDetails(event,agency.id)}>
+                    <label>Nome agenzia<input name="name" required minLength={2} maxLength={200} defaultValue={agency.name}/></label>
+                    <label>Ragione sociale<input name="legalName" maxLength={240} defaultValue={agency.legalName}/></label>
+                    <label>Partita IVA<input name="vatNumber" maxLength={32} defaultValue={agency.vatNumber}/></label>
+                    <label>Codice fiscale<input name="taxCode" maxLength={32} defaultValue={agency.taxCode}/></label>
+                    <label className="wide">Sede legale<input name="registeredAddress" maxLength={240} defaultValue={agency.registeredAddress}/></label>
+                    <label>Città<input name="registeredCity" maxLength={120} defaultValue={agency.registeredCity}/></label>
+                    <label>CAP<input name="registeredPostalCode" maxLength={16} defaultValue={agency.registeredPostalCode}/></label>
+                    <label>Provincia<input name="registeredProvince" maxLength={80} defaultValue={agency.registeredProvince}/></label>
+                    <label>Paese<input name="registeredCountry" maxLength={100} defaultValue={agency.registeredCountry}/></label>
+                    <label>PEC<input name="pec" type="email" maxLength={320} defaultValue={agency.pec}/></label>
+                    <label>Codice SDI<input name="sdiCode" maxLength={16} defaultValue={agency.sdiCode}/></label>
+                    <label>Telefono agenzia<input name="phone" type="tel" maxLength={40} defaultValue={agency.phone}/></label>
+                    <label>Email agenzia<input name="email" type="email" maxLength={320} defaultValue={agency.email}/></label>
+                    <label className="wide">Sito web<input name="website" type="url" maxLength={500} defaultValue={agency.website}/></label>
+                    <label>Email responsabile<input name="referenceEmail" type="email" required maxLength={320} defaultValue={agency.referenceEmail}/></label>
+                    <label>Telefono responsabile<input name="referencePhone" type="tel" required minLength={5} maxLength={40} defaultValue={agency.referencePhone}/></label>
+                    <footer><button type="button" className="secondary" onClick={()=>setEditAgencyId("")}>Annulla</button><button type="submit" disabled={busy===`agency-details-${agency.id}`}>{busy===`agency-details-${agency.id}`?<><LoaderCircle className="spin"/> Salvataggio…</>:<><Save/> Salva modifiche</>}</button></footer>
                   </form>}
+                  <div className="agentsHeader"><div><small>UTENTI AGENZIA</small><h3>Responsabile e agenti</h3></div><span><button type="button" aria-expanded={ownerAgencyId===agency.id} aria-controls={`owner-form-${agency.id}`} onClick={()=>setOwnerAgencyId(ownerAgencyId===agency.id?"":agency.id)}><UsersRound/> Sostituisci responsabile</button></span></div>
                   {ownerAgencyId===agency.id&&<form className="agentForm" id={`owner-form-${agency.id}`} onSubmit={(event)=>replaceOwner(event,agency.id)}>
                     <p className="wide">Il nuovo responsabile riceverà il link personale di attivazione. Il precedente responsabile sarà rimosso dall’agenzia.</p>
                     <label>Nome e cognome<input name="name" autoComplete="name" required minLength={2} maxLength={160}/></label>

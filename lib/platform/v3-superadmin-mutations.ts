@@ -72,6 +72,11 @@ export async function readV3UsernameAvailability(actorId:string,username:string)
   return Boolean(rows[0]?.available);
 }
 
+export async function updateV3PlatformAgencyDetails(input:{actorId:string;agencyId:string;data:Record<string,string>}){
+  const sql=getSql();const rows=await sql`SELECT app.update_platform_agency_details(${input.actorId},${input.agencyId}::uuid,${JSON.stringify(input.data)}::jsonb) updated`;
+  if(!rows[0]?.updated)throw new PlatformRequestError("Agenzia non trovata");
+}
+
 export async function provisionV3PlatformAgencyAgent(input:{actorId:string;agencyId:string;name:string;initials:string;username:string;email:string;phone:string;role:"admin"|"editor"|"viewer";tokenHash:string;expiresAt:string}){
   const sql=getSql();const rows=await sql`SELECT app.provision_platform_agency_agent(
     ${input.actorId},${input.agencyId}::uuid,${input.name},${input.initials},${input.username},
