@@ -6,15 +6,19 @@ Metadata:
   AWSToolsMetrics:
     AWSAgentToolkit: aws-cloudformation@2
   com.aws.cloudformation.Context:
-    arch: Vercel OIDC -> SQS -> Lambda -> SSM + R2 + Bedrock + Neon; DLQ + CloudWatch alarms
+    arch: Vercel OIDC -> SQS -> Lambda -> SSM + R2 + Bedrock + Neon; Cognito username auth; DLQ + CloudWatch alarms
     must:
       - SQS visibility >= 6x Lambda timeout
       - Vercel role may only send to this stack import queue
       - worker concurrency <= 2 to protect Neon and AI spend
+      - Cognito username is login identity; email is non-unique contact and recovery data
     ref:
       - at: docs/aws-sqs-lambda-bedrock.md
         has: architecture, operations, deploy and recovery runbook
         scope: stack
+      - at: docs/aws-cognito-username-auth.md
+        has: username auth, invitations, password recovery and cutover runbook
+        scope: identity
 Parameters:
   DatabaseParameterName:
     Type: String
@@ -43,14 +47,97 @@ Parameters:
     Type: String
     Default: ""
     AllowedPattern: "^$|^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+  InvitationSenderEmail:
+    Type: String
+    Default: ""
+    AllowedPattern: "^$|^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
 
 Conditions:
   UseDefaultR2Endpoint: !Equals [!Ref R2Jurisdiction, none]
   HasAlarmEmail: !Not [!Equals [!Ref AlarmEmail, ""]]
+  HasInvitationSender: !Not [!Equals [!Ref InvitationSenderEmail, ""]]
 
 Transform: AWS::Serverless-2016-10-31
 
 Resources:
+  TravelUserPool:
+    Type: AWS::Cognito::UserPool
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: credential authority for username/password; Neon keeps authorization and tenant domain data; username-only sign-in permits independent users sharing one family email
+        must:
+          - never configure email as alias or sign-in attribute; shared email is a business requirement
+          - keep UserPoolTier LITE unless a reviewed feature requires a paid tier
+          - keep deletion protection active; account removal must be explicit and audited
+          - retain pool on stack delete or replacement
+        mutable: change-with-constraints
+        mutability:
+          UsernameConfiguration: must-never-change
+          Schema: review-required
+        trust: { src: authored, conf: high }
+    Properties:
+      UserPoolTier: LITE
+      DeletionProtection: ACTIVE
+      UsernameConfiguration:
+        CaseSensitive: false
+      AutoVerifiedAttributes:
+        - email
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 10
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          RequireUppercase: true
+          TemporaryPasswordValidityDays: 7
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Mutable: true
+          Required: true
+        - Name: name
+          AttributeDataType: String
+          Mutable: true
+          Required: true
+      UserPoolTags:
+        Application: smf-travel
+        ManagedBy: cloudformation
+
+  TravelWebClient:
+    Type: AWS::Cognito::UserPoolClient
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: public Next.js client for password and refresh flows; no client secret is stored on Vercel or in browsers
+        must:
+          - GenerateSecret remains false
+          - prevent user-existence disclosure
+        mutable: change-with-constraints
+        trust: { src: authored, conf: high }
+    Properties:
+      UserPoolId: !Ref TravelUserPool
+      GenerateSecret: false
+      PreventUserExistenceErrors: ENABLED
+      EnableTokenRevocation: true
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      AccessTokenValidity: 1
+      IdTokenValidity: 1
+      RefreshTokenValidity: 30
+      TokenValidityUnits:
+        AccessToken: hours
+        IdToken: hours
+        RefreshToken: days
+      AuthSessionValidity: 5
+
   ImportDeadLetterQueue:
     Type: AWS::SQS::Queue
     Properties:
@@ -127,6 +214,72 @@ Resources:
               - Effect: Allow
                 Action: sqs:SendMessage
                 Resource: !GetAtt ImportQueue.Arn
+
+  VercelAuthBrokerRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: lets only the production Vercel workload activate invited Cognito users after validating a one-time Neon invitation token
+        must:
+          - trust remains scoped to exact Vercel team, project and production environment
+          - permissions remain scoped to TravelUserPool
+        mutable: change-with-constraints
+        trust: { src: authored, conf: high }
+    Properties:
+      Description: Consente solo al deployment production di smf-travel di attivare utenti invitati
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !Ref VercelOidcProvider
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                oidc.vercel.com/smf6:aud: https://vercel.com/smf6
+                oidc.vercel.com/smf6:sub: owner:smf6:project:smf-travel:environment:production
+      Policies:
+        - PolicyName: ActivateInvitedUsers
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cognito-idp:AdminCreateUser
+                  - cognito-idp:AdminGetUser
+                  - cognito-idp:AdminSetUserPassword
+                  - cognito-idp:AdminUpdateUserAttributes
+                Resource: !GetAtt TravelUserPool.Arn
+
+  InvitationEmailIdentity:
+    Type: AWS::SES::EmailIdentity
+    Condition: HasInvitationSender
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: verified sender for one independent invitation email per traveler; SES is used only for transactional access messages
+        must:
+          - sender verification must complete before invitations are considered delivered
+        mutable: review-required
+        trust: { src: authored, conf: high }
+    Properties:
+      EmailIdentity: !Ref InvitationSenderEmail
+
+  VercelInvitationEmailPolicy:
+    Type: AWS::IAM::Policy
+    Condition: HasInvitationSender
+    Properties:
+      PolicyName: SendTravelerInvitations
+      Roles:
+        - !Ref VercelAuthBrokerRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action: ses:SendEmail
+            Resource: !Sub "arn:${AWS::Partition}:ses:${AWS::Region}:${AWS::AccountId}:identity/${InvitationSenderEmail}"
 
   ImportWorker:
     Type: AWS::Serverless::Function
@@ -348,6 +501,19 @@ Resources:
         - !If [HasAlarmEmail, !Ref AlarmTopic, !Ref AWS::NoValue]
 
 Outputs:
+  CognitoUserPoolId:
+    Description: Identificatore del pool Cognito da configurare su Vercel
+    Value: !Ref TravelUserPool
+  CognitoWebClientId:
+    Description: Identificatore del client pubblico Cognito da configurare su Vercel
+    Value: !Ref TravelWebClient
+  VercelAuthBrokerRoleArn:
+    Description: Ruolo OIDC usato da Vercel esclusivamente per attivare utenti invitati
+    Value: !GetAtt VercelAuthBrokerRole.Arn
+  InvitationSender:
+    Condition: HasInvitationSender
+    Description: Mittente SES verificato da configurare su Vercel
+    Value: !Ref InvitationSenderEmail
   ImportQueueUrl:
     Description: Valore AWS_SQS_IMPORT_QUEUE_URL da configurare su Vercel
     Value: !Ref ImportQueue

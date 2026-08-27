@@ -19,8 +19,9 @@ export async function updateV3PlatformAgencyBranding(input:{actorId:string;agenc
   if(!rows[0]?.updated)throw new PlatformRequestError("Agenzia non trovata");
 }
 
-export async function provisionV3PlatformAgencyAgent(input:{actorId:string;agencyId:string;name:string;initials:string;email:string;phone:string;role:"admin"|"editor"|"viewer"}){
+export async function provisionV3PlatformAgencyAgent(input:{actorId:string;agencyId:string;name:string;initials:string;username:string;email:string;phone:string;role:"admin"|"editor"|"viewer";tokenHash:string;expiresAt:string}){
   const sql=getSql();const rows=await sql`SELECT app.provision_platform_agency_agent(
-    ${input.actorId},${input.agencyId}::uuid,${input.name},${input.initials},${input.email},${input.phone},${input.role}) id`;
-  return String(rows[0].id);
+    ${input.actorId},${input.agencyId}::uuid,${input.name},${input.initials},${input.username},
+    ${input.email},${input.phone},${input.role},${input.tokenHash},${input.expiresAt}::timestamptz)`;
+  return { id:String(rows[0].legacy_user_id),activationRequired:Boolean(rows[0].activation_required) };
 }

@@ -34,6 +34,7 @@ export async function readV3JourneyManagement(departureId: string, actorId: stri
         travelers: familyRows.filter((row) => row.traveler_id).map((row) => ({
           id: String(row.traveler_id),
           name: String(row.traveler_name),
+          username: String(row.traveler_username || ""),
           email: String(row.traveler_email || ""),
           phone: String(row.traveler_phone || ""),
           role: String(row.membership_role),

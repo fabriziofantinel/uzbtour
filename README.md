@@ -19,7 +19,7 @@ Aprire `http://localhost:3000`.
 - **Documenti e foto:** bucket privato Cloudflare R2
 - **Elaborazione asincrona:** Amazon SQS e AWS Lambda
 - **Importazione programma:** Amazon Bedrock (Nova Lite), con stato e risultati su Neon
-- **Autenticazione:** Neon Auth con sessioni `HttpOnly` e ruoli applicativi su Neon
+- **Autenticazione:** Amazon Cognito Lite con username e sessioni `HttpOnly`; ruoli applicativi su Neon
 - **Mappe:** OpenStreetMap nell'MVP; Mapbox se servono percorsi e mappe offline più evolute
 
 Il caricamento dei file usa URL `PUT` firmati e temporanei: il browser invia il file
@@ -27,12 +27,14 @@ direttamente a R2, mentre le chiavi R2 rimangono esclusivamente nelle API server
 
 ## Accesso privato
 
-L'intera applicazione è protetta da Neon Auth. Identità e sessioni sono gestite nello schema `neon_auth`; agenzie, famiglie, viaggiatori e relativi permessi restano nelle tabelle applicative.
+L'intera applicazione è protetta da Amazon Cognito Lite. Cognito gestisce credenziali e sessioni; agenzie, famiglie, viaggiatori e relativi permessi restano nelle tabelle Neon.
 
 Configurare in Vercel, per Production, Preview e Development:
 
-- `NEON_AUTH_BASE_URL`: endpoint Auth della branch Neon
-- `NEON_AUTH_COOKIE_SECRET`: stringa casuale di almeno 32 caratteri per la sessione firmata
+- `COGNITO_USER_POOL_ID`: identificativo del pool Cognito username-only
+- `COGNITO_WEB_CLIENT_ID`: client pubblico senza secret
+- `AWS_AUTH_ROLE_ARN`: ruolo assunto da Vercel tramite OIDC per inviti e provisioning
+- `SES_INVITATION_SENDER`: mittente verificato degli inviti
 - `DATABASE_URL`: connessione al database Neon Postgres collegato al progetto
 
 Per lo sviluppo locale, sincronizzare le variabili con `vercel env pull .env.local`.
@@ -40,7 +42,7 @@ Per lo sviluppo locale, sincronizzare le variabili con `vercel env pull .env.loc
 ## Database
 
 Note giornaliere, locali e spese sono persistiti su Neon Postgres. Ogni scrittura
-registra l'identificativo e il nome dell'utente ricavati dalla sessione Neon Auth.
+registra l'identificativo e il nome dell'utente ricavati dalla sessione Cognito.
 
 Per creare o aggiornare le tabelle:
 

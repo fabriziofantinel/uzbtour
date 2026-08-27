@@ -25,6 +25,7 @@ export async function provisionV3JourneyTraveler(input: {
   partyId: string;
   name: string;
   initials: string;
+  username: string;
   email: string;
   phone: string;
   birthDate?: string;
@@ -37,7 +38,7 @@ export async function provisionV3JourneyTraveler(input: {
     SELECT traveler_id::text,activation_required
     FROM app.provision_journey_traveler(
       ${input.actorId},${input.agencyId}::uuid,${input.partyId}::uuid,
-      ${input.name},${input.initials},${input.email},${input.phone},
+      ${input.name},${input.initials},${input.username},${input.email},${input.phone},
       ${input.birthDate || null}::date,${input.role},${input.tokenHash},
       ${input.expiresAt}::timestamptz
     )

@@ -19,13 +19,15 @@ export async function createJourneyFamily(input: { departureId: string; agencyId
 }
 
 export async function addJourneyTraveler(input: {
-  agencyId: string; partyId: string; name: string; email: string; phone: string;
+  agencyId: string; partyId: string; name: string; username: string; email: string; phone: string;
   birthDate?: string; role: "organizer" | "member"; actorId: string;
 }) {
   const normalizedEmail = input.email.trim().toLocaleLowerCase("en-US");
+  const normalizedUsername = input.username.trim().toLocaleLowerCase("en-US");
   const token = randomBytes(32).toString("base64url");
   const result = await provisionV3JourneyTraveler({
     ...input,
+    username: normalizedUsername,
     email: normalizedEmail,
     initials: initialsFor(input.name),
     tokenHash: createHash("sha256").update(token).digest("hex"),

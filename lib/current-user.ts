@@ -1,10 +1,10 @@
-import { getNeonAuth, isNeonAuthConfigured } from "./auth/server";
 import { cookies } from "next/headers";
 import { createHash } from "node:crypto";
 import {
-  resolveV3AuthenticatedUser,
+  resolveV3CognitoAuthenticatedUser,
   resolveV3LegacyImpersonation,
 } from "./platform/v3-identity-access";
+import { getCognitoIdentity } from "./auth/cognito";
 
 export const IMPERSONATION_COOKIE = "smf_impersonation";
 
@@ -32,26 +32,21 @@ function initialsFor(name: string) {
 }
 
 export async function getAuthenticatedActor(): Promise<CurrentUser | null> {
-  if (!isNeonAuthConfigured()) return null;
-
-  const { data: session, error } = await getNeonAuth().getSession();
-  if (error || !session?.user?.id || !session.user.email) return null;
-
-  const authSubject = String(session.user.id);
-  const email = String(session.user.email).trim().toLocaleLowerCase("en-US");
-  const displayName = String(session.user.name || email.split("@")[0] || "Viaggiatore").trim();
-  const platformUser = await resolveV3AuthenticatedUser({ subject: authSubject, email, displayName });
-  if (!platformUser) return null;
-
-  return {
-    id: platformUser.id,
-    name: platformUser.name,
-    initials: initialsFor(platformUser.name),
-    email: platformUser.email,
-    isSuperAdmin: platformUser.isSuperAdmin,
-    isAgencyAdmin: platformUser.isAgencyAdmin,
-    impersonation: null
-  };
+  const cognitoIdentity = await getCognitoIdentity();
+  if (cognitoIdentity) {
+    const platformUser = await resolveV3CognitoAuthenticatedUser(cognitoIdentity.subject);
+    if (!platformUser) return null;
+    return {
+      id: platformUser.id,
+      name: platformUser.name,
+      initials: initialsFor(platformUser.name),
+      email: platformUser.email,
+      isSuperAdmin: platformUser.isSuperAdmin,
+      isAgencyAdmin: platformUser.isAgencyAdmin,
+      impersonation: null,
+    };
+  }
+  return null;
 }
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {

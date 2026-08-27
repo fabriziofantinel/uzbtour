@@ -3,6 +3,7 @@ import { PlatformRequestError } from "./errors";
 import { readV3AgencyRegistry, readV3ImpersonationUsers, readV3SuperadminSummary } from "./v3-superadmin-read";
 import { createV3PlatformAgency, provisionV3PlatformAgencyAgent, updateV3PlatformAgencyBranding } from "./v3-superadmin-mutations";
 import { getJobQueue } from "./job-queue";
+import { createHash, randomBytes } from "node:crypto";
 
 export type SuperadminSummary = {
   agencies: number;
@@ -13,6 +14,7 @@ export type SuperadminSummary = {
 export type AgencyAgent = {
   id: string;
   name: string;
+  username: string;
   initials: string;
   email: string;
   phone: string;
@@ -140,12 +142,18 @@ export async function createAgencyAgent(input: {
   actorId: string;
   agencyId: string;
   name: string;
+  username: string;
   email: string;
   phone: string;
   role: "admin" | "editor" | "viewer";
 }) {
   const normalizedEmail = input.email.trim().toLocaleLowerCase("en-US");
-  return provisionV3PlatformAgencyAgent({
-    ...input,email:normalizedEmail,initials:initialsFor(input.name),
+  const normalizedUsername = input.username.trim().toLocaleLowerCase("en-US");
+  const token = randomBytes(32).toString("base64url");
+  const result = await provisionV3PlatformAgencyAgent({
+    ...input,email:normalizedEmail,username:normalizedUsername,initials:initialsFor(input.name),
+    tokenHash:createHash("sha256").update(token).digest("hex"),
+    expiresAt:new Date(Date.now()+14*24*60*60*1000).toISOString(),
   });
+  return { id:result.id,activationToken:result.activationRequired?token:null };
 }

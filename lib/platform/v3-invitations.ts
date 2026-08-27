@@ -7,24 +7,24 @@ type Row = Record<string, unknown>;
 export async function inspectV3AccountInvitation(tokenHash: string) {
   const sql = getSql();
   const rows = await sql`
-    SELECT display_name,email
+    SELECT display_name,username,email
     FROM app.inspect_account_invitation(${tokenHash})
   `;
   const row = rows[0] as Row | undefined;
   if (!row) return null;
-  return { name: String(row.display_name), email: String(row.email) };
+  return { name: String(row.display_name), username: String(row.username), email: String(row.email) };
 }
 
 export async function activateV3AccountInvitation(input: {
   tokenHash: string;
   subject: string;
-  email: string;
+  username: string;
 }) {
   const sql = getSql();
   const rows = await sql`
-    SELECT legacy_user_id,display_name,email
+    SELECT legacy_user_id,display_name,username,email
     FROM app.activate_account_invitation(
-      ${input.tokenHash},${input.subject},${input.email}
+      ${input.tokenHash},${input.subject},${input.username}
     )
   `;
   const row = rows[0] as Row | undefined;
@@ -32,6 +32,7 @@ export async function activateV3AccountInvitation(input: {
   return {
     id: String(row.legacy_user_id),
     name: String(row.display_name),
+    username: String(row.username),
     email: String(row.email),
   };
 }

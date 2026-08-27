@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const root=resolve(fileURLToPath(new URL("..",import.meta.url)));
 const migrationRoot=resolve(root,"database/migrations");
-const immutableMigrationMax=53;
+const immutableMigrationMax=55;
 const files=(await readdir(migrationRoot)).filter(name=>/^\d{3}_[a-z0-9_]+\.sql$/.test(name)).sort();
 const seen=new Set(),failures=[];
 

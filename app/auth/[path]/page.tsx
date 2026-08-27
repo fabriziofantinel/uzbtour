@@ -1,44 +1,30 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, KeyRound, MailCheck, Plane, ShieldCheck } from "lucide-react";
-import { AuthView } from "@neondatabase/auth-ui";
-import { authViewPaths, type AuthViewPath } from "@neondatabase/auth-ui/server";
-import AuthProvider from "../auth-provider";
-import "@neondatabase/auth-ui/css";
+import { ArrowLeft, KeyRound, Plane } from "lucide-react";
 import "../../smf-2026.css";
+import UsernameRecovery from "../username-recovery";
 
-const allowedPaths = new Set<string>([
-  authViewPaths.FORGOT_PASSWORD,
-  authViewPaths.RESET_PASSWORD,
-  authViewPaths.EMAIL_VERIFICATION,
-  authViewPaths.CALLBACK
-]);
+const RECOVERY_PATHS = new Set(["forgot-password", "reset-password"]);
 
 function getPageCopy(path: string) {
-  if (path === authViewPaths.FORGOT_PASSWORD) return {
+  if (path === "forgot-password") return {
     eyebrow: "RECUPERO ACCESSO",
     title: "Riprendi il tuo viaggio.",
     description: "Riceverai un collegamento sicuro all’indirizzo associato al tuo account.",
     icon: <KeyRound aria-hidden="true" />
   };
-  if (path === authViewPaths.RESET_PASSWORD) return {
+  return {
     eyebrow: "NUOVA PASSWORD",
     title: "Proteggi il tuo spazio.",
-    description: "Scegli una password nuova e diversa da quelle che utilizzi su altri servizi.",
-    icon: <ShieldCheck aria-hidden="true" />
-  };
-  return {
-    eyebrow: "VERIFICA ACCOUNT",
-    title: "Conferma la tua identità.",
-    description: "Completiamo la verifica prima di aprire il tuo spazio personale.",
-    icon: <MailCheck aria-hidden="true" />
+    description: "Inserisci il codice ricevuto e scegli una nuova password.",
+    icon: <KeyRound aria-hidden="true" />
   };
 }
 
 export default async function AuthPage({ params }: { params: Promise<{ path: string }> }) {
   const { path } = await params;
-  if (path === authViewPaths.SIGN_IN) redirect("/login");
-  if (!allowedPaths.has(path)) notFound();
+  if (path === "sign-in") redirect("/login");
+  if (!RECOVERY_PATHS.has(path)) notFound();
   const copy = getPageCopy(path);
 
   return (
@@ -58,9 +44,7 @@ export default async function AuthPage({ params }: { params: Promise<{ path: str
         <div className="authUtilityBox">
           <span className="authUtilityIcon">{copy.icon}</span>
           <p className="authUtilityIntro">{copy.description}</p>
-          <AuthProvider>
-            <AuthView path={path as AuthViewPath}/>
-          </AuthProvider>
+          <UsernameRecovery/>
           <Link className="authUtilityBack" href="/login"><ArrowLeft aria-hidden="true"/> Torna all’accesso</Link>
         </div>
       </section>

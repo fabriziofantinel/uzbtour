@@ -119,12 +119,13 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
     setBusy(`agent-${agencyId}`); setError(""); setNotice("");
     const form = new FormData(event.currentTarget);
     try {
-      const result = await readJson<{ agency: AgencyRegistryItem }>(
+      const result = await readJson<{ agency: AgencyRegistryItem; invitationEmailSent: boolean; activationToken: string | null }>(
         await fetch(`/api/admin/platform/agencies/${agencyId}/agents`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             name: stringField(form, "name"),
+            username: stringField(form, "username"),
             email: stringField(form, "email"),
             phone: stringField(form, "phone"),
             role: stringField(form, "role"),
@@ -133,7 +134,7 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
       );
       setAgencies((current) => current.map((agency) => agency.id === agencyId ? result.agency : agency));
       setAgentAgencyId("");
-      setNotice("Agente censito nell’agenzia.");
+      setNotice(result.invitationEmailSent ? "Agente censito. L’invito personale è stato inviato via email." : "Agente censito. Invio email non disponibile: rigenera l’invito dopo la configurazione SES.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Inserimento agente non riuscito");
     } finally {
@@ -257,6 +258,7 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
                   {agentAgencyId === agency.id && (
                     <form className="agentForm" id={`agent-form-${agency.id}`} onSubmit={(event) => createAgent(event, agency.id)}>
                       <label>Nome e cognome<input name="name" autoComplete="name" required minLength={2} maxLength={160}/></label>
+                      <label>Username<input name="username" autoComplete="username" required minLength={3} maxLength={80} pattern="[A-Za-z0-9][A-Za-z0-9._-]{2,79}"/></label>
                       <label>Email<input name="email" type="email" autoComplete="email" required maxLength={320}/></label>
                       <label>Telefono<input name="phone" type="tel" autoComplete="tel" required minLength={5} maxLength={40}/></label>
                       <label>Ruolo<select name="role" defaultValue="editor"><option value="admin">Amministratore</option><option value="editor">Agente</option><option value="viewer">Solo lettura</option></select></label>
@@ -264,7 +266,7 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
                     </form>
                   )}
                   <div className="agentsList">
-                    {agency.agents.map((agent) => <div key={agent.id}><i>{agent.initials || agent.name.slice(0, 2).toUpperCase()}</i><span><b>{agent.name}</b><small>{agent.email} · {agent.phone || "telefono non indicato"}</small></span><em>{roleLabels[agent.role]}</em><strong className={agent.status}>{agent.status === "invited" ? "Invitato" : "Attivo"}</strong></div>)}
+                    {agency.agents.map((agent) => <div key={agent.id}><i>{agent.initials || agent.name.slice(0, 2).toUpperCase()}</i><span><b>{agent.name}</b><small>@{agent.username} · {agent.email} · {agent.phone || "telefono non indicato"}</small></span><em>{roleLabels[agent.role]}</em><strong className={agent.status}>{agent.status === "invited" ? "Invitato" : "Attivo"}</strong></div>)}
                     {agency.agents.length === 0 && <p>Nessun agente censito.</p>}
                   </div>
                   <div className="agencyDangerZone">

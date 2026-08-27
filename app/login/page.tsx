@@ -1,28 +1,27 @@
 "use client";
 
 import { FormEvent, Suspense, useState } from "react";
-import { CircleUserRound, Eye, EyeOff, LoaderCircle, LockKeyhole, Mail, Plane } from "lucide-react";
+import { CircleUserRound, Eye, EyeOff, LoaderCircle, LockKeyhole, Plane, UserRound } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { authClient } from "@/lib/auth/client";
 import "./login.css";
 import "./login-fix.css";
 import "../smf-2026.css";
 
 function LoginContent() {
   const searchParams = useSearchParams();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function signIn(emailAddress: string, userPassword: string) {
-    const response = await fetch("/api/auth/sign-in/email", {
+  async function signIn(usernameValue: string, userPassword: string) {
+    const response = await fetch("/api/auth/username/sign-in", {
       method: "POST",
       credentials: "same-origin",
       cache: "no-store",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: emailAddress, password: userPassword })
+      body: JSON.stringify({ username: usernameValue, password: userPassword })
     });
     const body = await response.json().catch(() => null) as { code?: string; message?: string } | null;
     return { response, body };
@@ -34,10 +33,10 @@ function LoginContent() {
     setError("");
 
     try {
-      const normalizedEmail = email.trim().toLocaleLowerCase("en-US");
-      const { response: signInResponse } = await signIn(normalizedEmail, password);
+      const normalizedUsername = username.trim().toLocaleLowerCase("en-US");
+      const { response: signInResponse } = await signIn(normalizedUsername, password);
       if (signInResponse.status === 401) {
-        setError("Email o password non corrette.");
+        setError("Username o password non corretti.");
         return;
       }
       if (signInResponse.status === 429) {
@@ -57,7 +56,7 @@ function LoginContent() {
         user?: { isSuperAdmin?: boolean; isAgencyAdmin?: boolean };
       } | null;
       if (!meResponse.ok || !me?.user) {
-        await authClient.signOut().catch(() => undefined);
+        await fetch("/api/auth/username/sign-out", { method: "POST" }).catch(() => undefined);
         setError("Account non abilitato a questa applicazione.");
         return;
       }
@@ -96,16 +95,15 @@ function LoginContent() {
           <h2>Accedi al tuo spazio</h2>
           <p className="loginIntro">Inserisci le credenziali ricevute dall’agenzia. Verrai indirizzato automaticamente al tuo ambiente.</p>
           <form onSubmit={submit}>
-            <label htmlFor="email">Email</label>
+            <label htmlFor="username">Username</label>
             <div className="codeInput">
-              <Mail size={18}/>
+              <UserRound size={18}/>
               <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="nome@esempio.it"
-                autoComplete="email"
+                id="username"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                placeholder="Il tuo username"
+                autoComplete="username"
                 autoFocus
                 required
                 aria-invalid={Boolean(error)}
@@ -134,7 +132,7 @@ function LoginContent() {
               <p className="loginError" role="alert">Autenticazione in configurazione. Riprova tra poco.</p>
             )}
             {error && <p id="login-error" className="loginError" role="alert">{error}</p>}
-            <button className="loginSubmit" type="submit" disabled={loading || !email.trim() || !password}>
+            <button className="loginSubmit" type="submit" disabled={loading || !username.trim() || !password}>
               {loading ? <LoaderCircle className="spin" size={18}/> : <LockKeyhole size={17}/>}
               {loading ? "Accesso in corso…" : "Accedi"}
             </button>

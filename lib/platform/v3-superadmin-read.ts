@@ -41,6 +41,7 @@ export async function readV3AgencyRegistry(actorId: string) {
       travelerCount: Number(row.traveler_count),
       agents: agencyRows.filter((agent) => agent.agent_id).map((agent) => ({
         id: String(agent.agent_id), name: String(agent.agent_name),
+        username: String(agent.agent_username || ""),
         initials: initialsFor(String(agent.agent_name)), email: String(agent.agent_email),
         phone: String(agent.agent_phone), role: String(agent.agent_role) as "owner" | "admin" | "editor" | "viewer",
         status: String(agent.agent_status),
