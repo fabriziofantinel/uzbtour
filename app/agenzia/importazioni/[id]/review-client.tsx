@@ -268,7 +268,6 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
         <a href="/agenzia"><ArrowLeft size={17}/> Pannello</a>
         <div><FileText size={18}/><span><small>REVISIONE PROGRAMMA</small><b>{initialImport.normalizedFileName ?? initialImport.sourceFileName}</b></span></div>
         <span className={isDirty ? "reviewSaveState dirty" : "reviewSaveState"} role="status">{isDirty ? "Modifiche da salvare" : "Tutto salvato"}</span>
-        <button type="button" aria-label="Salva la revisione" onClick={save} disabled={Boolean(busy) || !isDirty}>{busy === "save" ? <LoaderCircle className="spin"/> : <Save/>}<span>{busy === "save" ? "Salvataggio…" : "Salva"}</span></button>
       </header>
 
       <section className="reviewHero">

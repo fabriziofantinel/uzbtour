@@ -8,7 +8,7 @@
   height: 70px;
   padding: 0 max(18px, 4vw);
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) auto auto minmax(120px, 1fr);
+  grid-template-columns: minmax(120px, 1fr) auto minmax(120px, 1fr);
   align-items: center;
   background: var(--surface-raised);
   border-bottom: 1px solid var(--line);
@@ -53,19 +53,6 @@
   white-space: nowrap;
   font-size: var(--text-small);
 }
-.reviewTopbar > button {
-  justify-self: end;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 9px 13px;
-  border: 0;
-  border-radius: 8px;
-  background: var(--teal);
-  color: var(--on-brand);
-  font-size: var(--text-small);
-  font-weight: 800;
-}
 .reviewSaveState {
   justify-self: end;
   padding: 6px 9px;
@@ -79,9 +66,6 @@
 .reviewSaveState.dirty {
   color: var(--rust-deep);
   background: var(--surface-danger);
-}
-.reviewTopbar button svg {
-  width: 16px;
 }
 .reviewHero {
   padding: 38px max(20px, 7vw);
@@ -752,7 +736,7 @@
   }
 
   .reviewTopbar {
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto minmax(0, 1fr);
     padding: 0 14px;
   }
   .reviewSaveState { display: none; }
@@ -765,14 +749,6 @@
   }
   .reviewTopbar > div {
     justify-self: center;
-  }
-  .reviewTopbar > button span {
-    display: none;
-  }
-  .reviewTopbar > button {
-    width: 44px;
-    height: 44px;
-    padding: 0;
   }
   .reviewHero {
     padding: 30px 20px;
