@@ -80,7 +80,7 @@ export async function materializeTripExperience(jobId: string, templateId: strin
       for (const entry of entries) {
         if (activity.items.length >= limit) break;
         activity.items.push(type === "quiz"
-          ? { ordinal: activity.items.length + 1, itemKind: "question", prompt: text(entry.question) || text(entry.title), payload: { options: Array.isArray(entry.options) ? entry.options : [], explanation: text(entry.explanation) }, answerSpec: { correctIndex: entry.correctIndex }, points: 1 }
+          ? { ordinal: activity.items.length + 1, itemKind: "question", prompt: text(entry.question) || text(entry.title), payload: { options: Array.isArray(entry.options) ? entry.options : [], explanation: text(entry.explanation), sourceUrl: text(entry.sourceUrl) }, answerSpec: { correctIndex: entry.correctIndex }, points: 1 }
           : { ordinal: activity.items.length + 1, itemKind: "mission", prompt: text(entry.title), payload: { description: text(entry.description) }, answerSpec: { validation: "photo" }, points: 10 });
       }
       activity.maxScore = activity.items.reduce((total, item) => total + item.points, 0);

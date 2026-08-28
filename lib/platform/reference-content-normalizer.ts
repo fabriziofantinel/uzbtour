@@ -80,7 +80,26 @@ const phrasebookSchema = z.array(z.object({
   }
 });
 
+export const countryBingoCategories = [
+  "Piatto tipico",
+  "Bevanda locale",
+  "Pane o dolce",
+  "Frutta o prodotto agricolo",
+  "Ceramica o artigianato",
+  "Tessuto o motivo tradizionale",
+  "Abito tradizionale esposto",
+  "Dettaglio architettonico esterno",
+  "Decorazione o mosaico",
+  "Mezzo di trasporto locale",
+  "Banconota o moneta",
+  "Scritta nella lingua locale",
+  "Prodotto da mercato",
+  "Oggetto della tavola",
+  "Scena urbana senza persone riconoscibili",
+] as const;
+
 const bingoSchema = z.array(z.object({
+  category: z.enum(countryBingoCategories),
   title: z.string().min(1).max(120),
   description: z.string().min(1).max(500),
 })).length(15).superRefine((items, context) => {
@@ -89,10 +108,22 @@ const bingoSchema = z.array(z.object({
     context.addIssue({ code: "custom", message: "Le 15 caselle del bingo devono essere tutte diverse" });
   }
   items.forEach((item, index) => {
+    const copy = `${item.title} ${item.description}`.toLocaleLowerCase("it");
     if (!item.description.trim().toLocaleLowerCase("it").startsWith("fotografa")) {
       context.addIssue({ code: "custom", path: [index, "description"], message: "La casella deve richiedere una prova fotografica" });
     }
+    if (/\b(donna|donne|uomo|uomini|persona|persone|bambino|bambina|bambini|ragazzo|ragazza|volto|volti|hijab|velo|fedeli|passanti)\b/i.test(copy)) {
+      context.addIssue({ code: "custom", path: [index], message: "La casella non deve richiedere fotografie di persone identificabili" });
+    }
+    if (/\b(interno|interni|entrare|museo|negozio|workshop|laboratorio|lezione|pernottamento|noleggio|guida|comprare|acquistare)\b/i.test(copy)) {
+      context.addIssue({ code: "custom", path: [index], message: "La casella non deve richiedere accessi, prenotazioni o acquisti" });
+    }
   });
+  for (const category of countryBingoCategories) {
+    if (items.filter((item) => item.category === category).length !== 1) {
+      context.addIssue({ code: "custom", message: `La categoria bingo '${category}' deve comparire esattamente una volta` });
+    }
+  }
 });
 
 export const countryReferenceSchema = z.object({
@@ -102,11 +133,56 @@ export const countryReferenceSchema = z.object({
 });
 
 export const destinationReferenceSchema = z.object({
-  quiz: z.array(z.object({ question: z.string(), options: z.array(z.string()).length(4), correctIndex: z.number().int().min(0).max(3), explanation: z.string() })).min(10).max(15),
+  quiz: z.array(z.object({
+    question: z.string().min(12).max(500),
+    options: z.array(z.string().min(1).max(240)).length(4).superRefine((options, context) => {
+      const normalized = options.map((option) => option.trim().toLocaleLowerCase("it"));
+      if (new Set(normalized).size !== 4) context.addIssue({ code: "custom", message: "Le quattro opzioni devono essere diverse" });
+    }),
+    correctIndex: z.number().int().min(0).max(3),
+    explanation: z.string().min(10).max(1000),
+    sourceUrl: z.string().url().max(500),
+  })).min(10).max(15),
   missions: z.array(z.object({ title: z.string(), description: z.string() })).min(5).max(10),
   games: z.array(z.object({ type: z.enum(["rebus", "word", "order", "riddle"]), title: z.string(), instructions: z.string(), answer: z.string() })).min(3).max(6),
   photoContests: z.array(z.object({ title: z.string(), description: z.string() })).min(2).max(2),
 });
+
+const siteQuizForbiddenTopics = [
+  /\b(?:valuta|moneta|som|cambio)\b/i,
+  /\b(?:fuso orario|ora legale|ora solare)\b/i,
+  /\b(?:visto|passaporto|document[oi]|requisiti? d['’]ingresso)\b/i,
+  /\b(?:emergenza|ambulanza|polizia|vigili del fuoco|ambasciata)\b/i,
+  /\b(?:buongiorno|ciao|grazie|saluto|lingua ufficiale)\b/i,
+  /\b(?:piatto tradizionale|plov|frutto tipico|abito tradizionale)\b/i,
+  /\b(?:clima|mezzo di trasporto|capodanno|animale nazionale)\b/i,
+] as const;
+
+function normalizedQuizText(value: string) {
+  return value.trim().toLocaleLowerCase("it").replace(/\s+/g, " ");
+}
+
+export function validateSiteReferenceContent(value: z.infer<typeof destinationReferenceSchema>, siteName: string) {
+  const issues: string[] = [];
+  if (value.quiz.length !== 10) issues.push("Il quiz del sito deve contenere esattamente 10 domande");
+  const questions = value.quiz.map((item) => normalizedQuizText(item.question));
+  if (new Set(questions).size !== questions.length) issues.push("Le domande del quiz del sito devono essere tutte diverse");
+  const normalizedSiteName = normalizedQuizText(siteName);
+  value.quiz.forEach((item, index) => {
+    const completeText = `${item.question} ${item.explanation}`;
+    if (!normalizedQuizText(item.question).includes(normalizedSiteName)) {
+      issues.push(`quiz.${index}.question: deve nominare esplicitamente il sito '${siteName}'`);
+    }
+    if (siteQuizForbiddenTopics.some((pattern) => pattern.test(completeText))) {
+      issues.push(`quiz.${index}: contiene informazioni generiche del Paese invece di riguardare il sito`);
+    }
+    if (!normalizedQuizText(item.options[item.correctIndex] ?? "")) {
+      issues.push(`quiz.${index}: la risposta corretta non è presente nelle opzioni`);
+    }
+  });
+  if (issues.length > 0) throw new Error(issues.join("; "));
+  return value;
+}
 
 function recordValue(input: unknown): Record<string, unknown> | null {
   return input !== null && typeof input === "object" && !Array.isArray(input)
