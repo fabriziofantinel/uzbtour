@@ -184,7 +184,7 @@ export async function readV3Gamification(input: {
           WHERE current_participant.agency_id=party.agency_id
             AND current_participant.departure_id=party.departure_id
             AND current_participant.party_id=${input.partyId}::uuid
-            AND current_profile.user_id=${input.userId}::uuid
+            AND current_profile.user_id=app.resolve_legacy_user_id(${input.userId},${input.agencyId})
             AND current_participant.status<>'removed' AND current_participant.participates_in_trip_games)
       ORDER BY party.name
     `,
@@ -216,7 +216,7 @@ export async function readV3Gamification(input: {
           WHERE current_participant.agency_id=attempt.agency_id
             AND current_participant.departure_id=attempt.departure_id
             AND current_participant.party_id=${input.partyId}::uuid
-            AND current_profile.user_id=${input.userId}::uuid
+            AND current_profile.user_id=app.resolve_legacy_user_id(${input.userId},${input.agencyId})
             AND current_participant.status<>'removed' AND current_participant.participates_in_trip_games)
     `,
     txn`
@@ -247,7 +247,7 @@ export async function readV3Gamification(input: {
           WHERE current_participant.agency_id=entry.agency_id
             AND current_participant.departure_id=entry.departure_id
             AND current_participant.party_id=${input.partyId}::uuid
-            AND current_profile.user_id=${input.userId}::uuid
+            AND current_profile.user_id=app.resolve_legacy_user_id(${input.userId},${input.agencyId})
             AND current_participant.status<>'removed' AND current_participant.participates_in_trip_games)
     `,
   ], { readOnly: true });

@@ -76,7 +76,7 @@ export async function materializeTripExperience(jobId: string, templateId: strin
     if (row.content_type === "quiz" || row.content_type === "mission") {
       const type = row.content_type;
       const activity = ensureGroup(dayId, type);
-      const limit = type === "quiz" ? 15 : 5;
+      const limit = type === "quiz" ? 10 : 5;
       for (const entry of entries) {
         if (activity.items.length >= limit) break;
         activity.items.push(type === "quiz"
