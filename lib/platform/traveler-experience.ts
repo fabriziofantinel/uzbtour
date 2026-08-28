@@ -105,6 +105,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
     .map((entry) => [`${String(entry.trip_day_id)}:${String(entry.hotel_id)}`, Number(entry.rating)]));
   return {
     journey: {
+      agencyId,
       departureId,
       partyId,
       title: String(selected.title),

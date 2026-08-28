@@ -35,7 +35,43 @@
 .agencyEditBranding > span small { margin-top: 3px; color: #60736f; font-size: 10px; line-height: 1.35; }
 .agencyEditBranding label { align-self: stretch; }
 .agencyEditBranding input[type="color"] { width: 100%; height: 38px; padding: 3px; }
-.agencyEditBranding .logoUrlField { min-width: 0; }
+.agencyEditBranding .logoFileField { position: relative; min-width: 0; }
+.agencyEditBranding .logoFileField > span {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 1px solid #94b7b0;
+  border-radius: 9px;
+  background: white;
+  color: #174f4c;
+  font-size: 11px;
+  cursor: pointer;
+}
+.agencyEditBranding .logoFileField > span svg { width: 16px; }
+.agencyEditBranding .logoFileField > input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.agencyEditBranding .logoFileField:focus-within > span {
+  outline: 3px solid #2f66f6;
+  outline-offset: 3px;
+}
+.agencyEditBranding .logoFileField > small { color: #60736f; font-size: 9px; }
+.agencyEditBranding .removeLogo {
+  grid-column: 2 / -1;
+  display: flex;
+  grid-template-columns: none;
+  align-items: center;
+  gap: 7px;
+  color: #8d3c32;
+}
+.agencyEditBranding .removeLogo input { width: 16px; height: 16px; padding: 0; }
 @media (max-width: 900px) {
   .agencyBrandingForm { grid-template-columns: 56px 1fr; align-items: center; }
   .agencyBrandingForm label,

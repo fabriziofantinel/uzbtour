@@ -13,6 +13,7 @@ import ExpenseDialog from "@/components/expense-dialog";
 import CashMovementDialog from "@/components/cash-movement-dialog";
 import type { TripMapDay } from "@/components/trip-overview-map";
 import type { TravelerExperience as Experience } from "@/lib/platform/traveler-experience";
+import { agencyLogoSource } from "@/lib/platform/branding-ui";
 
 const TripOverviewMap = dynamic(() => import("@/components/trip-overview-map"), {
   ssr: false,
@@ -442,7 +443,7 @@ export default function TravelExperience({ initialExperience, userName, isAgency
   const isUzbekistan = experience.journey.destinationCountry.toLocaleLowerCase("it").includes("uzbek");
   const agencyColor = validBrandColor(experience.journey.agencyBranding.primaryColor);
   const agencyPrimary = accessibleBrandColor(agencyColor);
-  const agencyLogo = experience.journey.agencyBranding.logoUrl;
+  const agencyLogo = agencyLogoSource(experience.journey.agencyBranding.logoUrl,experience.journey.agencyId);
   const brandStyle = {
     "--agency-source": agencyColor,
     "--agency-primary": agencyPrimary,

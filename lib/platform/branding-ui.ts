@@ -27,3 +27,14 @@ export function accessibleBrandColor(value?: string) {
   }
   return candidate;
 }
+
+export function agencyLogoSource(value: string | undefined, agencyId: string | undefined) {
+  if (!value) return "";
+  if (!value.startsWith("r2://")) return value;
+  if (!agencyId) return "";
+  const prefix=`r2://agencies/${agencyId}/branding/`;
+  if (!value.startsWith(prefix)) return "";
+  const fileName=value.slice(prefix.length);
+  return /^[0-9a-f-]{36}\.(png|jpe?g|webp)$/i.test(fileName)
+    ? `/api/agency-logo/${agencyId}/${encodeURIComponent(fileName)}` : "";
+}

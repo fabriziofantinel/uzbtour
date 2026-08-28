@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { CSSProperties, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { PlatformOverview } from "@/lib/platform/types";
-import { accessibleBrandColor, validBrandColor } from "@/lib/platform/branding-ui";
+import { accessibleBrandColor, agencyLogoSource, validBrandColor } from "@/lib/platform/branding-ui";
 import {
   TRAVEL_DOCUMENT_MAX_BYTES,
   travelDocumentType,
@@ -401,7 +401,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
       <a className="agidSkipLink" href="#main-content">Salta all’elenco dei viaggi</a>
       <header className="agencyTopbar">
         <Link className="agencyBrand" href="/">
-          {agency?.logoUrl?<img src={agency.logoUrl} alt={`Logo ${agency.name}`}/>:<span>{agency?.name.split(/\s+/).slice(0,2).map((part)=>part[0]).join("").toUpperCase()||"AG"}</span>}<div><strong>{agency?.name||"Agenzia"}</strong><small>PANNELLO AGENZIA</small></div>
+          {agency?.logoUrl?<img src={agencyLogoSource(agency.logoUrl,agency.id)} alt={`Logo ${agency.name}`}/>:<span>{agency?.name.split(/\s+/).slice(0,2).map((part)=>part[0]).join("").toUpperCase()||"AG"}</span>}<div><strong>{agency?.name||"Agenzia"}</strong><small>PANNELLO AGENZIA</small></div>
         </Link>
         <div className="agencyUser">
           <i>{overview.actor.name.slice(0, 2).toUpperCase()}</i>

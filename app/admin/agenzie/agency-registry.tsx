@@ -2,10 +2,11 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Building2, CheckCircle2, ChevronDown, CircleAlert, LoaderCircle, Mail, MapPinned,
+  Building2, CheckCircle2, ChevronDown, CircleAlert, ImageUp, LoaderCircle, Mail, MapPinned,
   Palette, Pencil, Phone, Plus, Power, PowerOff, Save, Search, Trash2, UserPlus, UsersRound, X,
 } from "lucide-react";
 import type { AgencyRegistryItem } from "@/lib/platform/superadmin-repository";
+import { agencyLogoSource } from "@/lib/platform/branding-ui";
 
 const roleLabels = { owner: "Titolare", admin: "Amministratore", editor: "Agente", viewer: "Lettura" };
 
@@ -139,9 +140,20 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
     event.preventDefault();setBusy(`agency-details-${agencyId}`);setError("");setNotice("");
     const form=new FormData(event.currentTarget);
     try{
+      let logoUrl=stringField(form,"currentLogoUrl");
+      if(form.get("removeLogo")==="on")logoUrl="";
+      const logoFile=form.get("logoFile");
+      if(logoFile instanceof File&&logoFile.size>0){
+        const authorization=await readJson<{key:string;url:string;headers:Record<string,string>}>(await fetch(`/api/admin/platform/agencies/${agencyId}/logo/upload`,{
+          method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contentType:logoFile.type,sizeBytes:logoFile.size})
+        }));
+        const upload=await fetch(authorization.url,{method:"PUT",headers:authorization.headers,body:logoFile});
+        if(!upload.ok)throw new Error("Caricamento del logo su R2 non riuscito");
+        logoUrl=`r2://${authorization.key}`;
+      }
       const result=await readJson<{agencies:AgencyRegistryItem[]}>(await fetch(`/api/admin/platform/agencies/${agencyId}`,{
         method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"update-details",
-          ...Object.fromEntries(["name","legalName","vatNumber","taxCode","registeredAddress","registeredCity","registeredPostalCode","registeredProvince","registeredCountry","pec","sdiCode","phone","email","website","referenceEmail","referencePhone","primaryColor","logoUrl"].map((field)=>[field,stringField(form,field)]))})
+          ...Object.fromEntries(["name","legalName","vatNumber","taxCode","registeredAddress","registeredCity","registeredPostalCode","registeredProvince","registeredCountry","pec","sdiCode","phone","email","website","referenceEmail","referencePhone","primaryColor"].map((field)=>[field,stringField(form,field)])),logoUrl})
       }));
       setAgencies(result.agencies);setEditAgencyId("");setNotice("Dati dell’agenzia aggiornati.");
     }catch(caught){setError(caught instanceof Error?caught.message:"Dati dell’agenzia non aggiornati");}
@@ -264,10 +276,12 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
                     <label>Email responsabile<input name="referenceEmail" type="email" required maxLength={320} defaultValue={agency.referenceEmail}/></label>
                     <label>Telefono responsabile<input name="referencePhone" type="tel" required minLength={5} maxLength={40} defaultValue={agency.referencePhone}/></label>
                     <div className="agencyEditBranding wide">
-                      <div className="agencyBrandPreview" style={{background:agency.primaryColor}}>{agency.logoUrl?<img src={agency.logoUrl} alt={`Logo attuale ${agency.name}`}/>:<Palette/>}</div>
+                      <div className="agencyBrandPreview" style={{background:agency.primaryColor}}>{agency.logoUrl?<img src={agencyLogoSource(agency.logoUrl,agency.id)} alt={`Logo attuale ${agency.name}`}/>:<Palette/>}</div>
                       <span><b>Identità visiva</b><small>Applicata al pannello agenzia e all’esperienza dei viaggiatori.</small></span>
                       <label>Colore agenzia<input name="primaryColor" type="color" defaultValue={agency.primaryColor||"#247A6B"}/></label>
-                      <label className="logoUrlField">Logo agenzia (URL HTTPS)<input name="logoUrl" type="url" defaultValue={agency.logoUrl} placeholder="https://…" maxLength={1000}/></label>
+                      <label className="logoFileField">Logo agenzia<span><ImageUp/> Scegli file locale</span><input name="logoFile" type="file" accept="image/png,image/jpeg,image/webp"/><small>PNG, JPG o WebP · massimo 2 MB</small></label>
+                      <input name="currentLogoUrl" type="hidden" value={agency.logoUrl}/>
+                      {agency.logoUrl&&<label className="removeLogo"><input name="removeLogo" type="checkbox"/> Rimuovi il logo attuale</label>}
                     </div>
                     <footer><button type="button" className="secondary" onClick={()=>setEditAgencyId("")}>Annulla</button><button type="submit" disabled={busy===`agency-details-${agency.id}`}>{busy===`agency-details-${agency.id}`?<><LoaderCircle className="spin"/> Salvataggio…</>:<><Save/> Salva modifiche</>}</button></footer>
                   </form>}

@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 const brandingSchema = z.object({
   action: z.literal("branding").optional(),
   primaryColor: z.string().regex(/^#[0-9a-f]{6}$/i),
-  logoUrl: z.union([z.literal(""), z.url()]),
+  logoUrl: z.union([z.literal(""), z.url(),z.string().regex(/^r2:\/\/agencies\/[0-9a-f-]{36}\/branding\/[0-9a-f-]{36}\.(png|jpe?g|webp)$/i)]),
 });
 const statusSchema=z.object({action:z.literal("status"),status:z.enum(["trial","active","suspended"])});
 const ownerSchema=z.object({action:z.literal("replace-owner"),name:z.string().trim().min(2).max(160),
@@ -33,7 +33,7 @@ const agencyDetailsSchema=z.object({action:z.literal("update-details"),name:z.st
   registeredProvince:z.string().trim().max(80),registeredCountry:z.string().trim().max(100),pec:z.union([z.literal(""),z.email()]),
   sdiCode:z.string().trim().max(16),phone:z.string().trim().max(40),email:z.union([z.literal(""),z.email()]),
   website:z.union([z.literal(""),z.url()]),referenceEmail:z.email(),referencePhone:z.string().trim().min(5).max(40),
-  primaryColor:z.string().regex(/^#[0-9a-f]{6}$/i),logoUrl:z.union([z.literal(""),z.url()])});
+  primaryColor:z.string().regex(/^#[0-9a-f]{6}$/i),logoUrl:z.union([z.literal(""),z.url(),z.string().regex(/^r2:\/\/agencies\/[0-9a-f-]{36}\/branding\/[0-9a-f-]{36}\.(png|jpe?g|webp)$/i)])});
 
 export async function PATCH(
   request: Request,
@@ -53,6 +53,9 @@ export async function PATCH(
     }
     const details=agencyDetailsSchema.safeParse(payload);
     if(details.success){const {action:_,primaryColor,logoUrl,...data}=details.data;
+      if(logoUrl.startsWith("r2://")&&!logoUrl.startsWith(`r2://agencies/${id}/branding/`)){
+        return NextResponse.json({error:"Logo non associato all’agenzia"},{status:400});
+      }
       await updateAgencyDetails({actorId:actor.id,agencyId:id,data});
       await updateAgencyBranding({actorId:actor.id,agencyId:id,primaryColor,logoUrl});
       return NextResponse.json({agencies:await getAgencyRegistry(actor.id)});}
@@ -75,6 +78,9 @@ export async function PATCH(
     }
     const branding = brandingSchema.safeParse(payload);
     if (!branding.success) return NextResponse.json({ error: "Operazione o dati non validi" }, { status: 400 });
+    if(branding.data.logoUrl.startsWith("r2://")&&!branding.data.logoUrl.startsWith(`r2://agencies/${id}/branding/`)){
+      return NextResponse.json({error:"Logo non associato all’agenzia"},{status:400});
+    }
     await updateAgencyBranding({ agencyId: id, primaryColor:branding.data.primaryColor,
       logoUrl:branding.data.logoUrl, actorId: actor.id });
     return NextResponse.json({ agencies: await getAgencyRegistry(actor.id) });
