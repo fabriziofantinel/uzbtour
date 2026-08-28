@@ -1317,6 +1317,57 @@
   width: 13px;
   height: 13px;
 }
+
+.quoteDocuments {
+  position: relative;
+}
+
+.quoteDocuments summary {
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid #c8d5d1;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--smf-ink);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  list-style: none;
+  white-space: nowrap;
+}
+
+.quoteDocuments summary::-webkit-details-marker { display: none; }
+.quoteDocuments summary svg { width: 16px; height: 16px; }
+
+.quoteDocuments > div {
+  position: absolute;
+  z-index: 20;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 230px;
+  padding: 7px;
+  border: 1px solid #d9e1de;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(20, 43, 53, .16);
+  display: grid;
+  gap: 4px;
+}
+
+.quoteDocuments > div a {
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  color: var(--smf-ink);
+  background: transparent;
+  justify-content: flex-start;
+  white-space: nowrap;
+}
+
+.quoteDocuments > div a:hover { background: #eef5f2; }
 .newDepartureDialog {
   position: relative;
   width: min(520px, calc(100vw - 32px));

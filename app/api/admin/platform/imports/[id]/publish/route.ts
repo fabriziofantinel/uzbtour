@@ -1,12 +1,21 @@
 import { NextResponse } from "next/server";
+import { createHash } from "node:crypto";
 import { requireAgencyAdmin } from "@/lib/platform/authorization";
 import { platformApiError } from "@/lib/platform/http";
 import { getJobQueue } from "@/lib/platform/job-queue";
 import {
   getImportAgency,
+  getImportDocumentPublicationContext,
   getImportForReview,
   publishImport,
+  saveNormalizedImportDocument,
 } from "@/lib/platform/import-repository";
+import { getObjectStorage } from "@/lib/platform/object-storage";
+import {
+  createNormalizedTravelDocument,
+  NORMALIZED_TRAVEL_DOCUMENT_CONTENT_TYPE,
+  normalizedTravelDocumentName,
+} from "@/lib/platform/normalized-travel-document";
 
 export const runtime = "nodejs";
 
@@ -21,6 +30,34 @@ export async function POST(
     const imported = await getImportForReview(id, agencyId);
     if (!imported.draft) {
       return NextResponse.json({ error: "Nessuna bozza da pubblicare" }, { status: 400 });
+    }
+    const documentContext = await getImportDocumentPublicationContext(id, agencyId);
+    const normalizedName = normalizedTravelDocumentName(imported.draft.title);
+    const normalizedBytes = await createNormalizedTravelDocument(imported.draft, documentContext.sourceName);
+    const normalizedKey = `agencies/${agencyId}/trips/${documentContext.templateId}/published/${id}/${crypto.randomUUID()}/${normalizedName}`;
+    const storage = getObjectStorage("r2");
+    const normalizedObject = await storage.put(
+      normalizedKey,
+      normalizedBytes,
+      NORMALIZED_TRAVEL_DOCUMENT_CONTENT_TYPE
+    );
+    try {
+      await saveNormalizedImportDocument({
+        importId: id,
+        agencyId,
+        templateId: documentContext.templateId,
+        uploadedByUserId: documentContext.uploadedByUserId ?? actor.id,
+        provider: "r2",
+        bucket: normalizedObject.bucket,
+        objectKey: normalizedObject.key,
+        originalName: normalizedName,
+        contentType: normalizedObject.contentType,
+        sizeBytes: normalizedObject.sizeBytes,
+        checksumSha256: createHash("sha256").update(normalizedBytes).digest("hex"),
+      });
+    } catch (error) {
+      await storage.delete(normalizedKey).catch(() => undefined);
+      throw error;
     }
     const published = await publishImport({ importId: id, agencyId, actorId: actor.id, draft: imported.draft });
     const enrichmentJob = await getJobQueue().enqueue({

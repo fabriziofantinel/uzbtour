@@ -17,6 +17,7 @@ type Props = { initialOverview: PlatformOverview };
 type AgencyTrip = PlatformOverview["agencies"][number]["trips"][number];
 type AgencyDeparture = AgencyTrip["departures"][number];
 type TripRow = { trip: AgencyTrip; departure: AgencyDeparture | null };
+type RecentImport = PlatformOverview["recentImports"][number];
 
 type UploadAuthorization = {
   key: string;
@@ -72,6 +73,18 @@ async function responseJson<T>(response: Response): Promise<T> {
   return result;
 }
 
+function QuoteDocuments({ imported }: { imported: RecentImport }) {
+  return (
+    <details className="quoteDocuments">
+      <summary><Download/> Preventivi</summary>
+      <div>
+        <a href={`/api/admin/platform/imports/${imported.id}/original`}><FileCheck2/> Scarica originale</a>
+        <a href={`/api/admin/platform/imports/${imported.id}/normalized`}><Download/> Scarica revisionato DOCX</a>
+      </div>
+    </details>
+  );
+}
+
 export default function AgencyDashboard({ initialOverview }: Props) {
   const [overview, setOverview] = useState(initialOverview);
   const [selectedAgencyId, setSelectedAgencyId] = useState(initialOverview.agencies[0]?.id ?? "");
@@ -84,11 +97,8 @@ export default function AgencyDashboard({ initialOverview }: Props) {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [departureError, setDepartureError] = useState("");
   const [tripToDelete, setTripToDelete] = useState<{ id: string; title: string } | null>(null);
-  const [departureForTrip, setDepartureForTrip] = useState<{ id: string; title: string } | null>(null);
   const deleteCloseRef = useRef<HTMLButtonElement>(null);
-  const departureCloseRef = useRef<HTMLButtonElement>(null);
   const agency = overview.agencies.find((candidate) => candidate.id === selectedAgencyId)
     ?? overview.agencies[0];
 
@@ -187,20 +197,17 @@ export default function AgencyDashboard({ initialOverview }: Props) {
 
   useEffect(() => {
     if (tripToDelete) deleteCloseRef.current?.focus();
-    if (departureForTrip) departureCloseRef.current?.focus();
-  }, [departureForTrip, tripToDelete]);
+  }, [tripToDelete]);
 
   useEffect(() => {
-    if (!tripToDelete && !departureForTrip) return;
+    if (!tripToDelete) return;
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || busy) return;
       setTripToDelete(null);
-      setDepartureForTrip(null);
-      setDepartureError("");
     };
     document.addEventListener("keydown", closeOnEscape);
     return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [busy, departureForTrip, tripToDelete]);
+  }, [busy, tripToDelete]);
 
   async function refresh() {
     const result = await responseJson<PlatformOverview>(await fetch("/api/admin/platform/overview", {
@@ -371,39 +378,9 @@ export default function AgencyDashboard({ initialOverview }: Props) {
     }
   }
 
-  async function createDeparture(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!departureForTrip) return;
-    const form = new FormData(event.currentTarget);
-    const startsOn = String(form.get("startsOn") || "");
-    const endsOn = String(form.get("endsOn") || "");
-    if (startsOn && endsOn && endsOn < startsOn) {
-      setDepartureError("La data di rientro deve essere uguale o successiva alla data di partenza.");
-      return;
-    }
-    setBusy(`departure-${departureForTrip.id}`); setError(""); setDepartureError(""); setNotice("");
-    try {
-      await responseJson(await fetch(`/api/admin/platform/trips/${departureForTrip.id}/departures`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: String(form.get("title") || ""), startsOn, endsOn,
-        }),
-      }));
-      setDepartureForTrip(null); await refresh();
-      setNotice("Nuova partenza creata sullo stesso programma e sugli stessi contenuti.");
-    } catch (caught) {
-      setDepartureError(caught instanceof Error ? caught.message : "Creazione della partenza non riuscita");
-    } finally { setBusy(""); }
-  }
-
   function selectTripView(view: "list" | "cards") {
     setTripView(view);
     window.localStorage.setItem("smf-agency-trip-view", view);
-  }
-
-  function openDeparture(id: string, title: string) {
-    setDepartureError("");
-    setDepartureForTrip({ id, title });
   }
 
   function clearTripFilters() {
@@ -540,7 +517,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                     {latestImport?.status === "ready_for_review" && <Link className="primary" href={`/agenzia/importazioni/${latestImport.id}`}><Eye/> Revisiona</Link>}
                     {departure && <Link className="primary" href={`/agenzia/viaggi/${departure.id}/programma`}><BookOpen/> Apri programma</Link>}
                     {departure && <Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Famiglie</Link>}
-                    {trip.status === "active" && <button type="button" onClick={() => openDeparture(trip.id, trip.title)}><Plus/> Nuova partenza</button>}
+                    {trip.status === "active" && latestImport && <QuoteDocuments imported={latestImport}/>}
                     <button type="button" className="danger" disabled={Boolean(busy)} onClick={() => {
                       setError("");
                       setTripToDelete({ id: trip.id, title: trip.title });
@@ -609,7 +586,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                     <div className="tableActions cardActions">
                       {departure && <Link className="primary" href={`/agenzia/viaggi/${departure.id}/programma`}><BookOpen/> Apri programma</Link>}
                       {departure && <Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Famiglie</Link>}
-                      {trip.status === "active" && <button type="button" onClick={() => openDeparture(trip.id, trip.title)}><Plus/> Nuova partenza</button>}
+                      {trip.status === "active" && latestImport && <QuoteDocuments imported={latestImport}/>}
                       <button type="button" className="danger" disabled={Boolean(busy)} onClick={() => {
                         setError("");
                         setTripToDelete({ id: trip.id, title: trip.title });
@@ -640,19 +617,6 @@ export default function AgencyDashboard({ initialOverview }: Props) {
               <button type="button" className="danger" disabled={Boolean(busy)} onClick={() => void deleteTrip()}>{busy === `delete-${tripToDelete.id}` ? <><LoaderCircle className="spin"/> Eliminazione…</> : <><Trash2/> Elimina definitivamente</>}</button>
             </div>
           </section>
-        </div>
-      )}
-      {departureForTrip && (
-        <div className="deleteTripBackdrop" role="presentation">
-          <form className="newDepartureDialog" role="dialog" aria-modal="true" aria-labelledby="new-departure-title" aria-describedby="new-departure-description" onSubmit={createDeparture}>
-            <button ref={departureCloseRef} type="button" className="deleteTripClose" aria-label="Chiudi" disabled={Boolean(busy)} onClick={() => setDepartureForTrip(null)}><X/></button>
-            <small>STESSO PROGRAMMA, NUOVE DATE</small><h2 id="new-departure-title">Nuova partenza</h2>
-            <p id="new-departure-description">Itinerario, quiz, missioni, giochi e contest saranno gli stessi di “{departureForTrip.title}”. Famiglie e dati dei viaggiatori partiranno vuoti.</p>
-            {departureError && <p className="dialogInlineError" role="alert"><CircleAlert/>{departureError}</p>}
-            <label htmlFor="departure-title">Nome partenza<input id="departure-title" name="title" maxLength={160} autoComplete="off" placeholder={departureForTrip.title}/></label>
-            <div><label htmlFor="departure-start">Data inizio<input id="departure-start" name="startsOn" type="date" required/></label><label htmlFor="departure-end">Data fine<input id="departure-end" name="endsOn" type="date" required/></label></div>
-            <footer><button type="button" className="secondary" disabled={Boolean(busy)} onClick={() => setDepartureForTrip(null)}>Annulla</button><button type="submit" disabled={Boolean(busy)}>{busy === `departure-${departureForTrip.id}` ? <><LoaderCircle className="spin"/> Creazione…</> : <><Plus/> Crea partenza</>}</button></footer>
-          </form>
         </div>
       )}
     </main>

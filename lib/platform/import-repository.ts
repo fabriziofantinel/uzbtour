@@ -198,6 +198,55 @@ export async function getNormalizedImportDocument(importId: string, agencyId: st
   };
 }
 
+export async function getOriginalImportDocument(importId: string, agencyId: string) {
+  await assertNormalizedImportSchema();
+  const sql = getSql();
+  const [, rows] = await sql.transaction((txn) => [
+    txn`SELECT set_config('app.agency_id', ${agencyId}, true)`,
+    txn`
+    SELECT ma.provider, ma.bucket, ma.object_key, ma.original_name, ma.content_type
+    FROM ops.import_jobs ij
+    JOIN ops.travel_documents td
+      ON td.id = ij.source_document_id AND td.agency_id = ij.agency_id
+    JOIN ops.media_assets ma ON ma.id = td.media_asset_id AND ma.agency_id = ij.agency_id
+    WHERE ij.id = ${importId} AND ij.agency_id = ${agencyId}
+      AND td.status = 'ready' AND ma.status = 'ready'
+    LIMIT 1
+    `,
+  ], { readOnly: true });
+  if (!rows[0]) throw new PlatformRequestError("Preventivo originale non disponibile");
+  return {
+    provider: String(rows[0].provider), bucket: String(rows[0].bucket),
+    objectKey: String(rows[0].object_key), originalName: String(rows[0].original_name),
+    contentType: String(rows[0].content_type),
+  };
+}
+
+export async function getImportDocumentPublicationContext(importId: string, agencyId: string) {
+  await assertNormalizedImportSchema();
+  const sql = getSql();
+  const [, rows] = await sql.transaction((txn) => [
+    txn`SELECT set_config('app.agency_id', ${agencyId}, true)`,
+    txn`
+    SELECT ij.template_id::text, source.original_name AS source_name,
+      source.uploaded_by_user_id::text
+    FROM ops.import_jobs ij
+    JOIN ops.travel_documents source_document
+      ON source_document.id = ij.source_document_id AND source_document.agency_id = ij.agency_id
+    JOIN ops.media_assets source
+      ON source.id = source_document.media_asset_id AND source.agency_id = ij.agency_id
+    WHERE ij.id = ${importId} AND ij.agency_id = ${agencyId}
+    LIMIT 1
+    `,
+  ], { readOnly: true });
+  if (!rows[0]) throw new PlatformRequestError("Documenti del preventivo non disponibili");
+  return {
+    templateId: String(rows[0].template_id),
+    sourceName: String(rows[0].source_name),
+    uploadedByUserId: rows[0].uploaded_by_user_id ? String(rows[0].uploaded_by_user_id) : null,
+  };
+}
+
 export async function getImportDeletionTarget(importId: string, agencyId: string) {
   await assertNormalizedImportSchema();
   const sql = getSql();

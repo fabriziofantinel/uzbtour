@@ -135,7 +135,7 @@ export async function createNormalizedTravelDocument(
     new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { after: 360 },
-      children: [text("Preventivo normalizzato per l'importazione", { color: MUTED, italics: true, size: 19 })],
+      children: [text("Preventivo di viaggio revisionato", { color: MUTED, italics: true, size: 19 })],
     }),
     new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
@@ -195,13 +195,13 @@ export async function createNormalizedTravelDocument(
 
   const document = new Document({
     title: draft.title,
-    subject: "Preventivo di viaggio normalizzato SMF Travel",
+    subject: "Preventivo di viaggio revisionato SMF Travel",
     creator: "SMF Travel",
-    lastModifiedBy: "SMF Travel import worker",
+    lastModifiedBy: "SMF Travel",
     description: `Documento normalizzato dal file ${sourceName}`,
     sections: [{
       properties: { page: { margin: { top: 900, right: 850, bottom: 900, left: 850 } } },
-      headers: { default: new Header({ children: [new Paragraph({ children: [text("SMF Travel | Preventivo normalizzato", { color: MUTED, size: 15 })] })] }) },
+      headers: { default: new Header({ children: [new Paragraph({ children: [text("SMF Travel | Preventivo revisionato", { color: MUTED, size: 15 })] })] }) },
       footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [text("Pagina ", { color: MUTED, size: 15 }), new TextRun({ children: [PageNumber.CURRENT], color: MUTED, size: 15 })] })] }) },
       children,
     }],

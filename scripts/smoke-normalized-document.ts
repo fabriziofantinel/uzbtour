@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { writeFile } from "node:fs/promises";
 import JSZip from "jszip";
 import {
   createNormalizedTravelDocument,
@@ -81,6 +82,7 @@ async function main() {
   assert.doesNotMatch(visibleText, /Incluso|Non incluso|N\/S/, "Il DOCX non deve mostrare una colonna di inclusione");
   const reread = await readNormalizedTravelDocument(bytes);
   assert.deepEqual(reread, draft, "Il payload riletto non coincide con la bozza normalizzata");
+  if (process.argv[2]) await writeFile(process.argv[2], bytes);
   console.log(JSON.stringify({ ok: true, bytes: bytes.byteLength, title: reread.title, days: reread.days.length }));
 }
 
