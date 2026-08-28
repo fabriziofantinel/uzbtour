@@ -18,7 +18,6 @@ type Props = { initialOverview: PlatformOverview };
 type AgencyTrip = PlatformOverview["agencies"][number]["trips"][number];
 type AgencyDeparture = AgencyTrip["departures"][number];
 type TripRow = { trip: AgencyTrip; departure: AgencyDeparture | null };
-type RecentImport = PlatformOverview["recentImports"][number];
 
 type UploadAuthorization = {
   key: string;
@@ -72,18 +71,6 @@ async function responseJson<T>(response: Response): Promise<T> {
   const result = await response.json().catch(() => ({})) as T & { error?: string };
   if (!response.ok) throw new Error(result.error || "Operazione non riuscita");
   return result;
-}
-
-function QuoteDocuments({ imported }: { imported: RecentImport }) {
-  return (
-    <details className="quoteDocuments">
-      <summary><Download/> Preventivi</summary>
-      <div>
-        <a href={`/api/admin/platform/imports/${imported.id}/original`}><FileCheck2/> Scarica originale</a>
-        <a href={`/api/admin/platform/imports/${imported.id}/normalized`}><Download/> Scarica revisionato DOCX</a>
-      </div>
-    </details>
-  );
 }
 
 export default function AgencyDashboard({ initialOverview }: Props) {
@@ -524,8 +511,6 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                   <td data-label="Azioni"><div className="tableActions inline">
                     {latestImport?.status === "ready_for_review" && <Link className="primary" href={`/agenzia/importazioni/${latestImport.id}`}><Eye/> Revisiona</Link>}
                     {departure && <Link className="primary" href={`/agenzia/viaggi/${departure.id}/programma`}><BookOpen/> Apri programma</Link>}
-                    {departure && <Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Gruppi</Link>}
-                    {trip.status === "active" && latestImport && <QuoteDocuments imported={latestImport}/>}
                     <button type="button" className="danger" disabled={Boolean(busy)} onClick={() => {
                       setError("");
                       setTripToDelete({ id: trip.id, title: trip.title });
@@ -593,8 +578,6 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                     </div>
                     <div className="tableActions cardActions">
                       {departure && <Link className="primary" href={`/agenzia/viaggi/${departure.id}/programma`}><BookOpen/> Apri programma</Link>}
-                      {departure && <Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Gruppi</Link>}
-                      {trip.status === "active" && latestImport && <QuoteDocuments imported={latestImport}/>}
                       <button type="button" className="danger" disabled={Boolean(busy)} onClick={() => {
                         setError("");
                         setTripToDelete({ id: trip.id, title: trip.title });
