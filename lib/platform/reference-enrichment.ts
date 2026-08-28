@@ -55,7 +55,19 @@ async function generateCountryUsefulInfo(target: ReferenceTarget, context: strin
       inferenceConfig: { maxTokens: 6000, temperature: attempt === 1 ? 0.2 : 0.1 },
     }));
     try {
-      return { data: schema.parse(toolInput(response.output?.message?.content)).usefulInfo, modelId };
+      const raw = toolInput(response.output?.message?.content) as Record<string, unknown>;
+      const usefulInfo = Array.isArray(raw.usefulInfo)
+        ? raw.usefulInfo.map((item) => {
+            if (!item || typeof item !== "object" || Array.isArray(item)) return item;
+            const section = item as Record<string, unknown>;
+            const isEmbassy = section.category === "Ambasciata italiana";
+            const url = typeof section.url === "string" ? section.url.trim() : "";
+            return isEmbassy && url && !/^https:\/\/[^/]+\.esteri\.it(?:\/|$)/i.test(url)
+              ? { ...section, url: "" }
+              : section;
+          })
+        : raw.usefulInfo;
+      return { data: schema.parse({ ...raw, usefulInfo }).usefulInfo, modelId };
     } catch (error) {
       previousValidation = validationMessage(error).slice(0, 1600);
       if (attempt === contentAttemptLimit) throw new Error(`Informazioni utili Bedrock non valide dopo ${contentAttemptLimit} tentativi: ${previousValidation}`);
