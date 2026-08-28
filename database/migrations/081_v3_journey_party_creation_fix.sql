@@ -31,10 +31,6 @@ BEGIN
   VALUES(p_agency_id,p_departure_id,btrim(p_code),btrim(p_name),'invited')
   RETURNING id INTO v_party_id;
 
-  INSERT INTO public.travel_parties(id,agency_id,departure_id,code,name,status)
-  VALUES(v_party_id,p_agency_id,p_departure_id,btrim(p_code),btrim(p_name),'invited')
-  ON CONFLICT(id) DO UPDATE SET code=EXCLUDED.code,name=EXCLUDED.name,status=EXCLUDED.status;
-
   INSERT INTO ops.audit_events(agency_id,actor_user_id,entity_type,entity_id,action,changes)
   VALUES(p_agency_id,v_actor_id,'travel_party',v_party_id::text,'created',
     jsonb_build_object('departureId',p_departure_id,'code',btrim(p_code)));
