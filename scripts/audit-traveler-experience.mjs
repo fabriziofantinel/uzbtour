@@ -52,7 +52,7 @@ try{
         WHERE content.locale='it-IT' GROUP BY entity.entity_type,content.content_type,content.status
         ORDER BY entity.entity_type,content.content_type,content.status`,[journey.agency_id,journey.departure_id,journey.template_version_id]),
     ]);
-    reports.push({journey:{title:journey.title,country:journey.destination_country,party:journey.party_name,
+    reports.push({journey:{templateId:journey.template_id,departureId:journey.departure_id,title:journey.title,country:journey.destination_country,party:journey.party_name,
       agency:journey.agency_name,branding:journey.agency_branding},catalog:catalog.rows[0],activities:activities.rows,
       documents:documents.rows[0],finance:finance.rows[0],parties:parties.rows[0],referenceContent:referenceContent.rows});
   }

@@ -27,7 +27,7 @@ function toolInput(content: ContentBlock[] | undefined) {
   return block.input;
 }
 
-const contentAttemptLimit = 3;
+const contentAttemptLimit = 5;
 const referenceTargetConcurrency = 3;
 
 function validationMessage(error: unknown) {
@@ -53,8 +53,8 @@ async function generate(target: ReferenceTarget, context: string) {
       ? `Genera esattamente ${countryUsefulInfoCategories.length} informazioni utili, una e una sola per ciascuna di queste categorie: ${countryUsefulInfoCategories.join("; ")}. Individua dinamicamente le lingue ufficiali e quelle realmente utili a un turista nel Paese, senza dedurle dal solo nome colloquiale della nazionalita'. Scegli da una a tre lingue pertinenti e genera in ciascuna queste esatte 12 frasi italiane: ${countryPhraseTranslations.join("; ")}. Genera infine esattamente 15 caselle bingo fotografiche, una per ciascuna categoria: ${countryBingoCategories.join("; ")}.`
       : `Genera esattamente ${isSite ? 7 : 10} domande quiz, 5 missioni, 3 giochi completi (un rebus, un gioco di parole e un gioco di ordinamento) e 2 contest fotografici.`;
     const destinationRules = isSite
-      ? ` Il quiz deve riguardare esclusivamente il sito '${target.name}'. Ogni domanda deve contenere esplicitamente il nome completo '${target.name}' ed essere comprensibile anche se letta da sola. Le 7 domande devono essere tutte diverse, di difficolta' media e basate su storia, architettura, funzione, personaggi, elementi osservabili o curiosita' specifiche del sito. Non formulare domande su valuta, fuso orario, documenti, visti, numeri di emergenza, ambasciata, saluti, lingua, clima, trasporti, cucina, frutta, abiti o altre informazioni generali del Paese. Non citare citta' o attrazioni estranee. Ogni domanda deve avere una sola risposta inequivocabilmente corretta e quattro opzioni diverse. In sourceUrl indica la pagina precisa di una fonte istituzionale, UNESCO, museo, ente di gestione o portale turistico ufficiale che consente di verificare la risposta; non inventare URL.`
-      : " Il quiz della citta' deve riguardare esclusivamente la citta' indicata e non informazioni generiche del Paese. In sourceUrl indica una fonte attendibile che consenta di verificare la risposta.";
+      ? ` Tutti i quiz, le missioni, i giochi e i contest devono riguardare esclusivamente il sito '${target.name}' e devono nominarlo esplicitamente nel proprio testo. Ogni domanda deve contenere il nome completo '${target.name}' ed essere comprensibile anche se letta da sola. Le 7 domande devono essere tutte diverse, di difficolta' media e basate su storia, architettura, funzione, personaggi, elementi osservabili o curiosita' specifiche del sito. Non formulare domande su valuta, fuso orario, documenti, visti, numeri di emergenza, ambasciata, saluti, lingua, clima, trasporti, cucina, frutta, abiti o altre informazioni generali del Paese. Non citare citta' o attrazioni estranee. Ogni domanda deve avere una sola risposta inequivocabilmente corretta e quattro opzioni diverse. In sourceUrl indica la pagina precisa di una fonte istituzionale, UNESCO, museo, ente di gestione o portale turistico ufficiale che consente di verificare la risposta; non inventare URL.`
+      : ` Tutti i quiz, le missioni, i giochi e i contest devono riguardare esclusivamente la citta' '${target.name}' e devono nominarla esplicitamente nel proprio testo. Le 10 domande devono basarsi su storia, architettura, quartieri, cultura e luoghi specifici della citta', mai su valuta, fuso orario, documenti, saluti, clima, piatti, frutta, animali o informazioni generiche del Paese. In sourceUrl indica una fonte attendibile che consenta di verificare la risposta.`;
     exactQuantities += destinationRules;
     const correction = previousValidation
       ? ` Il tentativo precedente non era valido: ${previousValidation}. Correggi tutti questi errori e restituisci nuovamente l'intero contenuto.`
@@ -76,12 +76,12 @@ async function generate(target: ReferenceTarget, context: string) {
 
     try {
       const input = toolInput(response.output?.message?.content);
-      const normalized = normalizeReferenceContent(input, isCountry ? "country" : "destination");
+      const normalized = normalizeReferenceContent(input, isCountry ? "country" : "destination", target.name);
       const parsed = schema.parse(normalized.value);
       if (target.entityType === "site") {
         validateSiteReferenceContent(destinationReferenceSchema.parse(parsed), target.name);
       } else if (target.entityType === "city") {
-        validateCityReferenceContent(destinationReferenceSchema.parse(parsed));
+        validateCityReferenceContent(destinationReferenceSchema.parse(parsed), target.name);
       }
       if (normalized.changes.length > 0) {
         console.warn("Bedrock reference content normalized", {

@@ -98,6 +98,26 @@ export const countryBingoCategories = [
   "Scena urbana senza persone riconoscibili",
 ] as const;
 
+const safeBingoFallback: Record<(typeof countryBingoCategories)[number], string> = {
+  "Piatto tipico": "Specialità locale",
+  "Bevanda locale": "Bevanda tradizionale",
+  "Pane o dolce": "Pane o dolce locale",
+  "Frutta o prodotto agricolo": "Prodotto agricolo locale",
+  "Ceramica o artigianato": "Artigianato locale",
+  "Tessuto o motivo tradizionale": "Motivo tessile tradizionale",
+  "Abito tradizionale esposto": "Capo tradizionale esposto",
+  "Dettaglio architettonico esterno": "Dettaglio architettonico all'aperto",
+  "Decorazione o mosaico": "Decorazione tradizionale",
+  "Mezzo di trasporto locale": "Trasporto locale",
+  "Banconota o moneta": "Moneta locale",
+  "Scritta nella lingua locale": "Scritta in lingua locale",
+  "Prodotto da mercato": "Prodotto tipico locale",
+  "Oggetto della tavola": "Oggetto della tavola locale",
+  "Scena urbana senza persone riconoscibili": "Scena urbana tranquilla",
+};
+const unsafeBingoPeople = /\b(donna|donne|uomo|uomini|persona|persone|bambino|bambina|bambini|ragazzo|ragazza|volto|volti|hijab|velo|fedeli|passanti)\b/i;
+const unsafeBingoAccess = /\b(interno|interni|entrare|museo|negozio|workshop|laboratorio|lezione|pernottamento|noleggio|guida|comprare|acquistare)\b/i;
+
 const bingoSchema = z.array(z.object({
   category: z.enum(countryBingoCategories),
   title: z.string().min(1).max(120),
@@ -112,10 +132,10 @@ const bingoSchema = z.array(z.object({
     if (!item.description.trim().toLocaleLowerCase("it").startsWith("fotografa")) {
       context.addIssue({ code: "custom", path: [index, "description"], message: "La casella deve richiedere una prova fotografica" });
     }
-    if (/\b(donna|donne|uomo|uomini|persona|persone|bambino|bambina|bambini|ragazzo|ragazza|volto|volti|hijab|velo|fedeli|passanti)\b/i.test(copy)) {
+    if (unsafeBingoPeople.test(copy)) {
       context.addIssue({ code: "custom", path: [index], message: "La casella non deve richiedere fotografie di persone identificabili" });
     }
-    if (/\b(interno|interni|entrare|museo|negozio|workshop|laboratorio|lezione|pernottamento|noleggio|guida|comprare|acquistare)\b/i.test(copy)) {
+    if (unsafeBingoAccess.test(copy)) {
       context.addIssue({ code: "custom", path: [index], message: "La casella non deve richiedere accessi, prenotazioni o acquisti" });
     }
   });
@@ -191,14 +211,44 @@ export function validateSiteReferenceContent(value: z.infer<typeof destinationRe
       issues.push(`quiz.${index}: la risposta corretta non è presente nelle opzioni`);
     }
   });
+  validateNamedDestinationActivities(value, siteName, issues);
   if (issues.length > 0) throw new Error(issues.join("; "));
   return value;
 }
 
-export function validateCityReferenceContent(value: z.infer<typeof destinationReferenceSchema>) {
-  if (value.quiz.length !== 10) {
-    throw new Error("Il quiz della città deve contenere esattamente 10 domande");
-  }
+function validateNamedDestinationActivities(
+  value: z.infer<typeof destinationReferenceSchema>,
+  destinationName: string,
+  issues: string[],
+) {
+  const expected = normalizedQuizText(destinationName);
+  const groups = [
+    ...value.missions.map((item, index) => ({ path: `missions.${index}`, copy: `${item.title} ${item.description}` })),
+    ...value.games.map((item, index) => ({ path: `games.${index}`, copy: `${item.title} ${item.instructions}` })),
+    ...value.photoContests.map((item, index) => ({ path: `photoContests.${index}`, copy: `${item.title} ${item.description}` })),
+  ];
+  groups.forEach((item) => {
+    if (!normalizedQuizText(item.copy).includes(expected)) {
+      issues.push(`${item.path}: deve riferirsi esplicitamente a '${destinationName}'`);
+    }
+  });
+}
+
+export function validateCityReferenceContent(value: z.infer<typeof destinationReferenceSchema>, cityName: string) {
+  const issues: string[] = [];
+  if (value.quiz.length !== 10) issues.push("Il quiz della città deve contenere esattamente 10 domande");
+  const normalizedCityName = normalizedQuizText(cityName);
+  value.quiz.forEach((item, index) => {
+    const completeText = `${item.question} ${item.explanation}`;
+    if (!normalizedQuizText(item.question).includes(normalizedCityName)) {
+      issues.push(`quiz.${index}.question: deve nominare esplicitamente la città '${cityName}'`);
+    }
+    if (siteQuizForbiddenTopics.some((pattern) => pattern.test(completeText))) {
+      issues.push(`quiz.${index}: contiene informazioni generiche del Paese invece di riguardare la città`);
+    }
+  });
+  validateNamedDestinationActivities(value, cityName, issues);
+  if (issues.length > 0) throw new Error(issues.join("; "));
   return value;
 }
 
@@ -214,18 +264,29 @@ function limitArray(value: unknown, maximum: number, field: string, changes: str
   return value.slice(0, maximum);
 }
 
-export function normalizeReferenceContent(input: unknown, kind: "country" | "destination") {
+export function normalizeReferenceContent(input: unknown, kind: "country" | "destination", destinationName = "") {
   const source = recordValue(input);
   if (!source) return { value: input, changes: [] as string[] };
   const changes: string[] = [];
 
   if (kind === "country") {
+    const bingo = limitArray(source.bingo, 15, "bingo", changes);
+    const normalizedBingo = Array.isArray(bingo) ? bingo.map((item, index) => {
+      const cell = recordValue(item);
+      const category = cell?.category;
+      if (!cell || typeof category !== "string" || !(countryBingoCategories as readonly string[]).includes(category)) return item;
+      const copy = `${String(cell.title ?? "")} ${String(cell.description ?? "")}`;
+      if (!unsafeBingoPeople.test(copy) && !unsafeBingoAccess.test(copy)) return item;
+      const title = safeBingoFallback[category as keyof typeof safeBingoFallback];
+      changes.push(`bingo[${index}]: soggetto non sicuro sostituito`);
+      return { ...cell, title, description: `Fotografa ${title.toLocaleLowerCase("it")} visibile da uno spazio pubblico o tra gli oggetti del viaggio.` };
+    }) : bingo;
     return {
       value: {
         ...source,
         usefulInfo: limitArray(source.usefulInfo, countryUsefulInfoCategories.length, "usefulInfo", changes),
         phrasebook: limitArray(source.phrasebook, 36, "phrasebook", changes),
-        bingo: limitArray(source.bingo, 15, "bingo", changes),
+        bingo: normalizedBingo,
       },
       changes,
     };
@@ -253,14 +314,33 @@ export function normalizeReferenceContent(input: unknown, kind: "country" | "des
     }
     return { ...question, options, correctIndex };
   }) : quiz;
+  const rawGames = Array.isArray(source.games) ? source.games : [];
+  const normalizedGames = ["rebus", "word", "order"].map((type) => {
+    const game = rawGames.map(recordValue).find((item) => item?.type === type);
+    if (!game) return undefined;
+    const answer = typeof game.answer === "string" && game.answer.trim()
+      ? game.answer
+      : typeof game.title === "string" ? game.title : "";
+    if (answer !== game.answer) changes.push(`games.${type}.answer: risposta mancante ricostruita`);
+    return { ...game, answer };
+  }).filter((game) => Boolean(game)) as Array<Record<string, unknown>>;
+  if (rawGames.length !== normalizedGames.length) changes.push(`games: ${rawGames.length}→${normalizedGames.length}`);
+  const qualifyDestinationEntries = (value: unknown, field: string) => Array.isArray(value) ? value.map((item, index) => {
+    const entry = recordValue(item);
+    if (!entry || !destinationName) return item;
+    const copy = `${String(entry.title ?? "")} ${String(entry.description ?? entry.instructions ?? "")}`;
+    if (normalizedQuizText(copy).includes(normalizedQuizText(destinationName))) return item;
+    changes.push(`${field}[${index}]: aggiunto riferimento a ${destinationName}`);
+    return { ...entry, title: `${destinationName}: ${String(entry.title ?? "Attività")}` };
+  }) : value;
 
   return {
     value: {
       ...source,
       quiz: normalizedQuiz,
-      missions: limitArray(source.missions, 10, "missions", changes),
-      games: limitArray(source.games, 6, "games", changes),
-      photoContests: limitArray(source.photoContests, 2, "photoContests", changes),
+      missions: qualifyDestinationEntries(limitArray(source.missions, 10, "missions", changes), "missions"),
+      games: qualifyDestinationEntries(normalizedGames, "games"),
+      photoContests: qualifyDestinationEntries(limitArray(source.photoContests, 2, "photoContests", changes), "photoContests"),
     },
     changes,
   };

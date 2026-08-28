@@ -179,8 +179,8 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   height: auto;
   padding: 24px clamp(24px, 7vw, 108px);
   align-items: center;
-  color: white;
-  background: var(--smf-brand-deep);
+  color: var(--agency-on-primary);
+  background: var(--trail-primary);
 }
 .travelerRedesign .hero::after {
   width: 34vw;
@@ -189,7 +189,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   min-height: 320px;
   right: -8vw;
   top: -14vw;
-  border: 1px solid rgba(255,255,255,.12);
+  border: 1px solid color-mix(in srgb, var(--agency-on-primary) 18%, transparent);
   background: transparent;
 }
 .travelerRedesign .heroTexture { opacity: .08; background-size: 36px 36px; }
@@ -201,7 +201,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   letter-spacing: -.025em;
   text-wrap: balance;
 }
-.travelerRedesign .heroCopy > p:last-child { margin: 9px 0 0; color: #c7d5d4; opacity: 1; }
+.travelerRedesign .heroCopy > p:last-child { margin: 9px 0 0; color: var(--agency-on-primary); opacity: .78; }
 .travelerRedesign .routeSummary {
   gap: 22px;
   padding: 0;
@@ -211,7 +211,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 }
 .travelerRedesign .routeSummary div { min-width: 68px; padding: 0; border: 0; }
 .travelerRedesign .routeSummary strong { font: 700 26px/1 var(--font-serif), serif; }
-.travelerRedesign .routeSummary span { display: block; margin-top: 5px; color: #c7d5d4; font-size: 9px; letter-spacing: .08em; }
+.travelerRedesign .routeSummary span { display: block; margin-top: 5px; color: var(--agency-on-primary); font-size: 9px; letter-spacing: .08em; }
 
 .travelerRedesign .tabs {
   position: sticky;
@@ -317,8 +317,8 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   width: 38px;
   height: 38px;
   border-radius: 12px;
-  color: white;
-  background: var(--smf-accent);
+  color: var(--agency-on-primary);
+  background: var(--trail-primary);
 }
 .travelerRedesign .programmeStepLine::before { left: 9px; width: 1px; background: var(--smf-line); }
 .travelerRedesign .programmeStepIcon {
@@ -507,8 +507,8 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 .travelerRedesign .expenseHero {
   padding: 28px;
   border-radius: 16px;
-  color: white;
-  background: var(--smf-brand-deep);
+  color: var(--agency-on-primary);
+  background: var(--trail-primary);
   text-align: left;
 }
 .travelerRedesign .expenseCurrencyTotals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 22px; }
@@ -548,7 +548,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 }
 .travelerRedesign .financeEmpty h3 { margin: 0 0 4px; font: 700 19px/1.2 var(--font-serif), serif; }
 .travelerRedesign .financeEmpty p { margin: 0; color: var(--smf-muted); font-size: 13px; line-height: 1.45; }
-.travelerRedesign .financeEmpty button { min-height: 44px; padding: 0 14px; border: 0; border-radius: 10px; color: white; background: var(--smf-action); font-weight: 800; }
+.travelerRedesign .financeEmpty button { min-height: 44px; padding: 0 14px; border: 0; border-radius: 10px; color: var(--agency-on-primary); background: var(--smf-action); font-weight: 800; }
 .expenseDialog.cashMovementDialog { color: var(--smf-ink); background: var(--smf-paper); }
 .cashMovementDialog header > span { background: var(--smf-brand-deep); }
 .cashDialogIntro { margin: 0; color: var(--smf-muted); font-size: 14px; line-height: 1.55; }
@@ -1525,7 +1525,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   font-weight: 800;
 }
 .travelerRedesign .memoryFilters button:hover { background: var(--smf-surface-soft); }
-.travelerRedesign .memoryFilters button.active { color: white; background: var(--trail-primary); }
+.travelerRedesign .memoryFilters button.active { color: var(--agency-on-primary); background: var(--trail-primary); }
 .travelerRedesign .memoryFilters button span {
   min-width: 22px;
   padding: 3px 6px;
@@ -1603,7 +1603,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   gap: 7px;
   padding: 0 14px;
   border-radius: 9px;
-  color: white;
+  color: var(--agency-on-primary);
   background: var(--smf-action);
   font-size: 12px;
   font-weight: 800;
