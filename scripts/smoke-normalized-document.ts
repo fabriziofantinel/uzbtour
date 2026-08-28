@@ -14,6 +14,15 @@ const draft: TravelProgrammeDraft = {
   startDate: "2026-08-01",
   endDate: "2026-08-02",
   summary: "Itinerario di prova per verificare il formato normalizzato.",
+  commercialDetails: {
+    agencyName: "SMF Travel", agencyContact: "agenzia@example.com", quoteCode: "UZB-2026",
+    quoteVersion: "2", quoteDate: "2026-07-01", clientName: "Famiglia Prova",
+    travelerCount: 3, adults: 3, minors: 0, guideLanguage: "Italiano", currency: "EUR",
+    pricingRows: [{ item: "Quota individuale", amount: "2.000", currency: "EUR", notes: "Camera doppia" }],
+    includedServices: [{ service: "Pernottamenti", included: true, details: "Hotel da programma" }],
+    conditions: [{ field: "Validità", value: "30 giorni" }],
+    contacts: [{ role: "Agente", name: "Mario Rossi", phone: "+39 000", email: "agenzia@example.com", availability: "Orario ufficio" }],
+  },
   days: [{
     dayNumber: 1,
     date: "2026-08-01",

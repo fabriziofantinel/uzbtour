@@ -23,6 +23,7 @@ REGOLE DI SICUREZZA E QUALITÀ:
 - accommodation deve sempre esistere; usa campi vuoti se non è indicato un hotel.
 - description deve sintetizzare fedelmente il testo senza materiale promozionale superfluo.
 - usefulInformation deve contenere solo informazioni realmente presenti nel documento.
+- Compila commercialDetails con testata commerciale, quotazione, servizi, condizioni e referenti presenti nel preventivo; non inventare dati mancanti.
 - Se un trasferimento è un treno o un volo, usa rispettivamente type train o flight.
 - Compila country e city di ogni giornata. Per ogni visita compila placeName, placeCity e placeCountry; per ogni hotel name, city e country.
 - Per le visite non creare un titolo attività distinto: usa lo stesso nome canonico del sito sia in title sia in placeName.

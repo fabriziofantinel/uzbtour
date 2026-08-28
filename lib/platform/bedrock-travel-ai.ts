@@ -50,6 +50,9 @@ REGOLE DI SICUREZZA E QUALITÀ:
 - description deve sintetizzare fedelmente il testo senza materiale promozionale superfluo.
 - usefulInformation deve contenere solo informazioni realmente presenti nel documento.
 - usefulInformation deve essere sempre presente come array; usa un array vuoto se il documento non contiene informazioni utili.
+- Compila commercialDetails leggendo tutte le sezioni del preventivo esterne al programma: agenzia e contatti, codice/versione/data, cliente, numero viaggiatori, lingua guida, valuta, quotazione, servizi inclusi o esclusi, condizioni e referenti operativi.
+- Per pricingRows, includedServices, conditions e contacts conserva tutte le righe esplicite del documento senza inventare valori mancanti.
+- quoteDate deve essere YYYY-MM-DD quando la data è esplicita, altrimenti stringa vuota.
 - label deve essere una breve etichetta della giornata e non deve superare 120 caratteri.
 - Per phone e url usa una stringa vuota quando il dato non è presente; non inventare recapiti o collegamenti.
 - Se un trasferimento è un treno o un volo, usa rispettivamente type train o flight.

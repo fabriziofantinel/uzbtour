@@ -45,12 +45,48 @@ export const importedDaySchema = z.object({
   additionalAccommodations: z.array(importedAccommodationSchema).max(10).default([]),
 });
 
+const emptyCommercialDetails = {
+  agencyName: "", agencyContact: "", quoteCode: "", quoteVersion: "", quoteDate: "",
+  clientName: "", travelerCount: null, adults: null, minors: null, guideLanguage: "",
+  currency: "", pricingRows: [], includedServices: [], conditions: [], contacts: [],
+};
+
+export const commercialDetailsSchema = z.object({
+  agencyName: z.string().max(240).default(""),
+  agencyContact: z.string().max(500).default(""),
+  quoteCode: z.string().max(120).default(""),
+  quoteVersion: z.string().max(40).default(""),
+  quoteDate: z.string().max(10).default(""),
+  clientName: z.string().max(240).default(""),
+  travelerCount: z.number().int().min(0).max(999).nullable().default(null),
+  adults: z.number().int().min(0).max(999).nullable().default(null),
+  minors: z.number().int().min(0).max(999).nullable().default(null),
+  guideLanguage: z.string().max(120).default(""),
+  currency: z.string().max(20).default(""),
+  pricingRows: z.array(z.object({
+    item: z.string().max(240), amount: z.string().max(120),
+    currency: z.string().max(20).default(""), notes: z.string().max(1000).default(""),
+  })).max(30).default([]),
+  includedServices: z.array(z.object({
+    service: z.string().max(240), included: z.boolean(), details: z.string().max(2000).default(""),
+  })).max(50).default([]),
+  conditions: z.array(z.object({
+    field: z.string().max(240), value: z.string().max(4000),
+  })).max(50).default([]),
+  contacts: z.array(z.object({
+    role: z.string().max(120), name: z.string().max(240).default(""),
+    phone: z.string().max(100).default(""), email: z.string().max(240).default(""),
+    availability: z.string().max(240).default(""),
+  })).max(30).default([]),
+}).default(emptyCommercialDetails);
+
 export const travelProgrammeDraftSchema = z.object({
   title: z.string().min(1).max(240),
   destinationCountry: z.string().max(120),
   startDate: z.string().max(10).default("").describe("Data iniziale YYYY-MM-DD oppure stringa vuota"),
   endDate: z.string().max(10).default("").describe("Data finale YYYY-MM-DD oppure stringa vuota"),
   summary: z.string().max(6000),
+  commercialDetails: commercialDetailsSchema,
   days: z.array(importedDaySchema).min(1).max(90),
   usefulInformation: z.array(z.object({
     category: z.string().min(1).max(80),

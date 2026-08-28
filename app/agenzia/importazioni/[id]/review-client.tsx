@@ -149,6 +149,11 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
     setDraft({ ...draft, days: draft.days.map((day, position) => position === index ? { ...day, ...changes } : day) });
   }
 
+  function updateCommercial(changes: Partial<TravelProgrammeDraft["commercialDetails"]>) {
+    if (!draft) return;
+    setDraft({ ...draft, commercialDetails: { ...draft.commercialDetails, ...changes } });
+  }
+
   function updateActivity(dayIndex: number, activityIndex: number, changes: Partial<TravelProgrammeDraft["days"][number]["activities"][number]>) {
     if (!draft) return;
     updateDay(dayIndex, {
@@ -295,6 +300,29 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
           <label>Data fine<input type="date" value={draft.endDate} onChange={(event) => setDraft({ ...draft, endDate: event.target.value })}/></label>
           <label className="wide">Descrizione<textarea value={draft.summary} onChange={(event) => setDraft({ ...draft, summary: event.target.value })}/></label>
         </section>
+
+        <details className="commercialReview" open>
+          <summary><div><small>DATI DEL PREVENTIVO</small><b>Quotazione, servizi e condizioni</b></div><ChevronDown/></summary>
+          <div className="commercialFields">
+            <label>Nome agenzia<input value={draft.commercialDetails.agencyName} onChange={(event) => updateCommercial({ agencyName: event.target.value })}/></label>
+            <label>Contatti agenzia<input value={draft.commercialDetails.agencyContact} onChange={(event) => updateCommercial({ agencyContact: event.target.value })}/></label>
+            <label>Codice preventivo<input value={draft.commercialDetails.quoteCode} onChange={(event) => updateCommercial({ quoteCode: event.target.value })}/></label>
+            <label>Versione<input value={draft.commercialDetails.quoteVersion} onChange={(event) => updateCommercial({ quoteVersion: event.target.value })}/></label>
+            <label>Data preventivo<input type="date" value={draft.commercialDetails.quoteDate} onChange={(event) => updateCommercial({ quoteDate: event.target.value })}/></label>
+            <label>Cliente / famiglia<input value={draft.commercialDetails.clientName} onChange={(event) => updateCommercial({ clientName: event.target.value })}/></label>
+            <label>Numero viaggiatori<input type="number" min="0" value={draft.commercialDetails.travelerCount ?? ""} onChange={(event) => updateCommercial({ travelerCount: event.target.value ? Number(event.target.value) : null })}/></label>
+            <label>Lingua guida<input value={draft.commercialDetails.guideLanguage} onChange={(event) => updateCommercial({ guideLanguage: event.target.value })}/></label>
+            <label>Valuta<input value={draft.commercialDetails.currency} onChange={(event) => updateCommercial({ currency: event.target.value })}/></label>
+          </div>
+          <div className="commercialRows">
+            <div className="subheading"><b>Quotazione</b><button type="button" onClick={() => updateCommercial({ pricingRows: [...draft.commercialDetails.pricingRows, { item: "", amount: "", currency: draft.commercialDetails.currency, notes: "" }] })}><Plus/> Aggiungi voce</button></div>
+            {draft.commercialDetails.pricingRows.map((row, index) => <div className="commercialRow price" key={index}><input aria-label="Voce" placeholder="Voce" value={row.item} onChange={(event) => updateCommercial({ pricingRows: draft.commercialDetails.pricingRows.map((item, position) => position === index ? { ...item, item: event.target.value } : item) })}/><input aria-label="Importo" placeholder="Importo" value={row.amount} onChange={(event) => updateCommercial({ pricingRows: draft.commercialDetails.pricingRows.map((item, position) => position === index ? { ...item, amount: event.target.value } : item) })}/><input aria-label="Valuta" placeholder="Valuta" value={row.currency} onChange={(event) => updateCommercial({ pricingRows: draft.commercialDetails.pricingRows.map((item, position) => position === index ? { ...item, currency: event.target.value } : item) })}/><input aria-label="Note" placeholder="Note" value={row.notes} onChange={(event) => updateCommercial({ pricingRows: draft.commercialDetails.pricingRows.map((item, position) => position === index ? { ...item, notes: event.target.value } : item) })}/><button type="button" aria-label="Rimuovi voce" onClick={() => updateCommercial({ pricingRows: draft.commercialDetails.pricingRows.filter((_, position) => position !== index) })}><Trash2/></button></div>)}
+            <div className="subheading"><b>Servizi inclusi e non inclusi</b><button type="button" onClick={() => updateCommercial({ includedServices: [...draft.commercialDetails.includedServices, { service: "", included: true, details: "" }] })}><Plus/> Aggiungi servizio</button></div>
+            {draft.commercialDetails.includedServices.map((row, index) => <div className="commercialRow service" key={index}><input aria-label="Servizio" placeholder="Servizio" value={row.service} onChange={(event) => updateCommercial({ includedServices: draft.commercialDetails.includedServices.map((item, position) => position === index ? { ...item, service: event.target.value } : item) })}/><select aria-label="Inclusione" value={row.included ? "yes" : "no"} onChange={(event) => updateCommercial({ includedServices: draft.commercialDetails.includedServices.map((item, position) => position === index ? { ...item, included: event.target.value === "yes" } : item) })}><option value="yes">Incluso</option><option value="no">Non incluso</option></select><input aria-label="Dettagli servizio" placeholder="Dettagli" value={row.details} onChange={(event) => updateCommercial({ includedServices: draft.commercialDetails.includedServices.map((item, position) => position === index ? { ...item, details: event.target.value } : item) })}/><button type="button" aria-label="Rimuovi servizio" onClick={() => updateCommercial({ includedServices: draft.commercialDetails.includedServices.filter((_, position) => position !== index) })}><Trash2/></button></div>)}
+            <div className="subheading"><b>Condizioni e note</b><button type="button" onClick={() => updateCommercial({ conditions: [...draft.commercialDetails.conditions, { field: "", value: "" }] })}><Plus/> Aggiungi condizione</button></div>
+            {draft.commercialDetails.conditions.map((row, index) => <div className="commercialRow condition" key={index}><input aria-label="Campo condizione" placeholder="Campo" value={row.field} onChange={(event) => updateCommercial({ conditions: draft.commercialDetails.conditions.map((item, position) => position === index ? { ...item, field: event.target.value } : item) })}/><textarea aria-label="Valore condizione" placeholder="Testo" value={row.value} onChange={(event) => updateCommercial({ conditions: draft.commercialDetails.conditions.map((item, position) => position === index ? { ...item, value: event.target.value } : item) })}/><button type="button" aria-label="Rimuovi condizione" onClick={() => updateCommercial({ conditions: draft.commercialDetails.conditions.filter((_, position) => position !== index) })}><Trash2/></button></div>)}
+          </div>
+        </details>
 
         <div className="reviewHeading"><div><small>ITINERARIO ESTRATTO</small><h2>{draft.days.length} giornate</h2></div><span><CalendarDays/> Controlla una giornata alla volta</span></div>
 
