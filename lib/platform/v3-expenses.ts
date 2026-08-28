@@ -45,7 +45,7 @@ export async function addTravelerExpenseV3(input: {
   dayId?: string | null;
   label: string;
   amount: number;
-  currency: "EUR" | "USD" | "UZS" | "GBP";
+  currency: "EUR" | "USD" | "UZS" | "GBP" | "VND";
   clientOperationId: string;
   exchangeRateToBase?: number | null;
 }) {

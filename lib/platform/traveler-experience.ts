@@ -301,7 +301,7 @@ export async function addTravelerExpense(input: {
   dayId?: string | null;
   label: string;
   amount: number;
-  currency: "EUR" | "USD" | "UZS" | "GBP";
+  currency: "EUR" | "USD" | "UZS" | "GBP" | "VND";
   clientOperationId: string;
   exchangeRateToBase?: number | null;
 }) {
@@ -337,7 +337,7 @@ export async function addTravelerRestaurant(input: {
 export async function addTravelerCashMovement(input: {
   userId: string; userName: string; departureId: string; partyId: string; dayId: string;
   kind: "withdrawal" | "exchange"; euroAmount: number | null; localAmount: number; feeEuro: number | null;
-  clientOperationId: string;
+  localCurrency: string; clientOperationId: string;
 }) {
   await assertArchitectureHardeningSchema();
   const agencyId = await assertTravelerPartyScope(input);

@@ -3,12 +3,13 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { LoaderCircle, ReceiptText, X } from "lucide-react";
 
-type ExpenseCurrency = "EUR" | "UZS";
+type ExpenseCurrency = "EUR" | string;
 
 type ExpenseDialogProps = {
   open: boolean;
   dayLabel?: string;
   saving: boolean;
+  localCurrency: string;
   onClose: () => void;
   onSave: (expense: {
     label: string;
@@ -21,6 +22,7 @@ export default function ExpenseDialog({
   open,
   dayLabel,
   saving,
+  localCurrency,
   onClose,
   onSave
 }: ExpenseDialogProps) {
@@ -147,24 +149,24 @@ export default function ExpenseDialog({
               <b>Euro</b>
               <small>EUR · €</small>
             </label>
-            <label className={currency === "UZS" ? "selected" : ""}>
+            <label className={currency === localCurrency ? "selected" : ""}>
               <input
                 type="radio"
                 name="expense-currency"
-                value="UZS"
-                checked={currency === "UZS"}
-                onChange={() => setCurrency("UZS")}
+                value={localCurrency}
+                checked={currency === localCurrency}
+                onChange={() => setCurrency(localCurrency)}
               />
               <span aria-hidden="true"/>
-              <b>Som</b>
-              <small>UZS</small>
+              <b>Valuta locale</b>
+              <small>{localCurrency}</small>
             </label>
           </fieldset>
 
           <label className="expenseField" htmlFor="expense-amount">
-            <span>Importo in {currency === "EUR" ? "euro" : "som"}</span>
+            <span>Importo in {currency === "EUR" ? "euro" : localCurrency}</span>
             <div className="expenseAmount">
-              <b>{currency === "EUR" ? "€" : "UZS"}</b>
+              <b>{currency === "EUR" ? "€" : localCurrency}</b>
               <input
                 id="expense-amount"
                 inputMode="decimal"

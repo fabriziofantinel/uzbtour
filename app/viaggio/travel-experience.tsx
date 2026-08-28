@@ -27,6 +27,29 @@ type Tab = "mappa" | "programma" | "ricordi" | "documenti" | "spese" | "info" | 
 type Day = Experience["days"][number];
 const colors = ["#D6663D", "#715C9D", "#C4902F", "#177A78", "#3D8B68", "#A35D55"];
 const som = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0 });
+const usefulSections = [
+  { key: "numeri di emergenza", title: "Numeri di emergenza" }, { key: "ambasciata", title: "Ambasciata" },
+  { key: "salute", title: "Salute" }, { key: "documenti", title: "Documenti" },
+  { key: "abbigliamento", title: "Abbigliamento" }, { key: "usi locali", title: "Usi locali" },
+  { key: "come muoversi", title: "Come muoversi" }, { key: "usi e tradizioni", title: "Usi e tradizioni" },
+  { key: "capire il paese", title: "Capire il paese" },
+] as const;
+function destinationCurrency(country: string) {
+  const value = country.toLocaleLowerCase("it");
+  if (value.includes("vietnam")) return "VND";
+  if (value.includes("uzbek")) return "UZS";
+  return "EUR";
+}
+function formatClock(timeZone: string, now: Date) {
+  try { return new Intl.DateTimeFormat("it-IT", { timeZone, hour: "2-digit", minute: "2-digit", hour12: false }).format(now); }
+  catch { return "--:--"; }
+}
+function destinationTimeZone(country: string, configured: string) {
+  const value = country.toLocaleLowerCase("it");
+  if (value.includes("vietnam")) return "Asia/Ho_Chi_Minh";
+  if (value.includes("uzbek")) return "Asia/Tashkent";
+  return configured;
+}
 
 function dateParts(value: string) {
   if (!value) return { day: "--", month: "---", full: "Data da confermare" };
@@ -146,6 +169,7 @@ export default function TravelExperience({ initialExperience, userName, isAgency
   const [moreOpen, setMoreOpen] = useState(false);
   const [memoryDayFilter, setMemoryDayFilter] = useState<number | "all">("all");
   const [isOnline, setIsOnline] = useState(true);
+  const [now, setNow] = useState(() => new Date());
   const contentRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const moreButtonRef = useRef<HTMLButtonElement>(null);
@@ -168,10 +192,18 @@ export default function TravelExperience({ initialExperience, userName, isAgency
       itemTitle: item.title, itemType: item.type,
     }))),
   ]), [experience.days]);
+  const localCurrency = destinationCurrency(experience.journey.destinationCountry);
+  const localTimeZone = destinationTimeZone(experience.journey.destinationCountry, experience.journey.timezone);
+  const displayedUsefulInfo = useMemo(() => usefulSections.map((section) => {
+    const item = experience.usefulInfo.find((candidate) => `${candidate.category} ${candidate.title}`.toLocaleLowerCase("it").includes(section.key));
+    return { title: section.title, body: item?.body || "Informazione in aggiornamento da parte dell’agenzia.", phone: item?.phone || "" };
+  }), [experience.usefulInfo]);
+  const localFormatter = useMemo(() => new Intl.NumberFormat("it-IT", { maximumFractionDigits: localCurrency === "VND" ? 0 : 2 }), [localCurrency]);
   const totals = useMemo(() => experience.expenses.reduce((sum, expense) => {
-    if (expense.currency === "EUR" || expense.currency === "UZS") sum[expense.currency] += expense.amount;
+    if (expense.currency === "EUR") sum.EUR += expense.amount;
+    else if (expense.currency === localCurrency) sum.local += expense.amount;
     return sum;
-  }, { EUR: 0, UZS: 0 }), [experience.expenses]);
+  }, { EUR: 0, local: 0 }), [experience.expenses, localCurrency]);
   const appliedEurRate = useMemo(() => {
     const converted = experience.cashMovements.filter((movement) => movement.euroAmount != null && movement.euroAmount > 0);
     const euro = converted.reduce((sum, movement) => sum + (movement.euroAmount || 0), 0);
@@ -183,11 +215,11 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     for (const expense of experience.expenses) {
       if (expense.baseAmount != null) total += expense.baseAmount;
       else if (expense.currency === "EUR") total += expense.amount;
-      else if (expense.currency === "UZS" && appliedEurRate) total += expense.amount / appliedEurRate;
+      else if (expense.currency === localCurrency && appliedEurRate) total += expense.amount / appliedEurRate;
       else return null;
     }
     return total;
-  }, [appliedEurRate, experience.expenses]);
+  }, [appliedEurRate, experience.expenses, localCurrency]);
   const tripMapDays = useMemo<TripMapDay[]>(() => experience.days.flatMap((entry, index) => {
     const city = mapCityForDay(entry);
     return city ? [{ index, n: entry.number, date: dateParts(entry.date).full, city: city.name,
@@ -196,11 +228,16 @@ export default function TravelExperience({ initialExperience, userName, isAgency
 
   useEffect(() => {
     let activeRequest = true;
-    fetch("/api/exchange-rate").then((response) => response.ok ? response.json() : null)
+    fetch(`/api/exchange-rate?currency=${encodeURIComponent(localCurrency)}`).then((response) => response.ok ? response.json() : null)
       .then((result: { rate?: number } | null) => {
         if (activeRequest && result?.rate && Number.isFinite(result.rate)) setOfficialEurRate(result.rate);
       }).catch(() => undefined);
     return () => { activeRequest = false; };
+  }, [localCurrency]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 30_000);
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -291,8 +328,8 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     if (!localAmount || !euroAmount) { setError("Inserisci importi validi per calcolare il cambio applicato."); return false; }
     setSaving("cash"); setError("");
     try {
-      const result = await postJournal({ action: "cash", dayId: day.id, kind, localAmount, euroAmount, feeEuro: null, clientOperationId: crypto.randomUUID() }) as { movement: { id: string; createdAt: string } };
-      setExperience((current) => ({ ...current, cashMovements: [{ id: result.movement.id, dayId: day.id, dayNumber: day.number, kind, euroAmount, localAmount, localCurrency: "UZS", feeEuro: null, addedBy: userName, createdAt: result.movement.createdAt }, ...current.cashMovements] }));
+      const result = await postJournal({ action: "cash", dayId: day.id, kind, localAmount, euroAmount, localCurrency, feeEuro: null, clientOperationId: crypto.randomUUID() }) as { movement: { id: string; createdAt: string } };
+      setExperience((current) => ({ ...current, cashMovements: [{ id: result.movement.id, dayId: day.id, dayNumber: day.number, kind, euroAmount, localAmount, localCurrency, feeEuro: null, addedBy: userName, createdAt: result.movement.createdAt }, ...current.cashMovements] }));
       return true;
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Movimento non salvato"); return false; }
     finally { setSaving(""); }
@@ -321,7 +358,7 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Eliminazione del movimento non riuscita"); }
     finally { setSaving(""); }
   }
-  async function saveExpense(input: { label: string; amount: string; currency: "EUR" | "UZS" }) {
+  async function saveExpense(input: { label: string; amount: string; currency: string }) {
     const amount = numberValue(input.amount);
     if (!amount || amount <= 0) { setError("Inserisci un importo valido."); return false; }
     setSaving("expense"); setError("");
@@ -338,7 +375,6 @@ export default function TravelExperience({ initialExperience, userName, isAgency
   }
   if (!day) return null;
   const currentDate = dateParts(day.date);
-  const transport = dayTransport(day);
   const dayNote = experience.notes.find((entry) => entry.dayId === day.id);
   const agencyColor = validBrandColor(experience.journey.agencyBranding.primaryColor);
   const agencyLogo = agencyLogoSource(experience.journey.agencyBranding.logoUrl,experience.journey.agencyId);
@@ -358,15 +394,10 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     <section className="hero"><div className="heroTexture"/><div className="heroCopy"><p className="eyebrow">IL NOSTRO VIAGGIO</p><h1>{experience.journey.title}</h1><p>{experience.journey.destinationCountry} · {experience.journey.partyName}</p></div><div className="routeSummary"><div><strong>{experience.days.length}</strong><span>GIORNI</span></div><div><strong>{new Set(experience.days.flatMap((entry) => entry.cities.map((city) => city.name))).size}</strong><span>LOCALITÀ</span></div><div><strong>{experience.journey.travelers.length}</strong><span>VIAGGIATORI</span></div></div></section>
     <nav className="tabs" aria-label="Sezioni del viaggio"><button type="button" className={tab === "mappa" ? "active" : ""} aria-current={tab === "mappa" ? "page" : undefined} onClick={() => { setTab("mappa"); setMoreOpen(false); }}><Map/><span>Mappa</span></button><button type="button" className={tab === "programma" ? "active" : ""} aria-current={tab === "programma" ? "page" : undefined} onClick={() => { openProgramme(); setMoreOpen(false); }}><CalendarDays/><span>Programma</span></button><button type="button" aria-label="Spese, prelievi e cambi" className={tab === "spese" ? "active" : ""} aria-current={tab === "spese" ? "page" : undefined} onClick={() => { setTab("spese"); setMoreOpen(false); }}><Wallet/><span>Spese</span></button><button type="button" className={tab === "sfide" ? "active" : ""} aria-current={tab === "sfide" ? "page" : undefined} onClick={() => { setTab("sfide"); setMoreOpen(false); }}><Sparkles/><span>Sfide</span></button><button ref={moreButtonRef} type="button" className={moreOpen || ["ricordi", "documenti", "info", "frasario"].includes(tab) ? "active" : ""} aria-expanded={moreOpen} aria-haspopup="true" aria-controls="travel-more-menu" onClick={() => setMoreOpen((value) => !value)}><CircleUserRound/><span>Altro</span></button></nav>
     {moreOpen && <div ref={moreMenuRef} id="travel-more-menu" className="moreMenu" role="region" aria-label="Altre sezioni">
-      <div className="moreMenuHead"><strong>Altro</strong><small>Ricordi, documenti e strumenti utili</small></div>
-      <button type="button" aria-current={tab === "ricordi" ? "page" : undefined} onClick={() => { setTab("ricordi"); setMoreOpen(false); }}><Camera/><span><strong>Ricordi</strong><small>{experience.photos.length === 1 ? "1 foto del viaggio" : `${experience.photos.length} foto del viaggio`}</small></span><ChevronRight/></button>
+      <div className="moreMenuHead"><strong>Altro</strong><small>Documenti e informazioni di viaggio</small></div>
       <button type="button" aria-current={tab === "documenti" ? "page" : undefined} onClick={() => { setTab("documenti"); setMoreOpen(false); }}><FileText/><span><strong>Documenti</strong><small>{travelDocuments.length === 1 ? "1 biglietto disponibile" : `${travelDocuments.length} biglietti disponibili`}</small></span><ChevronRight/></button>
       <button type="button" aria-current={tab === "info" ? "page" : undefined} onClick={() => { setTab("info"); setMoreOpen(false); }}><Info/><span><strong>Informazioni utili</strong><small>Contatti, valuta e consigli</small></span><ChevronRight/></button>
       <button type="button" aria-current={tab === "frasario" ? "page" : undefined} onClick={() => { setTab("frasario"); setMoreOpen(false); }}><Languages/><span><strong>Frasi</strong><small>Parole utili durante il viaggio</small></span><ChevronRight/></button>
-      <a href="/accessibilita"><Accessibility/><span><strong>Accessibilità</strong><small>Aiuto, comandi e segnalazioni</small></span><ChevronRight/></a>
-      {experience.availableJourneys.length > 1 && <div className="moreJourneys"><small>I MIEI VIAGGI</small>{experience.availableJourneys.map((journey) => <a className={journey.departureId === experience.journey.departureId ? "active" : ""} href={`/viaggio?partenza=${journey.departureId}`} key={journey.departureId}><Map/><span><strong>{journey.title}</strong><small>{dateParts(journey.startsOn).full} — {dateParts(journey.endsOn).full}</small></span>{journey.departureId === experience.journey.departureId ? <Check/> : <ChevronRight/>}</a>)}</div>}
-      {isAgencyAdmin && <a href="/agenzia"><Building2/><span><strong>Area agenzia</strong><small>Gestisci viaggi e viaggiatori</small></span><ChevronRight/></a>}
-      <form action="/api/auth/logout" method="post"><button type="submit"><LogOut/><span><strong>Esci</strong><small>{userName}</small></span><ChevronRight/></button></form>
     </div>}
     <div id="travel-main-content" className="travelMainContent" ref={contentRef} tabIndex={-1}>
     <div className="srStatus" role="status" aria-live="polite" aria-atomic="true">{saving ? "Salvataggio in corso" : ""}</div>
@@ -381,7 +412,6 @@ export default function TravelExperience({ initialExperience, userName, isAgency
         <section className="dayContext dayContextOpen" aria-labelledby={`day-details-${day.id}`}>
           <h3 id={`day-details-${day.id}`}>Dettagli della giornata</h3>
           {day.description && <p className="description">{day.description}</p>}
-          <div className="stayInfo"><span>{transport.label}</span><span><strong>{day.hotels.map((hotel) => hotel.name).join(" · ") || "Nessun pernottamento previsto"}</strong></span></div>
         </section>
         <section className="dayProgramme"><header><span>SCALLETTA DELLA GIORNATA</span><h3>Le attività nell’ordine previsto</h3><p>Gli orari compaiono solo per trasporti e prenotazioni che li prevedono.</p></header><div className="dayProgrammeList">
           {day.items.map((item, index) => {
@@ -428,13 +458,13 @@ export default function TravelExperience({ initialExperience, userName, isAgency
       })}</div>}
     </section>}
 
-    {tab === "spese" && <section className="collection expensesPage"><div className="expenseHero"><span>SPESE, PRELIEVI E CAMBI</span><h2>Totali per valuta</h2><div className="expenseCurrencyTotals"><div><small>EURO</small><strong>€ {totals.EUR.toFixed(2)}</strong></div><div><small>VALUTA LOCALE</small><strong>{som.format(totals.UZS)} UZS</strong></div><div className="grandTotal"><small>TOTALE SPESO IN EURO</small><strong>{totalSpentEuro == null ? "Calcolo…" : `€ ${totalSpentEuro.toFixed(2)}`}</strong></div></div><p>Gruppo: {experience.journey.partyName}{appliedEurRate ? ` · Conversione: 1 € = ${som.format(appliedEurRate)} UZS` : ""}</p></div><div className="financeActions"><button type="button" onClick={() => setExpenseDayId(null)}><ReceiptText/><span>Aggiungi spesa<small>Spesa del gruppo</small></span></button><button type="button" disabled={saving === "cash"} onClick={() => setCashDialogKind("withdrawal")}><Banknote/><span>Aggiungi prelievo<small>Giorno {day.number}</small></span></button><button type="button" disabled={saving === "cash"} onClick={() => setCashDialogKind("exchange")}><ArrowRightLeft/><span>Aggiungi cambio<small>Giorno {day.number}</small></span></button></div>{experience.expenses.length === 0 ? <div className="financeEmpty"><ReceiptText/><div><h3>Nessuna spesa registrata</h3><p>Aggiungi la prima spesa per iniziare il riepilogo del gruppo.</p></div><button type="button" onClick={() => setExpenseDayId(null)}>Aggiungi spesa</button></div> : <div className="expenseList">{experience.expenses.map((expense) => <div key={expense.id}><span className="receipt"><ReceiptText/></span><span><strong>{expense.label}</strong><small>Pagato da {expense.paidBy}{expense.dayNumber ? ` · Giorno ${expense.dayNumber}` : ""}</small></span><b>{expense.currency === "EUR" ? `€ ${expense.amount.toFixed(2)}` : `${som.format(expense.amount)} ${expense.currency}`}</b><button className="financeDelete" type="button" disabled={saving === `delete-expense-${expense.id}`} onClick={() => void deleteExpense(expense.id)} aria-label={`Elimina la spesa ${expense.label}`} title="Elimina spesa">{saving === `delete-expense-${expense.id}` ? <LoaderCircle className="spin"/> : <Trash2/>}</button></div>)}</div>}<div className="cashSection"><div className="sectionTitle"><div><span>GESTIONE CONTANTI</span><h2>Prelievi e cambi</h2></div></div>{experience.cashMovements.length === 0 ? <p className="cashEmpty">Nessun prelievo o cambio registrato.</p> : <div className="cashMovementList">{experience.cashMovements.map((movement) => <div key={movement.id}><span className={`cashIcon ${movement.kind}`}><Banknote/></span><span><strong>{movement.kind === "withdrawal" ? "Prelievo ATM" : "Cambio valuta"}</strong><small>Giorno {movement.dayNumber} · Inserito da {movement.addedBy}</small><em className="appliedExchangeRate">{exchangeRateLabel(movement.euroAmount, movement.localAmount, movement.localCurrency)}</em></span><b>{movement.euroAmount != null && <small>€ {movement.euroAmount.toFixed(2)}</small>}{som.format(movement.localAmount)} {movement.localCurrency}</b><button className="financeDelete" type="button" disabled={saving === `delete-cash-${movement.id}`} onClick={() => void deleteCashMovement(movement.id, movement.kind === "withdrawal" ? "withdrawal" : "exchange")} aria-label={`Elimina ${movement.kind === "withdrawal" ? "il prelievo" : "il cambio"}`} title={movement.kind === "withdrawal" ? "Elimina prelievo" : "Elimina cambio"}>{saving === `delete-cash-${movement.id}` ? <LoaderCircle className="spin"/> : <Trash2/>}</button></div>)}</div>}</div></section>}
+    {tab === "spese" && <section className="collection expensesPage"><div className="expenseHero"><span>SPESE, PRELIEVI E CAMBI</span><h2>Totali per valuta</h2><div className="expenseCurrencyTotals"><div><small>EURO</small><strong>€ {totals.EUR.toFixed(2)}</strong></div><div><small>VALUTA LOCALE</small><strong>{localFormatter.format(totals.local)} {localCurrency}</strong></div><div className="grandTotal"><small>TOTALE SPESO IN EURO</small><strong>{totalSpentEuro == null ? "Calcolo…" : `€ ${totalSpentEuro.toFixed(2)}`}</strong></div></div><p>Gruppo: {experience.journey.partyName}{appliedEurRate ? ` · Conversione: 1 € = ${localFormatter.format(appliedEurRate)} ${localCurrency}` : ""}</p></div><div className="financeActions"><button type="button" onClick={() => setExpenseDayId(null)}><ReceiptText/><span>Aggiungi spesa<small>Spesa del gruppo</small></span></button><button type="button" disabled={saving === "cash"} onClick={() => setCashDialogKind("withdrawal")}><Banknote/><span>Aggiungi prelievo<small>Giorno {day.number}</small></span></button><button type="button" disabled={saving === "cash"} onClick={() => setCashDialogKind("exchange")}><ArrowRightLeft/><span>Aggiungi cambio<small>Giorno {day.number}</small></span></button></div>{experience.expenses.length === 0 ? <div className="financeEmpty"><ReceiptText/><div><h3>Nessuna spesa registrata</h3><p>Aggiungi la prima spesa per iniziare il riepilogo del gruppo.</p></div><button type="button" onClick={() => setExpenseDayId(null)}>Aggiungi spesa</button></div> : <div className="expenseList">{experience.expenses.map((expense) => <div key={expense.id}><span className="receipt"><ReceiptText/></span><span><strong>{expense.label}</strong><small>Pagato da {expense.paidBy}{expense.dayNumber ? ` · Giorno ${expense.dayNumber}` : ""}</small></span><b>{expense.currency === "EUR" ? `€ ${expense.amount.toFixed(2)}` : `${som.format(expense.amount)} ${expense.currency}`}</b><button className="financeDelete" type="button" disabled={saving === `delete-expense-${expense.id}`} onClick={() => void deleteExpense(expense.id)} aria-label={`Elimina la spesa ${expense.label}`} title="Elimina spesa">{saving === `delete-expense-${expense.id}` ? <LoaderCircle className="spin"/> : <Trash2/>}</button></div>)}</div>}<div className="cashSection"><div className="sectionTitle"><div><span>GESTIONE CONTANTI</span><h2>Prelievi e cambi</h2></div></div>{experience.cashMovements.length === 0 ? <p className="cashEmpty">Nessun prelievo o cambio registrato.</p> : <div className="cashMovementList">{experience.cashMovements.map((movement) => <div key={movement.id}><span className={`cashIcon ${movement.kind}`}><Banknote/></span><span><strong>{movement.kind === "withdrawal" ? "Prelievo ATM" : "Cambio valuta"}</strong><small>Giorno {movement.dayNumber} · Inserito da {movement.addedBy}</small><em className="appliedExchangeRate">{exchangeRateLabel(movement.euroAmount, movement.localAmount, movement.localCurrency)}</em></span><b>{movement.euroAmount != null && <small>€ {movement.euroAmount.toFixed(2)}</small>}{som.format(movement.localAmount)} {movement.localCurrency}</b><button className="financeDelete" type="button" disabled={saving === `delete-cash-${movement.id}`} onClick={() => void deleteCashMovement(movement.id, movement.kind === "withdrawal" ? "withdrawal" : "exchange")} aria-label={`Elimina ${movement.kind === "withdrawal" ? "il prelievo" : "il cambio"}`} title={movement.kind === "withdrawal" ? "Elimina prelievo" : "Elimina cambio"}>{saving === `delete-cash-${movement.id}` ? <LoaderCircle className="spin"/> : <Trash2/>}</button></div>)}</div>}</div></section>}
 
-    {tab === "info" && <section className="usefulPage"><header className="usefulHero"><span>PRONTI A PARTIRE</span><h2>Informazioni utili</h2><p>Contatti e consigli pratici sempre a portata di mano.</p></header><section className="infoSection"><div className="infoSectionHead"><Info/><div><small>{experience.journey.destinationCountry}</small><h3>Tutto ciò che serve sapere</h3></div></div><div className="cultureGrid">{experience.usefulInfo.map((item, index) => <article key={`${item.title}-${index}`}><Info/><h4>{item.title}</h4><p>{item.body}</p>{item.phone && <a href={`tel:${item.phone}`}>{item.phone}</a>}{item.url && <a href={item.url} target="_blank" rel="noreferrer">Approfondisci <ExternalLink/></a>}</article>)}</div></section></section>}
+    {tab === "info" && <section className="usefulPage"><header className="usefulHero"><span>PRONTI A PARTIRE</span><h2>Informazioni utili</h2><p>Contatti e consigli pratici sempre a portata di mano.</p></header><div className="worldClockBar"><article><small>ITALIA</small><strong>{formatClock("Europe/Rome", now)}</strong><span>Ora italiana</span></article><div><ArrowRightLeft/><span>1 € = {appliedEurRate ? localFormatter.format(appliedEurRate) : "…"} {localCurrency}</span></div><article><small>{experience.journey.destinationCountry.toUpperCase()}</small><strong>{formatClock(localTimeZone, now)}</strong><span>Ora locale</span></article></div><section className="infoSection"><div className="infoSectionHead"><Info/><div><small>{experience.journey.destinationCountry}</small><h3>Tutto ciò che serve sapere</h3></div></div><div className="cultureGrid">{displayedUsefulInfo.map((item, index) => <article key={`${item.title}-${index}`}><Info/><h4>{item.title}</h4><p>{item.body}</p>{item.phone && <a href={`tel:${item.phone}`}>{item.phone}</a>}</article>)}</div></section></section>}
     {tab === "frasario" && <section className="phrasebookPage"><header className="phrasebookHero"><span><Languages/></span><div><small>PAROLE UTILI</small><h2>Frasario da viaggio</h2><p>Le parole giuste per salutare, ordinare, spostarsi e chiedere aiuto.</p></div></header><div className="languageNote">Pronuncia semplificata e traduzione italiana, preparate per <strong>{experience.journey.destinationCountry}</strong>.</div><div className="phraseList">{experience.phrases.map((phrase, index) => <article key={`${phrase.term}-${index}`}><span className="phraseCategory">{phrase.category}</span><h3>{phrase.translation}</h3><div className="phraseTranslations"><div><small>{phrase.language}</small><strong>{phrase.term}</strong><em>{phrase.pronunciation}</em></div></div></article>)}</div></section>}
     {tab === "sfide" && <PlatformTripChallenges experience={experience} userName={userName} isAdmin={isAgencyAdmin} onResultsChange={(challengeResults) => setExperience((current) => ({ ...current, challengeResults }))}/>}
     </div>
-    <ExpenseDialog open={expenseDayId !== undefined} dayLabel={expenseDayId ? currentDate.full : undefined} saving={saving === "expense"} onClose={() => setExpenseDayId(undefined)} onSave={saveExpense}/>
-    <CashMovementDialog kind={cashDialogKind} dayLabel={String(day.number)} localCurrency="UZS" saving={saving === "cash"} onClose={() => setCashDialogKind(null)} onSave={(input) => cashDialogKind ? addCash(cashDialogKind, input) : Promise.resolve(false)}/>
+    <ExpenseDialog open={expenseDayId !== undefined} dayLabel={expenseDayId ? currentDate.full : undefined} localCurrency={localCurrency} saving={saving === "expense"} onClose={() => setExpenseDayId(undefined)} onSave={saveExpense}/>
+    <CashMovementDialog kind={cashDialogKind} dayLabel={String(day.number)} localCurrency={localCurrency} saving={saving === "cash"} onClose={() => setCashDialogKind(null)} onSave={(input) => cashDialogKind ? addCash(cashDialogKind, input) : Promise.resolve(false)}/>
   </main>;
 }

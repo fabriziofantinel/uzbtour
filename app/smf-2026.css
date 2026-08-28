@@ -1363,6 +1363,19 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   color: var(--agency-on-primary, #111111);
   background: var(--trail-primary);
 }
+.travelerRedesign .quizDayList button {
+  width: 190px;
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 34px minmax(0,1fr) 16px;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  text-align: left;
+}
+.travelerRedesign .quizDayList button > span:nth-child(2) { min-width: 0; }
+.travelerRedesign .quizDayList button strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.travelerRedesign .quizDayList button.active .quizDayNumber { color: #111111; background: color-mix(in srgb,var(--trail-primary) 72%,white); }
 .travelerRedesign .missionBoard,
 .travelerRedesign .reviewPanel,
 .travelerRedesign .quizPlay,

@@ -50,7 +50,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ id: String(row.id), slot: Number(row.participant_slot), status: "submitted" });
       } catch (error) {
         if (error instanceof Error && /contest entry limit reached/i.test(error.message)) {
-          return NextResponse.json({ error: "Hai già caricato 3 foto per questo contest" }, { status: 409 });
+          return NextResponse.json({ error: "Hai già caricato 2 foto per questo contest" }, { status: 409 });
         }
         throw error;
       }

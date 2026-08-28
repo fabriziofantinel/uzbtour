@@ -34,15 +34,16 @@ export async function POST(request: Request) {
       const feeEuro = body?.feeEuro == null ? null : Number(body.feeEuro);
       const suppliedOperationId = cleanText(body?.clientOperationId, 64);
       const clientOperationId = suppliedOperationId || crypto.randomUUID();
+      const localCurrency = cleanText(body?.localCurrency, 3).toUpperCase();
       if (!kind || !Number.isFinite(localAmount) || localAmount <= 0 ||
-          !uuid.test(clientOperationId) ||
+          !uuid.test(clientOperationId) || !["EUR", "UZS", "VND"].includes(localCurrency) ||
           (euroAmount != null && (!Number.isFinite(euroAmount) || euroAmount <= 0)) ||
           (feeEuro != null && (!Number.isFinite(feeEuro) || feeEuro < 0))) {
         return NextResponse.json({ error: "Importi non validi" }, { status: 400 });
       }
       return NextResponse.json({ movement: await addTravelerCashMovement({
         userId: user.id, userName: user.name, departureId, partyId, dayId, kind,
-        euroAmount, localAmount, feeEuro, clientOperationId,
+        euroAmount, localAmount, localCurrency, feeEuro, clientOperationId,
       }) });
     }
     return NextResponse.json({ error: "Operazione non supportata" }, { status: 400 });

@@ -2,10 +2,12 @@
 
 import { ArrowLeft, LogIn, Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
+import type { CSSProperties } from "react";
+import { accessibleBrandColor, validBrandColor } from "@/lib/platform/branding-ui";
 
 type Traveler = { id:string; name:string; username:string; email:string; status:string; agencyName:string; departureTitles:string[] };
 
-export default function AgencyImpersonationClient({ users }: { users: Traveler[] }) {
+export default function AgencyImpersonationClient({ users, primaryColor }: { users: Traveler[]; primaryColor: string }) {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Traveler|null>(null);
   const [busy, setBusy] = useState(false);
@@ -23,7 +25,9 @@ export default function AgencyImpersonationClient({ users }: { users: Traveler[]
     if (!response.ok) { setError(result.error || "Accesso non riuscito"); setBusy(false); return; }
     window.location.href = result.redirectUrl;
   }
-  return <main className="agencyLoginAs">
+  const brand = validBrandColor(primaryColor);
+  const style = { "--agency-ui": brand, "--agency-on-ui": accessibleBrandColor(brand) } as CSSProperties;
+  return <main className="agencyLoginAs" style={style}>
     <header><a href="/agenzia"><ArrowLeft/> Pannello agenzia</a><div><small>SESSIONE DI ASSISTENZA</small><h1>Login come viaggiatore</h1><p>Puoi accedere solo come viaggiatore associato ai viaggi della tua agenzia.</p></div></header>
     <section>
       <label className="agencyLoginSearch"><Search/><input value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="Cerca viaggiatore o viaggio"/></label>
