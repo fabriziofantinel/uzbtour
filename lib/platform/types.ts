@@ -18,6 +18,8 @@ export type PlatformOverview = {
     name: string;
     status: string;
     role: AgencyRole;
+    primaryColor: string;
+    logoUrl: string;
     trips: Array<{
       id: string;
       title: string;

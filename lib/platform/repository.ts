@@ -52,6 +52,11 @@ type EnrichmentJobRow = {
   updated_at: string;
 };
 
+type AgencyBrandingRow = {
+  agency_id: string;
+  branding: unknown;
+};
+
 const expectedReferenceTypes = {
   country: new Set(["useful_info", "phrasebook", "bingo"]),
   city: new Set(["quiz", "mission", "game", "photo_contest"]),
@@ -62,24 +67,35 @@ export async function getPlatformOverview(
   actor: { id: string; name: string }
 ): Promise<PlatformOverview> {
   const sql = getSql();
-  const [overviewRows, importRows, referenceRows, enrichmentRows] = await Promise.all([
+  const [overviewRows, importRows, referenceRows, enrichmentRows, brandingRows] = await Promise.all([
     sql`SELECT * FROM app.read_agency_overview_v3(${actor.id})`,
     sql`SELECT * FROM app.read_agency_recent_imports_v3(${actor.id})`,
     sql`SELECT * FROM app.read_agency_reference_contents_v3(${actor.id})`,
     sql`SELECT * FROM app.read_agency_enrichment_jobs_v3(${actor.id})`,
+    sql`SELECT * FROM app.read_agency_branding_v3(${actor.id})`,
   ]);
   const rows = overviewRows as OverviewRow[];
+  const brandingByAgency = new Map((brandingRows as AgencyBrandingRow[]).map((row) => {
+    const branding = row.branding && typeof row.branding === "object" && !Array.isArray(row.branding)
+      ? row.branding as Record<string, unknown> : {};
+    return [row.agency_id, {
+      primaryColor: typeof branding.primaryColor === "string" ? branding.primaryColor : "#247A6B",
+      logoUrl: typeof branding.logoUrl === "string" ? branding.logoUrl : "",
+    }];
+  }));
 
   const agencies = new Map<string, PlatformOverview["agencies"][number]>();
   for (const row of rows) {
     let agency = agencies.get(row.agency_id);
     if (!agency) {
+      const branding = brandingByAgency.get(row.agency_id) ?? { primaryColor: "#247A6B", logoUrl: "" };
       agency = {
         id: row.agency_id,
         slug: row.agency_slug,
         name: row.agency_name,
         status: row.agency_status,
         role: row.agency_role,
+        ...branding,
         trips: [],
       };
       agencies.set(row.agency_id, agency);

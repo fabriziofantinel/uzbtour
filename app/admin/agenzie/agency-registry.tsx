@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   Building2, CheckCircle2, ChevronDown, CircleAlert, LoaderCircle, Mail, MapPinned,
-  Pencil, Phone, Plus, Power, PowerOff, Save, Search, Trash2, UserPlus, UsersRound, X,
+  Palette, Pencil, Phone, Plus, Power, PowerOff, Save, Search, Trash2, UserPlus, UsersRound, X,
 } from "lucide-react";
 import type { AgencyRegistryItem } from "@/lib/platform/superadmin-repository";
 
@@ -141,7 +141,7 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
     try{
       const result=await readJson<{agencies:AgencyRegistryItem[]}>(await fetch(`/api/admin/platform/agencies/${agencyId}`,{
         method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"update-details",
-          ...Object.fromEntries(["name","legalName","vatNumber","taxCode","registeredAddress","registeredCity","registeredPostalCode","registeredProvince","registeredCountry","pec","sdiCode","phone","email","website","referenceEmail","referencePhone"].map((field)=>[field,stringField(form,field)]))})
+          ...Object.fromEntries(["name","legalName","vatNumber","taxCode","registeredAddress","registeredCity","registeredPostalCode","registeredProvince","registeredCountry","pec","sdiCode","phone","email","website","referenceEmail","referencePhone","primaryColor","logoUrl"].map((field)=>[field,stringField(form,field)]))})
       }));
       setAgencies(result.agencies);setEditAgencyId("");setNotice("Dati dell’agenzia aggiornati.");
     }catch(caught){setError(caught instanceof Error?caught.message:"Dati dell’agenzia non aggiornati");}
@@ -263,6 +263,12 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
                     <label className="wide">Sito web<input name="website" type="url" maxLength={500} defaultValue={agency.website}/></label>
                     <label>Email responsabile<input name="referenceEmail" type="email" required maxLength={320} defaultValue={agency.referenceEmail}/></label>
                     <label>Telefono responsabile<input name="referencePhone" type="tel" required minLength={5} maxLength={40} defaultValue={agency.referencePhone}/></label>
+                    <div className="agencyEditBranding wide">
+                      <div className="agencyBrandPreview" style={{background:agency.primaryColor}}>{agency.logoUrl?<img src={agency.logoUrl} alt={`Logo attuale ${agency.name}`}/>:<Palette/>}</div>
+                      <span><b>Identità visiva</b><small>Applicata al pannello agenzia e all’esperienza dei viaggiatori.</small></span>
+                      <label>Colore agenzia<input name="primaryColor" type="color" defaultValue={agency.primaryColor||"#247A6B"}/></label>
+                      <label className="logoUrlField">Logo agenzia (URL HTTPS)<input name="logoUrl" type="url" defaultValue={agency.logoUrl} placeholder="https://…" maxLength={1000}/></label>
+                    </div>
                     <footer><button type="button" className="secondary" onClick={()=>setEditAgencyId("")}>Annulla</button><button type="submit" disabled={busy===`agency-details-${agency.id}`}>{busy===`agency-details-${agency.id}`?<><LoaderCircle className="spin"/> Salvataggio…</>:<><Save/> Salva modifiche</>}</button></footer>
                   </form>}
                   <div className="agentsHeader"><div><small>UTENTI AGENZIA</small><h3>Responsabile e agenti</h3></div><span><button type="button" aria-expanded={ownerAgencyId===agency.id} aria-controls={`owner-form-${agency.id}`} onClick={()=>setOwnerAgencyId(ownerAgencyId===agency.id?"":agency.id)}><UsersRound/> Sostituisci responsabile</button></span></div>

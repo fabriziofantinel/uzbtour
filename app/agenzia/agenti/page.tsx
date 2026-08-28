@@ -15,6 +15,6 @@ export default async function AgencyAgentsPage(){
     const agentsByAgency=Object.fromEntries(await Promise.all(agencies.map(async(agency)=>[
       agency.id,await readAgencyAgents(actor.id,agency.id),
     ])));
-    return <AgencyAgentsClient actor={overview.actor} agencies={agencies.map(({id,name})=>({id,name}))} initialAgents={agentsByAgency}/>;
+    return <AgencyAgentsClient actor={overview.actor} agencies={agencies.map(({id,name,primaryColor,logoUrl})=>({id,name,primaryColor,logoUrl}))} initialAgents={agentsByAgency}/>;
   }catch(error){if(error instanceof PlatformAuthorizationError)redirect("/");throw error;}
 }

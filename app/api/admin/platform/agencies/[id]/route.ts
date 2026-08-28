@@ -32,7 +32,8 @@ const agencyDetailsSchema=z.object({action:z.literal("update-details"),name:z.st
   registeredAddress:z.string().trim().max(240),registeredCity:z.string().trim().max(120),registeredPostalCode:z.string().trim().max(16),
   registeredProvince:z.string().trim().max(80),registeredCountry:z.string().trim().max(100),pec:z.union([z.literal(""),z.email()]),
   sdiCode:z.string().trim().max(16),phone:z.string().trim().max(40),email:z.union([z.literal(""),z.email()]),
-  website:z.union([z.literal(""),z.url()]),referenceEmail:z.email(),referencePhone:z.string().trim().min(5).max(40)});
+  website:z.union([z.literal(""),z.url()]),referenceEmail:z.email(),referencePhone:z.string().trim().min(5).max(40),
+  primaryColor:z.string().regex(/^#[0-9a-f]{6}$/i),logoUrl:z.union([z.literal(""),z.url()])});
 
 export async function PATCH(
   request: Request,
@@ -51,7 +52,9 @@ export async function PATCH(
       return NextResponse.json({agencies:await getAgencyRegistry(actor.id)});
     }
     const details=agencyDetailsSchema.safeParse(payload);
-    if(details.success){const {action:_,...data}=details.data;await updateAgencyDetails({actorId:actor.id,agencyId:id,data});
+    if(details.success){const {action:_,primaryColor,logoUrl,...data}=details.data;
+      await updateAgencyDetails({actorId:actor.id,agencyId:id,data});
+      await updateAgencyBranding({actorId:actor.id,agencyId:id,primaryColor,logoUrl});
       return NextResponse.json({agencies:await getAgencyRegistry(actor.id)});}
     const ownerContact=ownerContactSchema.safeParse(payload);
     if(ownerContact.success){

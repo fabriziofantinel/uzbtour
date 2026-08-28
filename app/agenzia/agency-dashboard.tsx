@@ -6,8 +6,9 @@ import {
   BookOpen, Download, Eye, FileCheck2, LayoutGrid, List, LoaderCircle, LogOut, MapPinned, Play, Plus, Sparkles,
   Search, SlidersHorizontal, Trash2, UserPlus, UsersRound, X,
 } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { CSSProperties, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { PlatformOverview } from "@/lib/platform/types";
+import { accessibleBrandColor, validBrandColor } from "@/lib/platform/branding-ui";
 import {
   TRAVEL_DOCUMENT_MAX_BYTES,
   travelDocumentType,
@@ -388,12 +389,19 @@ export default function AgencyDashboard({ initialOverview }: Props) {
     setTravelerFilter("");
   }
 
+  const agencyColor=validBrandColor(agency?.primaryColor);
+  const agencyStyle={
+    "--agency-ui":agencyColor,
+    "--smf-brand":agencyColor,
+    "--smf-brand-deep":accessibleBrandColor(agencyColor),
+  } as CSSProperties;
+
   return (
-    <main className="agencyPage">
+    <main className="agencyPage" style={agencyStyle}>
       <a className="agidSkipLink" href="#main-content">Salta all’elenco dei viaggi</a>
       <header className="agencyTopbar">
         <Link className="agencyBrand" href="/">
-          <span>SMF</span><div><strong>SMF Travel</strong><small>PANNELLO AGENZIA</small></div>
+          {agency?.logoUrl?<img src={agency.logoUrl} alt={`Logo ${agency.name}`}/>:<span>{agency?.name.split(/\s+/).slice(0,2).map((part)=>part[0]).join("").toUpperCase()||"AG"}</span>}<div><strong>{agency?.name||"Agenzia"}</strong><small>PANNELLO AGENZIA</small></div>
         </Link>
         <div className="agencyUser">
           <i>{overview.actor.name.slice(0, 2).toUpperCase()}</i>

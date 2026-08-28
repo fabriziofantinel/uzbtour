@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { Accessibility, Building2, CheckCircle2, CircleAlert, LoaderCircle, LogOut, Mail, MapPinned, Phone, Plus, Trash2, UserPlus, UsersRound, X } from "lucide-react";
-import { FormEvent, useMemo, useState } from "react";
+import { CSSProperties, FormEvent, useMemo, useState } from "react";
 import type { AgencyAgent } from "@/lib/platform/agency-agent-repository";
+import { accessibleBrandColor, validBrandColor } from "@/lib/platform/branding-ui";
 
-type Agency={id:string;name:string};
+type Agency={id:string;name:string;primaryColor:string;logoUrl:string};
 type Props={actor:{id:string;name:string};agencies:Agency[];initialAgents:Record<string,AgencyAgent[]>};
 
 async function readJson<T>(response:Response):Promise<T>{const payload=await response.json().catch(()=>({})) as T&{error?:string};if(!response.ok)throw new Error(payload.error||"Operazione non riuscita");return payload;}
@@ -22,6 +23,8 @@ export default function AgencyAgentsClient({actor,agencies,initialAgents}:Props)
   const [agentToDelete,setAgentToDelete]=useState<AgencyAgent|null>(null);
   const agency=agencies.find((item)=>item.id===agencyId)??agencies[0];
   const agents=useMemo(()=>agentsByAgency[agency?.id]??[],[agentsByAgency,agency?.id]);
+  const agencyColor=validBrandColor(agency?.primaryColor);
+  const agencyStyle={"--agency-ui":agencyColor,"--smf-brand":agencyColor,"--smf-brand-deep":accessibleBrandColor(agencyColor)} as CSSProperties;
 
   async function checkUsername(username:string){
     const normalized=username.trim();
@@ -48,9 +51,9 @@ export default function AgencyAgentsClient({actor,agencies,initialAgents}:Props)
     }catch(caught){setError(caught instanceof Error?caught.message:"Eliminazione agente non riuscita");}finally{setBusy(false);}
   }
 
-  return <main className="agencyPage agencyAgentsPage">
+  return <main className="agencyPage agencyAgentsPage" style={agencyStyle}>
     <a className="agidSkipLink" href="#main-content">Salta all’elenco degli agenti</a>
-    <header className="agencyTopbar"><Link className="agencyBrand" href="/"><span>SMF</span><div><strong>SMF Travel</strong><small>PANNELLO AGENZIA</small></div></Link><div className="agencyUser"><i>{actor.name.slice(0,2).toUpperCase()}</i><span><small>Responsabile</small><b>{actor.name}</b></span><form action="/api/auth/logout" method="post"><button type="submit" aria-label="Esci"><LogOut size={17}/></button></form></div></header>
+    <header className="agencyTopbar"><Link className="agencyBrand" href="/">{agency?.logoUrl?<img src={agency.logoUrl} alt={`Logo ${agency.name}`}/>:<span>{agency?.name.split(/\s+/).slice(0,2).map((part)=>part[0]).join("").toUpperCase()||"AG"}</span>}<div><strong>{agency?.name||"Agenzia"}</strong><small>PANNELLO AGENZIA</small></div></Link><div className="agencyUser"><i>{actor.name.slice(0,2).toUpperCase()}</i><span><small>Responsabile</small><b>{actor.name}</b></span><form action="/api/auth/logout" method="post"><button type="submit" aria-label="Esci"><LogOut size={17}/></button></form></div></header>
     <section className="agencyHero"><div><h1>Agenti dell’agenzia</h1><span>Invita le persone che preparano e gestiscono i viaggi.</span></div></section>
     <div className="agencyShell"><aside className="agencySidebar"><label htmlFor="active-agency">Agenzia attiva</label><div className="agencySelect agencySelectWithoutArrow"><Building2 size={18}/><select id="active-agency" value={agency?.id??""} onChange={(event)=>{setAgencyId(event.target.value);setError("");setNotice("");setShowForm(false);}}>{agencies.map((item)=><option key={item.id} value={item.id}>{item.name}</option>)}</select></div><nav><Link href="/agenzia"><MapPinned size={18}/> Viaggi</Link><Link className="active" href="/agenzia/agenti" aria-current="page"><UsersRound size={18}/> Agenti</Link><Link href="/accessibilita"><Accessibility size={18}/> Accessibilità</Link></nav></aside>
       <section id="main-content" className="agencyContent" tabIndex={-1}>{error&&<div className="agencyMessage error" role="alert"><CircleAlert size={18}/><span>{error}</span></div>}{notice&&<div className="agencyMessage success" role="status"><CheckCircle2 size={18}/><span>{notice}</span></div>}
