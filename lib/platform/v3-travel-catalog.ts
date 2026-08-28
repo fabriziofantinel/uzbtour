@@ -11,6 +11,7 @@ export async function readV3TravelCatalog(input: {
   departureId: string;
   templateVersionId: string;
   partyId: string;
+  userId: string;
 }) {
   const sql = getSql();
   const [, days, items, cities, sites, hotels, travelers, usefulInfo, phrases, tickets, dayDocuments] =
@@ -104,7 +105,9 @@ export async function readV3TravelCatalog(input: {
         ORDER BY link.template_day_id, link.sort_order
       `,
       txn`
-        SELECT profile.display_name, membership.role
+        SELECT profile.id::text,profile.display_name,membership.role,membership.member_type,
+          membership.participates_in_trip_games,
+          profile.user_id=app.resolve_legacy_user_id(${input.userId},${input.agencyId}::uuid) AS is_current
         FROM travel.party_memberships membership
         JOIN travel.traveler_profiles profile
           ON profile.id = membership.traveler_id AND profile.agency_id = membership.agency_id

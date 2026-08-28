@@ -125,6 +125,12 @@ export default function PlatformTripChallenges({ experience, userName, isAdmin, 
   const [challengeResults, setChallengeResults] = useState(experience.challengeResults);
   const [submitted, setSubmitted] = useState(() => new Set(experience.challengeResults.filter((item) => item.travelerName === userName && item.status !== "rejected").map((item) => item.contentId)));
   const [contestEntries, setContestEntries] = useState(experience.contestEntries);
+  const currentTraveler = experience.journey.travelers.find((traveler) => traveler.isCurrent)
+    ?? experience.journey.travelers.find((traveler) => traveler.name === userName);
+  const [tripCompetitionEnabled, setTripCompetitionEnabled] = useState(Boolean(currentTraveler?.participatesInTripGames));
+  const [profileRole, setProfileRole] = useState(currentTraveler?.role ?? "member");
+  const [newLeaderId, setNewLeaderId] = useState("");
+  const [profileNotice, setProfileNotice] = useState("");
   const challengeTabsRef = useRef<HTMLElement>(null);
   const day = experience.days.find((entry) => entry.id === activeDayId) ?? experience.days[0];
   const missions = experience.challenges.filter((entry) => entry.type === "mission" && entry.dayId === day?.id).slice(0, 5);
@@ -258,6 +264,25 @@ export default function PlatformTripChallenges({ experience, userName, isAdmin, 
     finally { setBusy(""); }
   }
 
+  async function updateProfileCompetition(enabled:boolean){
+    setBusy("profile-competition");setError("");setProfileNotice("");
+    try{const response=await fetch("/api/traveler/profile",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"competition",departureId:experience.journey.departureId,partyId:experience.journey.partyId,enabled})});
+      const result=await response.json() as {error?:string};if(!response.ok)throw new Error(result.error||"Scelta non salvata");
+      setTripCompetitionEnabled(enabled);setProfileNotice("Preferenza giochi aggiornata.");
+    }catch(caught){setError(caught instanceof Error?caught.message:"Scelta non salvata");}finally{setBusy("");}
+  }
+
+  async function transferLeadership(){
+    if(!newLeaderId){setError("Seleziona il nuovo capogruppo.");return;}
+    const selected=experience.journey.travelers.find((traveler)=>traveler.id===newLeaderId);
+    if(!selected||!confirm(`Cedere il ruolo di capogruppo a ${selected.name}?`))return;
+    setBusy("profile-leader");setError("");setProfileNotice("");
+    try{const response=await fetch("/api/traveler/profile",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"leader",departureId:experience.journey.departureId,partyId:experience.journey.partyId,travelerId:newLeaderId})});
+      const result=await response.json() as {error?:string};if(!response.ok)throw new Error(result.error||"Passaggio del ruolo non riuscito");
+      setProfileRole("member");setNewLeaderId("");setProfileNotice(`Ora ${selected.name} è il capogruppo.`);
+    }catch(caught){setError(caught instanceof Error?caught.message:"Passaggio del ruolo non riuscito");}finally{setBusy("");}
+  }
+
   if (!day) return null;
   const pendingReviews = challengeResults.filter((result) => result.status === "submitted" && ["mission", "bingo"].includes(result.type)).length;
   const tabs: Array<{ id: ChallengeTab; label: string; icon: React.ReactNode; badge?: number }> = [
@@ -327,7 +352,7 @@ export default function PlatformTripChallenges({ experience, userName, isAdmin, 
 
     {tab === "valida" && isAdmin && <section className="reviewPanel"><div className="reviewHeading"><span><CheckCircle2/></span><div><small>AREA AMMINISTRATORE</small><h3>Valida le foto-prova</h3><p>Controlla le missioni e le caselle della tombola prima di assegnare i punti.</p></div></div>{challengeResults.filter((result) => result.status === "submitted" && ["mission", "bingo"].includes(result.type)).length === 0 ? <div className="reviewEmpty"><CheckCircle2/><h3>Nessuna foto da validare</h3><p>Tutte le prove ricevute sono state esaminate.</p></div> : <div className="reviewList">{challengeResults.filter((result) => result.status === "submitted" && ["mission", "bingo"].includes(result.type)).map((result) => { const challenge = experience.challenges.find((item) => item.id === result.contentId); const challengeDay = experience.days.find((entry) => entry.id === result.dayId); return <article key={result.id}><div className="reviewImage">{result.evidenceUrl ? <Image src={result.evidenceUrl} alt={`Foto-prova di ${result.travelerName}`} fill sizes="(max-width: 800px) 100vw, 380px" unoptimized/> : <Camera/>}</div><div className="reviewCopy"><small>{result.type === "mission" ? "MISSIONE" : "TOMBOLA"} · {challengeDay ? `GIORNO ${challengeDay.number}` : "VIAGGIO"}</small><h4>{challenge?.title || "Foto-prova"}</h4><p>{result.travelerName}</p><blockquote>{challenge ? text(challenge.content, "description", "instructions") : "Verifica che la foto rispetti la richiesta."}</blockquote><div><button className="reject" disabled={busy === `review-${result.id}`} onClick={() => void reviewEvidence(result.id, false)}><XCircle/> Rifiuta</button><button className="approve" disabled={busy === `review-${result.id}`} onClick={() => void reviewEvidence(result.id, true)}>{busy === `review-${result.id}` ? <LoaderCircle className="spin"/> : <Check/>} Valida</button></div></div></article>; })}</div>}</section>}
 
-    {tab === "profilo" && <section className="travellerProfile"><div className="profileScore"><span>{userName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase()}</span><div><small>PROFILO DI VIAGGIO</small><h3>{userName}</h3><p>{submitted.size} sfide inviate</p></div><strong>{challengeResults.filter((item) => item.travelerName === userName && item.status === "approved").reduce((sum, item) => sum + item.score, 0)}<small>punti validati</small></strong></div><section className="overallRanking"><div><Medal/><span><small>CLASSIFICA COMPLESSIVA</small><h3>{experience.journey.partyName}</h3></span></div>{scores.length === 0 ? <p>Il podio aspetta il primo punteggio.</p> : scores.map(([name, score], index) => <article className={name === userName ? "current" : ""} key={name}><span>{index === 0 ? <Crown/> : index + 1}</span><i>{name.slice(0, 2).toUpperCase()}</i><strong>{name}</strong><b>{score} pt</b></article>)}</section></section>}
+    {tab === "profilo" && <section className="travellerProfile"><div className="profileScore"><span>{userName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase()}</span><div><small>PROFILO DI VIAGGIO</small><h3>{userName}</h3><p>{submitted.size} sfide inviate · {profileRole === "organizer" ? "Capogruppo" : "Membro del gruppo"}</p></div><strong>{challengeResults.filter((item) => item.travelerName === userName && item.status === "approved").reduce((sum, item) => sum + item.score, 0)}<small>punti validati</small></strong></div><section className="profileSettings" aria-label="Impostazioni di gioco"><div><Trophy/><span><h3>Classifiche del viaggio</h3><p>Scegli se confrontare i tuoi risultati anche con gli altri gruppi.</p></span><label className="profileCompetitionSwitch"><input type="checkbox" checked={tripCompetitionEnabled} disabled={busy==="profile-competition"} onChange={(event)=>void updateProfileCompetition(event.currentTarget.checked)}/><span>{tripCompetitionEnabled?"Partecipo":"Solo il mio gruppo"}</span></label></div>{profileRole==="organizer"&&<div className="leaderTransfer"><Crown/><span><h3>Cedi il ruolo di capogruppo</h3><p>Seleziona un adulto del tuo gruppo. Il passaggio è immediato.</p></span><select value={newLeaderId} disabled={busy==="profile-leader"} onChange={(event)=>setNewLeaderId(event.currentTarget.value)} aria-label="Nuovo capogruppo"><option value="">Seleziona una persona</option>{experience.journey.travelers.filter((traveler)=>!traveler.isCurrent&&traveler.memberType==="adult").map((traveler)=><option key={traveler.id} value={traveler.id}>{traveler.name}</option>)}</select><button type="button" disabled={!newLeaderId||busy==="profile-leader"} onClick={()=>void transferLeadership()}>{busy==="profile-leader"?<LoaderCircle className="spin"/>:<Crown/>} Cedi ruolo</button></div>}{profileNotice&&<p className="profileNotice" role="status"><CheckCircle2/>{profileNotice}</p>}</section><section className="overallRanking"><div><Medal/><span><small>CLASSIFICA COMPLESSIVA</small><h3>{experience.journey.partyName}</h3></span></div>{scores.length === 0 ? <p>Il podio aspetta il primo punteggio.</p> : scores.map(([name, score], index) => <article className={name === userName ? "current" : ""} key={name}><span>{index === 0 ? <Crown/> : index + 1}</span><i>{name.slice(0, 2).toUpperCase()}</i><strong>{name}</strong><b>{score} pt</b></article>)}</section></section>}
     {tab === "classifica" && <PlatformTripRankings experience={{ ...experience, challengeResults }} userName={userName}/>}
     </div>
   </section>;

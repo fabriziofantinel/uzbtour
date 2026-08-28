@@ -53,7 +53,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
     readV3ExpenseRows({ agencyId, departureId, partyId }),
     readV3JourneyJournalRows({ agencyId, departureId, partyId }),
     readV3ProgrammeFeedbackRows({ agencyId, departureId, partyId, userId }),
-    readV3TravelCatalog({ agencyId, departureId, templateVersionId: versionId, partyId }),
+    readV3TravelCatalog({ agencyId, departureId, templateVersionId: versionId, partyId, userId }),
     readV3Gamification({ agencyId, departureId, templateVersionId: versionId, partyId, userId }),
   ]);
   const activeNoteRows = v3Journal.notes;
@@ -131,7 +131,11 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       })(),
       partyName: String(selected.party_name),
       catalogReady: activeCityRows.length > 0 || activeSiteRows.length > 0,
-      travelers: activeTravelerRows.map((row) => ({ name: String(row.display_name), role: String(row.role) })),
+      travelers: activeTravelerRows.map((row) => ({
+        id: String(row.id), name: String(row.display_name), role: String(row.role),
+        memberType: String(row.member_type), participatesInTripGames: Boolean(row.participates_in_trip_games),
+        isCurrent: Boolean(row.is_current),
+      })),
     },
     availableJourneys: (journeys as Row[]).map((row) => ({
       departureId: String(row.departure_id),
