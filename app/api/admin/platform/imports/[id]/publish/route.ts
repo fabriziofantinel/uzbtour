@@ -69,7 +69,9 @@ export async function POST(
         templateId: published.templateId,
         targets: published.referenceTargets,
       },
-      idempotencyKey: `travel-reference.enrich:${id}`,
+      // Ogni pubblicazione deve avviare la verifica dei contenuti. La chiave
+      // include l'oggetto normalizzato, univoco per questo tentativo.
+      idempotencyKey: `travel-reference.enrich:${id}:${createHash("sha256").update(normalizedObject.key).digest("hex").slice(0, 20)}`,
     });
     return NextResponse.json({ ok: true, ...published, enrichmentJob });
   } catch (error) {
