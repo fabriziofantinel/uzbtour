@@ -130,7 +130,7 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
     try {
       await responseJson(await fetch(`/api/admin/platform/departures/${departure.id}/programme`, {
         method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(day),
+        body: JSON.stringify({ ...day, dayId: day.id }),
       }));
       savedDaysRef.current.set(day.id, JSON.stringify(day));
       setMessage({ kind: "success", text: `Giorno ${day.number} salvato. La modifica è condivisa da tutte le partenze del programma.` });

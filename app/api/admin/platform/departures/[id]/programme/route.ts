@@ -13,7 +13,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const actor = await requirePlatformAdmin();
     const { id } = await context.params;
     const body = await request.json().catch(() => null) as Record<string, unknown> | null;
-    const dayId = cleanText(body?.dayId, 64);
+    const dayId = cleanText(body?.dayId ?? body?.id, 64);
     if (!uuid.test(id) || !uuid.test(dayId)) {
       return NextResponse.json({ error: "Partenza o giornata non valida" }, { status: 400 });
     }
