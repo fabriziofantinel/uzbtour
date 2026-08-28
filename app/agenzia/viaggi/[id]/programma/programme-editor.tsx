@@ -178,10 +178,11 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
 
   return <main className="programmePage" style={agencyStyle}>
     <header className="programmeTopbar">
-      <Link href="/agenzia"><ArrowLeft/> Viaggi</Link>
+      <Link href="/agenzia"><ArrowLeft/> Tutti i viaggi</Link>
       <nav aria-label="Gestione del viaggio"><span aria-current="page"><BookOpen/> Programma</span><Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Gruppi</Link><Link href={`/agenzia/viaggi/${departure.id}/documenti`}><FileText/> Documenti</Link>{departure.quoteImportId && <details className="programmeQuotes"><summary><Download/> Preventivi</summary><div><a href={`/api/admin/platform/imports/${departure.quoteImportId}/original`}><FileText/> Originale</a><a href={`/api/admin/platform/imports/${departure.quoteImportId}/normalized`}><Download/> Revisionato DOCX</a></div></details>}</nav>
-      <div className="programmeContext"><small>VERSIONE {departure.versionNumber}</small><h1>{departure.programmeTitle}</h1></div>
+      <span className="programmeHeaderBalance" aria-hidden="true"/>
     </header>
+    <section className="journeyManageHero programmeHero"><small>{departure.destinationCountry}</small><h1>{departure.programmeTitle}</h1><p><CalendarDays/> {dateFor(departure.startsOn, 0)} – {dateFor(departure.startsOn, Math.max(0, days.length - 1))}</p></section>
     <section className="programmeNotice">
       <CalendarDays/><div><b>Partenza visualizzata: {departure.title}</b><span>{dateFor(departure.startsOn, 0)} – {dateFor(departure.startsOn, Math.max(0, days.length - 1))}</span></div>
       {dirtyDayIds.size > 0 && <strong className="programmeUnsaved" role="status">{dirtyDayIds.size} {dirtyDayIds.size === 1 ? "giornata da salvare" : "giornate da salvare"}</strong>}
