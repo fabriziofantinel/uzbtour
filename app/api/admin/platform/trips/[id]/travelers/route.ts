@@ -44,6 +44,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         return false;
       });
     }
-    return NextResponse.json({ data: await getJourneyManagement(id, actor.id), activationToken: invitation.activationToken, invitationEmailSent }, { status: 201 });
+    return NextResponse.json({ data: await getJourneyManagement(id, actor.id), travelerId: invitation.travelerId, activationToken: invitation.activationToken, invitationEmailSent }, { status: 201 });
   } catch (error) { return platformApiError(error, "Inserimento del viaggiatore non riuscito"); }
 }

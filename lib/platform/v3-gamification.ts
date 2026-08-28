@@ -173,10 +173,19 @@ export async function readV3Gamification(input: {
         party.id=${input.partyId}::uuid AS is_current
       FROM travel.travel_parties party
       WHERE party.agency_id=${input.agencyId} AND party.departure_id=${input.departureId}
-        AND party.participates_in_trip_games
-        AND EXISTS(SELECT 1 FROM travel.travel_parties current_party
-          WHERE current_party.id=${input.partyId}::uuid AND current_party.agency_id=party.agency_id
-            AND current_party.departure_id=party.departure_id AND current_party.participates_in_trip_games)
+        AND EXISTS(SELECT 1 FROM travel.party_memberships participant
+          WHERE participant.agency_id=party.agency_id AND participant.departure_id=party.departure_id
+            AND participant.party_id=party.id AND participant.status<>'removed'
+            AND participant.participates_in_trip_games)
+        AND EXISTS(SELECT 1 FROM travel.party_memberships current_participant
+          JOIN travel.traveler_profiles current_profile
+            ON current_profile.id=current_participant.traveler_id
+           AND current_profile.agency_id=current_participant.agency_id
+          WHERE current_participant.agency_id=party.agency_id
+            AND current_participant.departure_id=party.departure_id
+            AND current_participant.party_id=${input.partyId}::uuid
+            AND current_profile.user_id=${input.userId}::uuid
+            AND current_participant.status<>'removed' AND current_participant.participates_in_trip_games)
       ORDER BY party.name
     `,
     txn`
@@ -192,14 +201,23 @@ export async function readV3Gamification(input: {
       FROM journey.activity_attempts attempt
       JOIN travel.travel_parties party ON party.id=attempt.party_id
         AND party.agency_id=attempt.agency_id AND party.departure_id=attempt.departure_id
-        AND party.participates_in_trip_games
+      JOIN travel.party_memberships participant ON participant.agency_id=attempt.agency_id
+        AND participant.departure_id=attempt.departure_id AND participant.party_id=attempt.party_id
+        AND participant.traveler_id=attempt.traveler_id AND participant.status<>'removed'
+        AND participant.participates_in_trip_games
       JOIN content.activities activity ON activity.id=attempt.activity_id AND activity.agency_id=attempt.agency_id
       JOIN travel.traveler_profiles profile ON profile.id=attempt.traveler_id AND profile.agency_id=attempt.agency_id
       CROSS JOIN LATERAL jsonb_each(attempt.answers) answer
       WHERE attempt.agency_id=${input.agencyId} AND attempt.departure_id=${input.departureId}
-        AND EXISTS(SELECT 1 FROM travel.travel_parties current_party
-          WHERE current_party.id=${input.partyId}::uuid AND current_party.agency_id=attempt.agency_id
-            AND current_party.departure_id=attempt.departure_id AND current_party.participates_in_trip_games)
+        AND EXISTS(SELECT 1 FROM travel.party_memberships current_participant
+          JOIN travel.traveler_profiles current_profile
+            ON current_profile.id=current_participant.traveler_id
+           AND current_profile.agency_id=current_participant.agency_id
+          WHERE current_participant.agency_id=attempt.agency_id
+            AND current_participant.departure_id=attempt.departure_id
+            AND current_participant.party_id=${input.partyId}::uuid
+            AND current_profile.user_id=${input.userId}::uuid
+            AND current_participant.status<>'removed' AND current_participant.participates_in_trip_games)
     `,
     txn`
       SELECT entry.id::text,entry.party_id::text,party.name AS party_name,
@@ -208,7 +226,10 @@ export async function readV3Gamification(input: {
       FROM journey.photo_contest_entries entry
       JOIN travel.travel_parties party ON party.id=entry.party_id
         AND party.agency_id=entry.agency_id AND party.departure_id=entry.departure_id
-        AND party.participates_in_trip_games
+      JOIN travel.party_memberships participant ON participant.agency_id=entry.agency_id
+        AND participant.departure_id=entry.departure_id AND participant.party_id=entry.party_id
+        AND participant.traveler_id=entry.traveler_id AND participant.status<>'removed'
+        AND participant.participates_in_trip_games
       JOIN content.activity_items item ON item.activity_id=entry.activity_id
         AND item.agency_id=entry.agency_id AND item.item_kind='contest_rule'
       JOIN travel.traveler_profiles profile ON profile.id=entry.traveler_id AND profile.agency_id=entry.agency_id
@@ -219,9 +240,15 @@ export async function readV3Gamification(input: {
         ORDER BY judged.judged_at DESC,judged.id DESC LIMIT 1
       ) judgement ON true
       WHERE entry.agency_id=${input.agencyId} AND entry.departure_id=${input.departureId}
-        AND EXISTS(SELECT 1 FROM travel.travel_parties current_party
-          WHERE current_party.id=${input.partyId}::uuid AND current_party.agency_id=entry.agency_id
-            AND current_party.departure_id=entry.departure_id AND current_party.participates_in_trip_games)
+        AND EXISTS(SELECT 1 FROM travel.party_memberships current_participant
+          JOIN travel.traveler_profiles current_profile
+            ON current_profile.id=current_participant.traveler_id
+           AND current_profile.agency_id=current_participant.agency_id
+          WHERE current_participant.agency_id=entry.agency_id
+            AND current_participant.departure_id=entry.departure_id
+            AND current_participant.party_id=${input.partyId}::uuid
+            AND current_profile.user_id=${input.userId}::uuid
+            AND current_participant.status<>'removed' AND current_participant.participates_in_trip_games)
     `,
   ], { readOnly: true });
 

@@ -45,7 +45,6 @@ export async function readV3JourneyManagement(departureId: string, actorId: stri
         name: String(family.party_name),
         code: String(family.party_code),
         status: String(family.party_status),
-        participatesInTripGames: Boolean(family.party_participates_in_trip_games),
         travelers: familyRows.filter((row) => row.traveler_id).map((row) => ({
           id: String(row.traveler_id),
           name: String(row.traveler_name),
@@ -54,6 +53,7 @@ export async function readV3JourneyManagement(departureId: string, actorId: stri
           phone: String(row.traveler_phone || ""),
           role: String(row.membership_role),
           status: String(row.user_status || row.membership_status),
+          participatesInTripGames: Boolean(row.traveler_participates_in_trip_games),
         })),
       };
     }),

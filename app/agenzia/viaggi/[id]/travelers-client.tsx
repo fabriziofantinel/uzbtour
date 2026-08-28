@@ -21,7 +21,7 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [activationUrl, setActivationUrl] = useState("");
+  const [activation, setActivation] = useState<{ travelerId: string; url: string } | null>(null);
   const [activationCopied, setActivationCopied] = useState(false);
   const [usernameState,setUsernameState]=useState<Record<string,"idle"|"checking"|"available"|"taken">>({});
   const travelerCount = data.families.reduce((sum, family) => sum + family.travelers.length, 0);
@@ -47,7 +47,8 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
 
   async function copyActivationLink() {
     try {
-      await navigator.clipboard.writeText(activationUrl);
+      if (!activation) return;
+      await navigator.clipboard.writeText(activation.url);
       setActivationCopied(true);
       setNotice("Link di attivazione copiato. Condividilo solo con il viaggiatore interessato.");
       setError("");
@@ -66,27 +67,27 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
     finally { setBusy(""); }
   }
   async function addTraveler(event: FormEvent<HTMLFormElement>, partyId: string) {
-    event.preventDefault(); setBusy(`traveler-${partyId}`); setError(""); setNotice(""); setActivationUrl(""); setActivationCopied(false);
+    event.preventDefault(); setBusy(`traveler-${partyId}`); setError(""); setNotice(""); setActivation(null); setActivationCopied(false);
     const form = new FormData(event.currentTarget);
     if(!await checkUsername(partyId,String(form.get("username")??""))){setError("Username già presente o non verificabile. Scegline un altro.");setBusy("");return;}
     try {
-      const result = await json<{ data: JourneyData; activationToken: string | null; invitationEmailSent: boolean }>(await fetch(`/api/admin/platform/trips/${data.journey.id}/travelers`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agencyId: data.journey.agencyId, partyId, name: form.get("name"), username: form.get("username"), email: form.get("email"), phone: form.get("phone"), birthDate: form.get("birthDate") }) }));
+      const result = await json<{ data: JourneyData; travelerId: string; activationToken: string | null; invitationEmailSent: boolean }>(await fetch(`/api/admin/platform/trips/${data.journey.id}/travelers`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agencyId: data.journey.agencyId, partyId, name: form.get("name"), username: form.get("username"), email: form.get("email"), phone: form.get("phone"), birthDate: form.get("birthDate") }) }));
       setData(result.data); setTravelerFamily("");
-      setActivationUrl(result.activationToken ? `${window.location.origin}/attiva-account#token=${encodeURIComponent(result.activationToken)}` : "");
+      setActivation(result.activationToken ? { travelerId: result.travelerId, url: `${window.location.origin}/attiva-account#token=${encodeURIComponent(result.activationToken)}` } : null);
       setNotice(result.activationToken ? (result.invitationEmailSent ? "Viaggiatore registrato. L’invito personale è stato inviato via email." : "Viaggiatore registrato. L’invio email non è configurato: copia il link di attivazione.") : "Viaggiatore collegato a un account già attivo.");
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Operazione non riuscita"); }
     finally { setBusy(""); }
   }
 
-  async function updateCompetition(partyId: string, enabled: boolean) {
-    setBusy(`competition-${partyId}`); setError(""); setNotice("");
+  async function updateCompetition(partyId: string, travelerId: string, enabled: boolean) {
+    setBusy(`competition-${travelerId}`); setError(""); setNotice("");
     try {
       const result = await json<{ data: JourneyData }>(await fetch(`/api/admin/platform/trips/${data.journey.id}/families/${partyId}`, {
         method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "competition", agencyId: data.journey.agencyId, enabled }),
+        body: JSON.stringify({ action: "competition", agencyId: data.journey.agencyId, travelerId, enabled }),
       }));
       setData(result.data);
-      setNotice(enabled ? "Il gruppo parteciperà anche alla classifica del viaggio." : "Il gruppo resterà nelle classifiche interne e non concorrerà con gli altri gruppi.");
+      setNotice(enabled ? "Il viaggiatore parteciperà anche alla classifica del viaggio." : "Il viaggiatore resterà nelle classifiche del proprio gruppo.");
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Aggiornamento non riuscito"); }
     finally { setBusy(""); }
   }
@@ -121,12 +122,10 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
       <div className="journeyManageHead"><div><small>PARTECIPANTI</small><h2>Gruppi e viaggiatori</h2></div><button type="button" aria-expanded={familyForm} aria-controls="family-create-form" onClick={() => { setFamilyForm(!familyForm); setError(""); }}><Plus/> {familyForm ? "Chiudi inserimento" : "Nuovo gruppo"}</button></div>
       {error && <div className="agencyMessage error" role="alert"><CircleAlert/>{error}</div>}
       {notice && <div className="agencyMessage success" role="status"><CheckCircle2/>{notice}</div>}
-      {activationUrl && <div className="activationLinkBox"><ShieldCheck/><span><b>Link di attivazione monouso</b><small>Scade tra 14 giorni. Condividilo personalmente solo con il viaggiatore interessato.</small></span><label htmlFor="activation-link">Link da consegnare<input id="activation-link" readOnly value={activationUrl} onFocus={(event) => event.currentTarget.select()}/></label><button type="button" className={activationCopied ? "copied" : ""} onClick={() => void copyActivationLink()}>{activationCopied ? <Check/> : <Copy/>} {activationCopied ? "Copiato" : "Copia link"}</button><button type="button" className="activationDismiss" aria-label="Nascondi link di attivazione" onClick={() => { setActivationUrl(""); setActivationCopied(false); }}><X/></button></div>}
       {familyForm && <form className="familyCreateForm" id="family-create-form" onSubmit={addFamily} aria-busy={busy === "family"}><div><small>NUOVO GRUPPO DI CONDIVISIONE</small><strong>Crea un gruppo</strong><p>Spese, ricordi e classifiche resteranno separati dagli altri gruppi della partenza.</p></div><label htmlFor="family-name">Nome gruppo<input id="family-name" name="name" autoFocus autoComplete="off" required minLength={2} maxLength={160} placeholder="Es. Gruppo Rossi"/></label><footer><button type="button" className="secondary" disabled={Boolean(busy)} onClick={() => setFamilyForm(false)}>Annulla</button><button type="submit" disabled={Boolean(busy)}>{busy === "family" ? <><LoaderCircle className="spin"/> Creazione…</> : <><UsersRound/> Crea gruppo</>}</button></footer></form>}
       <section className="familyCards">
         {data.families.map((family) => { const leader = family.travelers.find((traveler) => traveler.role === "organizer"); return <article key={family.id}>
           <header><span><UsersRound/><b>{family.name}</b><small>{family.travelers.length} {family.travelers.length === 1 ? "viaggiatore" : "viaggiatori"} · {family.code}</small></span><div className="groupHeaderActions"><span className={leader ? "groupLeaderSummary" : "groupLeaderSummary missing"}><Crown/><small>Capogruppo</small><b>{leader?.name ?? "Da indicare"}</b></span><button type="button" aria-expanded={travelerFamily === family.id} aria-controls={`traveler-form-${family.id}`} onClick={() => { setTravelerFamily(travelerFamily === family.id ? "" : family.id); setError(""); }}><UserPlus/> {travelerFamily === family.id ? "Chiudi inserimento" : "Aggiungi viaggiatore"}</button></div></header>
-          <div className="groupCompetitionSetting"><span><Trophy/><span><b>Partecipa ai giochi a livello di viaggio</b><small>Quiz, giochi e le stesse foto dei contest concorreranno anche con gli altri gruppi.</small></span></span><label className="groupCompetitionSwitch"><input type="checkbox" checked={family.participatesInTripGames} disabled={Boolean(busy)} onChange={(event) => void updateCompetition(family.id, event.currentTarget.checked)}/><span aria-hidden="true"/><em>{family.participatesInTripGames ? "Attiva" : "Non attiva"}</em></label></div>
           {travelerFamily === family.id && <form className="travelerCreateForm" id={`traveler-form-${family.id}`} onSubmit={(event) => addTraveler(event, family.id)} aria-busy={busy === `traveler-${family.id}`}>
             <div className="travelerFormIntro"><small>NUOVO ACCESSO</small><strong>Aggiungi un viaggiatore a {family.name}</strong><p>Ogni viaggiatore ha un proprio username. La stessa email può ricevere più inviti indipendenti.</p></div>
             <label htmlFor={`traveler-name-${family.id}`}>Nome e cognome *<input id={`traveler-name-${family.id}`} name="name" autoFocus autoComplete="name" required minLength={2} maxLength={160} placeholder="Nome e cognome"/></label>
@@ -137,7 +136,7 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
             {family.travelers.length === 0 && <div className="firstLeaderNotice"><Crown/><span><b>Il primo viaggiatore sarà il capogruppo.</b><small>Deve essere maggiorenne; potrai sostituirlo in seguito.</small></span></div>}
             <footer><button type="button" className="secondary" disabled={Boolean(busy)} onClick={() => setTravelerFamily("")}>Annulla</button><button type="submit" disabled={Boolean(busy)}>{busy === `traveler-${family.id}` ? <><LoaderCircle className="spin"/> Registrazione…</> : <><Plus/> Registra viaggiatore</>}</button></footer>
           </form>}
-          <div className="familyTravelers">{family.travelers.map((traveler) => <div key={traveler.id} className={traveler.role === "organizer" ? "isLeader" : ""}><i>{traveler.name.split(/\s+/).slice(0, 2).map((part) => part[0] || "").join("").toUpperCase()}</i><span><b>{traveler.name}</b><small>@{traveler.username} · <Mail/> {traveler.email}</small></span>{traveler.role === "organizer" ? <em className="leaderBadge"><Crown/> Capogruppo</em> : <button type="button" className="setLeaderButton" disabled={Boolean(busy)} onClick={() => void setLeader(family.id, traveler.id)}><Crown/> Imposta capogruppo</button>}<strong className={traveler.status}>{traveler.status === "invited" ? "Da attivare" : traveler.status === "active" ? "Attivo" : traveler.status}</strong></div>)}{family.travelers.length === 0 && <div className="familyTravelersEmpty"><UserPlus/><span><strong>Nessun viaggiatore</strong><small>Aggiungi per primo un adulto: diventerà il capogruppo.</small></span></div>}</div>
+          <div className="familyTravelers">{family.travelers.map((traveler) => <div key={traveler.id} className={traveler.role === "organizer" ? "isLeader" : ""}><i>{traveler.name.split(/\s+/).slice(0, 2).map((part) => part[0] || "").join("").toUpperCase()}</i><span><b>{traveler.name}</b><small>@{traveler.username} · <Mail/> {traveler.email}</small></span><label className="travelerCompetitionSwitch"><input type="checkbox" checked={traveler.participatesInTripGames} disabled={Boolean(busy)} onChange={(event) => void updateCompetition(family.id, traveler.id, event.currentTarget.checked)}/><Trophy/><span><b>Giochi a livello viaggio</b><small>{traveler.participatesInTripGames ? "Partecipa" : "Solo gruppo"}</small></span></label>{traveler.role === "organizer" ? <em className="leaderBadge"><Crown/> Capogruppo</em> : <button type="button" className="setLeaderButton" disabled={Boolean(busy)} onClick={() => void setLeader(family.id, traveler.id)}><Crown/> Imposta capogruppo</button>}<strong className={traveler.status}>{traveler.status === "invited" ? "Da attivare" : traveler.status === "active" ? "Attivo" : traveler.status}</strong>{activation?.travelerId === traveler.id && <div className="travelerActivationLink"><ShieldCheck/><span><b>Link personale di attivazione</b><small>Monouso, valido 14 giorni.</small></span><label htmlFor={`activation-link-${traveler.id}`}>Link<input id={`activation-link-${traveler.id}`} readOnly value={activation.url} onFocus={(event) => event.currentTarget.select()}/></label><button type="button" className={activationCopied ? "copied" : ""} onClick={() => void copyActivationLink()}>{activationCopied ? <Check/> : <Copy/>} {activationCopied ? "Copiato" : "Copia"}</button><button type="button" className="activationDismiss" aria-label={`Nascondi link di ${traveler.name}`} onClick={() => { setActivation(null); setActivationCopied(false); }}><X/></button></div>}</div>)}{family.travelers.length === 0 && <div className="familyTravelersEmpty"><UserPlus/><span><strong>Nessun viaggiatore</strong><small>Aggiungi per primo un adulto: diventerà il capogruppo.</small></span></div>}</div>
         </article>; })}
         {data.families.length === 0 && <div className="agencyEmpty"><UsersRound/><h3>Nessun gruppo</h3><p>Usa “Nuovo gruppo” per creare il gruppo e aggiungere i viaggiatori che accederanno all’app.</p></div>}
       </section>

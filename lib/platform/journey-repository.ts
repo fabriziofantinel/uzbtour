@@ -41,12 +41,12 @@ export async function addJourneyTraveler(input: {
 }
 
 export async function updateJourneyGroupCompetition(input: {
-  actorId: string; agencyId: string; departureId: string; partyId: string; enabled: boolean;
+  actorId: string; agencyId: string; departureId: string; partyId: string; travelerId: string; enabled: boolean;
 }) {
   const sql = getSql();
-  const rows = await sql`SELECT app.update_journey_party_competition(
+  const rows = await sql`SELECT app.update_journey_traveler_competition(
     ${input.actorId},${input.agencyId}::uuid,${input.departureId}::uuid,
-    ${input.partyId}::uuid,${input.enabled}
+    ${input.partyId}::uuid,${input.travelerId}::uuid,${input.enabled}
   ) AS updated`;
   return Boolean(rows[0]?.updated);
 }
