@@ -97,14 +97,21 @@ export async function materializeTripExperience(jobId: string, templateId: strin
         if (!added) break;
       }
       return flattened;
-    }).filter((group) => group.length > 0);
-    const selected: Array<Record<string, unknown>> = [];
-    while (selected.length < limit && sourceGroups.some((group) => group.length > 0)) {
-      for (const group of sourceGroups) {
-        const entry = group.shift();
-        if (entry) selected.push(entry);
-        if (selected.length >= limit) break;
-      }
+    });
+    const [cityEntries, siteEntries] = sourceGroups;
+    let selected: Array<Record<string, unknown>>;
+    if (contentType === "quiz" && cityEntries.length > 0 && siteEntries.length > 0) {
+      const prioritized = [
+        ...cityEntries.slice(0, 1),
+        ...siteEntries.slice(0, 4),
+        ...cityEntries.slice(1, 2),
+        ...siteEntries.slice(4, 8),
+      ];
+      selected = [...prioritized, ...siteEntries.slice(8), ...cityEntries.slice(2)].slice(0, limit);
+    } else {
+      const preferred = siteEntries.length > 0 ? siteEntries : cityEntries;
+      const fallback = siteEntries.length > 0 ? cityEntries : [];
+      selected = [...preferred, ...fallback].slice(0, limit);
     }
     if (contentType === "quiz" || contentType === "mission") {
       const type = contentType;

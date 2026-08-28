@@ -142,16 +142,20 @@ export async function readV3TravelCatalog(input: {
          AND item.departure_id = document.departure_id
         WHERE document.agency_id = ${input.agencyId}
           AND document.departure_id = ${input.departureId}
+          AND document.party_id = ${input.partyId}
           AND document.status = 'ready' AND asset.status = 'ready'
         ORDER BY document.created_at
       `,
       txn`
-        SELECT document.id::text,document.departure_day_id::text AS day_id,
+        SELECT document.id::text,day.template_day_id::text AS day_id,
           document.title,document.description,asset.content_type,asset.size_bytes,
           document.created_at::text
         FROM ops.travel_documents document
         JOIN ops.media_assets asset
           ON asset.id=document.media_asset_id AND asset.agency_id=document.agency_id
+        JOIN travel.departure_days day
+          ON day.id=document.departure_day_id AND day.agency_id=document.agency_id
+         AND day.departure_id=document.departure_id
         WHERE document.agency_id=${input.agencyId}
           AND document.departure_id=${input.departureId}
           AND document.party_id=${input.partyId}

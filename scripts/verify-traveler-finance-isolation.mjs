@@ -2,12 +2,18 @@ import { randomUUID } from "node:crypto";
 import { Client } from "@neondatabase/serverless";
 
 const databaseUrl=process.env.DATABASE_MIGRATION_URL??process.env.DATABASE_URL;
-const legacyUserId=process.argv[2];
-if(!databaseUrl||!legacyUserId)throw new Error("Connessione o utente non configurati");
+const userSelector=process.argv[2];
+if(!databaseUrl||!userSelector)throw new Error("Connessione o utente non configurati");
 const client=new Client(databaseUrl);
 let transaction=false;
 try{
   await client.connect();
+  const candidates=(await client.query(`SELECT map.legacy_id AS legacy_user_id
+    FROM iam.users account JOIN ops.legacy_id_map map ON map.target_id=account.id
+      AND map.source_system='public-v2' AND map.entity_type='user'
+    WHERE map.legacy_id=$1 OR lower(account.display_name) LIKE lower('%'||$1||'%')`,[userSelector])).rows;
+  if(candidates.length!==1)throw new Error(`Il selettore utente deve individuare un solo profilo (trovati: ${candidates.length})`);
+  const legacyUserId=candidates[0].legacy_user_id;
   const journey=(await client.query("SELECT * FROM app.list_legacy_user_journeys($1) LIMIT 1",[legacyUserId])).rows[0];
   if(!journey)throw new Error("Viaggio del viaggiatore non trovato");
   const context=(await client.query(`SELECT membership.traveler_id::text,day.id::text departure_day_id,

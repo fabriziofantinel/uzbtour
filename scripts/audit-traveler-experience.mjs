@@ -1,11 +1,17 @@
 import { Client } from "@neondatabase/serverless";
 
 const url=process.env.DATABASE_MIGRATION_URL??process.env.DATABASE_URL;
-const legacyUserId=process.argv[2];
-if(!url||!legacyUserId)throw new Error("Connessione o utente audit non configurati");
+const userSelector=process.argv[2];
+if(!url||!userSelector)throw new Error("Connessione o utente audit non configurati");
 const client=new Client(url);
 await client.connect();
 try{
+  const candidates=(await client.query(`SELECT map.legacy_id AS legacy_user_id
+    FROM iam.users account JOIN ops.legacy_id_map map ON map.target_id=account.id
+      AND map.source_system='public-v2' AND map.entity_type='user'
+    WHERE map.legacy_id=$1 OR lower(account.display_name) LIKE lower('%'||$1||'%')`,[userSelector])).rows;
+  if(candidates.length!==1)throw new Error(`Il selettore utente deve individuare un solo profilo (trovati: ${candidates.length})`);
+  const legacyUserId=candidates[0].legacy_user_id;
   const journeys=(await client.query("SELECT * FROM app.list_legacy_user_journeys($1)",[legacyUserId])).rows;
   const reports=[];
   for(const journey of journeys){

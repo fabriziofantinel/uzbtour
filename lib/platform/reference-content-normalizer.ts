@@ -44,6 +44,14 @@ const usefulInfoSchema = z.array(z.object({
     const count = items.filter((item) => item.category === category).length;
     if (count !== 1) context.addIssue({ code: "custom", message: `La categoria '${category}' deve comparire esattamente una volta` });
   }
+  const embassy = items.find((item) => item.category === "Ambasciata italiana");
+  if (embassy?.url && !/^https:\/\/[^/]+\.esteri\.it(?:\/|$)/i.test(embassy.url)) {
+    context.addIssue({ code: "custom", message: "Il riferimento dell'Ambasciata deve usare un dominio ufficiale esteri.it" });
+  }
+  const documents = items.find((item) => item.category === "Documenti e sicurezza");
+  if (documents && /(?:non (?:serve|e' richiesto|è richiesto) il visto)[\s\S]{0,500}(?:visto (?:obbligatorio|necessario))|(?:visto (?:obbligatorio|necessario))[\s\S]{0,500}(?:non (?:serve|e' richiesto|è richiesto) il visto)/i.test(documents.body)) {
+    context.addIssue({ code: "custom", message: "Le informazioni sui documenti contengono indicazioni contraddittorie sul visto" });
+  }
 });
 
 const phrasebookSchema = z.array(z.object({
