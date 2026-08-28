@@ -65,6 +65,8 @@
     "db:migrate:v3:programme-full-edit": "node --env-file=.env.local scripts/migrate-v3-operational-programme-full-edit.mjs --apply",
     "db:migrate:v3:group-leadership:dry-run": "node --env-file=.env.local scripts/migrate-v3-journey-group-leadership.mjs",
     "db:migrate:v3:group-leadership": "node --env-file=.env.local scripts/migrate-v3-journey-group-leadership.mjs --apply",
+    "db:migrate:v3:day-documents:dry-run": "node --env-file=.env.local scripts/migrate-v3-departure-day-documents.mjs",
+    "db:migrate:v3:day-documents": "node --env-file=.env.local scripts/migrate-v3-departure-day-documents.mjs --apply",
     "db:backfill:v3:dry-run": "node --env-file=.env.local scripts/backfill-v3-shadow-core.mjs",
     "db:backfill:v3": "node --env-file=.env.local scripts/backfill-v3-shadow-core.mjs --apply",
     "db:audit:v3:operational": "node --env-file=.env.local scripts/audit-v3-operational-source.mjs",

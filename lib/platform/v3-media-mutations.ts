@@ -56,6 +56,23 @@ export async function registerV3TicketUpload(input: StoredObject & {
   };
 }
 
+export async function registerV3DayDocument(input: StoredObject & {
+  userId: string; departureId: string; dayId: string; mediaId: string;
+  documentId: string; description: string;
+}) {
+  const sql = getSql();
+  const rows = await sql`
+    SELECT document_id::text,title,description,created_at::text
+    FROM app.register_departure_day_document(
+      ${input.userId},${input.departureId}::uuid,${input.dayId}::uuid,
+      ${input.mediaId}::uuid,${input.documentId}::uuid,${input.provider},${input.bucket},
+      ${input.objectKey},${input.originalName},${input.contentType},${input.sizeBytes}::bigint,
+      ${input.description}
+    )`;
+  return { id: String(rows[0].document_id), title: String(rows[0].title),
+    description: String(rows[0].description), createdAt: String(rows[0].created_at) };
+}
+
 export async function isMediaObjectRegistered(objectKey: string) {
   const sql = getSql();
   const rows = await sql`

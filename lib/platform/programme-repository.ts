@@ -118,6 +118,7 @@ export async function getAgencyProgramme(departureId: string, actorId: string) {
   return {
     departure: {
       id: String(departure.id),
+      agencyId: String(departure.agency_id),
       templateId: String(departure.template_id),
       title: String(departure.title),
       programmeTitle: String(departure.programme_title),

@@ -179,7 +179,7 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
   return <main className="programmePage" style={agencyStyle}>
     <header className="programmeTopbar">
       <Link href="/agenzia"><ArrowLeft/> Viaggi</Link>
-      <nav aria-label="Gestione del viaggio"><span aria-current="page"><BookOpen/> Programma</span><Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Gruppi</Link></nav>
+      <nav aria-label="Gestione del viaggio"><span aria-current="page"><BookOpen/> Programma</span><Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Gruppi</Link><Link href={`/agenzia/viaggi/${departure.id}/documenti`}><FileText/> Documenti</Link></nav>
       <div className="programmeContext"><small>VERSIONE {departure.versionNumber}</small><h1>{departure.programmeTitle}</h1></div>
     </header>
     <section className="programmeNotice">

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { ArrowLeft, BookOpen, CalendarDays, Check, CheckCircle2, CircleAlert, Copy, Crown, LoaderCircle, Mail, Plus, ShieldCheck, Trophy, UserPlus, UsersRound, X } from "lucide-react";
+import { ArrowLeft, BookOpen, CalendarDays, Check, CheckCircle2, CircleAlert, Copy, Crown, FolderOpen, LoaderCircle, Mail, Plus, ShieldCheck, Trophy, UserPlus, UsersRound, X } from "lucide-react";
 import type { getJourneyManagement } from "@/lib/platform/journey-repository";
 
 type JourneyData = Awaited<ReturnType<typeof getJourneyManagement>>;
@@ -103,7 +103,7 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
   }
 
   return <main className="journeyManagePage">
-    <header><Link href="/agenzia"><ArrowLeft/> Tutti i viaggi</Link><nav aria-label="Gestione del viaggio"><Link href={`/agenzia/viaggi/${data.journey.id}/programma`}><BookOpen/> Programma</Link><span aria-current="page"><UsersRound/> Gruppi</span></nav><span className="journeyAgencyName">{data.journey.agencyName}</span></header>
+    <header><Link href="/agenzia"><ArrowLeft/> Tutti i viaggi</Link><nav aria-label="Gestione del viaggio"><Link href={`/agenzia/viaggi/${data.journey.id}/programma`}><BookOpen/> Programma</Link><span aria-current="page"><UsersRound/> Gruppi</span><Link href={`/agenzia/viaggi/${data.journey.id}/documenti`}><FolderOpen/> Documenti</Link></nav><span className="journeyAgencyName">{data.journey.agencyName}</span></header>
     <section className="journeyManageHero"><small>{data.journey.destinationCountry}</small><h1>{data.journey.title}</h1><p><CalendarDays/> {formatDate(data.journey.startsOn)} – {formatDate(data.journey.endsOn)} · {data.journey.code}</p></section>
     <div className="journeyManageShell">
       <section className="journeyPeopleSummary" aria-label="Riepilogo partecipanti"><article><UsersRound/><span><small>GRUPPI</small><strong>{data.families.length}</strong></span></article><article><UserPlus/><span><small>VIAGGIATORI</small><strong>{travelerCount}</strong></span></article><article><CheckCircle2/><span><small>ACCOUNT ATTIVI</small><strong>{activeTravelerCount}</strong></span></article>{invitedTravelerCount > 0 && <article className="pending"><Mail/><span><small>DA ATTIVARE</small><strong>{invitedTravelerCount}</strong></span></article>}</section>

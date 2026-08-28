@@ -17,3 +17,18 @@ export async function requireAgencyTicketItem(input: { departureId: string; item
   if (!rows[0]) throw new PlatformRequestError("Volo o treno non disponibile");
   return { agencyId, itemType: String(rows[0].item_type) };
 }
+
+export async function requireAgencyDepartureDay(input: { departureId: string; dayId: string; actorId: string }) {
+  const sql = getSql();
+  const scope = await sql`SELECT agency_id::text FROM app.read_journey_management(
+    ${input.actorId},${input.departureId}) LIMIT 1`;
+  if (!scope[0]) throw new PlatformRequestError("Partenza non disponibile");
+  const agencyId = String(scope[0].agency_id);
+  const [, rows] = await sql.transaction((txn) => [
+    txn`SELECT set_config('app.agency_id',${agencyId},true)`,
+    txn`SELECT id::text FROM travel.departure_days
+      WHERE id=${input.dayId} AND agency_id=${agencyId} AND departure_id=${input.departureId} LIMIT 1`,
+  ], { readOnly: true });
+  if (!rows[0]) throw new PlatformRequestError("Giornata non disponibile");
+  return { agencyId };
+}

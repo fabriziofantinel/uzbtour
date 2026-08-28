@@ -26,7 +26,7 @@
   height: 40px;
   border-radius: 12px;
   background: #0b6462;
-  color: #fff;
+  color: #111;
   font-family: var(--font-serif);
   font-weight: 800;
 }
@@ -752,7 +752,7 @@
 .journeyManageHero {
   padding: 36px max(18px, calc((100vw - 1050px) / 2));
   background: #123f3e;
-  color: #fff;
+  color: #111;
 }
 .journeyManageHero small {
   letter-spacing: 0.14em;
@@ -769,7 +769,7 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  color: #c9d8d5;
+  color: #111;
   font-size: 12px;
 }
 .journeyManageShell {
@@ -800,7 +800,7 @@
   border: 0;
   border-radius: 10px;
   background: #0b6462;
-  color: #fff;
+  color: #111;
   padding: 10px 13px;
   display: flex;
   align-items: center;
