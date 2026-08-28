@@ -24,7 +24,7 @@ export default async function TravelerJourneyPage({
       <main className="travelEmpty">
         <span>SMF</span>
         <h1>Nessun viaggio disponibile</h1>
-        <p>L’agenzia non ha ancora associato il tuo account a una famiglia e a un viaggio pubblicato.</p>
+        <p>L’agenzia non ha ancora associato il tuo account a un gruppo e a un viaggio pubblicato.</p>
         <form action="/api/auth/logout" method="post"><button type="submit">Esci</button></form>
       </main>
     );

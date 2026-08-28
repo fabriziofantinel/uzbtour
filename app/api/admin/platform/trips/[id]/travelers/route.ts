@@ -19,7 +19,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const actor = await requireAgencyAdmin(input.agencyId);
     const current = await getJourneyManagement(id, actor.id);
     if (current.journey.agencyId !== input.agencyId || !current.families.some((family) => family.id === input.partyId)) {
-      return NextResponse.json({ error: "Famiglia non valida" }, { status: 403 });
+      return NextResponse.json({ error: "Gruppo non valido" }, { status: 403 });
     }
     const invitation = await addJourneyTraveler({ ...input, actorId: actor.id });
     let invitationEmailSent = false;

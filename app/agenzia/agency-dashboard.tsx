@@ -406,7 +406,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
         <div>
           <p><Sparkles size={15}/> PIATTAFORMA VIAGGI</p>
           <h1>Buongiorno, {overview.actor.name}.</h1>
-          <span>Configura programmi, partenze e famiglie da un unico spazio.</span>
+          <span>Configura programmi, partenze e gruppi da un unico spazio.</span>
         </div>
       </section>
 
@@ -434,7 +434,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
           <div className="agencyStats">
             <article><MapPinned/><span><small>VIAGGI</small><b>{stats.trips}</b></span></article>
             <article><CalendarDays/><span><small>PARTENZE</small><b>{stats.departures}</b></span></article>
-            <article><UsersRound/><span><small>FAMIGLIE</small><b>{stats.parties}</b></span></article>
+            <article><UsersRound/><span><small>GRUPPI</small><b>{stats.parties}</b></span></article>
           </div>
 
           <section id="viaggi" className="agencySection">
@@ -493,7 +493,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
             {tripView === "list" && <div className="tripTableWrap">
               <table className="tripTable">
                 <caption>Elenco viaggi e partenze dell’agenzia</caption>
-                <thead><tr><th>Stato</th><th>Viaggio</th><th>Periodo</th><th>Famiglie</th><th>Azioni</th></tr></thead>
+                <thead><tr><th>Stato</th><th>Viaggio</th><th>Periodo</th><th>Gruppi</th><th>Azioni</th></tr></thead>
                 <tbody>
               {filteredDepartures.map(({ trip, departure }) => {
                 const latestImport = latestImportByTrip.get(trip.id);
@@ -512,11 +512,11 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                   <td data-label="Stato"><span className={`status ${displayStatus.className}`}>{displayStatus.label}</span><small className="departureStatus">{departure ? (statusLabels[departure.status] ?? departure.status) : "Senza partenza"}</small></td>
                   <td data-label="Viaggio" className="tripNameCell"><b>{departure?.title || trip.title}</b><span>{trip.destinationCountry || "Destinazione da revisionare"}</span></td>
                   <td data-label="Periodo" className="dateRangeCell"><b>{formatTravelDate(startsOn)}</b><span aria-hidden="true">→</span><b>{formatTravelDate(endsOn)}</b></td>
-                  <td data-label="Famiglie" className="numberCell">{departure?.partyCount ?? 0}</td>
+                  <td data-label="Gruppi" className="numberCell">{departure?.partyCount ?? 0}</td>
                   <td data-label="Azioni"><div className="tableActions inline">
                     {latestImport?.status === "ready_for_review" && <Link className="primary" href={`/agenzia/importazioni/${latestImport.id}`}><Eye/> Revisiona</Link>}
                     {departure && <Link className="primary" href={`/agenzia/viaggi/${departure.id}/programma`}><BookOpen/> Apri programma</Link>}
-                    {departure && <Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Famiglie</Link>}
+                    {departure && <Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Gruppi</Link>}
                     {trip.status === "active" && latestImport && <QuoteDocuments imported={latestImport}/>}
                     <button type="button" className="danger" disabled={Boolean(busy)} onClick={() => {
                       setError("");
@@ -559,7 +559,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                       <span><small>RIENTRO</small><b>{formatTravelDate(endsOn)}</b></span>
                     </div>
                     <div className="journeyCardFacts">
-                      <span><UsersRound/><small>FAMIGLIE</small><b>{departure?.partyCount ?? 0}</b></span>
+                      <span><UsersRound/><small>GRUPPI</small><b>{departure?.partyCount ?? 0}</b></span>
                       <span><UsersRound/><small>VIAGGIATORI</small><b>{departure?.travelerNames.length ?? 0}</b></span>
                     </div>
                     <div className="journeyTravelers"><small>PARTECIPANTI</small><p>{departure?.travelerNames.join(", ") || "Nessun viaggiatore configurato"}</p></div>
@@ -585,7 +585,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                     </div>
                     <div className="tableActions cardActions">
                       {departure && <Link className="primary" href={`/agenzia/viaggi/${departure.id}/programma`}><BookOpen/> Apri programma</Link>}
-                      {departure && <Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Famiglie</Link>}
+                      {departure && <Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Gruppi</Link>}
                       {trip.status === "active" && latestImport && <QuoteDocuments imported={latestImport}/>}
                       <button type="button" className="danger" disabled={Boolean(busy)} onClick={() => {
                         setError("");
@@ -610,7 +610,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
             <i><Trash2/></i>
             <small>OPERAZIONE DEFINITIVA</small>
             <h2 id="delete-trip-title">Eliminare “{tripToDelete.title}”?</h2>
-            <p>Verranno eliminati programma, importazioni, partenze, famiglie e file collegati. Le anagrafiche condivise e gli utenti resteranno disponibili.</p>
+            <p>Verranno eliminati programma, importazioni, partenze, gruppi e file collegati. Le anagrafiche condivise e gli utenti resteranno disponibili.</p>
             {error && <p className="dialogInlineError" role="alert"><CircleAlert/>{error}</p>}
             <div>
               <button type="button" className="secondary" disabled={Boolean(busy)} onClick={() => setTripToDelete(null)}>Annulla</button>

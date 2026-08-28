@@ -97,7 +97,7 @@ function LoginContent() {
         <div className="loginStoryCopy">
           <p>LA PIATTAFORMA PER LE AGENZIE DI VIAGGIO</p>
           <h1>Ogni viaggio,<br/><em>in un unico spazio.</em></h1>
-          <span><Plane size={17}/> Agenzie · famiglie · viaggiatori</span>
+          <span><Plane size={17}/> Agenzie · gruppi · viaggiatori</span>
         </div>
         <small>Programmi, documenti, ricordi e attività sempre con te.</small>
       </section>

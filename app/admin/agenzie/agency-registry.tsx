@@ -285,7 +285,7 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
                     </button>
                   </div>
                   <div className="agencyDangerZone">
-                    <span><small>ZONA PERICOLO</small><b>Elimina definitivamente l’agenzia</b><p>Verranno rimossi tutti i viaggi, le famiglie, i viaggiatori e i file collegati.</p></span>
+                    <span><small>ZONA PERICOLO</small><b>Elimina definitivamente l’agenzia</b><p>Verranno rimossi tutti i viaggi, i gruppi, i viaggiatori e i file collegati.</p></span>
                     <button type="button" disabled={Boolean(busy)} onClick={() => { setError(""); setAgencyToDelete(agency); }}><Trash2/> Elimina agenzia</button>
                   </div>
                 </div>
@@ -305,7 +305,7 @@ export default function AgencyRegistry({ initialAgencies }: { initialAgencies: A
             <i><Trash2/></i>
             <small>OPERAZIONE DEFINITIVA</small>
             <h2 id="delete-agency-title">Eliminare “{agencyToDelete.name}”?</h2>
-            <p>{agencyToDelete.ongoingTripCount+agencyToDelete.upcomingTripCount>0&&<strong>Attenzione: sono presenti {agencyToDelete.ongoingTripCount} viaggi in corso e {agencyToDelete.upcomingTripCount} futuri. </strong>}La cancellazione comprende {agencyToDelete.tripCount} viaggi, {agencyToDelete.travelerCount} viaggiatori, famiglie, importazioni, documenti e foto. Non sarà possibile recuperare i dati.</p>
+            <p>{agencyToDelete.ongoingTripCount+agencyToDelete.upcomingTripCount>0&&<strong>Attenzione: sono presenti {agencyToDelete.ongoingTripCount} viaggi in corso e {agencyToDelete.upcomingTripCount} futuri. </strong>}La cancellazione comprende {agencyToDelete.tripCount} viaggi, {agencyToDelete.travelerCount} viaggiatori, gruppi, importazioni, documenti e foto. Non sarà possibile recuperare i dati.</p>
             {error && <div className="superadminMessage error dialogMessage" role="alert"><CircleAlert size={18}/>{error}</div>}
             <div>
               <button ref={deleteCancelRef} type="button" className="secondary" disabled={Boolean(busy)} onClick={() => setAgencyToDelete(null)}>Annulla</button>

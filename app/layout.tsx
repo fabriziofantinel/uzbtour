@@ -10,7 +10,7 @@ const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-serif"
 
 export const metadata: Metadata = {
   title: "SMF Travel — ogni viaggio in un unico spazio",
-  description: "La piattaforma per agenzie, famiglie e viaggiatori.",
+  description: "La piattaforma per agenzie, gruppi e viaggiatori.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,

@@ -309,7 +309,7 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
             <label>Codice preventivo<input value={draft.commercialDetails.quoteCode} onChange={(event) => updateCommercial({ quoteCode: event.target.value })}/></label>
             <label>Versione<input value={draft.commercialDetails.quoteVersion} onChange={(event) => updateCommercial({ quoteVersion: event.target.value })}/></label>
             <label>Data preventivo<input type="date" value={draft.commercialDetails.quoteDate} onChange={(event) => updateCommercial({ quoteDate: event.target.value })}/></label>
-            <label>Cliente / famiglia<input value={draft.commercialDetails.clientName} onChange={(event) => updateCommercial({ clientName: event.target.value })}/></label>
+            <label>Cliente / gruppo<input value={draft.commercialDetails.clientName} onChange={(event) => updateCommercial({ clientName: event.target.value })}/></label>
             <label>Numero viaggiatori<input type="number" min="0" value={draft.commercialDetails.travelerCount ?? ""} onChange={(event) => updateCommercial({ travelerCount: event.target.value ? Number(event.target.value) : null })}/></label>
             <label>Lingua guida<input value={draft.commercialDetails.guideLanguage} onChange={(event) => updateCommercial({ guideLanguage: event.target.value })}/></label>
             <label>Valuta<input value={draft.commercialDetails.currency} onChange={(event) => updateCommercial({ currency: event.target.value })}/></label>

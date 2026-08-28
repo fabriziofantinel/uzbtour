@@ -257,7 +257,7 @@ export async function assertTravelerPartyScope(input: {
   userId: string; departureId: string; partyId: string; dayId?: string | null;
 }) {
   const context = await resolveTravelerContext(input);
-  if (!context) throw new PlatformRequestError("Viaggio, famiglia o giornata non disponibili");
+  if (!context) throw new PlatformRequestError("Viaggio, gruppo o giornata non disponibili");
   return context.agencyId;
 }
 

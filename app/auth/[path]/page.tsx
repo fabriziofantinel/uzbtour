@@ -38,7 +38,7 @@ export default async function AuthPage({ params,searchParams }: { params: Promis
         <div className="authUtilityStoryCopy">
           <p>{copy.eyebrow}</p>
           <h1 id="auth-utility-title">{copy.title}</h1>
-          <span><Plane aria-hidden="true"/> Agenzie, famiglie e viaggiatori in un unico spazio.</span>
+          <span><Plane aria-hidden="true"/> Agenzie, gruppi e viaggiatori in un unico spazio.</span>
         </div>
       </section>
       <section className="authUtilityPanel">

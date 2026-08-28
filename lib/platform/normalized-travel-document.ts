@@ -199,7 +199,7 @@ export async function createNormalizedTravelDocument(
       rows: [
         new TableRow({ children: [cell("CAMPO", { header: true, width: 3000 }), cell("VALORE", { header: true, width: 6360 })] }),
         new TableRow({ children: [cell("Titolo del viaggio"), cell(draft.title)] }),
-        new TableRow({ children: [cell("Cliente / famiglia"), cell(commercial.clientName || "Non indicato")] }),
+        new TableRow({ children: [cell("Cliente / gruppo"), cell(commercial.clientName || "Non indicato")] }),
         new TableRow({ children: [cell("Paese o Paesi"), cell(draft.destinationCountry || "Non indicato")] }),
         new TableRow({ children: [cell("Data inizio"), cell(displayDate(draft.startDate))] }),
         new TableRow({ children: [cell("Data fine"), cell(displayDate(draft.endDate))] }),

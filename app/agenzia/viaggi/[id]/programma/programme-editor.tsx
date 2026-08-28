@@ -133,12 +133,12 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
   return <main className="programmePage">
     <header className="programmeTopbar">
       <Link href="/agenzia"><ArrowLeft/> Viaggi</Link>
-      <nav aria-label="Gestione del viaggio"><span aria-current="page"><BookOpen/> Programma</span><Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Famiglie</Link></nav>
+      <nav aria-label="Gestione del viaggio"><span aria-current="page"><BookOpen/> Programma</span><Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Gruppi</Link></nav>
       <div className="programmeContext"><small>VERSIONE {departure.versionNumber}</small><h1>{departure.programmeTitle}</h1></div>
     </header>
     <section className="programmeNotice">
       <CalendarDays/><div><b>Partenza visualizzata: {departure.title}</b><span>{dateFor(departure.startsOn, 0)} – {dateFor(departure.startsOn, Math.max(0, days.length - 1))}</span></div>
-      <p>Itinerario e contenuti appartengono al preventivo: ogni modifica vale per tutte le partenze collegate. Spese, ricordi, giochi e contest restano invece separati per famiglia.</p>
+      <p>Itinerario e contenuti appartengono al preventivo: ogni modifica vale per tutte le partenze collegate. Spese, ricordi, giochi e contest restano invece separati per gruppo.</p>
       {dirtyDayIds.size > 0 && <strong className="programmeUnsaved" role="status">{dirtyDayIds.size} {dirtyDayIds.size === 1 ? "giornata da salvare" : "giornate da salvare"}</strong>}
     </section>
     {message && <div className={`programmeMessage ${message.kind}`} role={message.kind === "error" ? "alert" : "status"}>{message.kind === "error" ? <CircleAlert/> : <CheckCircle2/>}{message.text}</div>}

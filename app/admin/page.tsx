@@ -18,7 +18,7 @@ export default async function SuperadminHome() {
       <section className="superadminStats" aria-label="Statistiche piattaforma">
         <article><span><Building2/></span><div><small>AGENZIE</small><strong>{summary.agencies}</strong><p>Tenant censiti nella piattaforma</p></div></article>
         <article><span><MapPinned/></span><div><small>VIAGGI</small><strong>{summary.trips}</strong><p>Programmi presenti nel catalogo</p></div></article>
-        <article><span><UsersRound/></span><div><small>VIAGGIATORI</small><strong>{summary.travelers}</strong><p>Profili associati alle famiglie</p></div></article>
+        <article><span><UsersRound/></span><div><small>VIAGGIATORI</small><strong>{summary.travelers}</strong><p>Profili associati ai gruppi</p></div></article>
       </section>
 
       <section className="superadminOperations">

@@ -1760,7 +1760,7 @@
   }
 }
 
-/* Famiglie, viaggiatori e inviti */
+/* Gruppi, viaggiatori e inviti */
 .activationLinkBox {
   position: relative;
   grid-template-columns: auto minmax(180px, 1fr) minmax(250px, 1.5fr) auto;
