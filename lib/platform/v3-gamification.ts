@@ -42,7 +42,7 @@ export async function readV3Gamification(input: {
   userId: string;
 }) {
   const sql = getSql();
-  const [, challenges, photos, results, contests] = await sql.transaction((txn) => [
+  const [, challenges, photos, results, contests, competitionGroups, competitionResults, competitionContests] = await sql.transaction((txn) => [
     txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
     txn`
       SELECT item.id::text, activity.template_day_id::text AS trip_day_id,
@@ -168,6 +168,61 @@ export async function readV3Gamification(input: {
         AND entry.party_id=${input.partyId}
       ORDER BY entry.submitted_at DESC
     `,
+    txn`
+      SELECT party.id::text,party.name,
+        party.id=${input.partyId}::uuid AS is_current
+      FROM travel.travel_parties party
+      WHERE party.agency_id=${input.agencyId} AND party.departure_id=${input.departureId}
+        AND party.participates_in_trip_games
+        AND EXISTS(SELECT 1 FROM travel.travel_parties current_party
+          WHERE current_party.id=${input.partyId}::uuid AND current_party.agency_id=party.agency_id
+            AND current_party.departure_id=party.departure_id AND current_party.participates_in_trip_games)
+      ORDER BY party.name
+    `,
+    txn`
+      SELECT answer.value->>'__resultId' AS id,attempt.party_id::text,party.name AS party_name,
+        attempt.traveler_id::text,profile.display_name,
+        answer.key AS generated_content_id,
+        CASE activity.activity_type
+          WHEN 'quiz' THEN 'quiz' WHEN 'mission' THEN 'mission'
+          WHEN 'bingo' THEN 'bingo' ELSE 'game'
+        END AS activity_type,
+        COALESCE((answer.value->>'__score')::integer,0) AS score,
+        COALESCE(answer.value->>'__status',attempt.status) AS status
+      FROM journey.activity_attempts attempt
+      JOIN travel.travel_parties party ON party.id=attempt.party_id
+        AND party.agency_id=attempt.agency_id AND party.departure_id=attempt.departure_id
+        AND party.participates_in_trip_games
+      JOIN content.activities activity ON activity.id=attempt.activity_id AND activity.agency_id=attempt.agency_id
+      JOIN travel.traveler_profiles profile ON profile.id=attempt.traveler_id AND profile.agency_id=attempt.agency_id
+      CROSS JOIN LATERAL jsonb_each(attempt.answers) answer
+      WHERE attempt.agency_id=${input.agencyId} AND attempt.departure_id=${input.departureId}
+        AND EXISTS(SELECT 1 FROM travel.travel_parties current_party
+          WHERE current_party.id=${input.partyId}::uuid AND current_party.agency_id=attempt.agency_id
+            AND current_party.departure_id=attempt.departure_id AND current_party.participates_in_trip_games)
+    `,
+    txn`
+      SELECT entry.id::text,entry.party_id::text,party.name AS party_name,
+        entry.traveler_id::text,profile.display_name,item.id::text AS generated_content_id,
+        judgement.score,entry.is_winner
+      FROM journey.photo_contest_entries entry
+      JOIN travel.travel_parties party ON party.id=entry.party_id
+        AND party.agency_id=entry.agency_id AND party.departure_id=entry.departure_id
+        AND party.participates_in_trip_games
+      JOIN content.activity_items item ON item.activity_id=entry.activity_id
+        AND item.agency_id=entry.agency_id AND item.item_kind='contest_rule'
+      JOIN travel.traveler_profiles profile ON profile.id=entry.traveler_id AND profile.agency_id=entry.agency_id
+      LEFT JOIN LATERAL (
+        SELECT judged.score FROM journey.photo_contest_judgements judged
+        WHERE judged.agency_id=entry.agency_id AND judged.party_id=entry.party_id
+          AND judged.activity_id=entry.activity_id AND judged.entry_id=entry.id
+        ORDER BY judged.judged_at DESC,judged.id DESC LIMIT 1
+      ) judgement ON true
+      WHERE entry.agency_id=${input.agencyId} AND entry.departure_id=${input.departureId}
+        AND EXISTS(SELECT 1 FROM travel.travel_parties current_party
+          WHERE current_party.id=${input.partyId}::uuid AND current_party.agency_id=entry.agency_id
+            AND current_party.departure_id=entry.departure_id AND current_party.participates_in_trip_games)
+    `,
   ], { readOnly: true });
 
   return {
@@ -175,5 +230,8 @@ export async function readV3Gamification(input: {
     photos: photos as Row[],
     results: results as Row[],
     contests: contests as Row[],
+    competitionGroups: competitionGroups as Row[],
+    competitionResults: competitionResults as Row[],
+    competitionContests: competitionContests as Row[],
   };
 }

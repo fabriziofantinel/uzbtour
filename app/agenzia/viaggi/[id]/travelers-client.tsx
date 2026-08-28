@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { ArrowLeft, BookOpen, CalendarDays, Check, CheckCircle2, CircleAlert, Copy, LoaderCircle, Mail, Plus, ShieldCheck, UserPlus, UsersRound, X } from "lucide-react";
+import { ArrowLeft, BookOpen, CalendarDays, Check, CheckCircle2, CircleAlert, Copy, Crown, LoaderCircle, Mail, Plus, ShieldCheck, Trophy, UserPlus, UsersRound, X } from "lucide-react";
 import type { getJourneyManagement } from "@/lib/platform/journey-repository";
 
 type JourneyData = Awaited<ReturnType<typeof getJourneyManagement>>;
@@ -28,8 +28,10 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
 
   function formatDate(value: string) {
     if (!value) return "Data non indicata";
+    const date = new Date(`${value.slice(0, 10)}T12:00:00Z`);
+    if (Number.isNaN(date.valueOf())) return "Data non indicata";
     return new Intl.DateTimeFormat("it-IT", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" })
-      .format(new Date(`${value}T12:00:00Z`));
+      .format(date);
   }
 
   async function copyActivationLink() {
@@ -57,11 +59,36 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
     const form = new FormData(event.currentTarget);
     if(!await checkUsername(partyId,String(form.get("username")??""))){setError("Username già presente o non verificabile. Scegline un altro.");setBusy("");return;}
     try {
-      const result = await json<{ data: JourneyData; activationToken: string | null; invitationEmailSent: boolean }>(await fetch(`/api/admin/platform/trips/${data.journey.id}/travelers`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agencyId: data.journey.agencyId, partyId, name: form.get("name"), username: form.get("username"), email: form.get("email"), phone: form.get("phone"), birthDate: form.get("birthDate"), role: form.get("role") }) }));
+      const result = await json<{ data: JourneyData; activationToken: string | null; invitationEmailSent: boolean }>(await fetch(`/api/admin/platform/trips/${data.journey.id}/travelers`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agencyId: data.journey.agencyId, partyId, name: form.get("name"), username: form.get("username"), email: form.get("email"), phone: form.get("phone"), birthDate: form.get("birthDate") }) }));
       setData(result.data); setTravelerFamily("");
       setActivationUrl(result.activationToken ? `${window.location.origin}/attiva-account#token=${encodeURIComponent(result.activationToken)}` : "");
       setNotice(result.activationToken ? (result.invitationEmailSent ? "Viaggiatore registrato. L’invito personale è stato inviato via email." : "Viaggiatore registrato. L’invio email non è configurato: copia il link di attivazione.") : "Viaggiatore collegato a un account già attivo.");
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Operazione non riuscita"); }
+    finally { setBusy(""); }
+  }
+
+  async function updateCompetition(partyId: string, enabled: boolean) {
+    setBusy(`competition-${partyId}`); setError(""); setNotice("");
+    try {
+      const result = await json<{ data: JourneyData }>(await fetch(`/api/admin/platform/trips/${data.journey.id}/families/${partyId}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "competition", agencyId: data.journey.agencyId, enabled }),
+      }));
+      setData(result.data);
+      setNotice(enabled ? "Il gruppo parteciperà anche alla classifica del viaggio." : "Il gruppo resterà nelle classifiche interne e non concorrerà con gli altri gruppi.");
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "Aggiornamento non riuscito"); }
+    finally { setBusy(""); }
+  }
+
+  async function setLeader(partyId: string, travelerId: string) {
+    setBusy(`leader-${partyId}`); setError(""); setNotice("");
+    try {
+      const result = await json<{ data: JourneyData }>(await fetch(`/api/admin/platform/trips/${data.journey.id}/families/${partyId}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "leader", agencyId: data.journey.agencyId, travelerId }),
+      }));
+      setData(result.data); setNotice("Capogruppo aggiornato correttamente.");
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "Aggiornamento non riuscito"); }
     finally { setBusy(""); }
   }
 
@@ -86,8 +113,9 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
       {activationUrl && <div className="activationLinkBox"><ShieldCheck/><span><b>Link di attivazione monouso</b><small>Scade tra 14 giorni. Condividilo personalmente solo con il viaggiatore interessato.</small></span><label htmlFor="activation-link">Link da consegnare<input id="activation-link" readOnly value={activationUrl} onFocus={(event) => event.currentTarget.select()}/></label><button type="button" className={activationCopied ? "copied" : ""} onClick={() => void copyActivationLink()}>{activationCopied ? <Check/> : <Copy/>} {activationCopied ? "Copiato" : "Copia link"}</button><button type="button" className="activationDismiss" aria-label="Nascondi link di attivazione" onClick={() => { setActivationUrl(""); setActivationCopied(false); }}><X/></button></div>}
       {familyForm && <form className="familyCreateForm" id="family-create-form" onSubmit={addFamily} aria-busy={busy === "family"}><div><small>NUOVO GRUPPO DI CONDIVISIONE</small><strong>Crea un gruppo</strong><p>Spese, ricordi e classifiche resteranno separati dagli altri gruppi della partenza.</p></div><label htmlFor="family-name">Nome gruppo<input id="family-name" name="name" autoFocus autoComplete="off" required minLength={2} maxLength={160} placeholder="Es. Gruppo Rossi"/></label><footer><button type="button" className="secondary" disabled={Boolean(busy)} onClick={() => setFamilyForm(false)}>Annulla</button><button type="submit" disabled={Boolean(busy)}>{busy === "family" ? <><LoaderCircle className="spin"/> Creazione…</> : <><UsersRound/> Crea gruppo</>}</button></footer></form>}
       <section className="familyCards">
-        {data.families.map((family) => <article key={family.id}>
-          <header><span><UsersRound/><b>{family.name}</b><small>{family.travelers.length} {family.travelers.length === 1 ? "viaggiatore" : "viaggiatori"} · {family.code}</small></span><button type="button" aria-expanded={travelerFamily === family.id} aria-controls={`traveler-form-${family.id}`} onClick={() => { setTravelerFamily(travelerFamily === family.id ? "" : family.id); setError(""); }}><UserPlus/> {travelerFamily === family.id ? "Chiudi inserimento" : "Aggiungi viaggiatore"}</button></header>
+        {data.families.map((family) => { const leader = family.travelers.find((traveler) => traveler.role === "organizer"); return <article key={family.id}>
+          <header><span><UsersRound/><b>{family.name}</b><small>{family.travelers.length} {family.travelers.length === 1 ? "viaggiatore" : "viaggiatori"} · {family.code}</small></span><div className="groupHeaderActions"><span className={leader ? "groupLeaderSummary" : "groupLeaderSummary missing"}><Crown/><small>Capogruppo</small><b>{leader?.name ?? "Da indicare"}</b></span><button type="button" aria-expanded={travelerFamily === family.id} aria-controls={`traveler-form-${family.id}`} onClick={() => { setTravelerFamily(travelerFamily === family.id ? "" : family.id); setError(""); }}><UserPlus/> {travelerFamily === family.id ? "Chiudi inserimento" : "Aggiungi viaggiatore"}</button></div></header>
+          <div className="groupCompetitionSetting"><span><Trophy/><span><b>Partecipa ai giochi a livello di viaggio</b><small>Quiz, giochi e le stesse foto dei contest concorreranno anche con gli altri gruppi.</small></span></span><label className="groupCompetitionSwitch"><input type="checkbox" checked={family.participatesInTripGames} disabled={Boolean(busy)} onChange={(event) => void updateCompetition(family.id, event.currentTarget.checked)}/><span aria-hidden="true"/><em>{family.participatesInTripGames ? "Attiva" : "Non attiva"}</em></label></div>
           {travelerFamily === family.id && <form className="travelerCreateForm" id={`traveler-form-${family.id}`} onSubmit={(event) => addTraveler(event, family.id)} aria-busy={busy === `traveler-${family.id}`}>
             <div className="travelerFormIntro"><small>NUOVO ACCESSO</small><strong>Aggiungi un viaggiatore a {family.name}</strong><p>Ogni viaggiatore ha un proprio username. La stessa email può ricevere più inviti indipendenti.</p></div>
             <label htmlFor={`traveler-name-${family.id}`}>Nome e cognome *<input id={`traveler-name-${family.id}`} name="name" autoFocus autoComplete="name" required minLength={2} maxLength={160} placeholder="Nome e cognome"/></label>
@@ -95,11 +123,11 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
             <label htmlFor={`traveler-email-${family.id}`}>Email per inviti e recupero password *<input id={`traveler-email-${family.id}`} name="email" type="email" inputMode="email" autoComplete="email" required maxLength={320} placeholder="nome@esempio.it"/></label>
             <label htmlFor={`traveler-phone-${family.id}`}>Telefono <span>(facoltativo)</span><input id={`traveler-phone-${family.id}`} name="phone" type="tel" inputMode="tel" autoComplete="tel" maxLength={60} placeholder="+39 …"/></label>
             <label htmlFor={`traveler-birth-${family.id}`}>Data di nascita <span>(facoltativa)</span><input id={`traveler-birth-${family.id}`} name="birthDate" type="date" autoComplete="bday" max={new Date().toISOString().slice(0, 10)}/></label>
-            <label htmlFor={`traveler-role-${family.id}`}>Ruolo<select id={`traveler-role-${family.id}`} name="role" defaultValue="member"><option value="member">Componente</option><option value="organizer">Organizzatore</option></select></label>
+            {family.travelers.length === 0 && <div className="firstLeaderNotice"><Crown/><span><b>Il primo viaggiatore sarà il capogruppo.</b><small>Deve essere maggiorenne; potrai sostituirlo in seguito.</small></span></div>}
             <footer><button type="button" className="secondary" disabled={Boolean(busy)} onClick={() => setTravelerFamily("")}>Annulla</button><button type="submit" disabled={Boolean(busy)}>{busy === `traveler-${family.id}` ? <><LoaderCircle className="spin"/> Registrazione…</> : <><Plus/> Registra viaggiatore</>}</button></footer>
           </form>}
-          <div className="familyTravelers">{family.travelers.map((traveler) => <div key={traveler.id}><i>{traveler.name.split(/\s+/).slice(0, 2).map((part) => part[0] || "").join("").toUpperCase()}</i><span><b>{traveler.name}</b><small>@{traveler.username} · <Mail/> {traveler.email}</small></span><em>{traveler.role === "organizer" ? "Organizzatore" : "Componente"}</em><strong className={traveler.status}>{traveler.status === "invited" ? "Da attivare" : traveler.status === "active" ? "Attivo" : traveler.status}</strong></div>)}{family.travelers.length === 0 && <div className="familyTravelersEmpty"><UserPlus/><span><strong>Nessun viaggiatore</strong><small>Aggiungi il primo componente di questo gruppo.</small></span></div>}</div>
-        </article>)}
+          <div className="familyTravelers">{family.travelers.map((traveler) => <div key={traveler.id} className={traveler.role === "organizer" ? "isLeader" : ""}><i>{traveler.name.split(/\s+/).slice(0, 2).map((part) => part[0] || "").join("").toUpperCase()}</i><span><b>{traveler.name}</b><small>@{traveler.username} · <Mail/> {traveler.email}</small></span>{traveler.role === "organizer" ? <em className="leaderBadge"><Crown/> Capogruppo</em> : <button type="button" className="setLeaderButton" disabled={Boolean(busy)} onClick={() => void setLeader(family.id, traveler.id)}><Crown/> Imposta capogruppo</button>}<strong className={traveler.status}>{traveler.status === "invited" ? "Da attivare" : traveler.status === "active" ? "Attivo" : traveler.status}</strong></div>)}{family.travelers.length === 0 && <div className="familyTravelersEmpty"><UserPlus/><span><strong>Nessun viaggiatore</strong><small>Aggiungi per primo un adulto: diventerà il capogruppo.</small></span></div>}</div>
+        </article>; })}
         {data.families.length === 0 && <div className="agencyEmpty"><UsersRound/><h3>Nessun gruppo</h3><p>Crea il primo gruppo e aggiungi i viaggiatori che accederanno all’app.</p><button type="button" onClick={() => setFamilyForm(true)}><Plus/> Crea il primo gruppo</button></div>}
       </section>
     </div>

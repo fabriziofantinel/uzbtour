@@ -63,6 +63,9 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
   const activePhotoRows = v3Gamification.photos;
   const activeResultRows = v3Gamification.results;
   const activeContestRows = v3Gamification.contests;
+  const competitionGroupRows = v3Gamification.competitionGroups;
+  const competitionResultRows = v3Gamification.competitionResults;
+  const competitionContestRows = v3Gamification.competitionContests;
   const activeDayRows = v3Catalog.days;
   const activeItemRows = v3Catalog.items;
   const activeCityRows = v3Catalog.cities;
@@ -251,6 +254,22 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       isWinner: Boolean(row.is_winner), submittedAt: String(row.submitted_at),
       contentUrl: row.memory_id ? `/api/traveler/photos/${String(row.memory_id)}/content` : "",
     })),
+    tripCompetition: {
+      enabled: competitionGroupRows.some((row) => Boolean(row.is_current)),
+      groups: competitionGroupRows.map((row) => ({ id: String(row.id), name: String(row.name) })),
+      results: competitionResultRows.map((row) => ({
+        id: String(row.id), partyId: String(row.party_id), partyName: String(row.party_name),
+        travelerId: String(row.traveler_id), travelerName: String(row.display_name),
+        contentId: String(row.generated_content_id), type: String(row.activity_type),
+        score: Number(row.score), status: String(row.status),
+      })),
+      contestEntries: competitionContestRows.map((row) => ({
+        id: String(row.id), partyId: String(row.party_id), partyName: String(row.party_name),
+        travelerId: String(row.traveler_id), travelerName: String(row.display_name),
+        contentId: String(row.generated_content_id), score: row.score == null ? null : Number(row.score),
+        isWinner: Boolean(row.is_winner),
+      })),
+    },
   };
 }
 

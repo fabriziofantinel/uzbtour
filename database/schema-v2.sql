@@ -445,6 +445,7 @@ CREATE TABLE travel_parties (
   name TEXT NOT NULL,
   status VARCHAR(20) NOT NULL DEFAULT 'invited'
     CHECK (status IN ('invited', 'active', 'completed', 'archived')),
+  participates_in_trip_games BOOLEAN NOT NULL DEFAULT false,
   settings JSONB NOT NULL DEFAULT '{}'::jsonb CHECK (jsonb_typeof(settings) = 'object'),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),

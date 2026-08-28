@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
+import { getSql } from "@/lib/db";
 import { createV3JourneyParty, provisionV3JourneyTraveler } from "./v3-journey-provisioning";
 import { readV3JourneyManagement } from "./v3-journey-management";
 
@@ -37,4 +38,26 @@ export async function addJourneyTraveler(input: {
     travelerId: result.travelerId,
     activationToken: result.activationRequired ? token : null,
   };
+}
+
+export async function updateJourneyGroupCompetition(input: {
+  actorId: string; agencyId: string; departureId: string; partyId: string; enabled: boolean;
+}) {
+  const sql = getSql();
+  const rows = await sql`SELECT app.update_journey_party_competition(
+    ${input.actorId},${input.agencyId}::uuid,${input.departureId}::uuid,
+    ${input.partyId}::uuid,${input.enabled}
+  ) AS updated`;
+  return Boolean(rows[0]?.updated);
+}
+
+export async function setJourneyGroupLeader(input: {
+  actorId: string; agencyId: string; departureId: string; partyId: string; travelerId: string;
+}) {
+  const sql = getSql();
+  const rows = await sql`SELECT app.set_journey_party_leader(
+    ${input.actorId},${input.agencyId}::uuid,${input.departureId}::uuid,
+    ${input.partyId}::uuid,${input.travelerId}::uuid
+  ) AS updated`;
+  return Boolean(rows[0]?.updated);
 }

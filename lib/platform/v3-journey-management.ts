@@ -3,6 +3,15 @@ import "server-only";
 import { getSql } from "@/lib/db";
 import { PlatformRequestError } from "./errors";
 
+function toIsoDate(value: unknown) {
+  if (value instanceof Date && !Number.isNaN(value.valueOf())) return value.toISOString().slice(0, 10);
+  const raw = String(value ?? "");
+  const prefix = raw.match(/^\d{4}-\d{2}-\d{2}/)?.[0];
+  if (prefix) return prefix;
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.valueOf()) ? "" : parsed.toISOString().slice(0, 10);
+}
+
 export async function readV3JourneyManagement(departureId: string, actorId: string) {
   const sql = getSql();
   const rows = await sql`
@@ -17,8 +26,8 @@ export async function readV3JourneyManagement(departureId: string, actorId: stri
       agencyId: String(first.agency_id),
       title: String(first.title),
       code: String(first.code),
-      startsOn: String(first.starts_on),
-      endsOn: String(first.ends_on),
+      startsOn: toIsoDate(first.starts_on),
+      endsOn: toIsoDate(first.ends_on),
       status: String(first.departure_status),
       agencyName: String(first.agency_name),
       destinationCountry: String(first.destination_country || ""),
@@ -31,6 +40,7 @@ export async function readV3JourneyManagement(departureId: string, actorId: stri
         name: String(family.party_name),
         code: String(family.party_code),
         status: String(family.party_status),
+        participatesInTripGames: Boolean(family.party_participates_in_trip_games),
         travelers: familyRows.filter((row) => row.traveler_id).map((row) => ({
           id: String(row.traveler_id),
           name: String(row.traveler_name),

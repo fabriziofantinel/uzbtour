@@ -45,9 +45,18 @@ export default function PlatformTripRankings({ experience, userName }: { experie
   const general = [...totals].map(([name, scores]) => ({
     name, score: Object.values(scores).reduce((sum, value) => sum + value, 0),
   })).sort((left, right) => right.score - left.score || left.name.localeCompare(right.name));
+  const tripGroups = experience.tripCompetition.groups.map((group) => {
+    const approved = experience.tripCompetition.results.filter((result) => result.partyId === group.id && result.status === "approved");
+    const standardScore = approved.filter((result) => result.type !== "bingo").reduce((sum, result) => sum + result.score, 0);
+    const groupBingo = bingoScore(new Set(approved.filter((result) => result.type === "bingo").map((result) => result.contentId)), bingoIds);
+    const photoScore = experience.tripCompetition.contestEntries.filter((entry) => entry.partyId === group.id)
+      .reduce((sum, entry) => sum + (entry.score ?? (entry.isWinner ? 20 : 0)), 0);
+    return { ...group, score: standardScore + groupBingo + photoScore };
+  }).sort((left, right) => right.score - left.score || left.name.localeCompare(right.name));
 
   return <section className="rankingsPage">
-    <header className="rankingsHero"><div><span>CLASSIFICHE DELLA FAMIGLIA</span><h2>Chi guida il viaggio?</h2><p>Quiz, missioni, bingo, giochi e contest fotografici confluiscono nella classifica generale.</p></div><Trophy/></header>
+    <header className="rankingsHero"><div><span>CLASSIFICHE DEL GRUPPO</span><h2>Chi guida il viaggio?</h2><p>Quiz, missioni, bingo, giochi e contest fotografici confluiscono nella classifica generale.</p></div><Trophy/></header>
+    {experience.tripCompetition.enabled && <section className="generalRanking tripGroupRanking"><div className="rankingTitle"><Trophy/><div><small>SFIDA TRA GRUPPI</small><h3>Classifica del viaggio</h3></div></div><div className="rankingRows">{tripGroups.map((entry, index) => <article className={entry.id === experience.journey.partyId ? "current" : ""} key={entry.id}><span>{index === 0 ? <Crown/> : index + 1}</span><i>{entry.name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase()}</i><strong>{entry.name}</strong><b>{entry.score} pt</b></article>)}</div><p className="tripGroupRankingNote">Sono conteggiati gli stessi risultati e le stesse foto dei contest dei gruppi che hanno scelto di partecipare.</p></section>}
     <section className="generalRanking"><div className="rankingTitle"><Medal/><div><small>CLASSIFICA GENERALE</small><h3>{experience.journey.partyName}</h3></div></div><div className="rankingRows">{general.map((entry, index) => <article className={entry.name === userName ? "current" : ""} key={entry.name}><span>{index === 0 ? <Crown/> : index + 1}</span><i>{entry.name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase()}</i><strong>{entry.name}</strong><b>{entry.score} pt</b></article>)}</div></section>
     <div className="categoryRankings">{categories.map(({ key, label, Icon }) => {
       const ranking = [...totals].map(([name, scores]) => ({ name, score: scores[key] })).sort((left, right) => right.score - left.score || left.name.localeCompare(right.name));

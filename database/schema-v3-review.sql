@@ -600,6 +600,7 @@ CREATE TABLE travel.travel_parties (
   preferred_locale app.locale_code,
   status VARCHAR(20) NOT NULL DEFAULT 'invited'
     CHECK (status IN ('invited','active','completed','archived')),
+  participates_in_trip_games BOOLEAN NOT NULL DEFAULT false,
   settings JSONB NOT NULL DEFAULT '{}' CHECK (jsonb_typeof(settings) = 'object'),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -609,6 +610,8 @@ CREATE TABLE travel.travel_parties (
   UNIQUE (agency_id, id)
 );
 CREATE INDEX travel_parties_departure_idx ON travel.travel_parties (departure_id, status, id);
+CREATE INDEX travel_parties_trip_games_idx ON travel.travel_parties (agency_id, departure_id, id)
+  WHERE participates_in_trip_games;
 
 CREATE TABLE travel.party_memberships (
   agency_id UUID NOT NULL,
@@ -630,6 +633,8 @@ CREATE TABLE travel.party_memberships (
 );
 CREATE INDEX party_memberships_traveler_active_idx ON travel.party_memberships
   (traveler_id, party_id, agency_id) WHERE status = 'active';
+CREATE UNIQUE INDEX party_memberships_single_organizer_uidx ON travel.party_memberships (party_id)
+  WHERE role = 'organizer' AND status <> 'removed';
 
 CREATE TABLE travel.traveler_guardianships (
   agency_id UUID NOT NULL,
