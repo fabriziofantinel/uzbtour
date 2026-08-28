@@ -1,9 +1,104 @@
 import { z } from "zod";
 
+export const countryUsefulInfoCategories = [
+  "Fuso orario",
+  "Valuta e cambio",
+  "Numeri di emergenza",
+  "Ambasciata italiana",
+  "Salute e assistenza",
+  "Documenti e sicurezza",
+  "Abbigliamento e clima",
+  "Usi locali e pagamenti",
+  "Come muoversi",
+  "Usi e tradizioni",
+  "Capire il paese",
+] as const;
+
+export const countryPhraseTranslations = [
+  "Salve",
+  "Grazie",
+  "Acqua",
+  "Dov'è la stazione?",
+  "Quanto costa?",
+  "Buon appetito",
+  "Mi piace questo posto",
+  "Posso aiutare?",
+  "Qual è il tuo nome?",
+  "Mi piace la cucina locale",
+  "Questo è bellissimo",
+  "Come si dice nella lingua locale?",
+] as const;
+
+function normalizedPhrase(value: string) {
+  return value.trim().toLocaleLowerCase("it").replace(/[’']/g, "'");
+}
+
+const usefulInfoSchema = z.array(z.object({
+  category: z.enum(countryUsefulInfoCategories),
+  title: z.string().min(1).max(240),
+  body: z.string().min(1).max(6000),
+  phone: z.string().max(100).default(""),
+  url: z.string().url().max(500).or(z.literal("")).default(""),
+})).length(countryUsefulInfoCategories.length).superRefine((items, context) => {
+  for (const category of countryUsefulInfoCategories) {
+    const count = items.filter((item) => item.category === category).length;
+    if (count !== 1) context.addIssue({ code: "custom", message: `La categoria '${category}' deve comparire esattamente una volta` });
+  }
+});
+
+const phrasebookSchema = z.array(z.object({
+  language: z.string().min(1).max(80),
+  term: z.string().min(1).max(500),
+  pronunciation: z.string().min(1).max(500),
+  translation: z.string().min(1).max(500),
+})).min(12).max(36).superRefine((items, context) => {
+  const byLanguage = new Map<string, typeof items>();
+  items.forEach((item) => {
+    const language = item.language.trim().toLocaleLowerCase("it");
+    byLanguage.set(language, [...(byLanguage.get(language) ?? []), item]);
+  });
+  if (byLanguage.size < 1 || byLanguage.size > 3) {
+    context.addIssue({ code: "custom", message: "Il frasario deve contenere da una a tre lingue locali" });
+  }
+  for (const [language, phrases] of byLanguage) {
+    if (phrases.length !== 12) {
+      context.addIssue({ code: "custom", message: `La lingua '${language}' deve contenere esattamente 12 frasi` });
+    }
+    const actual = new Set(phrases.map((phrase) => normalizedPhrase(phrase.translation)));
+    const expected = countryPhraseTranslations.map(normalizedPhrase);
+    if (actual.size !== expected.length || expected.some((translation) => !actual.has(translation))) {
+      context.addIssue({ code: "custom", message: `La lingua '${language}' deve tradurre le 12 frasi italiane richieste` });
+    }
+  }
+  if (byLanguage.size > 1) {
+    const translations = [...byLanguage.values()].map((phrases) =>
+      new Set(phrases.map((phrase) => phrase.translation.trim().toLocaleLowerCase("it"))),
+    );
+    if (translations.some((set) => set.size !== 12 || [...translations[0]].some((translation) => !set.has(translation)))) {
+      context.addIssue({ code: "custom", message: "Tutte le lingue devono tradurre le stesse 12 frasi italiane" });
+    }
+  }
+});
+
+const bingoSchema = z.array(z.object({
+  title: z.string().min(1).max(120),
+  description: z.string().min(1).max(500),
+})).length(15).superRefine((items, context) => {
+  const titles = items.map((item) => item.title.trim().toLocaleLowerCase("it"));
+  if (new Set(titles).size !== items.length) {
+    context.addIssue({ code: "custom", message: "Le 15 caselle del bingo devono essere tutte diverse" });
+  }
+  items.forEach((item, index) => {
+    if (!item.description.trim().toLocaleLowerCase("it").startsWith("fotografa")) {
+      context.addIssue({ code: "custom", path: [index, "description"], message: "La casella deve richiedere una prova fotografica" });
+    }
+  });
+});
+
 export const countryReferenceSchema = z.object({
-  usefulInfo: z.array(z.object({ category: z.string(), title: z.string(), body: z.string() })).min(6).max(18),
-  phrasebook: z.array(z.object({ language: z.string(), term: z.string(), pronunciation: z.string(), translation: z.string() })).min(12).max(30),
-  bingo: z.array(z.object({ title: z.string(), description: z.string() })).min(16).max(25),
+  usefulInfo: usefulInfoSchema,
+  phrasebook: phrasebookSchema,
+  bingo: bingoSchema,
 });
 
 export const destinationReferenceSchema = z.object({
@@ -34,9 +129,9 @@ export function normalizeReferenceContent(input: unknown, kind: "country" | "des
     return {
       value: {
         ...source,
-        usefulInfo: limitArray(source.usefulInfo, 18, "usefulInfo", changes),
-        phrasebook: limitArray(source.phrasebook, 30, "phrasebook", changes),
-        bingo: limitArray(source.bingo, 25, "bingo", changes),
+        usefulInfo: limitArray(source.usefulInfo, countryUsefulInfoCategories.length, "usefulInfo", changes),
+        phrasebook: limitArray(source.phrasebook, 36, "phrasebook", changes),
+        bingo: limitArray(source.bingo, 15, "bingo", changes),
       },
       changes,
     };

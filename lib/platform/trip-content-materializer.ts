@@ -29,7 +29,7 @@ export async function materializeTripExperience(jobId: string, templateId: strin
   const rows = await sql`SELECT * FROM app.read_trip_reference_content_v3(${jobId},${agencyId},${templateId})` as ReferenceRow[];
   if (!rows[0]) throw new Error("Contenuti di riferimento del viaggio non disponibili");
 
-  const usefulEntries: Array<{ category: string; title: string; body: string; sortOrder: number }> = [];
+  const usefulEntries: Array<{ category: string; title: string; body: string; phone: string; url: string; sortOrder: number }> = [];
   const phraseEntries: Array<{ language: string; term: string; pronunciation: string; translation: string; sortOrder: number }> = [];
   const activities: MaterializedActivity[] = [];
   const grouped = new Map<string, MaterializedActivity>();
@@ -56,7 +56,7 @@ export async function materializeTripExperience(jobId: string, templateId: strin
   for (const row of rows) {
     const entries = arrayContent(row.content);
     if (row.content_type === "useful_info") {
-      entries.forEach((entry) => usefulEntries.push({ category: text(entry.category) || "Generale", title: text(entry.title) || "Informazione utile", body: text(entry.body), sortOrder: usefulEntries.length }));
+      entries.forEach((entry) => usefulEntries.push({ category: text(entry.category) || "Generale", title: text(entry.title) || "Informazione utile", body: text(entry.body), phone: text(entry.phone), url: text(entry.url), sortOrder: usefulEntries.length }));
       continue;
     }
     if (row.content_type === "phrasebook") {
@@ -104,5 +104,6 @@ export async function materializeTripExperience(jobId: string, templateId: strin
 
   const result = await sql`SELECT * FROM app.replace_trip_experience_v3(${jobId},${agencyId},${templateId},${JSON.stringify(usefulEntries)}::jsonb,${JSON.stringify(phraseEntries)}::jsonb,${JSON.stringify(activities)}::jsonb)`;
   if (!result[0]) throw new Error("Materializzazione dei contenuti non completata");
+  await sql`SELECT app.apply_generated_useful_information_contacts_v3(${jobId},${agencyId},${templateId},${JSON.stringify(usefulEntries)}::jsonb)`;
   return { versionId: String(result[0].template_version_id), generatedSections: Number(result[0].generated_sections) };
 }
