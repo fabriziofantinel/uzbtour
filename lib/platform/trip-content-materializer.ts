@@ -24,6 +24,22 @@ function arrayContent(value: unknown): Array<Record<string, unknown>> {
 }
 function text(value: unknown) { return typeof value === "string" ? value.trim() : ""; }
 
+export async function materializeTripUsefulInformation(jobId: string, templateId: string, agencyId: string) {
+  const sql = getSql();
+  const rows = await sql`SELECT * FROM app.read_trip_reference_content_v3(${jobId},${agencyId},${templateId})` as ReferenceRow[];
+  const usefulEntries: Array<{ category: string; title: string; body: string; phone: string; url: string; sortOrder: number }> = [];
+  for (const row of rows.filter((item) => item.content_type === "useful_info")) {
+    for (const entry of arrayContent(row.content)) usefulEntries.push({
+      category: text(entry.category) || "Generale", title: text(entry.title) || "Informazione utile",
+      body: text(entry.body), phone: text(entry.phone), url: text(entry.url), sortOrder: usefulEntries.length,
+    });
+  }
+  if (usefulEntries.length === 0) throw new Error("Informazioni utili di riferimento non disponibili");
+  const result = await sql`SELECT * FROM app.replace_trip_useful_information_v3(${jobId},${agencyId},${templateId},${JSON.stringify(usefulEntries)}::jsonb)`;
+  if (!result[0]) throw new Error("Materializzazione delle informazioni utili non completata");
+  return { versionId: String(result[0].template_version_id), generatedSections: Number(result[0].generated_sections) };
+}
+
 export async function materializeTripExperience(jobId: string, templateId: string, agencyId: string) {
   const sql = getSql();
   const rows = await sql`SELECT * FROM app.read_trip_reference_content_v3(${jobId},${agencyId},${templateId})` as ReferenceRow[];

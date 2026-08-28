@@ -14,7 +14,7 @@ import {
   validateCityReferenceContent,
   validateSiteReferenceContent,
 } from "./reference-content-normalizer";
-import { materializeTripExperience } from "./trip-content-materializer";
+import { materializeTripExperience, materializeTripUsefulInformation } from "./trip-content-materializer";
 
 let client: BedrockRuntimeClient | null = null;
 function bedrockClient() {
@@ -232,7 +232,10 @@ export async function processReferenceEnrichment(jobId: string, agencyId: string
         refreshed,
       });
     }
-    const materialized = await materializeTripExperience(jobId, templateId, agencyId);
+    const usefulOnly = contentTypes.length === 1 && contentTypes[0] === "useful_info";
+    const materialized = usefulOnly
+      ? await materializeTripUsefulInformation(jobId, templateId, agencyId)
+      : await materializeTripExperience(jobId, templateId, agencyId);
     await sql`SELECT app.complete_platform_job_v3(${jobId},${agencyId})`;
     return { refreshed, ...materialized };
   } catch (error) {
