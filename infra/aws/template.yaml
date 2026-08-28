@@ -370,7 +370,7 @@ Resources:
           PLATFORM_OBJECT_STORAGE_PROVIDER: r2
           PLATFORM_JOB_QUEUE_PROVIDER: sqs
           PLATFORM_AI_PROVIDER: bedrock
-          CONFIG_REVISION: "2026-08-26-r2-v4"
+          CONFIG_REVISION: "2026-08-28-reference-batch-v1"
           AWS_BEDROCK_TEXT_MODEL: !Ref BedrockTextModel
           AWS_BEDROCK_MAX_DOCUMENT_BYTES: "4500000"
           AWS_BEDROCK_MAX_OUTPUT_TOKENS: "12000"

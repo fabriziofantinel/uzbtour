@@ -23,6 +23,7 @@ function toolInput(content: ContentBlock[] | undefined) {
 }
 
 const contentAttemptLimit = 3;
+const referenceTargetConcurrency = 3;
 
 function validationMessage(error: unknown) {
   if (error instanceof z.ZodError) {
@@ -138,19 +139,28 @@ export async function processReferenceEnrichment(jobId: string, agencyId: string
   if (!Boolean(claimed[0]?.claimed)) throw new Error("Lavoro di arricchimento già elaborato o non disponibile");
   try {
     let refreshed = 0;
-    for (const target of targets) {
-      if (!(await needsRefresh(jobId, agencyId, target))) continue;
-      console.info("Reference target generation started", {
-        entityType: target.entityType,
-        entityId: target.entityId,
-        name: target.name,
-      });
-      await save(jobId, agencyId, target, await generate(target, await targetContext(target)));
-      refreshed += 1;
-      console.info("Reference target generation completed", {
-        entityType: target.entityType,
-        entityId: target.entityId,
-        name: target.name,
+    for (let offset = 0; offset < targets.length; offset += referenceTargetConcurrency) {
+      const batch = targets.slice(offset, offset + referenceTargetConcurrency);
+      const results = await Promise.all(batch.map(async (target) => {
+        if (!(await needsRefresh(jobId, agencyId, target))) return false;
+        console.info("Reference target generation started", {
+          entityType: target.entityType,
+          entityId: target.entityId,
+          name: target.name,
+        });
+        await save(jobId, agencyId, target, await generate(target, await targetContext(target)));
+        console.info("Reference target generation completed", {
+          entityType: target.entityType,
+          entityId: target.entityId,
+          name: target.name,
+        });
+        return true;
+      }));
+      refreshed += results.filter(Boolean).length;
+      console.info("Reference target batch completed", {
+        jobId,
+        processed: Math.min(offset + batch.length, targets.length),
+        total: targets.length,
         refreshed,
       });
     }
