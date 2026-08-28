@@ -142,7 +142,7 @@ export const destinationReferenceSchema = z.object({
     correctIndex: z.number().int().min(0).max(3),
     explanation: z.string().min(10).max(1000),
     sourceUrl: z.string().url().max(500),
-  })).min(10).max(15),
+  })).min(7).max(15),
   missions: z.array(z.object({ title: z.string(), description: z.string() })).min(5).max(10),
   games: z.array(z.object({ type: z.enum(["rebus", "word", "order", "riddle"]), title: z.string(), instructions: z.string(), answer: z.string() })).min(3).max(6),
   photoContests: z.array(z.object({ title: z.string(), description: z.string() })).min(2).max(2),
@@ -164,7 +164,7 @@ function normalizedQuizText(value: string) {
 
 export function validateSiteReferenceContent(value: z.infer<typeof destinationReferenceSchema>, siteName: string) {
   const issues: string[] = [];
-  if (value.quiz.length !== 10) issues.push("Il quiz del sito deve contenere esattamente 10 domande");
+  if (value.quiz.length !== 7) issues.push("Il quiz del sito deve contenere esattamente 7 domande");
   const questions = value.quiz.map((item) => normalizedQuizText(item.question));
   if (new Set(questions).size !== questions.length) issues.push("Le domande del quiz del sito devono essere tutte diverse");
   const normalizedSiteName = normalizedQuizText(siteName);
@@ -181,6 +181,13 @@ export function validateSiteReferenceContent(value: z.infer<typeof destinationRe
     }
   });
   if (issues.length > 0) throw new Error(issues.join("; "));
+  return value;
+}
+
+export function validateCityReferenceContent(value: z.infer<typeof destinationReferenceSchema>) {
+  if (value.quiz.length !== 10) {
+    throw new Error("Il quiz della città deve contenere esattamente 10 domande");
+  }
   return value;
 }
 
