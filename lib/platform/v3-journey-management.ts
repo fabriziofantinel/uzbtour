@@ -14,11 +14,15 @@ function toIsoDate(value: unknown) {
 
 export async function readV3JourneyManagement(departureId: string, actorId: string) {
   const sql = getSql();
-  const rows = await sql`
-    SELECT * FROM app.read_journey_management(${actorId},${departureId}::uuid)
-  `;
+  const [rows, brandingRows] = await Promise.all([
+    sql`SELECT * FROM app.read_journey_management(${actorId},${departureId}::uuid)`,
+    sql`SELECT agency_id::text,branding FROM app.read_agency_branding_v3(${actorId})`,
+  ]);
   const first = rows[0];
   if (!first) throw new PlatformRequestError("Viaggio non trovato");
+  const brandingRow = brandingRows.find((row) => String(row.agency_id) === String(first.agency_id));
+  const branding = brandingRow?.branding && typeof brandingRow.branding === "object" && !Array.isArray(brandingRow.branding)
+    ? brandingRow.branding as Record<string, unknown> : {};
   const partyIds = [...new Set(rows.filter((row) => row.party_id).map((row) => String(row.party_id)))];
   return {
     journey: {
@@ -30,6 +34,7 @@ export async function readV3JourneyManagement(departureId: string, actorId: stri
       endsOn: toIsoDate(first.ends_on),
       status: String(first.departure_status),
       agencyName: String(first.agency_name),
+      agencyPrimaryColor: String(branding.primaryColor || "#247A6B"),
       destinationCountry: String(first.destination_country || ""),
     },
     families: partyIds.map((id) => {

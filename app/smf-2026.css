@@ -2654,12 +2654,12 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 /* Final mobile consolidation: preserve the two-tier layout while neutralizing
    legacy programme styles and keeping the agency actions fully reachable. */
 .programmeNotice {
-  color: #fff;
+  color: var(--smf-ink);
   background: var(--smf-brand-deep) !important;
   border-color: transparent !important;
 }
 .programmeNotice span,
-.programmeNotice p { color: #dfe9e7 !important; }
+.programmeNotice p { color: var(--smf-ink) !important; }
 
 @media (max-width: 520px) {
   .agencyStats {

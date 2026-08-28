@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import type { CSSProperties } from "react";
 import { ArrowLeft, BookOpen, CalendarDays, Check, CheckCircle2, CircleAlert, Copy, Crown, FolderOpen, LoaderCircle, Mail, Plus, ShieldCheck, Trophy, UserPlus, UsersRound, X } from "lucide-react";
 import type { getJourneyManagement } from "@/lib/platform/journey-repository";
+import { accessibleBrandColor, validBrandColor } from "@/lib/platform/branding-ui";
 
 type JourneyData = Awaited<ReturnType<typeof getJourneyManagement>>;
 async function json<T>(response: Response): Promise<T> {
@@ -25,6 +27,15 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
   const travelerCount = data.families.reduce((sum, family) => sum + family.travelers.length, 0);
   const activeTravelerCount = data.families.reduce((sum, family) => sum + family.travelers.filter((traveler) => traveler.status !== "invited").length, 0);
   const invitedTravelerCount = travelerCount - activeTravelerCount;
+  const agencyColor = validBrandColor(data.journey.agencyPrimaryColor);
+  const agencyStyle = {
+    "--agency-ui": agencyColor,
+    "--agency-ui-ink": "#111111",
+    "--smf-brand": agencyColor,
+    "--smf-brand-deep": agencyColor,
+    "--smf-action": agencyColor,
+    "--smf-focus": accessibleBrandColor(agencyColor),
+  } as CSSProperties;
 
   function formatDate(value: string) {
     if (!value) return "Data non indicata";
@@ -102,7 +113,7 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
     }catch{setUsernameState((state)=>({...state,[key]:"idle"}));return false;}
   }
 
-  return <main className="journeyManagePage">
+  return <main className="journeyManagePage" style={agencyStyle}>
     <header><Link href="/agenzia"><ArrowLeft/> Tutti i viaggi</Link><nav aria-label="Gestione del viaggio"><Link href={`/agenzia/viaggi/${data.journey.id}/programma`}><BookOpen/> Programma</Link><span aria-current="page"><UsersRound/> Gruppi</span><Link href={`/agenzia/viaggi/${data.journey.id}/documenti`}><FolderOpen/> Documenti</Link></nav><span className="journeyAgencyName">{data.journey.agencyName}</span></header>
     <section className="journeyManageHero"><small>{data.journey.destinationCountry}</small><h1>{data.journey.title}</h1><p><CalendarDays/> {formatDate(data.journey.startsOn)} – {formatDate(data.journey.endsOn)} · {data.journey.code}</p></section>
     <div className="journeyManageShell">
@@ -128,7 +139,7 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
           </form>}
           <div className="familyTravelers">{family.travelers.map((traveler) => <div key={traveler.id} className={traveler.role === "organizer" ? "isLeader" : ""}><i>{traveler.name.split(/\s+/).slice(0, 2).map((part) => part[0] || "").join("").toUpperCase()}</i><span><b>{traveler.name}</b><small>@{traveler.username} · <Mail/> {traveler.email}</small></span>{traveler.role === "organizer" ? <em className="leaderBadge"><Crown/> Capogruppo</em> : <button type="button" className="setLeaderButton" disabled={Boolean(busy)} onClick={() => void setLeader(family.id, traveler.id)}><Crown/> Imposta capogruppo</button>}<strong className={traveler.status}>{traveler.status === "invited" ? "Da attivare" : traveler.status === "active" ? "Attivo" : traveler.status}</strong></div>)}{family.travelers.length === 0 && <div className="familyTravelersEmpty"><UserPlus/><span><strong>Nessun viaggiatore</strong><small>Aggiungi per primo un adulto: diventerà il capogruppo.</small></span></div>}</div>
         </article>; })}
-        {data.families.length === 0 && <div className="agencyEmpty"><UsersRound/><h3>Nessun gruppo</h3><p>Crea il primo gruppo e aggiungi i viaggiatori che accederanno all’app.</p><button type="button" onClick={() => setFamilyForm(true)}><Plus/> Crea il primo gruppo</button></div>}
+        {data.families.length === 0 && <div className="agencyEmpty"><UsersRound/><h3>Nessun gruppo</h3><p>Usa “Nuovo gruppo” per creare il gruppo e aggiungere i viaggiatori che accederanno all’app.</p></div>}
       </section>
     </div>
   </main>;
