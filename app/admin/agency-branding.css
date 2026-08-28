@@ -20,8 +20,12 @@
 .agencyBrandingForm input[type="color"] { width: 100%; min-height: 42px; padding: 3px; border: 1px solid #d8dfdc; border-radius: 9px; background: white; }
 .agencyBrandingForm button { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; border: 0; border-radius: 9px; color: white; background: #173c3c; font-weight: 850; }
 .agencyEditBranding {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   display: grid;
-  grid-template-columns: 56px minmax(170px, .8fr) 120px minmax(240px, 1.4fr);
+  grid-template-columns: 56px minmax(0, .8fr) minmax(100px, 120px) minmax(0, 1.4fr);
   align-items: center;
   gap: 12px;
   padding: 12px;
@@ -29,6 +33,7 @@
   border-radius: 12px;
   background: #f4f8f6;
 }
+.agencyEditBranding > * { min-width: 0; }
 .agencyEditBranding > span b,
 .agencyEditBranding > span small { display: block; }
 .agencyEditBranding > span b { color: #183d3b; font-size: 13px; }
