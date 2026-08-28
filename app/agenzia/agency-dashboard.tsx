@@ -517,7 +517,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                       : { className: "draft", label: "Bozza" };
                 return (
                 <tr className={importIsActive ? "generating" : ""} key={`${trip.id}-${departure?.id ?? "draft"}`}>
-                  <td data-label="Stato"><span className={`status ${displayStatus.className}`}>{displayStatus.label}</span><small className="departureStatus">{departure ? (statusLabels[departure.status] ?? departure.status) : "Senza partenza"}</small></td>
+                  <td data-label="Stato"><span className={`status ${displayStatus.className}`}>{displayStatus.label}</span>{!departure && <small className="departureStatus">Senza partenza</small>}</td>
                   <td data-label="Viaggio" className="tripNameCell"><b>{departure?.title || trip.title}</b><span>{trip.destinationCountry || "Destinazione da revisionare"}</span></td>
                   <td data-label="Periodo" className="dateRangeCell"><b>{formatTravelDate(startsOn)}</b><span aria-hidden="true">→</span><b>{formatTravelDate(endsOn)}</b></td>
                   <td data-label="Gruppi" className="numberCell">{departure?.partyCount ?? 0}</td>
@@ -558,7 +558,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                   <article className={`tripAdminCard journeyCard ${importIsActive || contentIsActive ? "generating" : ""}`} key={`${trip.id}-${departure?.id ?? "draft"}`}>
                     <div className="tripCardTop">
                       <span className={`status ${displayStatus.className}`}>{displayStatus.label}</span>
-                      <span className="journeyDepartureStatus">{departure ? (statusLabels[departure.status] ?? departure.status) : "Senza partenza"}</span>
+                      {!departure && <span className="journeyDepartureStatus">Senza partenza</span>}
                     </div>
                     <h3>{departure?.title || trip.title}</h3>
                     <p>{trip.destinationCountry || "Destinazione da revisionare"} · Programma: {trip.title}</p>
