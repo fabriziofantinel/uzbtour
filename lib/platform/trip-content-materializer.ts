@@ -1,6 +1,6 @@
 import { getSql } from "@/lib/db";
 
-type ReferenceRow = { template_version_id: string; template_day_id: string | null; content_type: string; content: unknown };
+type ReferenceRow = { template_version_id: string; template_day_id: string | null; content_type: string; content: unknown; entity_order: number };
 type ActivityItem = { ordinal: number; itemKind: "question" | "mission" | "bingo_cell" | "word" | "order_step" | "contest_rule"; prompt: string; payload: Record<string, unknown>; answerSpec: Record<string, unknown>; points: number };
 type MaterializedActivity = {
   templateDayId: string | null;
@@ -33,7 +33,7 @@ export async function materializeTripExperience(jobId: string, templateId: strin
   const phraseEntries: Array<{ language: string; term: string; pronunciation: string; translation: string; sortOrder: number }> = [];
   const activities: MaterializedActivity[] = [];
   const grouped = new Map<string, MaterializedActivity>();
-  const limits = new Map<string, number>();
+  const daySources = new Map<string, { dayId: string; contentType: string; sources: Array<{ entityOrder: number; entries: Array<Record<string, unknown>> }> }>();
   let activitySort = 0;
   const ensureGroup = (dayId: string | null, type: "quiz" | "mission" | "bingo") => {
     const key = `${dayId ?? "trip"}:${type}`;
@@ -73,33 +73,57 @@ export async function materializeTripExperience(jobId: string, templateId: strin
     }
     const dayId = row.template_day_id;
     if (!dayId) continue;
-    if (row.content_type === "quiz" || row.content_type === "mission") {
-      const type = row.content_type;
-      const activity = ensureGroup(dayId, type);
-      const limit = type === "quiz" ? 10 : 5;
-      for (const entry of entries) {
-        if (activity.items.length >= limit) break;
-        activity.items.push(type === "quiz"
-          ? { ordinal: activity.items.length + 1, itemKind: "question", prompt: text(entry.question) || text(entry.title), payload: { options: Array.isArray(entry.options) ? entry.options : [], explanation: text(entry.explanation), sourceUrl: text(entry.sourceUrl) }, answerSpec: { correctIndex: entry.correctIndex }, points: 1 }
-          : { ordinal: activity.items.length + 1, itemKind: "mission", prompt: text(entry.title), payload: { description: text(entry.description) }, answerSpec: { validation: "photo" }, points: 10 });
+    if (!["quiz", "mission", "game", "photo_contest"].includes(row.content_type)) continue;
+    const key = `${dayId}:${row.content_type}`;
+    const source = daySources.get(key) ?? { dayId, contentType: row.content_type, sources: [] };
+    source.sources.push({ entityOrder: row.entity_order, entries });
+    daySources.set(key, source);
+  }
+
+  // Alternate city and site sources so a day's activities represent the whole
+  // itinerary rather than being exhausted by the first entity returned by SQL.
+  for (const { dayId, contentType, sources } of daySources.values()) {
+    const limit = contentType === "quiz" ? 10 : contentType === "mission" ? 5 : contentType === "game" ? 3 : 2;
+    const sourceGroups = [0, 1].map((entityOrder) => {
+      const group = sources.filter((source) => source.entityOrder === entityOrder);
+      const flattened: Array<Record<string, unknown>> = [];
+      for (let itemIndex = 0; ; itemIndex += 1) {
+        let added = false;
+        for (const source of group) {
+          const entry = source.entries[itemIndex];
+          if (!entry) continue;
+          flattened.push(entry); added = true;
+        }
+        if (!added) break;
       }
+      return flattened;
+    }).filter((group) => group.length > 0);
+    const selected: Array<Record<string, unknown>> = [];
+    while (selected.length < limit && sourceGroups.some((group) => group.length > 0)) {
+      for (const group of sourceGroups) {
+        const entry = group.shift();
+        if (entry) selected.push(entry);
+        if (selected.length >= limit) break;
+      }
+    }
+    if (contentType === "quiz" || contentType === "mission") {
+      const type = contentType;
+      const activity = ensureGroup(dayId, type);
+      for (const entry of selected) activity.items.push(type === "quiz"
+        ? { ordinal: activity.items.length + 1, itemKind: "question", prompt: text(entry.question) || text(entry.title), payload: { options: Array.isArray(entry.options) ? entry.options : [], explanation: text(entry.explanation), sourceUrl: text(entry.sourceUrl) }, answerSpec: { correctIndex: entry.correctIndex }, points: 1 }
+        : { ordinal: activity.items.length + 1, itemKind: "mission", prompt: text(entry.title), payload: { description: text(entry.description) }, answerSpec: { validation: "photo" }, points: 10 });
       activity.maxScore = activity.items.reduce((total, item) => total + item.points, 0);
       continue;
     }
-    const limitKey = `${dayId}:${row.content_type}`;
-    for (const entry of entries) {
-      const current = limits.get(limitKey) ?? 0;
-      const limit = row.content_type === "game" ? 3 : 2;
-      if (current >= limit) break;
-      limits.set(limitKey, current + 1);
-      if (row.content_type === "game") {
+    selected.forEach((entry, index) => {
+      if (contentType === "game") {
         const isOrder = text(entry.type) === "order";
         activities.push({ templateDayId: dayId, activityType: isOrder ? "order_game" : "word_game", contestCategory: null, title: text(entry.title) || "Gioco del giorno", instructions: text(entry.instructions), availabilityRule: "always", relativeDays: null, unlockLocalTime: null, maxScore: 10, maxEntries: null, sortOrder: activitySort++, items: [{ ordinal: 1, itemKind: isOrder ? "order_step" : "word", prompt: text(entry.title), payload: { type: text(entry.type), instructions: text(entry.instructions) }, answerSpec: { answer: text(entry.answer) }, points: 10 }] });
       } else {
-        const category = current === 0 ? "free" : "theme";
+        const category = index === 0 ? "free" : "theme";
         activities.push({ templateDayId: dayId, activityType: "photo_contest", contestCategory: category, title: text(entry.title) || (category === "free" ? "Tema libero" : "Tema del giorno"), instructions: text(entry.description), availabilityRule: "always", relativeDays: null, unlockLocalTime: null, maxScore: null, maxEntries: 3, sortOrder: activitySort++, items: [{ ordinal: 1, itemKind: "contest_rule", prompt: text(entry.title), payload: { description: text(entry.description) }, answerSpec: {}, points: 0 }] });
       }
-    }
+    });
   }
 
   const result = await sql`SELECT * FROM app.replace_trip_experience_v3(${jobId},${agencyId},${templateId},${JSON.stringify(usefulEntries)}::jsonb,${JSON.stringify(phraseEntries)}::jsonb,${JSON.stringify(activities)}::jsonb)`;

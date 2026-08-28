@@ -22,7 +22,9 @@ export async function POST(
       agencyId: queued.agencyId,
       type: "travel-reference.enrich",
       payload: queued.payload,
-      idempotencyKey: queued.idempotencyKey,
+      // A manual retry must create a new job. Reusing the publication key would
+      // return the already completed job and silently skip materialization.
+      idempotencyKey: `${queued.idempotencyKey}:retry:${crypto.randomUUID()}`,
     });
     return NextResponse.json({ ok: true, job });
   } catch (error) {

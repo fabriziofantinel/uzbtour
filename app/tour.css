@@ -4747,7 +4747,15 @@
 .travelerRedesign .hero {
   height: 190px;
   padding-block: 30px;
-  background: var(--trail-ink);
+  color: var(--agency-on-primary);
+  background: var(--trail-primary);
+}
+
+.travelerRedesign .hero :is(h1, p, strong, span),
+.travelerRedesign .usefulHero :is(h2, p, span),
+.travelerRedesign .phrasebookHero :is(h2, p, small),
+.travelerRedesign .expenseHero :is(h2, p, span, small, strong) {
+  color: var(--agency-on-primary);
 }
 
 .travelerRedesign .hero h1,
@@ -5004,7 +5012,7 @@
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  color: white;
+  color: var(--agency-on-primary);
   background: var(--trail-coral);
   font: 850 14px/1 var(--font-sans), sans-serif;
 }

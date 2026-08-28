@@ -414,6 +414,8 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     "--agency-primary": agencyColor,
     "--agency-on-primary": "#111111",
     "--smf-action": agencyColor,
+    "--teal": agencyColor,
+    "--on-brand": "#111111",
   } as CSSProperties;
 
   return <main className="travelExperience travelerRedesign" style={brandStyle} data-design-contract="b0beb44b" data-design-thesis="sentiero-delle-tappe">
