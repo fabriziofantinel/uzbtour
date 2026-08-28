@@ -5,7 +5,7 @@ import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } fr
 import {
   Accessibility, ArrowLeft, ArrowRight, ArrowRightLeft, Banknote, BedDouble, Building2, Bus,
   CalendarDays, Camera, ChevronRight, CircleUserRound, Clock3,
-  Check, Download, ExternalLink, FileText, Info, Languages, LoaderCircle, LocateFixed, LogOut, Map,
+  Check, Download, ExternalLink, FileText, Info, Languages, LoaderCircle, LogOut, Map,
   MapPin, MessageCircle, Navigation, Plane, ReceiptText,
   Sparkles, Star, TrainFront, Trash2, Utensils, Wallet, Wifi, WifiOff,
 } from "lucide-react";
@@ -62,15 +62,6 @@ function challengeText(content: unknown) {
 
 function validBrandColor(value: string | undefined) {
   return value && /^#[0-9a-f]{6}$/i.test(value) ? value : "#247A6B";
-}
-
-function distanceMetres(from: { latitude: number; longitude: number }, to: { latitude: number; longitude: number }) {
-  const radians = (degrees: number) => degrees * Math.PI / 180;
-  const latitudeDelta = radians(to.latitude - from.latitude);
-  const longitudeDelta = radians(to.longitude - from.longitude);
-  const a = Math.sin(latitudeDelta / 2) ** 2
-    + Math.cos(radians(from.latitude)) * Math.cos(radians(to.latitude)) * Math.sin(longitudeDelta / 2) ** 2;
-  return 6_371_000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 function todayInTimeZone(timeZone: string) {
@@ -152,10 +143,6 @@ export default function TravelExperience({ initialExperience, userName, isAgency
   const [officialEurRate, setOfficialEurRate] = useState<number | null>(null);
   const [expenseDayId, setExpenseDayId] = useState<string | null | undefined>(undefined);
   const [cashDialogKind, setCashDialogKind] = useState<"withdrawal" | "exchange" | null>(null);
-  const [locationState, setLocationState] = useState<"idle" | "requesting" | "suggested" | "unavailable">("idle");
-  const [locationMessage, setLocationMessage] = useState("La posizione viene controllata solo quando lo chiedi.");
-  const [suggestedItemId, setSuggestedItemId] = useState<string | null>(null);
-  const [currentItems, setCurrentItems] = useState<Record<string, string>>({});
   const [moreOpen, setMoreOpen] = useState(false);
   const [memoryDayFilter, setMemoryDayFilter] = useState<number | "all">("all");
   const [isOnline, setIsOnline] = useState(true);
@@ -164,9 +151,6 @@ export default function TravelExperience({ initialExperience, userName, isAgency
   const moreButtonRef = useRef<HTMLButtonElement>(null);
   const firstTabRender = useRef(true);
   const day = experience.days[active] ?? experience.days[0];
-  const currentItemId = day ? currentItems[day.id] ?? null : null;
-  const currentItemIndex = day ? day.items.findIndex((item) => item.id === currentItemId) : -1;
-  const suggestedItem = day?.items.find((item) => item.id === suggestedItemId) ?? null;
   const photosByDay = useMemo(() => experience.photos.reduce<Record<number, Experience["photos"]>>((all, photo) => {
     all[photo.dayNumber] = [...(all[photo.dayNumber] || []), photo]; return all;
   }, {}), [experience.photos]);
@@ -261,62 +245,11 @@ export default function TravelExperience({ initialExperience, userName, isAgency
 
   function selectDay(index: number) {
     setActive(index);
-    setSuggestedItemId(null);
-    setLocationState("idle");
-    setLocationMessage("La posizione viene controllata solo quando lo chiedi.");
   }
   function openDay(index: number) { selectDay(index); setTab("programma"); }
   function openProgramme() {
     selectDay(currentDayIndex(experience.days, experience.journey.timezone));
     setTab("programma");
-  }
-  function requestNearbyVisit() {
-    if (!day) return;
-    const candidates = day.items.flatMap((item) => {
-      if (item.type !== "visit") return [];
-      const site = relatedSite(day, item);
-      const latitude = item.latitude ?? site?.latitude ?? null;
-      const longitude = item.longitude ?? site?.longitude ?? null;
-      return latitude == null || longitude == null ? [] : [{ item, latitude, longitude }];
-    });
-    if (candidates.length === 0) {
-      setLocationState("unavailable");
-      setSuggestedItemId(null);
-      setLocationMessage("Queste visite non hanno ancora coordinate precise. Puoi indicare manualmente la tappa attuale.");
-      return;
-    }
-    if (!("geolocation" in navigator)) {
-      setLocationState("unavailable");
-      setLocationMessage("La posizione non è disponibile su questo dispositivo. Seleziona manualmente la tappa.");
-      return;
-    }
-    setLocationState("requesting");
-    setLocationMessage("Cerco la visita più vicina…");
-    navigator.geolocation.getCurrentPosition((position) => {
-      const current = { latitude: position.coords.latitude, longitude: position.coords.longitude };
-      const nearest = candidates.map((candidate) => ({ item: candidate.item, distance: distanceMetres(current, {
-        latitude: candidate.latitude, longitude: candidate.longitude,
-      }) })).sort((left, right) => left.distance - right.distance)[0];
-      if (!nearest || nearest.distance > 350) {
-        setLocationState("unavailable");
-        setSuggestedItemId(null);
-        setLocationMessage("Non risulti vicino a una visita prevista oggi. Puoi scegliere la tappa manualmente.");
-        return;
-      }
-      setSuggestedItemId(nearest.item.id);
-      setLocationState("suggested");
-      setLocationMessage(`Sei a circa ${Math.max(10, Math.round(nearest.distance / 10) * 10)} m da ${nearest.item.title}.`);
-    }, () => {
-      setLocationState("unavailable");
-      setLocationMessage("Posizione non autorizzata. Puoi continuare e scegliere la tappa manualmente.");
-    }, { enableHighAccuracy: false, timeout: 8_000, maximumAge: 300_000 });
-  }
-  function confirmCurrentItem(itemId: string) {
-    if (!day) return;
-    setCurrentItems((current) => ({ ...current, [day.id]: itemId }));
-    setSuggestedItemId(null);
-    setLocationState("idle");
-    setLocationMessage("Tappa attuale confermata. Puoi modificarla in qualsiasi momento.");
   }
   async function postJournal(body: Record<string, unknown>) {
     const response = await fetch("/api/traveler/journal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ departureId: experience.journey.departureId, partyId: experience.journey.partyId, ...body }) });
@@ -445,33 +378,35 @@ export default function TravelExperience({ initialExperience, userName, isAgency
       <aside className="timeline"><div className="sectionTitle"><div><span>ITINERARIO</span><h2>Giorno per giorno</h2></div><span>{active + 1} / {experience.days.length}</span></div><div className="dayList">{experience.days.map((entry, index) => { const date = dateParts(entry.date); const Transport = dayTransport(entry).Icon; return <button key={entry.id} className={`dayRow ${active === index ? "selected" : ""}`} onClick={() => selectDay(index)}><span className="dayDate"><b>{date.day}</b>{date.month}</span><span className="line"><i style={{ background: colors[index % colors.length] }}/></span><span className="dayInfo"><small>{entry.label || `GIORNO ${entry.number}`}</small><strong>{entry.city}</strong><em><Transport/>{entry.title}</em></span><ChevronRight/></button>; })}</div></aside>
       <section className="detail">
         <div className="detailHead"><div><span className="tag" style={{ color: colors[active % colors.length] }}>{day.label || `GIORNO ${day.number}`} · {currentDate.full}</span><h2>{day.title}</h2><p><MapPin/><span className="cityLinks">{day.cities.length ? day.cities.map((city, index) => <Fragment key={city.id}>{index > 0 && <ArrowRight/>}<a href={city.googleUrl} target="_blank" rel="noreferrer">{city.name}<ExternalLink/></a></Fragment>) : day.city}</span></p></div><div className="pager"><button type="button" aria-label="Giornata precedente" disabled={active === 0} onClick={() => selectDay(active - 1)}><ArrowLeft/></button><button type="button" aria-label="Giornata successiva" disabled={active === experience.days.length - 1} onClick={() => selectDay(active + 1)}><ArrowRight/></button></div></div>
-        <section className={`proximityPanel state-${locationState}`} aria-live="polite"><div className="proximityIcon"><LocateFixed/></div><div className="proximityCopy"><small>{suggestedItem ? "VISITA SUGGERITA DALLA POSIZIONE" : currentItemId ? "TAPPA ATTUALE" : "DOVE SEI NEL PROGRAMMA?"}</small><strong>{suggestedItem?.title || day.items.find((item) => item.id === currentItemId)?.title || "Individua la visita più vicina"}</strong><p>{locationMessage}</p></div>{suggestedItem ? <div className="proximityActions"><button type="button" className="confirm" onClick={() => confirmCurrentItem(suggestedItem.id)}><Check/>Conferma</button><button type="button" onClick={() => { setSuggestedItemId(null); setLocationState("idle"); setLocationMessage("Suggerimento ignorato. Puoi scegliere la tappa dalla scaletta."); }}>Non ora</button></div> : <button type="button" className="locateButton" disabled={locationState === "requesting"} onClick={requestNearbyVisit}>{locationState === "requesting" ? <LoaderCircle className="spin"/> : <LocateFixed/>}{locationState === "requesting" ? "Ricerca…" : "Individua"}</button>}</section>
+        <section className="dayContext dayContextOpen" aria-labelledby={`day-details-${day.id}`}>
+          <h3 id={`day-details-${day.id}`}>Dettagli della giornata</h3>
+          {day.description && <p className="description">{day.description}</p>}
+          <div className="stayInfo"><span>{transport.label}</span><span><strong>{day.hotels.map((hotel) => hotel.name).join(" · ") || "Nessun pernottamento previsto"}</strong></span></div>
+        </section>
         <section className="dayProgramme"><header><span>SCALLETTA DELLA GIORNATA</span><h3>Le attività nell’ordine previsto</h3><p>Gli orari compaiono solo per trasporti e prenotazioni che li prevedono.</p></header><div className="dayProgrammeList">
           {day.items.map((item, index) => {
             const presentation = itemPresentation(item.type); const ItemIcon = presentation.Icon;
             const site = relatedSite(day, item);
+            const showTypeIcon = item.type !== "visit" && item.type !== "hotel";
             const hasVisibleTime = ["transport", "flight", "train"].includes(item.type)
               && Boolean(item.startsAt || item.endsAt);
             const ratingBusy = saving === `rating-itinerary_item-${item.id}`;
-            const progressClass = item.id === currentItemId ? "is-current" : currentItemIndex > index ? "is-complete" : item.id === suggestedItemId ? "is-suggested" : "";
-            return <article className={`programmeStep type-${item.type} ${progressClass}`} key={item.id}>
-              <span className="programmeStepNumber">{String(index + 1).padStart(2, "0")}</span><span className="programmeStepLine"/><span className="programmeStepIcon" aria-hidden="true"><ItemIcon/></span>
+            return <article className={`programmeStep type-${item.type} ${showTypeIcon ? "" : "withoutTypeIcon"}`} key={item.id}>
+              <span className="programmeStepNumber">{String(index + 1).padStart(2, "0")}</span><span className="programmeStepLine"/>{showTypeIcon && <span className="programmeStepIcon" aria-hidden="true"><ItemIcon/></span>}
               <div className="programmeStepBody"><div className="programmeStepMeta"><small>{presentation.label}</small>{hasVisibleTime && <time><Clock3/>{item.startsAt || item.endsAt}{item.startsAt && item.endsAt ? ` – ${item.endsAt}` : ""}</time>}</div>
                 <h4>{site ? <a href={site.googleUrl} target="_blank" rel="noreferrer">{item.title}<ExternalLink/></a> : item.title}</h4>
                 {item.description && <div className={item.type === "transport" ? "programmeOperationalNote" : "programmeDescriptionNote"}>{item.type === "transport" && <strong>Note operative</strong>}<p>{item.description}</p></div>}
                 {item.tickets.length > 0 && <div className="travelerTickets">{item.tickets.map((ticket) => <a href={ticket.downloadUrl} key={ticket.id}><FileText/><span><strong>Biglietto</strong><small>{ticket.title}</small></span><Download/></a>)}</div>}
-                <button type="button" className="setCurrentStep" aria-pressed={item.id === currentItemId} onClick={() => confirmCurrentItem(item.id)}>{item.id === currentItemId ? <><Check/>Tappa attuale</> : "Sono qui"}</button>
                 <RatingStars value={item.rating} busy={ratingBusy} label={`Valutazione di ${item.title}`} onRate={(rating) => void saveRating(day.id, "itinerary_item", item.id, rating)}/>
               </div>
             </article>;
           })}
           {day.hotels.map((hotel, hotelIndex) => { const ratingBusy = saving === `rating-hotel-${hotel.id}`; return <article className="programmeStep type-hotel" key={`hotel-${hotel.id}`}>
-            <span className="programmeStepNumber">{String(day.items.length + hotelIndex + 1).padStart(2, "0")}</span><span className="programmeStepLine"/><span className="programmeStepIcon" aria-hidden="true"><BedDouble/></span>
+            <span className="programmeStepNumber">{String(day.items.length + hotelIndex + 1).padStart(2, "0")}</span><span className="programmeStepLine"/>
             <div className="programmeStepBody"><div className="programmeStepMeta"><small>Pernottamento</small></div><h4><a href={hotel.googleUrl} target="_blank" rel="noreferrer">{hotel.name}<ExternalLink/></a></h4><p>{hotel.city}</p><RatingStars value={hotel.rating} busy={ratingBusy} label={`Valutazione di ${hotel.name}`} onRate={(rating) => void saveRating(day.id, "hotel", hotel.id, rating)}/></div>
           </article>; })}
           {day.items.length === 0 && day.hotels.length === 0 && <div className="programmeEmpty">Programma dettagliato ancora da completare.</div>}
         </div></section>
-        {(day.description || day.hotels.length > 0) && <details className="dayContext"><summary>Dettagli della giornata</summary>{day.description && <p className="description">{day.description}</p>}<div className="stayInfo"><span><CircleUserRound/>{transport.label}</span><span><BedDouble/><strong>{day.hotels.map((hotel) => hotel.name).join(" · ") || "Pernottamento da confermare"}</strong></span></div></details>}
         <div className="journal"><div><MessageCircle/><strong>Nota del giorno</strong></div><textarea placeholder="Scrivi qui un ricordo, un consiglio, una curiosità…" value={dayNote?.text || ""} onChange={(event) => setExperience((current) => ({ ...current, notes: current.notes.some((entry) => entry.dayId === day.id) ? current.notes.map((entry) => entry.dayId === day.id ? { ...entry, text: event.target.value, updatedBy: userName } : entry) : [...current.notes, { id: "new", dayId: day.id, dayNumber: day.number, text: event.target.value, updatedBy: userName, updatedAt: "" }] }))} onBlur={() => void saveNote()}/>{saving === `note-${day.id}` ? <small className="auditBy">Salvataggio…</small> : dayNote?.text && <small className="auditBy">Ultima modifica: {dayNote.updatedBy}</small>}</div>
       </section>
     </div>}

@@ -309,6 +309,16 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 .travelerRedesign .expenseHero > span { display: none; }
 .travelerRedesign .dayProgramme > header h3 { margin: 4px 0; font: 700 27px/1.13 var(--font-serif), serif; }
 .travelerRedesign .dayProgramme > header p { font-size: 13px; }
+.travelerRedesign .dayContextOpen {
+  margin: 25px 0 30px;
+  padding: 16px;
+}
+.travelerRedesign .dayContextOpen h3 {
+  margin: 0 0 10px;
+  color: var(--smf-ink);
+  font: 700 21px/1.2 var(--font-serif), serif;
+}
+.travelerRedesign .dayContextOpen .description { margin-bottom: 12px; }
 .travelerRedesign .programmeStep {
   grid-template-columns: 44px 20px 42px minmax(0,1fr);
   min-height: 116px;
@@ -333,6 +343,10 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 }
 .travelerRedesign .programmeStepIcon svg { width: 21px; height: 21px; }
 .travelerRedesign .programmeStepBody { grid-column: 4; min-width: 0; padding: 0 0 25px 10px; border-bottom: 1px solid var(--smf-line); }
+.travelerRedesign .programmeStep.withoutTypeIcon,
+.travelerRedesign .programmeStep.type-hotel { grid-template-columns: 44px 20px minmax(0,1fr); }
+.travelerRedesign .programmeStep.withoutTypeIcon .programmeStepBody,
+.travelerRedesign .programmeStep.type-hotel .programmeStepBody { grid-column: 3; }
 .travelerRedesign .programmeStepBody h4 { margin: 6px 0; font: 700 20px/1.25 var(--font-serif), serif; }
 .travelerRedesign .programmeStepMeta small { color: var(--trail-primary); letter-spacing: .05em; }
 .travelerRedesign .programmeStep.is-current .programmeStepIcon {
@@ -2259,6 +2273,8 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   .travelerRedesign .connectionStatus b { display: none; }
   .travelerRedesign .currentUser b { display: none; }
   .travelerRedesign .programmeStep { grid-template-columns: 36px 16px 38px minmax(0,1fr); }
+  .travelerRedesign .programmeStep.withoutTypeIcon,
+  .travelerRedesign .programmeStep.type-hotel { grid-template-columns: 36px 16px minmax(0,1fr); }
   .travelerRedesign .programmeStepNumber { width: 34px; height: 34px; border-radius: 10px; }
   .travelerRedesign .programmeStepIcon { width: 34px; height: 34px; border-radius: 10px; }
   .travelerRedesign .programmeStepIcon svg { width: 19px; height: 19px; }
