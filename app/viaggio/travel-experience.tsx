@@ -70,36 +70,6 @@ function validBrandColor(value: string | undefined) {
   return value && /^#[0-9a-f]{6}$/i.test(value) ? value : "#247A6B";
 }
 
-function hexChannels(hex: string) {
-  return [1, 3, 5].map((index) => Number.parseInt(hex.slice(index, index + 2), 16));
-}
-
-function relativeLuminance(hex: string) {
-  const channels = hexChannels(hex).map((value) => value / 255)
-    .map((channel) => channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4);
-  return .2126 * channels[0] + .7152 * channels[1] + .0722 * channels[2];
-}
-
-function contrastRatio(first: string, second: string) {
-  const light = Math.max(relativeLuminance(first), relativeLuminance(second));
-  const dark = Math.min(relativeLuminance(first), relativeLuminance(second));
-  return (light + .05) / (dark + .05);
-}
-
-function accessibleBrandColor(hex: string) {
-  let channels = hexChannels(hex);
-  let candidate = hex;
-  while (contrastRatio(candidate, "#FAF7F0") < 4.5) {
-    channels = channels.map((value) => Math.max(0, Math.round(value * .82)));
-    candidate = `#${channels.map((value) => value.toString(16).padStart(2, "0")).join("")}`;
-  }
-  return candidate;
-}
-
-function brandContrastColor(hex: string) {
-  return contrastRatio(hex, "#142B35") >= contrastRatio(hex, "#FFFFFF") ? "#142B35" : "#FFFFFF";
-}
-
 function distanceMetres(from: { latitude: number; longitude: number }, to: { latitude: number; longitude: number }) {
   const radians = (degrees: number) => degrees * Math.PI / 180;
   const latitudeDelta = radians(to.latitude - from.latitude);
@@ -442,12 +412,12 @@ export default function TravelExperience({ initialExperience, userName, isAgency
   const dayNote = experience.notes.find((entry) => entry.dayId === day.id);
   const isUzbekistan = experience.journey.destinationCountry.toLocaleLowerCase("it").includes("uzbek");
   const agencyColor = validBrandColor(experience.journey.agencyBranding.primaryColor);
-  const agencyPrimary = accessibleBrandColor(agencyColor);
   const agencyLogo = agencyLogoSource(experience.journey.agencyBranding.logoUrl,experience.journey.agencyId);
   const brandStyle = {
     "--agency-source": agencyColor,
-    "--agency-primary": agencyPrimary,
-    "--agency-on-primary": brandContrastColor(agencyPrimary),
+    "--agency-primary": agencyColor,
+    "--agency-on-primary": "#111111",
+    "--smf-action": agencyColor,
   } as CSSProperties;
 
   return <main className="travelExperience travelerRedesign" style={brandStyle} data-design-contract="b0beb44b" data-design-thesis="sentiero-delle-tappe">
