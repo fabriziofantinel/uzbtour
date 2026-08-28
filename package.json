@@ -79,6 +79,8 @@
     "db:migrate:v3:agency-content-deletion": "node --env-file=.env.local scripts/migrate-v3-agency-content-deletion.mjs --apply",
     "db:migrate:v3:traveler-profile-controls:dry-run": "node --env-file=.env.local scripts/migrate-v3-traveler-profile-controls.mjs",
     "db:migrate:v3:traveler-profile-controls": "node --env-file=.env.local scripts/migrate-v3-traveler-profile-controls.mjs --apply",
+    "db:migrate:v3:departure-programme-recovery:dry-run": "node --env-file=.env.local scripts/migrate-v3-departure-programme-recovery.mjs",
+    "db:migrate:v3:departure-programme-recovery": "node --env-file=.env.local scripts/migrate-v3-departure-programme-recovery.mjs --apply",
     "db:backfill:v3:dry-run": "node --env-file=.env.local scripts/backfill-v3-shadow-core.mjs",
     "db:backfill:v3": "node --env-file=.env.local scripts/backfill-v3-shadow-core.mjs --apply",
     "db:audit:v3:operational": "node --env-file=.env.local scripts/audit-v3-operational-source.mjs",
