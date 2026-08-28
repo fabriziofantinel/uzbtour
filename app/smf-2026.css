@@ -2657,7 +2657,9 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   color: var(--smf-ink);
   background: var(--smf-brand-deep) !important;
   border-color: transparent !important;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
 }
+.programmeNotice > div { margin-left: 8px; }
 .programmeNotice span,
 .programmeNotice p { color: var(--smf-ink) !important; }
 
@@ -2700,7 +2702,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 .programmeContext{width:min(100%,520px);overflow:hidden}
 .programmeContext h1{max-width:100%;font:700 18px/1.2 var(--font-serif),serif;text-overflow:ellipsis;white-space:nowrap}
 .programmeQuotes{position:relative}.programmeQuotes summary{display:flex;align-items:center;gap:6px;min-height:38px;padding:0 11px;border-radius:8px;cursor:pointer;list-style:none;font-weight:700}.programmeQuotes summary::-webkit-details-marker{display:none}.programmeQuotes>div{position:absolute;z-index:20;top:calc(100% + 6px);right:0;min-width:205px;padding:6px;border:1px solid var(--smf-line);border-radius:10px;background:var(--smf-surface);box-shadow:0 12px 28px rgba(20,43,53,.16)}.programmeQuotes>div a{justify-content:flex-start!important;width:100%;font-size:11px!important}
-.dayEditorHead .saveDayButton{min-height:38px;padding:0 12px;border:0;border-radius:8px;background:var(--smf-brand-deep);color:var(--smf-ink);font-size:10px;font-weight:800}
+.dayEditorHead .saveDayButton{min-height:38px;padding:0 12px;border:0;border-radius:8px;background:var(--smf-brand-deep);color:var(--smf-ink);font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:6px;line-height:1}
 
 /* I colori agenzia restano accenti: testi e icone non diventano mai bianchi. */
 .journeyManagePage :is(button,[role="button"],nav [aria-current="page"]),

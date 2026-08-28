@@ -184,7 +184,6 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
     </header>
     <section className="programmeNotice">
       <CalendarDays/><div><b>Partenza visualizzata: {departure.title}</b><span>{dateFor(departure.startsOn, 0)} – {dateFor(departure.startsOn, Math.max(0, days.length - 1))}</span></div>
-      <p>Itinerario e contenuti appartengono al preventivo: ogni modifica vale per tutte le partenze collegate. Spese, ricordi, giochi e contest restano invece separati per gruppo.</p>
       {dirtyDayIds.size > 0 && <strong className="programmeUnsaved" role="status">{dirtyDayIds.size} {dirtyDayIds.size === 1 ? "giornata da salvare" : "giornate da salvare"}</strong>}
     </section>
     {message && <div className={`programmeMessage ${message.kind}`} role={message.kind === "error" ? "alert" : "status"}>{message.kind === "error" ? <CircleAlert/> : <CheckCircle2/>}{message.text}</div>}
