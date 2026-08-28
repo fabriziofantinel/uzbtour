@@ -144,7 +144,18 @@ export const destinationReferenceSchema = z.object({
     sourceUrl: z.string().url().max(500),
   })).min(7).max(15),
   missions: z.array(z.object({ title: z.string(), description: z.string() })).min(5).max(10),
-  games: z.array(z.object({ type: z.enum(["rebus", "word", "order", "riddle"]), title: z.string(), instructions: z.string(), answer: z.string() })).min(3).max(6),
+  games: z.array(z.object({
+    type: z.enum(["rebus", "word", "order"]),
+    title: z.string().trim().min(1).max(240),
+    instructions: z.string().trim().min(1).max(1000),
+    answer: z.string().trim().min(1).max(500),
+  })).length(3).superRefine((games, context) => {
+    for (const type of ["rebus", "word", "order"] as const) {
+      if (games.filter((game) => game.type === type).length !== 1) {
+        context.addIssue({ code: "custom", message: `Deve essere presente esattamente un gioco di tipo '${type}'` });
+      }
+    }
+  }),
   photoContests: z.array(z.object({ title: z.string(), description: z.string() })).min(2).max(2),
 });
 
