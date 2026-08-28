@@ -102,6 +102,26 @@ async function main() {
         refresh_after=clock_timestamp()+interval '6 months'
     WHERE id=${rows[0].id}
   `;
+  const phraseRows = await sql`
+    SELECT content.id::text,content.content
+    FROM ref.reference_contents content
+    JOIN ref.countries country ON country.id=content.country_id
+    WHERE lower(country.name)=lower(${countryName})
+      AND content.content_type='phrasebook' AND content.locale='it-IT'
+      AND content.status='approved'
+  `;
+  if (phraseRows.length !== 1 || !Array.isArray(phraseRows[0].content)) throw new Error("Frasario Uzbekistan approvato non individuato univocamente");
+  const localPhrases = phraseRows[0].content.filter((entry: Record<string, unknown>) =>
+    !["inglese", "english", "italiano", "italian"].includes(String(entry.language).trim().toLocaleLowerCase("it")),
+  );
+  const phraseSerialized = JSON.stringify(localPhrases);
+  const phraseHash = createHash("sha256").update(phraseSerialized).digest("hex");
+  await sql`
+    UPDATE ref.reference_contents
+    SET content=${phraseSerialized}::jsonb,content_hash=${phraseHash},updated_at=clock_timestamp(),
+        refresh_after=clock_timestamp()+interval '6 months'
+    WHERE id=${phraseRows[0].id}
+  `;
   console.log(JSON.stringify({
     status: "corrected",
     country: countryName,

@@ -69,6 +69,9 @@ const phrasebookSchema = z.array(z.object({
     context.addIssue({ code: "custom", message: "Il frasario deve contenere da una a tre lingue locali" });
   }
   for (const [language, phrases] of byLanguage) {
+    if (["inglese", "english", "italiano", "italian"].includes(language)) {
+      context.addIssue({ code: "custom", message: `La lingua '${language}' non può essere usata come lingua locale` });
+    }
     if (phrases.length !== 12) {
       context.addIssue({ code: "custom", message: `La lingua '${language}' deve contenere esattamente 12 frasi` });
     }
