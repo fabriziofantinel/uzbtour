@@ -517,7 +517,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                       : { className: "draft", label: "Bozza" };
                 return (
                 <tr className={importIsActive ? "generating" : ""} key={`${trip.id}-${departure?.id ?? "draft"}`}>
-                  <td data-label="Stato"><span className={`status ${displayStatus.className}`}>{displayStatus.label}</span>{!departure && <small className="departureStatus">Senza partenza</small>}</td>
+                  <td data-label="Stato"><span className={`status ${displayStatus.className}`}>{displayStatus.label}</span></td>
                   <td data-label="Viaggio" className="tripNameCell"><b>{departure?.title || trip.title}</b><span>{trip.destinationCountry || "Destinazione da revisionare"}</span></td>
                   <td data-label="Periodo" className="dateRangeCell"><b>{formatTravelDate(startsOn)}</b><span aria-hidden="true">→</span><b>{formatTravelDate(endsOn)}</b></td>
                   <td data-label="Gruppi" className="numberCell">{departure?.partyCount ?? 0}</td>
