@@ -75,6 +75,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
   const activeInfoRows = v3Catalog.usefulInfo;
   const activePhraseRows = v3Catalog.phrases;
   const activeTicketRows = v3Catalog.tickets;
+  const activeDayDocumentRows = v3Catalog.dayDocuments;
   const items = activeItemRows;
   const cities = activeCityRows;
   const missingCities = [...new Map(cities
@@ -154,6 +155,12 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
         city: stringValue(row.city),
         description: stringValue(row.description),
         metadata: row.metadata,
+        documents: activeDayDocumentRows.filter((document) => String(document.day_id) === id).map((document) => ({
+          id: String(document.id), title: String(document.title), description: stringValue(document.description),
+          contentType: String(document.content_type), sizeBytes: Number(document.size_bytes || 0),
+          createdAt: String(document.created_at),
+          downloadUrl: `/api/travel-documents/${String(document.id)}/content?download=1`,
+        })),
         items: items.filter((item) => String(item.trip_day_id) === id).map((item) => ({
           id: String(item.id),
           type: String(item.item_type),

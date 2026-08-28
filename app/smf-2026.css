@@ -2706,7 +2706,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 .programmePage :is(button,[role="button"],nav [aria-current="page"]),
 .reviewPage :is(button,[role="button"],nav [aria-current="page"]) { color: var(--smf-ink); }
 
-.dayDocumentForm{display:grid;grid-template-columns:minmax(190px,.8fr) minmax(240px,1.25fr) minmax(220px,1fr) auto;gap:12px;align-items:end;padding:18px;margin-bottom:18px;border:1px solid var(--smf-line);border-radius:14px;background:var(--smf-surface-soft)}
+.dayDocumentForm{display:grid;grid-template-columns:minmax(170px,.8fr) minmax(170px,.7fr) minmax(220px,1.15fr) minmax(210px,1fr) auto;gap:12px;align-items:end;padding:18px;margin-bottom:18px;border:1px solid var(--smf-line);border-radius:14px;background:var(--smf-surface-soft)}
 .dayDocumentForm label{display:grid;gap:6px;color:var(--smf-ink);font-size:11px;font-weight:800}
 .dayDocumentForm :is(input,select){width:100%;min-height:44px;padding:0 12px;border:1px solid var(--smf-line);border-radius:9px;background:var(--smf-surface);color:var(--smf-ink);font:inherit}
 .dayDocumentForm input[type="file"]{padding:9px 10px}

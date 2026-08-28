@@ -32,3 +32,18 @@ export async function requireAgencyDepartureDay(input: { departureId: string; da
   if (!rows[0]) throw new PlatformRequestError("Giornata non disponibile");
   return { agencyId };
 }
+
+export async function requireAgencyDepartureDayGroup(input: {
+  departureId: string; dayId: string; partyId: string; actorId: string;
+}) {
+  const { agencyId } = await requireAgencyDepartureDay(input);
+  const sql = getSql();
+  const [, rows] = await sql.transaction((txn) => [
+    txn`SELECT set_config('app.agency_id',${agencyId},true)`,
+    txn`SELECT id::text FROM travel.travel_parties
+      WHERE id=${input.partyId} AND agency_id=${agencyId}
+        AND departure_id=${input.departureId} AND status<>'archived' LIMIT 1`,
+  ], { readOnly: true });
+  if (!rows[0]) throw new PlatformRequestError("Gruppo non disponibile");
+  return { agencyId };
+}

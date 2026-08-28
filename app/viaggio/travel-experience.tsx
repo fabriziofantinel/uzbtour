@@ -101,6 +101,7 @@ function itemPresentation(type: string) {
   if (type === "train") return { Icon: TrainFront, label: "Treno" };
   if (type === "hotel") return { Icon: BedDouble, label: "Hotel" };
   if (type === "meeting") return { Icon: CircleUserRound, label: "Incontro" };
+  if (type === "document") return { Icon: FileText, label: "Documento" };
   return { Icon: Navigation, label: "Attività" };
 }
 
@@ -179,14 +180,16 @@ export default function TravelExperience({ initialExperience, userName, isAgency
   const visiblePhotos = useMemo(() => memoryDayFilter === "all"
     ? experience.photos
     : experience.photos.filter((photo) => photo.dayNumber === memoryDayFilter), [experience.photos, memoryDayFilter]);
-  const travelDocuments = useMemo(() => experience.days.flatMap((entry) => entry.items.flatMap((item) => item.tickets.map((ticket) => ({
-    ...ticket,
-    dayNumber: entry.number,
-    dayDate: entry.date,
-    dayTitle: entry.title,
-    itemTitle: item.title,
-    itemType: item.type,
-  })))), [experience.days]);
+  const travelDocuments = useMemo(() => experience.days.flatMap((entry) => [
+    ...entry.documents.map((document) => ({
+      ...document, dayNumber: entry.number, dayDate: entry.date, dayTitle: entry.title,
+      itemTitle: document.description || "Documento della giornata", itemType: "document",
+    })),
+    ...entry.items.flatMap((item) => item.tickets.map((ticket) => ({
+      ...ticket, dayNumber: entry.number, dayDate: entry.date, dayTitle: entry.title,
+      itemTitle: item.title, itemType: item.type,
+    }))),
+  ]), [experience.days]);
   const totals = useMemo(() => experience.expenses.reduce((sum, expense) => {
     if (expense.currency === "EUR" || expense.currency === "UZS") sum[expense.currency] += expense.amount;
     return sum;
@@ -488,8 +491,8 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     </section>}
 
     {tab === "documenti" && <section className="collection documentsPage">
-      <header className="documentsHead"><div><FileText/><span><small>DOCUMENTI DI VIAGGIO</small><h2>Biglietti sempre a portata di mano</h2><p>I documenti allegati dall’agenzia ai trasferimenti del programma.</p></span></div><strong>{travelDocuments.length}<small>{travelDocuments.length === 1 ? "documento" : "documenti"}</small></strong></header>
-      {travelDocuments.length === 0 ? <div className="empty documentsEmpty"><FileText/><h3>Nessun documento disponibile</h3><p>L’agenzia non ha ancora allegato biglietti a voli, treni o trasferimenti. Li troverai qui appena saranno pubblicati.</p><button type="button" onClick={() => setTab("programma")}>Torna al programma</button></div> : <div className="documentList">{travelDocuments.map((ticket) => {
+      <header className="documentsHead"><div><FileText/><span><small>DOCUMENTI DI VIAGGIO</small><h2>Documenti sempre a portata di mano</h2><p>I documenti associati dall’agenzia alle giornate e alle attività del viaggio.</p></span></div><strong>{travelDocuments.length}<small>{travelDocuments.length === 1 ? "documento" : "documenti"}</small></strong></header>
+      {travelDocuments.length === 0 ? <div className="empty documentsEmpty"><FileText/><h3>Nessun documento disponibile</h3><p>L’agenzia non ha ancora allegato documenti per il tuo gruppo. Li troverai qui appena saranno pubblicati.</p><button type="button" onClick={() => setTab("programma")}>Torna al programma</button></div> : <div className="documentList">{travelDocuments.map((ticket) => {
         const DocumentIcon = itemPresentation(ticket.itemType).Icon;
         return <article key={ticket.id}><span className="documentIcon"><DocumentIcon/></span><span className="documentCopy"><small>GIORNO {ticket.dayNumber} · {dateParts(ticket.dayDate).full}</small><strong>{ticket.title}</strong><p>{ticket.itemTitle} · {ticket.dayTitle}</p></span><a href={ticket.downloadUrl} download aria-label={`Scarica ${ticket.title}`}><Download/><span>Scarica</span></a></article>;
       })}</div>}

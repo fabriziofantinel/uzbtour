@@ -57,14 +57,14 @@ export async function registerV3TicketUpload(input: StoredObject & {
 }
 
 export async function registerV3DayDocument(input: StoredObject & {
-  userId: string; departureId: string; dayId: string; mediaId: string;
+  userId: string; departureId: string; dayId: string; partyId: string; mediaId: string;
   documentId: string; description: string;
 }) {
   const sql = getSql();
   const rows = await sql`
     SELECT document_id::text,title,description,created_at::text
     FROM app.register_departure_day_document(
-      ${input.userId},${input.departureId}::uuid,${input.dayId}::uuid,
+      ${input.userId},${input.departureId}::uuid,${input.dayId}::uuid,${input.partyId}::uuid,
       ${input.mediaId}::uuid,${input.documentId}::uuid,${input.provider},${input.bucket},
       ${input.objectKey},${input.originalName},${input.contentType},${input.sizeBytes}::bigint,
       ${input.description}

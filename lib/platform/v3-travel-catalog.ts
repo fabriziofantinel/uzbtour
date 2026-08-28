@@ -13,7 +13,7 @@ export async function readV3TravelCatalog(input: {
   partyId: string;
 }) {
   const sql = getSql();
-  const [, days, items, cities, sites, hotels, travelers, usefulInfo, phrases, tickets] =
+  const [, days, items, cities, sites, hotels, travelers, usefulInfo, phrases, tickets, dayDocuments] =
     await sql.transaction((txn) => [
       txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
       txn`
@@ -145,6 +145,20 @@ export async function readV3TravelCatalog(input: {
           AND document.status = 'ready' AND asset.status = 'ready'
         ORDER BY document.created_at
       `,
+      txn`
+        SELECT document.id::text,document.departure_day_id::text AS day_id,
+          document.title,document.description,asset.content_type,asset.size_bytes,
+          document.created_at::text
+        FROM ops.travel_documents document
+        JOIN ops.media_assets asset
+          ON asset.id=document.media_asset_id AND asset.agency_id=document.agency_id
+        WHERE document.agency_id=${input.agencyId}
+          AND document.departure_id=${input.departureId}
+          AND document.party_id=${input.partyId}
+          AND document.departure_day_id IS NOT NULL
+          AND document.status='ready' AND asset.status='ready' AND asset.deleted_at IS NULL
+        ORDER BY document.created_at
+      `,
     ], { readOnly: true });
 
   return {
@@ -157,5 +171,6 @@ export async function readV3TravelCatalog(input: {
     usefulInfo: usefulInfo as Row[],
     phrases: phrases as Row[],
     tickets: tickets as Row[],
+    dayDocuments: dayDocuments as Row[],
   };
 }
