@@ -24,11 +24,13 @@ export async function getAgencyProgramme(departureId: string, actorId: string) {
     SELECT d.id::text, d.agency_id::text, d.template_id::text, d.template_version_id::text,
       d.title, d.code, d.starts_on::text, d.ends_on::text, d.status,
       tt.title AS programme_title, COALESCE(country.name, '') AS destination_country,
+      COALESCE(agency.branding->>'primaryColor', '#247A6B') AS agency_primary_color,
       version.version_number
     FROM travel.departures d
     JOIN travel.trip_templates tt ON tt.id = d.template_id AND tt.agency_id = d.agency_id
     JOIN travel.trip_template_versions version
       ON version.id = d.template_version_id AND version.agency_id = d.agency_id
+    JOIN iam.agencies agency ON agency.id = d.agency_id
     LEFT JOIN ref.countries country ON country.id = tt.primary_country_id
     WHERE d.id = ${departureId} AND d.agency_id = ${agencyId}
     LIMIT 1
@@ -116,6 +118,7 @@ export async function getAgencyProgramme(departureId: string, actorId: string) {
       endsOn: String(departure.ends_on),
       status: String(departure.status),
       destinationCountry: value(departure.destination_country),
+      agencyPrimaryColor: value(departure.agency_primary_color),
       versionNumber: Number(departure.version_number),
     },
     days: (dayRows as Row[]).map((day) => ({

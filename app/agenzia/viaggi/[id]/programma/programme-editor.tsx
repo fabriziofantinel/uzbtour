@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { ArrowDown, ArrowLeft, ArrowUp, BedDouble, BookOpen, Bus, CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, Clock3, Download, FileText, LoaderCircle, MapPin, Plane, Plus, Save, TrainFront, Trash2, Upload, UsersRound, Utensils } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { uploadPrivateFile } from "@/lib/private-upload-client";
+import { accessibleBrandColor, validBrandColor } from "@/lib/platform/branding-ui";
 import type { AgencyProgramme } from "@/lib/platform/programme-repository";
 
 type Props = { initialProgramme: AgencyProgramme };
@@ -68,6 +70,15 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
   const dirtyDayIds = useMemo(() => new Set(days
     .filter((day) => savedDaysRef.current.get(day.id) !== JSON.stringify(day))
     .map((day) => day.id)), [days, message]);
+  const agencyColor = validBrandColor(departure.agencyPrimaryColor);
+  const agencyStyle = {
+    "--agency-ui": agencyColor,
+    "--agency-ui-ink": "#111111",
+    "--smf-brand": agencyColor,
+    "--smf-brand-deep": agencyColor,
+    "--smf-action": agencyColor,
+    "--smf-focus": accessibleBrandColor(agencyColor),
+  } as CSSProperties;
 
   useEffect(() => {
     if (!dirtyDayIds.size) return;
@@ -165,7 +176,7 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
     } finally { setBusy(""); }
   }
 
-  return <main className="programmePage">
+  return <main className="programmePage" style={agencyStyle}>
     <header className="programmeTopbar">
       <Link href="/agenzia"><ArrowLeft/> Viaggi</Link>
       <nav aria-label="Gestione del viaggio"><span aria-current="page"><BookOpen/> Programma</span><Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Gruppi</Link></nav>

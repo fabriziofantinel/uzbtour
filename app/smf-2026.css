@@ -2685,6 +2685,32 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   background: var(--agency-ui);
 }
 
+/* Every actionable control in the agency workspace follows its configured brand. */
+.agencyPage :is(
+  button,
+  .tableActions a,
+  .quoteDocuments summary,
+  .newTripButton,
+  .agencyAgentDelete
+) {
+  color: var(--agency-ui-ink);
+  background-color: var(--agency-ui);
+}
+.agencyPage :is(
+  button,
+  .tableActions a,
+  .quoteDocuments summary,
+  .newTripButton,
+  .agencyAgentDelete
+) svg { color: var(--agency-ui-ink); }
+
+/* Every programme button, including navigation and ordering controls, is branded. */
+.programmePage :is(button, .ticketManagerHead > label) {
+  color: var(--agency-ui-ink);
+  background-color: var(--agency-ui);
+}
+.programmePage :is(button, .ticketManagerHead > label) svg { color: var(--agency-ui-ink); }
+
 .travelExperience.travelerRedesign :is(
   .currentUser i,
   .programmeStepCurrent,
