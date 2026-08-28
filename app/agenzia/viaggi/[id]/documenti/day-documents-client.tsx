@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useState, type CSSProperties } from "react";
-import { ArrowLeft, BookOpen, CalendarDays, CheckCircle2, CircleAlert, Download, FileText, FolderOpen, LoaderCircle, Upload, UsersRound } from "lucide-react";
+import { ArrowLeft, BookOpen, CalendarDays, CheckCircle2, CircleAlert, Download, FileText, FolderOpen, LoaderCircle, Trash2, Upload, UsersRound } from "lucide-react";
 import { uploadPrivateFile } from "@/lib/private-upload-client";
 import type { AgencyDayDocuments } from "@/lib/platform/day-documents-repository";
 
@@ -32,6 +32,14 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
     } catch(error) { setMessage({kind:"error",text:error instanceof Error?error.message:"Caricamento non riuscito"}); }
     finally { setBusy(false); }
   }
+  async function removeDocument(documentId: string) {
+    if (!window.confirm("Eliminare questo documento dal viaggio?")) return;
+    setBusy(true); setMessage(null);
+    try { const response=await fetch(`/api/admin/platform/departures/${departure.id}/day-documents`,{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({agencyId:departure.agencyId,documentId})});
+      const result=await response.json().catch(()=>({})) as {error?:string}; if(!response.ok)throw new Error(result.error||"Eliminazione non riuscita");
+      setDocuments((current)=>current.filter((item)=>item.id!==documentId)); setMessage({kind:"success",text:"Documento eliminato."});
+    } catch(error){setMessage({kind:"error",text:error instanceof Error?error.message:"Eliminazione non riuscita"});} finally{setBusy(false);}
+  }
   return <main className="journeyManagePage dayDocumentsPage" style={{"--smf-brand":departure.agencyPrimaryColor,"--smf-brand-deep":departure.agencyPrimaryColor,"--smf-action":departure.agencyPrimaryColor} as CSSProperties}>
     <header><Link href="/agenzia"><ArrowLeft/> Tutti i viaggi</Link><nav aria-label="Gestione del viaggio"><Link href={`/agenzia/viaggi/${departure.id}/programma`}><BookOpen/> Programma</Link><Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Gruppi</Link><span aria-current="page"><FolderOpen/> Documenti</span></nav><span className="journeyAgencyName">{departure.programmeTitle}</span></header>
     <section className="journeyManageHero"><small>DOCUMENTI DEL VIAGGIO</small><h1>{departure.title}</h1><p><CalendarDays/> Associa ogni documento alla giornata e al gruppo corretti.</p></section>
@@ -45,7 +53,7 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
         <label>Documento *<input name="document" type="file" required accept="application/pdf,.pdf,.doc,.docx,image/jpeg,image/png,image/webp"/></label>
         <button type="submit" disabled={busy}>{busy?<><LoaderCircle className="spin"/> Caricamento…</>:<><Upload/> Carica documento</>}</button>
       </form>
-      <section className="dayDocumentList" aria-label="Documenti caricati">{documents.map((document)=>{const day=initialData.days.find((entry)=>entry.id===document.dayId);return <article key={document.id}><FileText/><span><small>{document.partyName} · GIORNO {day?.number ?? "–"} · {day?formatDay(departure.startsOn,day.offset):"Giornata"}</small><b>{document.description}</b><em>{document.title} · {sizeLabel(document.sizeBytes)}</em></span><a href={document.downloadUrl}><Download/> Scarica</a></article>})}{documents.length===0&&<div className="agencyEmpty"><FolderOpen/><h3>Nessun documento</h3><p>I documenti caricati saranno visibili solo al gruppo selezionato.</p></div>}</section>
+      <section className="dayDocumentList" aria-label="Documenti caricati">{documents.map((document)=>{const day=initialData.days.find((entry)=>entry.id===document.dayId);return <article key={document.id}><FileText/><span><small>{document.partyName} · GIORNO {day?.number ?? "–"} · {day?formatDay(departure.startsOn,day.offset):"Giornata"}</small><b>{document.description}</b><em>{document.title} · {sizeLabel(document.sizeBytes)}</em></span><a href={document.downloadUrl}><Download/> Scarica</a><button type="button" className="documentDelete" disabled={busy} onClick={()=>void removeDocument(document.id)}><Trash2/> Elimina</button></article>})}{documents.length===0&&<div className="agencyEmpty"><FolderOpen/><h3>Nessun documento</h3><p>I documenti caricati saranno visibili solo al gruppo selezionato.</p></div>}</section>
     </div>
   </main>;
 }

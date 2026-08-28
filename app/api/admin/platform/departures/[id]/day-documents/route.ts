@@ -5,6 +5,7 @@ import { getObjectStorage } from "@/lib/platform/object-storage";
 import { requireAgencyDepartureDayGroup } from "@/lib/platform/programme-documents";
 import { DAY_DOCUMENT_CONTENT_TYPES, MAX_TICKET_SIZE_BYTES, dayDocumentFileDetails } from "@/lib/platform/travel-documents";
 import { isMediaObjectRegistered, registerV3DayDocument } from "@/lib/platform/v3-media-mutations";
+import { archiveAgencyDayDocument } from "@/lib/platform/day-documents-repository";
 
 export const runtime = "nodejs";
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
@@ -39,4 +40,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       if (!registered) await getObjectStorage().delete(uploadedObjectKey).catch(() => undefined); }
     return platformApiError(error, "Registrazione del documento non riuscita");
   }
+}
+
+export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
+  try {
+    const actor = await requirePlatformAdmin(); const { id: departureId } = await context.params;
+    const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+    await archiveAgencyDayDocument({ actorId: actor.id, agencyId: String(body?.agencyId || ""), departureId, documentId: String(body?.documentId || "") });
+    return NextResponse.json({ ok: true });
+  } catch (error) { return platformApiError(error, "Eliminazione del documento non riuscita"); }
 }

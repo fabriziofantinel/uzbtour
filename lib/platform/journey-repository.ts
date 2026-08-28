@@ -61,3 +61,12 @@ export async function setJourneyGroupLeader(input: {
   ) AS updated`;
   return Boolean(rows[0]?.updated);
 }
+
+export async function removeJourneyTraveler(input: { actorId:string; agencyId:string; departureId:string; partyId:string; travelerId:string }) {
+  const rows=await getSql()`SELECT app.remove_journey_traveler_v3(${input.actorId},${input.agencyId}::uuid,${input.departureId}::uuid,${input.partyId}::uuid,${input.travelerId}::uuid) removed`;
+  return Boolean(rows[0]?.removed);
+}
+export async function deleteJourneyGroup(input: { actorId:string; agencyId:string; departureId:string; partyId:string }) {
+  const rows=await getSql()`SELECT app.delete_empty_journey_party_v3(${input.actorId},${input.agencyId}::uuid,${input.departureId}::uuid,${input.partyId}::uuid) deleted`;
+  return Boolean(rows[0]?.deleted);
+}

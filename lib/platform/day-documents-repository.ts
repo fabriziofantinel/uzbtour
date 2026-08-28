@@ -29,3 +29,8 @@ export async function getAgencyDayDocuments(departureId: string, actorId: string
 }
 
 export type AgencyDayDocuments = Awaited<ReturnType<typeof getAgencyDayDocuments>>;
+
+export async function archiveAgencyDayDocument(input: { actorId: string; agencyId: string; departureId: string; documentId: string }) {
+  const rows = await getSql()`SELECT app.archive_day_document_v3(${input.actorId},${input.agencyId}::uuid,${input.departureId}::uuid,${input.documentId}::uuid) archived`;
+  if (!rows[0]?.archived) throw new Error("Documento non disponibile");
+}

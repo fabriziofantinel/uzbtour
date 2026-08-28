@@ -882,10 +882,41 @@
   border: 1px solid #e5e0d8;
   border-radius: 10px;
   display: grid;
-  grid-template-columns: auto 1fr auto auto;
+  grid-template-columns: auto minmax(150px, 1fr) auto auto auto auto;
   align-items: center;
   gap: 10px;
 }
+.groupHeaderActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dangerAction,
+.travelerDelete,
+.documentDelete {
+  border: 1px solid #d96a5d !important;
+  background: #fff8f6 !important;
+  color: #9f2f24 !important;
+}
+.dangerAction:disabled,
+.travelerDelete:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+}
+.travelerDelete {
+  min-height: 34px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 800;
+}
+.travelerDelete svg,
+.documentDelete svg { width: 14px; }
 .familyTravelers i {
   width: 35px;
   height: 35px;
