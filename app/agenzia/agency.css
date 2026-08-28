@@ -1595,11 +1595,33 @@
   font-weight: 800;
 }
 .tripTable {
-  min-width: 1320px;
+  min-width: 1120px;
 }
 .tripTable td {
   padding: 10px 12px;
   vertical-align: middle;
+  white-space: nowrap;
+}
+.tripTable td:last-child {
+  width: 1%;
+}
+.tripTable .departureStatus {
+  display: inline;
+  margin: 0 0 0 8px;
+}
+.tripTable .tripNameCell {
+  min-width: 280px;
+}
+.tripTable .tripNameCell b,
+.tripTable .tripNameCell span {
+  display: inline;
+}
+.tripTable .tripNameCell span {
+  margin: 0;
+}
+.tripTable .tripNameCell span::before {
+  content: " · ";
+  color: #91a09d;
 }
 .contentCell {
   white-space: nowrap;
@@ -1623,13 +1645,21 @@
 }
 .tableActions.inline {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 5px;
-  min-width: 390px;
+  min-width: 0;
 }
 .tableActions.inline a,
 .tableActions.inline button {
   width: auto;
+  min-height: 38px;
+  padding: 7px 9px;
+  white-space: nowrap;
+}
+.tableActions.inline .quoteDocuments summary {
+  min-height: 38px;
+  padding: 7px 9px;
   white-space: nowrap;
 }
 .tripAdminGrid.cards {
