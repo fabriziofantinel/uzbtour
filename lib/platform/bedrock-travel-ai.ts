@@ -57,8 +57,11 @@ REGOLE DI SICUREZZA E QUALITÀ:
 - placeName deve contenere il nome canonico del sito visitato per le attività di tipo visit.
 - Per le visite non creare un titolo attività distinto: usa lo stesso nome canonico del sito sia in title sia in placeName.
 - Per ogni giornata compila country e city con la località effettiva della giornata, non automaticamente con la destinazione serale.
+- Se una giornata comprende più città, assegna city alla città con il maggior numero di visite. Il pernottamento non prevale sul numero di visite. In caso di parità usa la città esplicitamente indicata come centro della giornata e segnala l'ambiguità in cityValidation.
+- Distingui sempre la Valle di Fergana, che è una regione geografica, dalla città di Fergana. Usa Fergana come city soltanto quando il documento indica esplicitamente la città, un arrivo in città o un pernottamento in città.
 - Per ogni visita compila placeName, placeCity e placeCountry della visita stessa. Nei giorni di trasferimento la città del sito può essere diversa dalla città del pernottamento.
 - Per ogni hotel compila name, city e country della struttura.
+- Per gli hotel conserva il nome ufficiale completo quando è identificabile dal documento; per esempio non trasformare Mövenpick Samarkand in abbreviazioni o grafie fonetiche.
 - Ogni countryValidation, cityValidation, placeValidation e accommodation.validation deve indicare needsValidation e reason.
 - Imposta needsValidation=true quando il nome è generico, abbreviato, ambiguo, non specificato nel documento, incoerente con la località o dedotto invece che esplicito.
 - Imposta needsValidation=false soltanto quando nome e associazione geografica sono espliciti e non ambigui nel documento. Non dichiarare verifiche web che non hai eseguito.

@@ -4,6 +4,21 @@ function recordValue(input: unknown): Record<string, unknown> | null {
     : null;
 }
 
+function normalizedName(value: unknown) {
+  return typeof value === "string"
+    ? value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("it").replace(/[^a-z0-9]+/g, " ").trim()
+    : "";
+}
+
+function canonicalHotelName(name: unknown, city: unknown) {
+  const normalizedHotel = normalizedName(name);
+  const normalizedCity = normalizedName(city);
+  if (["movepick", "movenpick"].includes(normalizedHotel) && ["samarcanda", "samarkand"].includes(normalizedCity)) {
+    return "Mövenpick Samarkand";
+  }
+  return name;
+}
+
 function text(value: unknown, maximum: number, field: string, changes: string[]) {
   if (typeof value !== "string" || value.length <= maximum) return value;
   changes.push(`${field}: ${value.length}→${maximum} caratteri`);
@@ -49,9 +64,11 @@ function activity(value: unknown, path: string, changes: string[]) {
 
 function accommodation(value: unknown, path: string, changes: string[]) {
   const item = recordValue(value);
+  const canonicalName = item ? canonicalHotelName(item.name, item.city) : undefined;
+  if (item && canonicalName !== item.name) changes.push(`${path}.name: ${String(item.name)}→${String(canonicalName)}`);
   return item ? {
     ...item,
-    name: text(item.name, 240, `${path}.name`, changes),
+    name: text(canonicalName, 240, `${path}.name`, changes),
     city: text(item.city, 240, `${path}.city`, changes),
     country: text(item.country, 120, `${path}.country`, changes),
     notes: text(item.notes, 2000, `${path}.notes`, changes),
@@ -65,19 +82,46 @@ function day(value: unknown, index: number, changes: string[]) {
   const path = `days[${index}]`;
   const activities = list(item.activities, 40, `${path}.activities`, changes);
   const additionalAccommodations = list(item.additionalAccommodations ?? [], 10, `${path}.additionalAccommodations`, changes);
+  const normalizedActivities = Array.isArray(activities)
+    ? activities.map((entry, activityIndex) => activity(entry, `${path}.activities[${activityIndex}]`, changes))
+    : activities;
+  const visitsByCity = new Map<string, { city: string; country: string; count: number }>();
+  if (Array.isArray(normalizedActivities)) {
+    for (const entry of normalizedActivities) {
+      const visit = recordValue(entry);
+      if (visit?.type !== "visit" || typeof visit.placeCity !== "string" || !visit.placeCity.trim()) continue;
+      const key = `${normalizedName(visit.placeCountry)}:${normalizedName(visit.placeCity)}`;
+      const current = visitsByCity.get(key);
+      visitsByCity.set(key, {
+        city: visit.placeCity.trim(),
+        country: typeof visit.placeCountry === "string" ? visit.placeCountry.trim() : "",
+        count: (current?.count ?? 0) + 1,
+      });
+    }
+  }
+  const rankedCities = [...visitsByCity.values()].sort((left, right) => right.count - left.count);
+  const dominantCity = rankedCities[0] && (!rankedCities[1] || rankedCities[0].count > rankedCities[1].count)
+    ? rankedCities[0]
+    : null;
+  const city = dominantCity?.city || text(item.city, 240, `${path}.city`, changes);
+  const country = dominantCity?.country || text(item.country, 120, `${path}.country`, changes);
+  if (dominantCity && normalizedName(item.city) !== normalizedName(dominantCity.city)) {
+    changes.push(`${path}.city: ${String(item.city)}→${dominantCity.city} (${dominantCity.count} visite)`);
+  }
   return {
     ...item,
     date: text(item.date, 10, `${path}.date`, changes),
     label: text(item.label, 120, `${path}.label`, changes),
     title: text(item.title, 240, `${path}.title`, changes),
-    country: text(item.country, 120, `${path}.country`, changes),
+    country,
     countryValidation: validation(item.countryValidation, `${path}.countryValidation`, changes),
-    city: text(item.city, 240, `${path}.city`, changes),
-    cityValidation: validation(item.cityValidation, `${path}.cityValidation`, changes),
+    city,
+    cityValidation: dominantCity ? {
+      needsValidation: false,
+      reason: `Città predominante della giornata: ${dominantCity.count} visite`,
+    } : validation(item.cityValidation, `${path}.cityValidation`, changes),
     description: text(item.description, 6000, `${path}.description`, changes),
-    activities: Array.isArray(activities)
-      ? activities.map((entry, activityIndex) => activity(entry, `${path}.activities[${activityIndex}]`, changes))
-      : activities,
+    activities: normalizedActivities,
     accommodation: accommodation(item.accommodation, `${path}.accommodation`, changes),
     additionalAccommodations: Array.isArray(additionalAccommodations)
       ? additionalAccommodations.map((entry, accommodationIndex) => accommodation(entry, `${path}.additionalAccommodations[${accommodationIndex}]`, changes))

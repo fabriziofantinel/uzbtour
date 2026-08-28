@@ -3,6 +3,7 @@ import { PlatformRequestError } from "./errors";
 import { catalogValidationIssues, travelProgrammeDraftSchema, type TravelProgrammeDraft } from "./import-schema";
 import type { PlatformImportReview } from "./types";
 import { prepareTravelCatalog } from "./travel-catalog";
+import { normalizeTravelProgramme } from "./travel-programme-normalizer";
 import { assertNormalizedImportSchema } from "./schema-readiness";
 
 type ImportSourceRow = {
@@ -262,7 +263,8 @@ export async function publishImport(input: {
   actorId: string;
   draft: TravelProgrammeDraft;
 }) {
-  const validationIssues = catalogValidationIssues(input.draft);
+  const draft = travelProgrammeDraftSchema.parse(normalizeTravelProgramme(input.draft).value);
+  const validationIssues = catalogValidationIssues(draft);
   if (validationIssues.length > 0) {
     throw new PlatformRequestError(
       `Completa la validazione delle anagrafiche: ${validationIssues.slice(0, 5).join("; ")}${validationIssues.length > 5 ? `; e altre ${validationIssues.length - 5}` : ""}`
@@ -284,12 +286,12 @@ export async function publishImport(input: {
   ], { readOnly: true });
   if (!versionRows[0]) throw new PlatformRequestError("Importazione non pubblicabile");
   const templateId = String(versionRows[0].template_id);
-  const startDate = validDate(input.draft.startDate) ?? input.draft.days.map((day) => validDate(day.date)).find(Boolean) ?? null;
-  const endDate = validDate(input.draft.endDate) ?? input.draft.days.map((day) => validDate(day.date)).filter(Boolean).at(-1) ?? null;
+  const startDate = validDate(draft.startDate) ?? draft.days.map((day) => validDate(day.date)).find(Boolean) ?? null;
+  const endDate = validDate(draft.endDate) ?? draft.days.map((day) => validDate(day.date)).filter(Boolean).at(-1) ?? null;
   if (!startDate || !endDate || endDate < startDate) {
     throw new PlatformRequestError("Controlla data iniziale e finale del viaggio prima di pubblicare");
   }
-  const catalog = await prepareTravelCatalog(input.draft, { actorId: input.actorId, agencyId: input.agencyId });
+  const catalog = await prepareTravelCatalog(draft, { actorId: input.actorId, agencyId: input.agencyId });
   const [, existingDepartures] = await sql.transaction((txn) => [
     txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
     txn`
@@ -307,7 +309,7 @@ export async function publishImport(input: {
     SELECT template_id::text,departure_id::text
     FROM app.publish_import_programme_v3(
       ${input.actorId},${input.importId},${input.agencyId},
-      ${JSON.stringify(input.draft)}::jsonb,
+      ${JSON.stringify(draft)}::jsonb,
       ${JSON.stringify({
         countryIds: catalog.countries.map((country) => country.id),
         primaryCountryId: catalog.primaryCountry.id,
