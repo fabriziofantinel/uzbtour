@@ -49,7 +49,8 @@ export async function handler(event: SqsEvent): Promise<SqsBatchResponse> {
               message.jobId,
               message.agencyId,
               z.string().uuid().parse(message.payload.templateId),
-              z.array(z.object({ entityType: z.enum(["country", "city", "site"]), entityId: z.string().uuid(), name: z.string().max(240) })).parse(message.payload.targets)
+              z.array(z.object({ entityType: z.enum(["country", "city", "site"]), entityId: z.string().uuid(), name: z.string().max(240) })).parse(message.payload.targets),
+              z.array(z.enum(["useful_info", "phrasebook", "bingo"])).default([]).parse(message.payload.contentTypes)
             ) : await processAgencyDeletion(message.jobId,message.agencyId,
               z.string().uuid().parse(message.payload.deletionJobId));
         console.info("Import job completed", {

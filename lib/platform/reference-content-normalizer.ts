@@ -33,7 +33,7 @@ function normalizedPhrase(value: string) {
   return value.trim().toLocaleLowerCase("it").replace(/[’']/g, "'");
 }
 
-const usefulInfoSchema = z.array(z.object({
+export const countryUsefulInfoSchema = z.array(z.object({
   category: z.enum(countryUsefulInfoCategories),
   title: z.string().min(1).max(240),
   body: z.string().min(1).max(6000),
@@ -158,7 +158,7 @@ const bingoSchema = z.array(z.object({
 });
 
 export const countryReferenceSchema = z.object({
-  usefulInfo: usefulInfoSchema,
+  usefulInfo: countryUsefulInfoSchema,
   phrasebook: phrasebookSchema,
   bingo: bingoSchema,
 });
