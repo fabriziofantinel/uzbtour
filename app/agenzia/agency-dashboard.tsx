@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import {
-  Accessibility, Building2, CalendarDays, CheckCircle2, ChevronDown, CircleAlert,
+  Accessibility, CalendarDays, CheckCircle2, ChevronDown, CircleAlert,
   BookOpen, Download, Eye, FileCheck2, LayoutGrid, List, LoaderCircle, LogOut, MapPinned, Play, Plus, Sparkles,
   Search, SlidersHorizontal, Trash2, UserPlus, UsersRound, X,
 } from "lucide-react";
@@ -75,7 +75,6 @@ async function responseJson<T>(response: Response): Promise<T> {
 
 export default function AgencyDashboard({ initialOverview }: Props) {
   const [overview, setOverview] = useState(initialOverview);
-  const [selectedAgencyId, setSelectedAgencyId] = useState(initialOverview.agencies[0]?.id ?? "");
   const [showNewTrip, setShowNewTrip] = useState(false);
   const [selectedProgrammeName, setSelectedProgrammeName] = useState("");
   const [tripPeriod, setTripPeriod] = useState<"all" | "upcoming" | "ongoing" | "past">("all");
@@ -87,8 +86,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
   const [notice, setNotice] = useState("");
   const [tripToDelete, setTripToDelete] = useState<{ id: string; title: string } | null>(null);
   const deleteCloseRef = useRef<HTMLButtonElement>(null);
-  const agency = overview.agencies.find((candidate) => candidate.id === selectedAgencyId)
-    ?? overview.agencies[0];
+  const agency = overview.agencies[0];
 
   const stats = useMemo(() => ({
     trips: agency?.trips.length ?? 0,
@@ -407,14 +405,6 @@ export default function AgencyDashboard({ initialOverview }: Props) {
 
       <div className="agencyShell">
         <aside className="agencySidebar">
-          <label htmlFor="active-agency">Agenzia attiva</label>
-          <div className="agencySelect">
-            <Building2 size={18}/>
-            <select id="active-agency" value={agency?.id ?? ""} onChange={(event) => setSelectedAgencyId(event.target.value)}>
-              {overview.agencies.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
-            <ChevronDown size={15}/>
-          </div>
           <nav>
             <a className="active" href="#viaggi"><MapPinned size={18}/> Viaggi</a>
             {agency?.role === "owner" && <Link href="/agenzia/agenti"><UserPlus size={18}/> Agenti</Link>}
