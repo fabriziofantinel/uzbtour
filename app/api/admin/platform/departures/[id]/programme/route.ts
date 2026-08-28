@@ -6,6 +6,7 @@ import { updateAgencyProgrammeDay } from "@/lib/platform/programme-repository";
 export const runtime = "nodejs";
 
 const uuid = /^[0-9a-f-]{36}$/i;
+const itemTypes = new Set(["visit", "transport", "flight", "train", "hotel", "meal", "free_time", "meeting", "other"]);
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
@@ -21,7 +22,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const items = rawItems.map((entry, index) => {
       const item = entry as Record<string, unknown>;
       return {
-        id: cleanText(item.id, 64), title: cleanText(item.title, 240),
+        id: cleanText(item.id, 64), type: cleanText(item.type, 20), title: cleanText(item.title, 240),
         description: cleanText(item.description, 4000), startsAt: cleanText(item.startsAt, 5),
         endsAt: cleanText(item.endsAt, 5), sortOrder: index,
         includedInQuote: typeof item.includedInQuote === "boolean" ? item.includedInQuote : null,
@@ -34,7 +35,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         notes: cleanText(hotel.notes, 2000), sortOrder: index,
       };
     });
-    if (items.some((item) => !uuid.test(item.id) || item.title.length < 1) ||
+    if (items.some((item) => !uuid.test(item.id) || !itemTypes.has(item.type) || item.title.length < 1) ||
         hotels.some((hotel) => !uuid.test(hotel.id) || hotel.name.length < 1)) {
       return NextResponse.json({ error: "Titoli e alberghi non possono essere vuoti" }, { status: 400 });
     }

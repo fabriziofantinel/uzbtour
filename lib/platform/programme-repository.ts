@@ -71,6 +71,7 @@ export async function getAgencyProgramme(departureId: string, actorId: string) {
         ON departure.id = item.departure_id AND departure.agency_id = item.agency_id
       WHERE item.agency_id = ${agencyId} AND item.departure_id = ${departureId}
         AND item.template_version_id = ${versionId}
+        AND item.operational_status <> 'cancelled'
       ORDER BY day.service_date, item.sort_order, item.id
     `,
     transaction`
@@ -156,7 +157,7 @@ export async function updateAgencyProgrammeDay(input: {
   title: string;
   city: string;
   description: string;
-  items: Array<{ id: string; title: string; description: string; startsAt: string; endsAt: string; sortOrder: number; includedInQuote: boolean | null }>;
+  items: Array<{ id: string; type: string; title: string; description: string; startsAt: string; endsAt: string; sortOrder: number; includedInQuote: boolean | null }>;
   hotels: Array<{ id: string; name: string; notes: string; sortOrder: number }>;
 }) {
   const sql = getSql();

@@ -1,13 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowDown, ArrowLeft, ArrowUp, BedDouble, BookOpen, Bus, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, Clock3, Download, FileText, LoaderCircle, MapPin, Plane, Save, TrainFront, Upload, UsersRound, Utensils } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, BedDouble, BookOpen, Bus, CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, Clock3, Download, FileText, LoaderCircle, MapPin, Plane, Plus, Save, TrainFront, Trash2, Upload, UsersRound, Utensils } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { uploadPrivateFile } from "@/lib/private-upload-client";
 import type { AgencyProgramme } from "@/lib/platform/programme-repository";
 
 type Props = { initialProgramme: AgencyProgramme };
 type Day = AgencyProgramme["days"][number];
+type Item = Day["items"][number];
+
+const activityTypes = [
+  ["visit", "Visita"], ["transport", "Trasferimento"], ["flight", "Volo"],
+  ["train", "Treno"], ["hotel", "Hotel"], ["meal", "Pasto"],
+  ["free_time", "Tempo libero"], ["meeting", "Incontro"], ["other", "Altro"],
+] as const satisfies ReadonlyArray<readonly [Item["type"], string]>;
+const timedActivityTypes = new Set<Item["type"]>(["transport", "flight", "train", "meal", "meeting"]);
+
+function emptyItem(sortOrder: number): Item {
+  return { id: crypto.randomUUID(), type: "visit", title: "", description: "", startsAt: "", endsAt: "", sortOrder, tickets: [], includedInQuote: null };
+}
+
+function emptyHotel(sortOrder: number): Day["hotels"][number] {
+  return { id: crypto.randomUUID(), name: "", notes: "", sortOrder };
+}
 
 function dateFor(startsOn: string, offset: number) {
   const date = new Date(`${startsOn}T12:00:00Z`);
@@ -70,6 +86,25 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
 
   function updateHotel(day: Day, hotelId: string, patch: Partial<Day["hotels"][number]>) {
     updateDay(day.id, { hotels: day.hotels.map((hotel) => hotel.id === hotelId ? { ...hotel, ...patch } : hotel) });
+  }
+
+  function addItem(day: Day) {
+    const item = emptyItem(day.items.length);
+    updateDay(day.id, { items: [...day.items, item] });
+    setItemExpanded(item.id, true);
+  }
+
+  function removeItem(day: Day, itemId: string) {
+    updateDay(day.id, { items: day.items.filter((item) => item.id !== itemId) });
+    setItemExpanded(itemId, false);
+  }
+
+  function addHotel(day: Day) {
+    updateDay(day.id, { hotels: [...day.hotels, emptyHotel(day.hotels.length)] });
+  }
+
+  function removeHotel(day: Day, hotelId: string) {
+    updateDay(day.id, { hotels: day.hotels.filter((hotel) => hotel.id !== hotelId) });
   }
 
   function moveItem(day: Day, index: number, direction: -1 | 1) {
@@ -156,19 +191,20 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
           <label><MapPin/> Località<input value={openDay.city} onChange={(event) => updateDay(openDay.id, { city: event.target.value })}/></label>
           <label className="wide">Descrizione<textarea rows={4} value={openDay.description} onChange={(event) => updateDay(openDay.id, { description: event.target.value })}/></label>
         </div>
-        <div className="programmeBlock"><h3>Programma della giornata</h3>
+        <div className="programmeBlock"><div className="programmeBlockHead"><h3>Programma della giornata</h3><button type="button" onClick={() => addItem(openDay)}><Plus/> Aggiungi attività</button></div>
           {openDay.items.map((item, index) => { const presentation = itemPresentation(item.type); const ItemIcon = presentation.Icon; return <article className="programmeItem" key={item.id}>
             <div className="orderButtons"><span>{String(index + 1).padStart(2, "0")}</span><button type="button" aria-label={`Sposta “${item.title}” in alto`} onClick={() => moveItem(openDay, index, -1)} disabled={index === 0}><ArrowUp/></button><button type="button" aria-label={`Sposta “${item.title}” in basso`} onClick={() => moveItem(openDay, index, 1)} disabled={index === openDay.items.length - 1}><ArrowDown/></button></div>
             <details className="itemEditorDetails" open={expandedItems.has(item.id)} onToggle={(event) => setItemExpanded(item.id, event.currentTarget.open)}><summary><span className="itemSummaryIcon"><ItemIcon/></span><span><small>{presentation.label}{item.startsAt ? ` · ${item.startsAt}${item.endsAt ? `–${item.endsAt}` : ""}` : ""}</small><strong>{item.title || `${presentation.label} da completare`}</strong><em>{item.description || "Nessuna nota inserita"}</em></span><ChevronRight/></summary>
-            <div className="itemFields"><label>Tipo<span>{presentation.label}</span></label><label>Titolo<input value={item.title} onChange={(event) => updateItem(openDay, item.id, { title: event.target.value })}/></label>
-              {(["transport", "flight", "train"].includes(item.type)) && <div className="timeFields"><Clock3/><label>Orario di inizio<input type="time" value={item.startsAt} onChange={(event) => updateItem(openDay, item.id, { startsAt: event.target.value })}/></label><label>Orario di fine<input type="time" value={item.endsAt} onChange={(event) => updateItem(openDay, item.id, { endsAt: event.target.value })}/></label></div>}
+            <div className="itemFields"><label>Tipo<div className="programmeSelect"><select value={item.type} onChange={(event) => { const type = event.target.value as Item["type"]; updateItem(openDay, item.id, { type, ...(!timedActivityTypes.has(type) ? { startsAt: "", endsAt: "" } : {}) }); }} aria-label={`Tipo attività ${index + 1}`}>{activityTypes.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select><ChevronDown/></div></label><label>Titolo<input value={item.title} onChange={(event) => updateItem(openDay, item.id, { title: event.target.value })}/></label>
+              {timedActivityTypes.has(item.type) && <div className="timeFields"><Clock3/><label>Orario di inizio<input type="time" value={item.startsAt} onChange={(event) => updateItem(openDay, item.id, { startsAt: event.target.value })}/></label><label>Orario di fine<input type="time" value={item.endsAt} onChange={(event) => updateItem(openDay, item.id, { endsAt: event.target.value })}/></label></div>}
               <label className="wide">{item.type === "transport" ? "Note operative (autista, telefono, targa o punto d’incontro)" : "Note"}<textarea rows={2} value={item.description} onChange={(event) => updateItem(openDay, item.id, { description: event.target.value })}/></label>
-              {(["flight", "train"].includes(item.type)) && <div className="ticketManager"><div className="ticketManagerHead"><FileText/><div><b>Biglietti</b><small>PDF o immagine, massimo 25 MB</small></div><label className={busy === `ticket-${item.id}` ? "busy" : ""}>{busy === `ticket-${item.id}` ? <LoaderCircle className="spin"/> : <Upload/>}<span>{busy === `ticket-${item.id}` ? "Caricamento…" : "Allega biglietto"}</span><input type="file" aria-label={`Allega biglietto per ${item.title}`} accept="application/pdf,image/jpeg,image/png,image/webp,.pdf" disabled={busy === `ticket-${item.id}`} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void uploadTicket(openDay.id, item.id, file); }}/></label></div>{item.tickets.length > 0 ? <div className="ticketList">{item.tickets.map((ticket) => <a href={ticket.downloadUrl} key={ticket.id}><FileText/><span>{ticket.title}</span><Download/></a>)}</div> : <p className="ticketEmpty">Nessun biglietto allegato.</p>}</div>}
+              {(["flight", "train"].includes(item.type)) && <div className="ticketManager"><div className="ticketManagerHead"><FileText/><div><b>Biglietti</b><small>Salva prima una nuova attività, poi allega PDF o immagini fino a 25 MB.</small></div><label className={busy === `ticket-${item.id}` ? "busy" : ""}>{busy === `ticket-${item.id}` ? <LoaderCircle className="spin"/> : <Upload/>}<span>{busy === `ticket-${item.id}` ? "Caricamento…" : "Allega biglietto"}</span><input type="file" aria-label={`Allega biglietto per ${item.title}`} accept="application/pdf,image/jpeg,image/png,image/webp,.pdf" disabled={busy === `ticket-${item.id}` || dirtyDayIds.has(openDay.id)} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void uploadTicket(openDay.id, item.id, file); }}/></label></div>{item.tickets.length > 0 ? <div className="ticketList">{item.tickets.map((ticket) => <a href={ticket.downloadUrl} key={ticket.id}><FileText/><span>{ticket.title}</span><Download/></a>)}</div> : <p className="ticketEmpty">Nessun biglietto allegato.</p>}</div>}
+              <button type="button" className="removeProgrammeItem" onClick={() => removeItem(openDay, item.id)}><Trash2/> Elimina attività</button>
             </div></details>
           </article>; })}
           {openDay.items.length === 0 && <div className="programmeEmpty"><CalendarDays/><b>Nessuna attività</b><p>Questa giornata non contiene ancora tappe modificabili.</p></div>}
         </div>
-        {openDay.hotels.length > 0 && <div className="programmeBlock"><h3><BedDouble/> Pernottamento</h3>{openDay.hotels.map((hotel) => <article className="hotelFields" key={hotel.id}><label>Hotel<input value={hotel.name} onChange={(event) => updateHotel(openDay, hotel.id, { name: event.target.value })}/></label><label>Note<textarea rows={2} value={hotel.notes} onChange={(event) => updateHotel(openDay, hotel.id, { notes: event.target.value })}/></label></article>)}</div>}
+        <div className="programmeBlock"><div className="programmeBlockHead"><h3><BedDouble/> Pernottamenti</h3><button type="button" onClick={() => addHotel(openDay)}><Plus/> Nuovo pernottamento</button></div>{openDay.hotels.map((hotel, index) => <article className="hotelFields" key={hotel.id}><label>Hotel<input value={hotel.name} onChange={(event) => updateHotel(openDay, hotel.id, { name: event.target.value })}/></label><label>Note<textarea rows={2} value={hotel.notes} onChange={(event) => updateHotel(openDay, hotel.id, { notes: event.target.value })}/></label><button type="button" className="removeProgrammeItem" onClick={() => removeHotel(openDay, hotel.id)}><Trash2/> Elimina pernottamento {index + 1}</button></article>)}{openDay.hotels.length === 0 && <div className="programmeEmpty"><BedDouble/><b>Nessun pernottamento</b><p>Aggiungilo solo quando previsto dal programma.</p></div>}</div>
       </section>}
     </div>
   </main>;
