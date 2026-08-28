@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { endV3LegacyImpersonation, startV3LegacyImpersonation } from "./v3-identity-access";
+import { endV3LegacyImpersonation, startV3AgencyTravelerImpersonation, startV3LegacyImpersonation } from "./v3-identity-access";
 
 export const IMPERSONATION_DURATION_SECONDS = 4 * 60 * 60;
 
@@ -32,4 +32,13 @@ export async function startImpersonation(input: {
 export async function endImpersonation(actorId: string, token?: string) {
   if (!token) return;
   await endV3LegacyImpersonation(actorId, hashImpersonationToken(token));
+}
+
+export async function startAgencyTravelerImpersonation(input: { actorId: string; targetId: string; userAgent?: string }) {
+  const token = randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + IMPERSONATION_DURATION_SECONDS * 1000);
+  await startV3AgencyTravelerImpersonation({
+    ...input, tokenHash: hashImpersonationToken(token), expiresAt: expiresAt.toISOString(),
+  });
+  return { token, expiresAt, redirectUrl: "/viaggio" };
 }

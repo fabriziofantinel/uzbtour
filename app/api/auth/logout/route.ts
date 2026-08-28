@@ -8,9 +8,9 @@ export async function POST(request: Request) {
   const cookieStore = await cookies();
   const impersonationToken = cookieStore.get(IMPERSONATION_COOKIE)?.value;
   const actor = impersonationToken ? await getAuthenticatedActor() : null;
-  if (impersonationToken && actor?.isSuperAdmin) {
+  if (impersonationToken && actor && (actor.isSuperAdmin || actor.isAgencyAdmin)) {
     await endImpersonation(actor.id, impersonationToken);
-    const response = NextResponse.redirect(new URL("/admin", request.url), 303);
+    const response = NextResponse.redirect(new URL(actor.isSuperAdmin ? "/admin" : "/agenzia", request.url), 303);
     response.cookies.set(IMPERSONATION_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
     return response;
   }

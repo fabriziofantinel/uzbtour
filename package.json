@@ -73,6 +73,8 @@
     "db:migrate:v3:traveler-group-documents": "node --env-file=.env.local scripts/migrate-v3-traveler-and-group-documents.mjs --apply",
     "db:migrate:v3:traveler-trip-competition:dry-run": "node --env-file=.env.local scripts/migrate-v3-traveler-trip-competition.mjs",
     "db:migrate:v3:traveler-trip-competition": "node --env-file=.env.local scripts/migrate-v3-traveler-trip-competition.mjs --apply",
+    "db:migrate:v3:agency-traveler-impersonation:dry-run": "node --env-file=.env.local scripts/migrate-v3-agency-traveler-impersonation.mjs",
+    "db:migrate:v3:agency-traveler-impersonation": "node --env-file=.env.local scripts/migrate-v3-agency-traveler-impersonation.mjs --apply",
     "db:backfill:v3:dry-run": "node --env-file=.env.local scripts/backfill-v3-shadow-core.mjs",
     "db:backfill:v3": "node --env-file=.env.local scripts/backfill-v3-shadow-core.mjs --apply",
     "db:audit:v3:operational": "node --env-file=.env.local scripts/audit-v3-operational-source.mjs",

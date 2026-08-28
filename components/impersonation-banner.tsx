@@ -5,7 +5,7 @@ import { LogIn, ShieldCheck } from "lucide-react";
 
 type Identity = {
   name: string;
-  impersonation: { actorName: string; expiresAt: string } | null;
+  impersonation: { actorName: string; actorIsSuperAdmin: boolean; expiresAt: string } | null;
 };
 
 export default function ImpersonationBanner() {
@@ -25,7 +25,7 @@ export default function ImpersonationBanner() {
     <aside className="impersonationBanner" role="status">
       <span><ShieldCheck size={17}/><b>{identity.impersonation.actorName}</b> sta operando come <strong>{identity.name}</strong></span>
       <form action="/api/auth/impersonation/stop" method="post">
-        <button type="submit"><LogIn size={16}/> Torna al superadmin</button>
+        <button type="submit"><LogIn size={16}/> {identity.impersonation.actorIsSuperAdmin ? "Torna al superadmin" : "Torna all’agenzia"}</button>
       </form>
     </aside>
   );

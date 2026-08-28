@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { PlatformAuthorizationError, requireAgencyAdmin } from "@/lib/platform/authorization";
-import { getImportAgency, getImportForReview } from "@/lib/platform/import-repository";
+import { getImportAgency, getImportAgencyPrimaryColor, getImportForReview } from "@/lib/platform/import-repository";
 import ImportReview from "./review-client";
 import "./review.css";
 import "./validation.css";
@@ -17,9 +17,9 @@ export default async function ImportReviewPage({
   const { id } = await params;
   try {
     const agencyId = await getImportAgency(id);
-    await requireAgencyAdmin(agencyId);
+    const actor = await requireAgencyAdmin(agencyId);
     const imported = await getImportForReview(id, agencyId);
-    return <ImportReview initialImport={imported} />;
+    return <ImportReview initialImport={imported} agencyPrimaryColor={await getImportAgencyPrimaryColor(actor.id, agencyId)} />;
   } catch (error) {
     if (error instanceof PlatformAuthorizationError) redirect("/");
     throw error;

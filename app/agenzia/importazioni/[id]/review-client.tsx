@@ -5,9 +5,10 @@ import {
   ExternalLink, Hotel, LoaderCircle, MapPin, Plus, Save, Send,
   ShieldCheck, Sparkles, Trash2, X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import type { TravelProgrammeDraft } from "@/lib/platform/import-schema";
 import type { PlatformImportReview } from "@/lib/platform/types";
+import { accessibleBrandColor, validBrandColor } from "@/lib/platform/branding-ui";
 
 const activityTypes = [
   ["visit", "Visita"], ["transport", "Trasferimento"], ["flight", "Volo"],
@@ -92,7 +93,7 @@ function emptyAccommodation(): Accommodation {
   return { name: "", city: "", country: "", notes: "", validation: changedValidation("Hotel") };
 }
 
-export default function ImportReview({ initialImport }: { initialImport: PlatformImportReview }) {
+export default function ImportReview({ initialImport, agencyPrimaryColor }: { initialImport: PlatformImportReview; agencyPrimaryColor: string }) {
   const [draft, setDraft] = useState(initialImport.draft);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState(initialImport.errorMessage ?? "");
@@ -106,6 +107,12 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
   const draftSignature = useMemo(() => JSON.stringify(draft), [draft]);
   const isDirty = draftSignature !== savedSignatureRef.current;
   const validationsPending = useMemo(() => draft ? pendingValidationCount(draft) : 0, [draft]);
+  const brand = validBrandColor(agencyPrimaryColor);
+  const brandStyle = {
+    "--agency-ui": brand, "--agency-ui-ink": "#111111", "--smf-brand": brand,
+    "--smf-brand-deep": accessibleBrandColor(agencyPrimaryColor), "--smf-action": brand,
+    "--teal": brand, "--on-brand": "#111111",
+  } as CSSProperties;
 
   useEffect(() => {
     if (!isDirty) return;
@@ -264,11 +271,11 @@ export default function ImportReview({ initialImport }: { initialImport: Platfor
   }
 
   if (!draft) {
-    return <main className="reviewPage"><section className="reviewUnavailable"><CircleAlert/><h1>Bozza non disponibile</h1><p>Stato: {initialImport.status}. Avvia o riprova l’elaborazione dal pannello.</p><a href="/agenzia"><ArrowLeft/> Torna al pannello</a></section></main>;
+    return <main className="reviewPage" style={brandStyle}><section className="reviewUnavailable"><CircleAlert/><h1>Bozza non disponibile</h1><p>Stato: {initialImport.status}. Avvia o riprova l’elaborazione dal pannello.</p><a href="/agenzia"><ArrowLeft/> Torna al pannello</a></section></main>;
   }
 
   return (
-    <main className="reviewPage">
+    <main className="reviewPage" style={brandStyle}>
       <header className="reviewTopbar">
         <a href="/agenzia"><ArrowLeft size={17}/> Pannello</a>
         <div><FileText size={18}/><span><small>REVISIONE PROGRAMMA</small><b>{initialImport.normalizedFileName ?? initialImport.sourceFileName}</b></span></div>

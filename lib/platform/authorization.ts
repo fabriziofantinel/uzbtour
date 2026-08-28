@@ -36,6 +36,14 @@ export async function requireSuperAdminActor() {
   return user;
 }
 
+export async function requireAgencyAdminActor() {
+  const user = await getAuthenticatedActor();
+  if (!user) throw new PlatformAuthorizationError("Autenticazione richiesta", 401);
+  const access = await resolveV3LegacyUserAccess(user.id);
+  if (!access.isAgencyAdmin) throw new PlatformAuthorizationError("Accesso riservato all'agenzia", 403);
+  return user;
+}
+
 export async function requireAgencyAdmin(agencyId: string) {
   const user = await getCurrentUser();
   if (!user) throw new PlatformAuthorizationError("Autenticazione richiesta", 401);

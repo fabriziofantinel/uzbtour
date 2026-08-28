@@ -3,7 +3,7 @@
 import Link from "next/link";
 import {
   Accessibility, CalendarDays, CheckCircle2, ChevronDown, CircleAlert,
-  BookOpen, Download, Eye, FileCheck2, LayoutGrid, List, LoaderCircle, LogOut, MapPinned, Play, Plus, Sparkles,
+  BookOpen, Download, Eye, FileCheck2, LayoutGrid, List, LoaderCircle, LogIn, LogOut, MapPinned, Play, Plus, Sparkles,
   Search, SlidersHorizontal, Trash2, UserPlus, UsersRound, X,
 } from "lucide-react";
 import { CSSProperties, FormEvent, useEffect, useMemo, useRef, useState } from "react";
@@ -408,6 +408,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
           <nav>
             <a className="active" href="#viaggi"><MapPinned size={18}/> Viaggi</a>
             {agency?.role === "owner" && <Link href="/agenzia/agenti"><UserPlus size={18}/> Agenti</Link>}
+            <Link href="/agenzia/login-come"><LogIn size={18}/> Login come</Link>
             <Link href="/accessibilita"><Accessibility size={18}/> Accessibilità</Link>
           </nav>
         </aside>

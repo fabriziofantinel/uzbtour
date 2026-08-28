@@ -18,6 +18,7 @@ export type CurrentUser = {
   impersonation: {
     actorId: string;
     actorName: string;
+    actorIsSuperAdmin: boolean;
     expiresAt: string;
   } | null;
 };
@@ -54,7 +55,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   if (!actor) return null;
 
   const token = (await cookies()).get(IMPERSONATION_COOKIE)?.value;
-  if (!token || !actor.isSuperAdmin) return actor;
+  if (!token || (!actor.isSuperAdmin && !actor.isAgencyAdmin)) return actor;
 
   const tokenHash = createHash("sha256").update(token).digest("hex");
   const target = await resolveV3LegacyImpersonation(actor.id, tokenHash);
@@ -69,6 +70,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     impersonation: {
       actorId: actor.id,
       actorName: actor.name,
+      actorIsSuperAdmin: actor.isSuperAdmin,
       expiresAt: new Date(target.expiresAt).toISOString()
     }
   };
