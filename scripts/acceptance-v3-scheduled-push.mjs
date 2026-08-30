@@ -1,0 +1,23 @@
+import{Client}from"@neondatabase/serverless";
+const url=process.env.DATABASE_MIGRATION_URL??process.env.DATABASE_URL_UNPOOLED??process.env.DATABASE_URL;if(!url)throw new Error("Connessione Neon non configurata");
+const client=new Client(url);let open=false;
+try{await client.connect();await client.query("BEGIN");open=true;
+const departure=(await client.query(`SELECT id::text,agency_id::text FROM travel.departures ORDER BY starts_on DESC LIMIT 1`)).rows[0];if(!departure)throw new Error("Nessuna partenza disponibile");
+await client.query(`DELETE FROM ops.push_delivery_runs WHERE departure_id=$1`,[departure.id]);
+await client.query(`UPDATE travel.departures SET starts_on=(clock_timestamp() AT TIME ZONE 'Europe/Rome')::date+1,ends_on=(clock_timestamp() AT TIME ZONE 'Europe/Rome')::date+2,status='confirmed',timezone='Europe/Rome' WHERE id=$1`,[departure.id]);
+const reminder=(await client.query(`SELECT * FROM app.claim_due_push_deliveries_v3() WHERE departure_id=$1`,[departure.id])).rows;
+if(reminder.length!==1||reminder[0].kind!=="departure_reminder")throw new Error(`Promemoria partenza non reclamato: ${JSON.stringify(reminder)}`);
+const duplicate=(await client.query(`SELECT * FROM app.claim_due_push_deliveries_v3() WHERE departure_id=$1`,[departure.id])).rowCount;if(duplicate!==0)throw new Error("Idempotenza promemoria non rispettata");
+await client.query(`SELECT app.complete_push_delivery_v3($1,false,0,0,'errore sintetico')`,[reminder[0].run_id]);
+await client.query(`UPDATE ops.push_delivery_runs SET claimed_at=clock_timestamp()-interval '16 minutes' WHERE id=$1`,[reminder[0].run_id]);
+const retry=(await client.query(`SELECT * FROM app.claim_due_push_deliveries_v3() WHERE departure_id=$1`,[departure.id])).rows;
+if(retry.length!==1||String(retry[0].run_id)!==String(reminder[0].run_id))throw new Error("Retry promemoria non reclamato");
+await client.query(`SELECT app.complete_push_delivery_v3($1,true,3,1,NULL)`,[retry[0].run_id]);
+const completed=(await client.query(`SELECT status,sent_count,revoked_count,completed_at IS NOT NULL completed FROM ops.push_delivery_runs WHERE id=$1`,[retry[0].run_id])).rows[0];
+if(completed.status!=="sent"||completed.sent_count!==3||completed.revoked_count!==1||completed.completed!==true)throw new Error("Completamento consegna non registrato");
+await client.query(`DELETE FROM ops.push_delivery_runs WHERE departure_id=$1`,[departure.id]);
+await client.query(`UPDATE travel.departures SET starts_on=(clock_timestamp() AT TIME ZONE timezone)::date-1,ends_on=(clock_timestamp() AT TIME ZONE timezone)::date+1,status='in_progress' WHERE id=$1`,[departure.id]);
+const quiz=(await client.query(`SELECT * FROM app.claim_due_push_deliveries_v3() WHERE departure_id=$1`,[departure.id])).rows;
+if(!quiz.some(row=>row.kind==="quiz_unlock"))throw new Error("Promemoria quiz non reclamato");
+await client.query("ROLLBACK");open=false;console.log(JSON.stringify({status:"passed_with_rollback",departureReminder:true,idempotency:true,retryAfter15Minutes:true,deliveryAudit:true,quizReminder:true}));
+}catch(error){if(open)await client.query("ROLLBACK").catch(()=>{});throw error;}finally{await client.end().catch(()=>{});}
