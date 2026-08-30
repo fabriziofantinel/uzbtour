@@ -15,6 +15,22 @@ const source = await readFile(
   new URL(`../database/migrations/${name}.sql`, import.meta.url),
   "utf8",
 );
+const historicalCore = await readFile(
+  new URL("../database/backfill-v3-shadow-core.sql", import.meta.url),
+  "utf8",
+);
+const insertColumns = "  (id, display_name, email, phone, platform_role, status, created_at, updated_at)";
+const refreshedColumns = "  (id, username, display_name, email, phone, platform_role, status, created_at, updated_at)";
+const insertValues = "SELECT m.target_id, u.display_name, u.email, u.phone, u.platform_role, u.status,";
+const refreshedValues = "SELECT m.target_id, u.username, u.display_name, u.email, u.phone, u.platform_role, u.status,";
+
+if (!historicalCore.includes(insertColumns) || !historicalCore.includes(insertValues)) {
+  throw new Error("Contratto del backfill core storico non riconosciuto");
+}
+
+const refreshedCore = historicalCore
+  .replace(insertColumns, refreshedColumns)
+  .replace(insertValues, refreshedValues);
 const client = new Client(url);
 let open = false;
 
@@ -23,8 +39,9 @@ try {
   await client.query("BEGIN");
   open = true;
   await client.query("SET LOCAL lock_timeout='5s'");
-  await client.query("SET LOCAL statement_timeout='60s'");
+  await client.query("SET LOCAL statement_timeout='15min'");
   await client.query(source);
+  await client.query(refreshedCore);
 
   const gate = (
     await client.query(`
@@ -47,7 +64,7 @@ try {
        ON CONFLICT(version) DO UPDATE SET applied_at=clock_timestamp()`,
       [
         "3.62.0-shadow-user-reconciliation",
-        createHash("sha256").update(source).digest("hex"),
+        createHash("sha256").update(source).update("\0").update(refreshedCore).digest("hex"),
       ],
     );
     await client.query("COMMIT");
