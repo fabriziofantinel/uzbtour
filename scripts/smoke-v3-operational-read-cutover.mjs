@@ -9,7 +9,11 @@ const client = new Client(runtimeUrl);
 let open = false;
 try {
   await client.connect();
-  const role = (await client.query("SELECT current_user AS role_name")).rows[0]?.role_name;
+  let role = (await client.query("SELECT current_user AS role_name")).rows[0]?.role_name;
+  if (role !== "smf_app") {
+    await client.query("SET ROLE smf_app");
+    role = (await client.query("SELECT current_user AS role_name")).rows[0]?.role_name;
+  }
   const privileges = (await client.query(`SELECT
     has_table_privilege(current_user,'journey.expenses','SELECT') AS expenses,
     has_table_privilege(current_user,'journey.cash_movements','SELECT') AS cash_movements,

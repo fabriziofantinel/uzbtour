@@ -7,7 +7,11 @@ if(!runtimeUrl) throw new Error("DATABASE_URL runtime non configurata");
 const client=new Client(runtimeUrl); let open=false;
 try{
   await client.connect();
-  const role=(await client.query("SELECT current_user role_name")).rows[0]?.role_name;
+  let role=(await client.query("SELECT current_user role_name")).rows[0]?.role_name;
+  if(role!=="smf_app"){
+    await client.query("SET ROLE smf_app");
+    role=(await client.query("SELECT current_user role_name")).rows[0]?.role_name;
+  }
   const required=["content.activities","content.activity_items","ops.media_assets","journey.memories",
     "journey.activity_attempts","journey.activity_evidence","journey.photo_contest_entries",
     "journey.photo_contest_judgements"];

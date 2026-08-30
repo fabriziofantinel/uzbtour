@@ -9,7 +9,11 @@ const client = new Client(runtimeUrl);
 let open = false;
 try {
   await client.connect();
-  const role = (await client.query("SELECT current_user AS role_name")).rows[0]?.role_name;
+  let role = (await client.query("SELECT current_user AS role_name")).rows[0]?.role_name;
+  if (role !== "smf_app") {
+    await client.query("SET ROLE smf_app");
+    role = (await client.query("SELECT current_user AS role_name")).rows[0]?.role_name;
+  }
   const requiredTables = [
     "travel.template_days", "travel.template_day_cities", "travel.template_day_sites",
     "travel.template_day_hotels", "travel.departures", "travel.departure_days",
