@@ -19,6 +19,10 @@ const historicalCore = await readFile(
   new URL("../database/backfill-v3-shadow-core.sql", import.meta.url),
   "utf8",
 );
+const historicalOperational = await readFile(
+  new URL("../database/backfill-v3-shadow-operational.sql", import.meta.url),
+  "utf8",
+);
 const insertColumns = "  (id, display_name, email, phone, platform_role, status, created_at, updated_at)";
 const refreshedColumns = "  (id, username, display_name, email, phone, platform_role, status, created_at, updated_at)";
 const insertValues = "SELECT m.target_id, u.display_name, u.email, u.phone, u.platform_role, u.status,";
@@ -95,6 +99,34 @@ if (referenceContentStart < 0 || tripTemplateStart <= referenceContentStart) {
   throw new Error("Blocco reference contents del backfill core non riconosciuto");
 }
 refreshedCore = `${refreshedCore.slice(0, referenceContentStart)}-- Reference contents V3 gia canonici: nessuna sovrascrittura dal legacy.\n\n${refreshedCore.slice(tripTemplateStart)}`;
+
+const cashActorJoin = `JOIN ops.legacy_id_map um
+  ON um.source_system = 'public-v2' AND um.entity_type = 'user'
+ AND um.legacy_id = c.added_by_user_id
+JOIN travel.traveler_profiles actor
+  ON actor.agency_id = c.agency_id AND actor.user_id = um.target_id`;
+const refreshedCashActorJoin = `LEFT JOIN ops.legacy_id_map um
+  ON um.source_system = 'public-v2' AND um.entity_type = 'user'
+ AND um.legacy_id = c.added_by_user_id
+JOIN LATERAL (
+  SELECT traveler.id
+    FROM travel.party_memberships membership
+    JOIN travel.traveler_profiles traveler
+      ON traveler.agency_id=membership.agency_id
+     AND traveler.id=membership.traveler_id
+   WHERE membership.agency_id=c.agency_id
+     AND membership.departure_id=p.departure_id
+     AND membership.party_id=c.party_id
+     AND membership.status='active'
+   ORDER BY CASE WHEN traveler.user_id=um.target_id THEN 0
+                 WHEN membership.role='organizer' THEN 1 ELSE 2 END,
+            membership.created_at,membership.id
+   LIMIT 1
+) actor ON true`;
+if (!historicalOperational.includes(cashActorJoin)) {
+  throw new Error("Contratto cash movement del backfill operativo non riconosciuto");
+}
+const refreshedOperational = historicalOperational.replace(cashActorJoin, refreshedCashActorJoin);
 const client = new Client(url);
 let open = false;
 
@@ -106,20 +138,28 @@ try {
   await client.query("SET LOCAL statement_timeout='15min'");
   await client.query(source);
   await client.query(refreshedCore);
+  await client.query(refreshedOperational);
 
   const gate = (
     await client.query(`
-      SELECT count(*)::int AS missing_users
+      SELECT
+        (SELECT count(*)::int
         FROM public.platform_users legacy
         LEFT JOIN ops.legacy_id_map map
           ON map.source_system='public-v2'
          AND map.entity_type='user'
          AND map.legacy_id=legacy.id
         LEFT JOIN iam.users target ON target.id=map.target_id
-       WHERE target.id IS NULL OR target.username IS DISTINCT FROM legacy.username
+       WHERE target.id IS NULL OR target.username IS DISTINCT FROM legacy.username) AS missing_users,
+        (SELECT count(*)::int
+           FROM public.party_cash_movements legacy
+           LEFT JOIN journey.cash_movements target ON target.id=legacy.id
+          WHERE target.id IS NULL) AS missing_cash_movements
     `)
   ).rows[0];
-  if (gate?.missing_users !== 0) throw new Error("Riconciliazione utenti shadow incompleta");
+  if (gate?.missing_users !== 0 || gate?.missing_cash_movements !== 0) {
+    throw new Error("Riconciliazione shadow incompleta");
+  }
 
   if (apply) {
     await client.query(
@@ -128,7 +168,8 @@ try {
        ON CONFLICT(version) DO UPDATE SET applied_at=clock_timestamp()`,
       [
         "3.62.0-shadow-user-reconciliation",
-        createHash("sha256").update(source).update("\0").update(refreshedCore).digest("hex"),
+        createHash("sha256").update(source).update("\0").update(refreshedCore)
+          .update("\0").update(refreshedOperational).digest("hex"),
       ],
     );
     await client.query("COMMIT");

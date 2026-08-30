@@ -67,7 +67,6 @@ jobs:
         run: |
           touch .env.local
           npm run db:migrate:v3:shadow-users
-          npm run db:backfill:v3:operational
           npm run db:migrate:v3:document-constraint -- --apply
           npm run db:validate:v3
           npm run smoke:v3:operational-read
