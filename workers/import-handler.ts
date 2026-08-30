@@ -12,6 +12,8 @@ const messageSchema = z.object({
   type: z.enum(["travel-programme.import", "travel-reference.enrich", "agency.delete"]),
   payload: z.record(z.string(), z.unknown()),
 });
+const textractNotificationSchema=z.object({JobId:z.string().min(1),Status:z.enum(["SUCCEEDED","FAILED","PARTIAL_SUCCESS"]),JobTag:z.string().uuid()});
+const snsEnvelopeSchema=z.object({Type:z.literal("Notification"),Message:z.string()});
 
 type SqsRecord = { messageId: string; body: string };
 type SqsEvent = { Records: SqsRecord[] };
@@ -35,7 +37,16 @@ export async function handler(event: SqsEvent): Promise<SqsBatchResponse> {
   for (const record of event.Records) {
     const startedAt = Date.now();
     try {
-      const message = messageSchema.parse(JSON.parse(record.body));
+      const raw=JSON.parse(record.body);
+      const sns=snsEnvelopeSchema.safeParse(raw);
+      if(sns.success){
+        const notification=textractNotificationSchema.parse(JSON.parse(sns.data.Message));
+        if(notification.Status!=="SUCCEEDED")throw new Error(`Textract OCR fallito: ${notification.Status}`);
+        const result=await processTravelImport(notification.JobTag,undefined,{textractJobId:notification.JobId});
+        console.info("OCR import completed",{messageId:record.messageId,importId:notification.JobTag,result,durationMs:Date.now()-startedAt});
+        continue;
+      }
+      const message = messageSchema.parse(raw);
       console.info("Import job started", {
         messageId: record.messageId,
         jobId: message.jobId,

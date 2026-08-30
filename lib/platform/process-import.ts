@@ -5,6 +5,8 @@ import {
   completeImport,
   failImport,
   markImportGenerating,
+  markImportOcrPending,
+  resumeImportOcr,
   saveNormalizedImportDocument,
 } from "./import-repository";
 import { getObjectStorage } from "./object-storage";
@@ -21,13 +23,16 @@ import {
   TRAVEL_DOCUMENT_MAX_BYTES,
   travelDocumentLabel,
 } from "./travel-document";
+import { OcrRequiredError } from "./document-preprocessor";
+import { cleanupImportOcr, readImportOcr, startImportOcr } from "./textract-ocr";
 
 export async function processTravelImport(
   importId: string,
-  expected?: { jobId?: string; agencyId?: string }
+  expected?: { jobId?: string; agencyId?: string },
+  ocrCompletion?: { textractJobId:string }
 ) {
   await assertNormalizedImportSchema();
-  const source = await claimImportJob(importId, expected);
+  const source = ocrCompletion ? await resumeImportOcr(importId,ocrCompletion.textractJobId) : await claimImportJob(importId, expected);
   let unregisteredNormalizedKey: string | null = null;
   try {
     const storage = getObjectStorage(source.provider === "r2" ? "r2" : "vercel-blob");
@@ -43,12 +48,22 @@ export async function processTravelImport(
       throw new Error(`Il documento ${travelDocumentLabel(source.original_name)} supera il limite di 20 MB`);
     }
 
-    const bytes = object.bytes;
-    if (!hasTravelDocumentSignature(source.original_name, bytes)) {
+    const bytes = ocrCompletion ? await readImportOcr(ocrCompletion.textractJobId) : object.bytes;
+    if (!ocrCompletion && !hasTravelDocumentSignature(source.original_name, bytes)) {
       throw new Error(`Il contenuto del file non corrisponde al formato ${travelDocumentLabel(source.original_name)}`);
     }
     await markImportGenerating(importId);
-    const extraction = await extractTravelProgramme(bytes, source.original_name);
+    let extraction;
+    try {
+      extraction = await extractTravelProgramme(bytes,ocrCompletion ? `${source.original_name}.ocr.txt` : source.original_name);
+    } catch(error) {
+      if(!ocrCompletion && error instanceof OcrRequiredError && source.original_name.toLowerCase().endsWith(".pdf")){
+        const textractJobId=await startImportOcr(importId,object.bytes);
+        await markImportOcrPending(importId,textractJobId);
+        return {status:"ocr_pending",textractJobId};
+      }
+      throw error;
+    }
     const programmeDraft = {
       ...extraction.draft,
       days: extraction.draft.days.map((day) => ({
@@ -93,6 +108,7 @@ export async function processTravelImport(
     }
     const importedDraft = await readNormalizedTravelDocument(savedNormalizedObject.bytes);
     await completeImport({ importId, ...extraction, draft: importedDraft });
+    if(ocrCompletion)await cleanupImportOcr(importId).catch(()=>{});
     return {
       status: "ready_for_review",
       model: extraction.model,

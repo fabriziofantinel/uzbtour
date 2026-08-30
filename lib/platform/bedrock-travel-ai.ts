@@ -188,7 +188,7 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
   if (!Number.isInteger(maxOutputTokens) || maxOutputTokens <= 0 || maxOutputTokens > 64_000) {
     throw new Error("AWS_BEDROCK_MAX_OUTPUT_TOKENS deve essere un intero tra 1 e 64000");
   }
-  const documentType = travelDocumentType(filename);
+  const documentType = filename.toLowerCase().endsWith(".ocr.txt") ? { bedrockFormat:"txt" } : travelDocumentType(filename);
   if (!documentType) throw new Error("Formato del programma non supportato");
   const documentParts = await prepareBedrockDocuments(documentBytes, filename, maxBytes);
 
@@ -263,7 +263,7 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
       return {
         draft,
         model,
-        provider: `amazon-bedrock-native-${documentType.extension}`,
+        provider: `amazon-bedrock-native-${"extension" in documentType ? documentType.extension : "ocr-text"}`,
         usage: accommodationRecoveryUsage
           ? { extraction: response.usage ?? null, accommodationRecovery: accommodationRecoveryUsage }
           : response.usage ?? null,

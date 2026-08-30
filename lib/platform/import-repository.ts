@@ -6,7 +6,7 @@ import { prepareTravelCatalog } from "./travel-catalog";
 import { normalizeTravelProgramme } from "./travel-programme-normalizer";
 import { assertNormalizedImportSchema } from "./schema-readiness";
 
-type ImportSourceRow = {
+export type ImportSourceRow = {
   id: string;
   agency_id: string;
   template_id: string;
@@ -20,6 +20,20 @@ type ImportSourceRow = {
   uploaded_by_user_id: string | null;
   status: string;
 };
+
+export async function markImportOcrPending(importId:string,textractJobId:string){
+  const sql=getSql();const rows=await sql`SELECT app.mark_import_ocr_pending_v3(${importId},${textractJobId}) AS ok`;
+  if(rows[0]?.ok!==true)throw new PlatformRequestError("Sospensione OCR non riuscita");
+}
+
+export async function resumeImportOcr(importId:string,textractJobId:string){
+  const sql=getSql();const rows=await sql`
+    SELECT id::text,agency_id::text,template_id::text,document_id::text,provider,bucket,
+      object_key,original_name,content_type,size_bytes,uploaded_by_user_id::text,status
+    FROM app.resume_import_ocr_v3(${importId},${textractJobId})`;
+  if(!rows[0])throw new PlatformRequestError("Ripresa OCR non riuscita");
+  return rows[0] as ImportSourceRow;
+}
 
 export async function getImportAgency(importId: string) {
   const sql = getSql();

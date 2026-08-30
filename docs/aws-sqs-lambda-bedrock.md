@@ -103,6 +103,9 @@ per l'applicazione web.
 - documento caricato: massimo 20 MB; i singoli blocchi Bedrock restano entro 4,5 MB.
   I PDF vengono segmentati per pagina fino a cinque blocchi e i DOCX vengono
   ricompressi senza media o convertiti in testo strutturato;
+- se una pagina PDF supera il limite o servono più di cinque blocchi, Textract
+  lavora su un bucket S3 temporaneo; SNS e una coda dedicata riprendono il job
+  senza mantenere Lambda attiva e la lifecycle elimina l'oggetto entro un giorno;
 - risposta Bedrock limitata a 12.000 token, sotto il limite di Nova 2 Lite;
 - nessuna risorsa con tariffazione oraria fissa.
 

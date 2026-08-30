@@ -27,7 +27,7 @@ Data di riferimento: 2026-08-30.
 | Modello Bedrock | Chiuso | IaC e runtime usano `eu.amazon.nova-2-lite-v1:0` |
 | Fair sharing SQS | Chiuso | Standard Queue con `MessageGroupId=agency_id` |
 | Astrazione autenticazione | Chiuso nel software | Adapter unico davanti a Cognito |
-| Documenti oltre 4,5 MB | Parziale avanzato | limite upload 20 MB; split PDF e compattazione DOCX; OCR asincrono ancora da collegare |
+| Documenti oltre 4,5 MB | Implementato | split PDF, compattazione DOCX e fallback Textract asincrono con ripresa idempotente |
 | DR Neon | Procedura pronta | runbook e CI branch definiti; primo restore drill reale richiede credenziali Neon CI |
 | Immutabilità R2 | Disegno pronto | chiavi immutabili e soft delete; Bucket Lock richiede token Cloudflare dedicato |
 | WAF/rate limiting | Disegno pronto | applicazione sul dominio richiede zona e token Cloudflare |
@@ -45,5 +45,5 @@ Data di riferimento: 2026-08-30.
 ## Dipendenze operative esterne
 
 Le attività seguenti non possono essere chiuse dal solo repository: conferma della
-sottoscrizione e-mail SNS, token Neon per branch/drill, token Cloudflare limitato per
-Bucket Lock e WAF, e scelta/provisioning del servizio OCR asincrono.
+sottoscrizione e-mail SNS, token Neon per branch/drill e token Cloudflare limitato
+per Bucket Lock e WAF.

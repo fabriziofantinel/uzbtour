@@ -9,6 +9,10 @@ export type BedrockDocumentPart = {
   bytes: Uint8Array;
 };
 
+export class OcrRequiredError extends Error {
+  constructor(message: string) { super(message); this.name = "OcrRequiredError"; }
+}
+
 function safeName(filename: string, suffix = "") {
   const stem = filename.replace(/\.(pdf|docx?)$/i, "")
     .replace(/[^a-zA-Z0-9 _\-()[\]]/g, " ").trim() || "programma-viaggio";
@@ -27,7 +31,7 @@ async function splitPdf(bytes: Uint8Array, maxBytes: number): Promise<BedrockDoc
     currentPages += 1;
     const candidate = await current.save({ useObjectStreams: true, addDefaultPage: false });
     if (candidate.byteLength <= maxBytes) continue;
-    if (currentPages === 1) throw new Error(`La pagina PDF ${index + 1} supera da sola il limite Bedrock`);
+    if (currentPages === 1) throw new OcrRequiredError(`La pagina PDF ${index + 1} supera da sola il limite Bedrock`);
     current.removePage(current.getPageCount() - 1);
     const completed = await current.save({ useObjectStreams: true, addDefaultPage: false });
     parts.push({ format: "pdf", name: safeName("programma.pdf", ` parte ${parts.length + 1}`), bytes: completed });
@@ -44,7 +48,7 @@ async function splitPdf(bytes: Uint8Array, maxBytes: number): Promise<BedrockDoc
     });
   }
   if (parts.length > 5) {
-    throw new Error("Il PDF richiede più di 5 segmenti Bedrock: è necessario il percorso OCR asincrono");
+    throw new OcrRequiredError("Il PDF richiede più di 5 segmenti Bedrock");
   }
   return parts;
 }
@@ -84,6 +88,10 @@ export async function prepareBedrockDocuments(
   filename: string,
   maxBytes: number
 ): Promise<BedrockDocumentPart[]> {
+  if(filename.toLowerCase().endsWith(".ocr.txt")){
+    if(bytes.byteLength>maxBytes)throw new Error("Il testo OCR supera il limite Bedrock");
+    return [{format:"txt",name:safeName(filename),bytes}];
+  }
   const type = travelDocumentType(filename);
   if (!type) throw new Error("Formato del programma non supportato");
   if (bytes.byteLength <= maxBytes) {

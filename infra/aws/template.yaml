@@ -370,6 +370,111 @@ Resources:
             Action: ses:SendEmail
             Resource: !Sub "arn:${AWS::Partition}:ses:${AWS::Region}:${AWS::AccountId}:identity/${InvitationSenderEmail}"
 
+  OcrTemporaryBucket:
+    Type: AWS::S3::Bucket
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: temporary EU-region staging for multipage Textract OCR inputs copied from private R2
+        must: [private, encrypted, lifecycle purge after one day, immutable per import id]
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: PurgeOcrInputs
+            Status: Enabled
+            ExpirationInDays: 1
+      Tags: [{ Key: workload, Value: smf-travel-ocr }]
+
+  OcrTemporaryBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref OcrTemporaryBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Deny
+            Principal: "*"
+            Action: s3:*
+            Resource: [!GetAtt OcrTemporaryBucket.Arn, !Sub "${OcrTemporaryBucket.Arn}/*"]
+            Condition: { Bool: { aws:SecureTransport: false } }
+
+  OcrCompletionTopic:
+    Type: AWS::SNS::Topic
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: receives Textract completion events without keeping Lambda active
+        must: [same region as Textract, encrypted]
+    Properties:
+      KmsMasterKeyId: alias/aws/sns
+
+  OcrCompletionQueue:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: durable handoff from Textract completion to the idempotent import worker
+        must: [encrypted, DLQ after four failures, visibility at least six times Lambda timeout]
+    Properties:
+      KmsMasterKeyId: alias/aws/sqs
+      VisibilityTimeout: 1800
+      MessageRetentionPeriod: 1209600
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ImportDeadLetterQueue.Arn
+        maxReceiveCount: 4
+
+  OcrCompletionQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues: [!Ref OcrCompletionQueue]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: sns.amazonaws.com }
+            Action: sqs:SendMessage
+            Resource: !GetAtt OcrCompletionQueue.Arn
+            Condition:
+              ArnEquals: { aws:SourceArn: !Ref OcrCompletionTopic }
+              StringEquals: { aws:SourceAccount: !Ref AWS::AccountId }
+
+  OcrCompletionSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: sqs
+      Endpoint: !GetAtt OcrCompletionQueue.Arn
+      TopicArn: !Ref OcrCompletionTopic
+
+  TextractNotificationRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: lets Textract publish only OCR completion events to the dedicated topic
+        must: [no data-plane permissions, publish only to the stack topic]
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: textract.amazonaws.com }
+            Action: sts:AssumeRole
+            Condition: { StringEquals: { aws:SourceAccount: !Ref AWS::AccountId } }
+      Policies:
+        - PolicyName: PublishOcrCompletion
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: sns:Publish
+                Resource: !Ref OcrCompletionTopic
+
   ImportWorker:
     Type: AWS::Serverless::Function
     DependsOn: ImportWorkerLogGroup
@@ -393,7 +498,7 @@ Resources:
           PLATFORM_OBJECT_STORAGE_PROVIDER: r2
           PLATFORM_JOB_QUEUE_PROVIDER: sqs
           PLATFORM_AI_PROVIDER: bedrock
-          CONFIG_REVISION: "2026-08-30-document-pipeline-v2"
+          CONFIG_REVISION: "2026-08-30-async-ocr-v1"
           AWS_BEDROCK_TEXT_MODEL: !Ref BedrockTextModel
           AWS_BEDROCK_MAX_DOCUMENT_BYTES: "4500000"
           AWS_BEDROCK_MAX_OUTPUT_TOKENS: "12000"
@@ -401,6 +506,9 @@ Resources:
           R2_JURISDICTION: !If [UseDefaultR2Endpoint, "", !Ref R2Jurisdiction]
           R2_PARAMETER_NAME: !Ref R2ParameterName
           R2_BUCKET: !Ref R2Bucket
+          OCR_TEMP_BUCKET: !Ref OcrTemporaryBucket
+          OCR_TOPIC_ARN: !Ref OcrCompletionTopic
+          OCR_TEXTRACT_ROLE_ARN: !GetAtt TextractNotificationRole.Arn
       Policies:
         - SQSPollerPolicy:
             QueueName: !GetAtt ImportQueue.QueueName
@@ -428,6 +536,19 @@ Resources:
               Resource:
                 - !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/${BedrockTextModel}"
                 - !Sub "arn:${AWS::Partition}:bedrock:*::foundation-model/${BedrockFoundationModelId}"
+            - Effect: Allow
+              Action:
+                - textract:StartDocumentTextDetection
+                - textract:GetDocumentTextDetection
+              Resource: "*"
+            - Effect: Allow
+              Action: iam:PassRole
+              Resource: !GetAtt TextractNotificationRole.Arn
+              Condition:
+                StringEquals: { iam:PassedToService: textract.amazonaws.com }
+            - Effect: Allow
+              Action: [s3:PutObject, s3:GetObject, s3:DeleteObject]
+              Resource: !Sub "${OcrTemporaryBucket.Arn}/ocr-input/*"
       Events:
         ImportQueueEvent:
           Type: SQS
@@ -436,6 +557,14 @@ Resources:
             BatchSize: 1
             ScalingConfig:
               MaximumConcurrency: !Ref ImportWorkerMaximumConcurrency
+            FunctionResponseTypes: [ReportBatchItemFailures]
+        OcrCompletionEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt OcrCompletionQueue.Arn
+            BatchSize: 1
+            ScalingConfig:
+              MaximumConcurrency: 5
             FunctionResponseTypes: [ReportBatchItemFailures]
     Metadata:
       com.aws.cloudformation.Context:
