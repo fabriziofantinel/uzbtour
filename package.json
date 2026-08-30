@@ -185,6 +185,7 @@
     "acceptance:v3:photo-contest-lifecycle": "node --env-file=.env.local scripts/acceptance-v3-photo-contest-lifecycle.mjs",
     "acceptance:bedrock:photo-evaluation": "node --env-file=.env.production.local scripts/acceptance-bedrock-photo-evaluation.mjs",
     "acceptance:v3:photo-evidence-attempts": "node --env-file=.env.local scripts/acceptance-v3-photo-evidence-attempts.mjs",
+    "acceptance:bingo-scoring": "tsx scripts/acceptance-bingo-scoring.ts",
     "db:migrate:v3:pgcrypto-digest:dry-run": "node --env-file=.env.local scripts/migrate-v3-pgcrypto-digest-contract.mjs",
     "db:migrate:v3:pgcrypto-digest": "node --env-file=.env.local scripts/migrate-v3-pgcrypto-digest-contract.mjs --apply",
     "db:migrate:v3:photo-contest-limit:dry-run": "node --env-file=.env.local scripts/migrate-v3-photo-contest-two-entry-contract.mjs",

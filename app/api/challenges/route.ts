@@ -124,7 +124,7 @@ async function buildResponse(user: { id: string; name: string; initials: string;
       return missionDay?.missions.find((mission) => mission.id === String(row.mission_id))?.kind === "language";
     }).length;
     const missionPoints = missions.length * MISSION_POINTS;
-    const bingoPoints = bingoScore(bingo.length);
+    const bingoPoints = bingoScore(bingo.map((row) => String(row.item_id)));
     const photoPoints = wins * 50;
     const badges = badgesFor({
       missions: missions.length,
@@ -180,7 +180,7 @@ async function buildResponse(user: { id: string; name: string; initials: string;
         reviewedBy: row.reviewed_by_name == null ? null : String(row.reviewed_by_name),
         submittedAt: row.completed_at
       })),
-      score: bingoScore(ownBingo.filter((row) => String(row.status) === "approved").length),
+      score: bingoScore(ownBingo.filter((row) => String(row.status) === "approved").map((row) => String(row.item_id))),
       maximum: BINGO_MAX_POINTS
     },
     pendingReviews: isPhotoAdmin(user) ? [

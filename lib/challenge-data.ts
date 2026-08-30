@@ -138,10 +138,9 @@ export const bingoItems = [
 ] as const;
 
 export const MISSION_POINTS = 10;
-export const BINGO_ITEM_POINTS = 12;
-export const BINGO_COMPLETION_BONUS = 8;
-export const BINGO_MAX_POINTS = bingoItems.length * BINGO_ITEM_POINTS + BINGO_COMPLETION_BONUS;
+export const BINGO_MAX_POINTS = 140;
 
-export function bingoScore(completed: number) {
-  return completed * BINGO_ITEM_POINTS + (completed === bingoItems.length ? BINGO_COMPLETION_BONUS : 0);
+export function bingoScore(completedIds: Iterable<string>) {
+  return scoreBingo(completedIds, bingoItems.map((item) => item.id));
 }
+import { bingoScore as scoreBingo } from "@/lib/bingo-scoring";

@@ -2,22 +2,9 @@
 
 import { Brain, Camera, Compass, Crown, Gamepad2, Grid3X3, Medal, Trophy } from "lucide-react";
 import type { TravelerExperience as Experience } from "@/lib/platform/traveler-experience";
+import { bingoScore } from "@/lib/bingo-scoring";
 
 type Category = "quiz" | "missioni" | "bingo" | "giochi" | "foto";
-
-function bingoMilestoneScore(completed: number) {
-  if (completed >= 5) return 30;
-  if (completed === 4) return 20;
-  if (completed === 3) return 10;
-  if (completed === 2) return 5;
-  return 0;
-}
-
-function bingoScore(contentIds: Set<string>, bingoIds: string[]) {
-  const rows = [bingoIds.slice(0, 5), bingoIds.slice(5, 10), bingoIds.slice(10, 15)];
-  const rowScore = rows.reduce((sum, row) => sum + bingoMilestoneScore(row.filter((id) => contentIds.has(id)).length), 0);
-  return rowScore + (bingoIds.length === 15 && bingoIds.every((id) => contentIds.has(id)) ? 50 : 0);
-}
 
 export default function PlatformTripRankings({ experience, userName }: { experience: Experience; userName: string }) {
   const names = experience.journey.travelers.map((traveler) => traveler.name);

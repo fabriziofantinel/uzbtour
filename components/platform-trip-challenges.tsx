@@ -9,6 +9,7 @@ import {
 import PlatformTripRankings from "@/components/platform-trip-rankings";
 import { uploadPrivateFile } from "@/lib/private-upload-client";
 import type { TravelerExperience as Experience } from "@/lib/platform/traveler-experience";
+import { bingoMilestone } from "@/lib/bingo-scoring";
 
 type ChallengeTab = "missioni" | "bingo" | "foto" | "quiz" | "giochi" | "profilo" | "classifica" | "valida";
 type Challenge = Experience["challenges"][number];
@@ -26,14 +27,6 @@ function dateLabel(value: string) {
   const date = new Date(`${value}T12:00:00Z`);
   return new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "short", timeZone: "UTC" }).format(date);
 }
-function bingoMilestone(completed: number) {
-  if (completed >= 5) return { label: "Cinquina", points: 30 };
-  if (completed === 4) return { label: "Quaterna", points: 20 };
-  if (completed === 3) return { label: "Terno", points: 10 };
-  if (completed === 2) return { label: "Ambo", points: 5 };
-  return null;
-}
-
 function puzzleNeighbors(blank: number) {
   const row = Math.floor(blank / 3);
   const column = blank % 3;
