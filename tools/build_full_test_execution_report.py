@@ -117,7 +117,7 @@ PASSED = {
     "UC-EXP-01", "UC-EXP-02", "UC-EXP-03", "UC-EXP-04",
     "UC-EXP-05", "UC-EXP-06", "UC-EXP-07", "UC-EXP-08",
     "UC-FIN-01", "UC-FIN-02", "UC-FIN-03", "UC-FIN-04", "UC-FIN-05",
-    "UC-GAM-05", "UC-GAM-06", "UC-GAM-07", "UC-GAM-08",
+    "UC-GAM-01", "UC-GAM-02", "UC-GAM-05", "UC-GAM-06", "UC-GAM-07", "UC-GAM-08",
     "UC-VIS-01", "UC-VIS-02",
     "UC-ANA-001", "UC-ANA-004", "UC-ANA-005", "UC-ANA-010",
     "UC-ANA-013", "UC-ANA-014", "UC-ANA-015",
@@ -125,7 +125,7 @@ PASSED = {
 
 BLOCKED = {
     "UC-TRP-01", "UC-TRP-02", "UC-TRP-06", "UC-TRP-08", "UC-TRP-09", "UC-TRP-10",
-    "UC-GAM-02", "UC-GAM-03", "UC-GAM-04",
+    "UC-GAM-04",
     "UC-MEM-02", "UC-PWA-01", "UC-PWA-02", "UC-PWA-04", "UC-PWA-05",
 }
 
@@ -204,6 +204,8 @@ def load_command_results():
         ["db:migrate:v3:photo-contest-gate", "SUPERATO", "Neon", "Migrazione 111 applicata: publish gate allineato al contratto di due foto; validazione V3 completa superata."],
         ["acceptance:v3:photo-contest-lifecycle", "SUPERATO", "Neon / rollback", "Due bozze, sostituzione, rifiuto terza foto, conferma, scoring strutturato, selezione migliore e chiusura temporale verificati."],
         ["acceptance:bedrock:photo-evaluation", "SUPERATO", "2 invocazioni", "Nova Lite EU: missione fotografica e due foto contest valutate tramite Tool Use; 6.457 token input e 359 output."],
+        ["db:migrate:v3:bingo-write-scope", "SUPERATO", "Neon", "Migrazione 112 applicata: il bingo globale e scrivibile da una giornata operativa senza ampliare lo scope tenant."],
+        ["acceptance:v3:photo-evidence-attempts", "SUPERATO", "Neon / rollback", "Missione approvata blocca ulteriori foto; due rifiuti bingo consumano i tentativi e il terzo e negato."],
         ["HTTP pagine e PWA", "SUPERATO", "6 endpoint", "Login, accessibilita, manifest, service worker e redirect home conformi."],
         ["HTTP API anonime", "SUPERATO", "5 endpoint", "Auth, Analytics, chat, spese (POST) e trip-data rispondono JSON 401; DEF-001 chiusa."],
         ["Browser pubblico", "SUPERATO", "3 pagine", "Login, recupero username e accessibilita caricati senza overflow nel viewport effettivo."],
@@ -274,7 +276,7 @@ doc.add_paragraph(
     f"Sono stati censiti {len(cases)} casi d'uso. L'esecuzione ha prodotto {counts['SUPERATO']} casi superati, "
     f"{counts['PARZIALE']} parzialmente coperti, {counts['BLOCCATO']} bloccati da prerequisiti esterni e "
     f"{counts['NON SUPERATO']} casi completamente non superati. Le suite strutturali, la build, il modello dati, "
-    "le migrazioni fino alla 111, Analytics, chat, gestione spese e governance contenuti risultano conformi."
+    "le migrazioni fino alla 112, Analytics, chat, gestione spese e governance contenuti risultano conformi."
 )
 fixed_table(doc, ["Esito", "Casi", "Interpretazione"], [
     ["SUPERATO", counts["SUPERATO"], "Flusso o contratto dimostrato da esecuzione ripetibile."],
@@ -289,7 +291,7 @@ for text in [
     "Neon validato: 74 tabelle, 60 con RLS, nessun indice invalido, nessun vincolo non validato e nessuna tabella tenant senza indice agency_id leading.",
     "Smoke Analytics superato con rollback: registrazione, lettura RLS, attore distinto e idempotenza.",
     "Smoke spese, chat, accesso agenzia e acceptance su owner, provisioning e cancellazione superati.",
-    "Migrazioni fino alla 111 verificate: KPI, governance fonti, contratti runtime, pgcrypto isolata e limite contest a due foto.",
+    "Migrazioni fino alla 112 verificate: KPI, governance fonti, contratti runtime, pgcrypto, contest a due foto e scrittura bingo globale.",
     "Template AWS SAM valido; pagine pubbliche, manifest PWA e service worker disponibili in produzione.",
 ]:
     add_bullet(doc, text)
