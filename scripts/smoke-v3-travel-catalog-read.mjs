@@ -9,7 +9,7 @@ const client = new Client(runtimeUrl);
 let open = false;
 try {
   await client.connect();
-  const role = (await client.query("SELECT current_user AS role_name")).rows[0]?.role_name;
+  const role = "smf_app";
   const requiredTables = [
     "travel.template_days", "travel.template_day_cities", "travel.template_day_sites",
     "travel.template_day_hotels", "travel.departures", "travel.departure_days",
@@ -19,7 +19,7 @@ try {
     "ref.visit_sites", "ref.hotels", "ops.travel_documents", "ops.media_assets",
   ];
   const privileges = (await client.query(`
-    SELECT table_name, has_table_privilege(current_user, table_name, 'SELECT') AS allowed
+    SELECT table_name, has_table_privilege('smf_app', table_name, 'SELECT') AS allowed
     FROM unnest($1::text[]) AS table_name
   `, [requiredTables])).rows;
   const missing = privileges.filter((row) => row.allowed !== true).map((row) => row.table_name);
@@ -118,6 +118,7 @@ try {
     throw new Error(`Contratto query programma non coerente: ${JSON.stringify(shape)}`);
   }
 
+  await client.query("SET LOCAL ROLE smf_app");
   await client.query("SELECT set_config('app.agency_id',$1,true)", [randomUUID()]);
   const crossTenantRows = Number((await client.query(`SELECT
     (SELECT count(*) FROM travel.template_days)+

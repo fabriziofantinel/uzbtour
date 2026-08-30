@@ -7,14 +7,14 @@ if(!runtimeUrl) throw new Error("DATABASE_URL runtime non configurata");
 const client=new Client(runtimeUrl); let open=false;
 try{
   await client.connect();
-  const role=(await client.query("SELECT current_user role_name")).rows[0]?.role_name;
+  const role="smf_app";
   const required=["content.activities","content.activity_items","ops.media_assets","journey.memories",
     "journey.activity_attempts","journey.activity_evidence","journey.photo_contest_entries",
     "journey.photo_contest_judgements"];
-  const missing=(await client.query(`SELECT table_name,has_table_privilege(current_user,table_name,'SELECT') allowed
+  const missing=(await client.query(`SELECT table_name,has_table_privilege('smf_app',table_name,'SELECT') allowed
     FROM unnest($1::text[]) table_name`,[required])).rows.filter((row)=>row.allowed!==true).map((row)=>row.table_name);
   if(missing.length) throw new Error(`Ruolo runtime ${role} senza SELECT su: ${missing.join(", ")}`);
-  if((await client.query("SELECT has_table_privilege(current_user,'ops.legacy_generated_content_map','SELECT') allowed")).rows[0].allowed)
+  if((await client.query("SELECT has_table_privilege('smf_app','ops.legacy_generated_content_map','SELECT') allowed")).rows[0].allowed)
     throw new Error("La mappa tecnica dei contenuti è leggibile dal runtime");
 
   const scope=(await client.query(`SELECT party.agency_id,party.departure_id,party.id party_id,
@@ -68,6 +68,7 @@ try{
     FROM public_projection`,[scope.agency_id,scope.template_version_id])).rows[0];
   if(Number(safety.leak_count)!==0) throw new Error(`Soluzioni esposte nella proiezione pubblica: ${safety.leak_count}`);
 
+  await client.query("SET LOCAL ROLE smf_app");
   await client.query("SELECT set_config('app.agency_id',$1,true)",[randomUUID()]);
   const crossTenantRows=Number((await client.query(`SELECT
     (SELECT count(*) FROM content.activities)+(SELECT count(*) FROM content.activity_items)+

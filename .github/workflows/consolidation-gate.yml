@@ -64,8 +64,13 @@ jobs:
           DATABASE_MIGRATION_URL: ${{ steps.create-neon-branch.outputs.db_url }}
           DATABASE_URL_UNPOOLED: ${{ steps.create-neon-branch.outputs.db_url }}
           DATABASE_URL: ${{ steps.create-neon-branch.outputs.db_url_pooled }}
+          NEON_BRANCH_ID: ${{ steps.create-neon-branch.outputs.branch_id }}
         run: |
+          touch .env.local
+          npm run db:migrate:v3:shadow-users
+          npm run db:migrate:v3:document-constraint -- --apply
           npm run db:validate:v3
+          node scripts/prepare-neon-ci-runtime-role.mjs
           npm run smoke:v3:operational-read
           npm run smoke:v3:travel-catalog-read
           npm run smoke:v3:gamification-read

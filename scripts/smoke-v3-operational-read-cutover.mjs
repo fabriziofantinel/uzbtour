@@ -9,13 +9,13 @@ const client = new Client(runtimeUrl);
 let open = false;
 try {
   await client.connect();
-  const role = (await client.query("SELECT current_user AS role_name")).rows[0]?.role_name;
+  const role = "smf_app";
   const privileges = (await client.query(`SELECT
-    has_table_privilege(current_user,'journey.expenses','SELECT') AS expenses,
-    has_table_privilege(current_user,'journey.cash_movements','SELECT') AS cash_movements,
-    has_table_privilege(current_user,'journey.day_notes','SELECT') AS day_notes,
-    has_table_privilege(current_user,'journey.restaurant_visits','SELECT') AS restaurants,
-    has_table_privilege(current_user,'journey.programme_feedback','SELECT') AS feedback
+    has_table_privilege('smf_app','journey.expenses','SELECT') AS expenses,
+    has_table_privilege('smf_app','journey.cash_movements','SELECT') AS cash_movements,
+    has_table_privilege('smf_app','journey.day_notes','SELECT') AS day_notes,
+    has_table_privilege('smf_app','journey.restaurant_visits','SELECT') AS restaurants,
+    has_table_privilege('smf_app','journey.programme_feedback','SELECT') AS feedback
   `)).rows[0];
   const missingPrivileges = Object.entries(privileges)
     .filter(([, allowed]) => allowed !== true)
@@ -94,6 +94,7 @@ try {
         AND template_day.day_number>0) restaurants
   `, [scope.agency_id, scope.departure_id, scope.party_id])).rows[0];
 
+  await client.query("SET LOCAL ROLE smf_app");
   await client.query("SELECT set_config('app.agency_id',$1,true)", [randomUUID()]);
   const crossTenantRows = Number((await client.query(`
     SELECT

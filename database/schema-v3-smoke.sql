@@ -7,10 +7,10 @@ GRANT SELECT ON ALL TABLES IN SCHEMA ref TO smf_app;
 GRANT EXECUTE ON FUNCTION app.current_agency_id() TO smf_app;
 GRANT smf_app TO CURRENT_USER;
 
-INSERT INTO iam.users (id, display_name, platform_role, status) VALUES
-  ('019d0000-0000-7000-8000-000000000001', 'Test Admin', 'superadmin', 'active');
-INSERT INTO iam.users (id, display_name, platform_role, status) VALUES
-  ('019d0000-0000-7000-8000-000000000002', 'Test Adult', 'user', 'active');
+INSERT INTO iam.users (id, username, display_name, platform_role, status) VALUES
+  ('019d0000-0000-7000-8000-000000000001', 'smoke_admin', 'Test Admin', 'superadmin', 'active');
+INSERT INTO iam.users (id, username, display_name, platform_role, status) VALUES
+  ('019d0000-0000-7000-8000-000000000002', 'smoke_adult', 'Test Adult', 'user', 'active');
 INSERT INTO ref.countries (id, iso_code, name, normalized_name, google_url) VALUES
   ('019d0000-0000-7000-8000-000000000010', 'IT', 'Italia', 'italia', 'https://www.google.com/search?q=Italia');
 
