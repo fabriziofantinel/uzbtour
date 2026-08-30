@@ -28,9 +28,74 @@ if (!historicalCore.includes(insertColumns) || !historicalCore.includes(insertVa
   throw new Error("Contratto del backfill core storico non riconosciuto");
 }
 
-const refreshedCore = historicalCore
-  .replace(insertColumns, refreshedColumns)
-  .replace(insertValues, refreshedValues);
+const replacements = [
+  [insertColumns, refreshedColumns],
+  [insertValues, refreshedValues],
+  [
+    "SELECT id, country_id, name, normalized_name, google_url,\n       CASE WHEN latitude IS NOT NULL AND longitude IS NOT NULL",
+    "SELECT city_map.target_id, city.country_id, city.name, city.normalized_name, city.google_url,\n       CASE WHEN city.latitude IS NOT NULL AND city.longitude IS NOT NULL",
+  ],
+  [
+    "THEN ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography END,\n       NULL, last_verified_at, content_refresh_after, created_at, updated_at\nFROM public.cities",
+    "THEN ST_SetSRID(ST_MakePoint(city.longitude, city.latitude), 4326)::geography END,\n       NULL, city.last_verified_at, city.content_refresh_after, city.created_at, city.updated_at\nFROM public.cities city\nJOIN ops.legacy_id_map city_map ON city_map.source_system='public-v2'\n AND city_map.entity_type='city' AND city_map.legacy_id=city.id::text",
+  ],
+  [
+    "SELECT id, city_id, name, normalized_name, google_url, official_url,\n       CASE WHEN latitude IS NOT NULL AND longitude IS NOT NULL",
+    "SELECT site_map.target_id, city_map.target_id, site.name, site.normalized_name, site.google_url, site.official_url,\n       CASE WHEN site.latitude IS NOT NULL AND site.longitude IS NOT NULL",
+  ],
+  [
+    "THEN ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography END,\n       last_verified_at, content_refresh_after, created_at, updated_at\nFROM public.visit_sites",
+    "THEN ST_SetSRID(ST_MakePoint(site.longitude, site.latitude), 4326)::geography END,\n       site.last_verified_at, site.content_refresh_after, site.created_at, site.updated_at\nFROM public.visit_sites site\nJOIN ops.legacy_id_map site_map ON site_map.source_system='public-v2'\n AND site_map.entity_type='visit_site' AND site_map.legacy_id=site.id::text\nJOIN ops.legacy_id_map city_map ON city_map.source_system='public-v2'\n AND city_map.entity_type='city' AND city_map.legacy_id=site.city_id::text",
+  ],
+  [
+    "SELECT id, city_id, name, normalized_name, google_url, website_url,\n       CASE WHEN latitude IS NOT NULL AND longitude IS NOT NULL",
+    "SELECT hotel_map.target_id, city_map.target_id, hotel.name, hotel.normalized_name, hotel.google_url, hotel.website_url,\n       CASE WHEN hotel.latitude IS NOT NULL AND hotel.longitude IS NOT NULL",
+  ],
+  [
+    "THEN ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography END,\n       last_verified_at, created_at, updated_at\nFROM public.hotels",
+    "THEN ST_SetSRID(ST_MakePoint(hotel.longitude, hotel.latitude), 4326)::geography END,\n       hotel.last_verified_at, hotel.created_at, hotel.updated_at\nFROM public.hotels hotel\nJOIN ops.legacy_id_map hotel_map ON hotel_map.source_system='public-v2'\n AND hotel_map.entity_type='hotel' AND hotel_map.legacy_id=hotel.id::text\nJOIN ops.legacy_id_map city_map ON city_map.source_system='public-v2'\n AND city_map.entity_type='city' AND city_map.legacy_id=hotel.city_id::text",
+  ],
+  [
+    "CASE WHEN rc.entity_type = 'city' THEN rc.entity_id END,\n       CASE WHEN rc.entity_type = 'site' THEN rc.entity_id END,",
+    "CASE WHEN rc.entity_type = 'city' THEN city_map.target_id END,\n       CASE WHEN rc.entity_type = 'site' THEN site_map.target_id END,",
+  ],
+  [
+    "FROM public.reference_contents rc\nWHERE rc.entity_type IN ('country', 'city', 'site')",
+    "FROM public.reference_contents rc\nLEFT JOIN ops.legacy_id_map city_map ON rc.entity_type='city'\n AND city_map.source_system='public-v2' AND city_map.entity_type='city'\n AND city_map.legacy_id=rc.entity_id::text\nLEFT JOIN ops.legacy_id_map site_map ON rc.entity_type='site'\n AND site_map.source_system='public-v2' AND site_map.entity_type='visit_site'\n AND site_map.legacy_id=rc.entity_id::text\nWHERE rc.entity_type IN ('country', 'city', 'site')",
+  ],
+  [
+    "SELECT d.agency_id, d.template_version_id, x.trip_day_id, x.city_id,",
+    "SELECT d.agency_id, d.template_version_id, x.trip_day_id, city_map.target_id,",
+  ],
+  [
+    "JOIN public.trip_days d ON d.id = x.trip_day_id\nON CONFLICT (template_day_id, city_id)",
+    "JOIN public.trip_days d ON d.id = x.trip_day_id\nJOIN ops.legacy_id_map city_map ON city_map.source_system='public-v2'\n AND city_map.entity_type='city' AND city_map.legacy_id=x.city_id::text\nON CONFLICT (template_day_id, city_id)",
+  ],
+  [
+    "SELECT d.agency_id, d.template_version_id, x.trip_day_id, x.site_id,",
+    "SELECT d.agency_id, d.template_version_id, x.trip_day_id, site_map.target_id,",
+  ],
+  [
+    "JOIN public.trip_days d ON d.id = x.trip_day_id\nON CONFLICT (template_day_id, visit_site_id)",
+    "JOIN public.trip_days d ON d.id = x.trip_day_id\nJOIN ops.legacy_id_map site_map ON site_map.source_system='public-v2'\n AND site_map.entity_type='visit_site' AND site_map.legacy_id=x.site_id::text\nON CONFLICT (template_day_id, visit_site_id)",
+  ],
+  [
+    "SELECT d.agency_id, d.template_version_id, x.trip_day_id, x.hotel_id,",
+    "SELECT d.agency_id, d.template_version_id, x.trip_day_id, hotel_map.target_id,",
+  ],
+  [
+    "JOIN public.trip_days d ON d.id = x.trip_day_id\nON CONFLICT (template_day_id, hotel_id)",
+    "JOIN public.trip_days d ON d.id = x.trip_day_id\nJOIN ops.legacy_id_map hotel_map ON hotel_map.source_system='public-v2'\n AND hotel_map.entity_type='hotel' AND hotel_map.legacy_id=x.hotel_id::text\nON CONFLICT (template_day_id, hotel_id)",
+  ],
+];
+
+let refreshedCore = historicalCore;
+for (const [before, after] of replacements) {
+  if (!refreshedCore.includes(before)) {
+    throw new Error(`Contratto del backfill core non riconosciuto: ${before.slice(0, 48)}`);
+  }
+  refreshedCore = refreshedCore.replace(before, after);
+}
 const client = new Client(url);
 let open = false;
 
