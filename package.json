@@ -182,6 +182,8 @@
     "db:migrate:v3:gamification-write:dry-run": "node --env-file=.env.local scripts/migrate-v3-gamification-write.mjs",
     "db:migrate:v3:gamification-write": "node --env-file=.env.local scripts/migrate-v3-gamification-write.mjs --apply",
     "acceptance:v3:gamification-write": "node --env-file=.env.local scripts/acceptance-v3-gamification-write.mjs",
+    "db:migrate:v3:pgcrypto-digest:dry-run": "node --env-file=.env.local scripts/migrate-v3-pgcrypto-digest-contract.mjs",
+    "db:migrate:v3:pgcrypto-digest": "node --env-file=.env.local scripts/migrate-v3-pgcrypto-digest-contract.mjs --apply",
     "db:migrate:v3:legacy-write-retirement:dry-run": "node --env-file=.env.local scripts/migrate-v3-legacy-write-retirement.mjs",
     "db:migrate:v3:legacy-write-retirement": "node --env-file=.env.local scripts/migrate-v3-legacy-write-retirement.mjs --apply",
     "db:migrate:v3:legacy-traveler-read-retirement:dry-run": "node --env-file=.env.local scripts/migrate-v3-legacy-traveler-read-retirement.mjs",

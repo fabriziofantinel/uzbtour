@@ -117,6 +117,7 @@ PASSED = {
     "UC-EXP-01", "UC-EXP-02", "UC-EXP-03", "UC-EXP-04",
     "UC-EXP-05", "UC-EXP-06", "UC-EXP-07", "UC-EXP-08",
     "UC-FIN-01", "UC-FIN-02", "UC-FIN-03", "UC-FIN-04", "UC-FIN-05",
+    "UC-GAM-05", "UC-GAM-06",
     "UC-VIS-01", "UC-VIS-02",
     "UC-ANA-001", "UC-ANA-004", "UC-ANA-005", "UC-ANA-010",
     "UC-ANA-013", "UC-ANA-014", "UC-ANA-015",
@@ -124,8 +125,7 @@ PASSED = {
 
 BLOCKED = {
     "UC-TRP-01", "UC-TRP-02", "UC-TRP-06", "UC-TRP-08", "UC-TRP-09", "UC-TRP-10",
-    "UC-GAM-01", "UC-GAM-02", "UC-GAM-03", "UC-GAM-04", "UC-GAM-05",
-    "UC-GAM-06", "UC-GAM-07", "UC-GAM-08", "UC-GAM-09",
+    "UC-GAM-02", "UC-GAM-03", "UC-GAM-04", "UC-GAM-07", "UC-GAM-08", "UC-GAM-09",
     "UC-MEM-02", "UC-PWA-01", "UC-PWA-02", "UC-PWA-04", "UC-PWA-05",
 }
 
@@ -141,6 +141,7 @@ def evidence(case_id):
             "EXP": "Percorso viaggiatore autenticato verificato in produzione: mappa, programma, documenti, finanza, sfide, informazioni e frasario isolati sul viaggio.",
             "GRP": "Provisioning gruppo e viaggiatore superato transazionalmente.",
             "FIN": "Smoke spese e quote superato: quadratura valuta, split e rollback.",
+            "GAM": "Acceptance runtime con ruolo smf_app e rollback: quiz giornalieri e giochi tematici salvati; grant quiz verificato.",
             "VIS": "Percorso pubblico verificato in produzione tramite browser e HTTP 200.",
             "ANA": "Smoke Analytics superato: evento, RLS, idempotenza e rollback.",
         }
@@ -197,6 +198,8 @@ def load_command_results():
         ["smoke:v3:expenses", "SUPERATO", "Neon / rollback", "Ruolo smf_app, inserimento spesa, ripartizione esatta delle quote e idempotenza client_operation_id verificati; nessun dato persistito."],
         ["smoke:v3:agency-analytics", "SUPERATO", "Neon / rollback", "Scrittura evento, lettura RLS, aggregazione, attori distinti e anti-replay verificati; nessun dato persistito."],
         ["acceptance:v3:participant-provisioning", "SUPERATO", "Neon / rollback", "Creazione gruppo e viaggiatore, riconciliazione V3, invito monouso e invisibilita dopo il consumo verificati; nessun dato persistito."],
+        ["acceptance:v3:gamification-write", "SUPERATO", "Neon / rollback", "Scrittura mission, quiz, order game e word game con ruolo smf_app; grant quiz e rollback verificati."],
+        ["db:migrate:v3:pgcrypto-digest", "SUPERATO", "Neon", "Migrazione 109 applicata: pgcrypto isolato nello schema extensions e bridge digest non invocabile direttamente dal runtime."],
         ["HTTP pagine e PWA", "SUPERATO", "6 endpoint", "Login, accessibilita, manifest, service worker e redirect home conformi."],
         ["HTTP API anonime", "SUPERATO", "5 endpoint", "Auth, Analytics, chat, spese (POST) e trip-data rispondono JSON 401; DEF-001 chiusa."],
         ["Browser pubblico", "SUPERATO", "3 pagine", "Login, recupero username e accessibilita caricati senza overflow nel viewport effettivo."],
@@ -267,7 +270,7 @@ doc.add_paragraph(
     f"Sono stati censiti {len(cases)} casi d'uso. L'esecuzione ha prodotto {counts['SUPERATO']} casi superati, "
     f"{counts['PARZIALE']} parzialmente coperti, {counts['BLOCCATO']} bloccati da prerequisiti esterni e "
     f"{counts['NON SUPERATO']} casi completamente non superati. Le suite strutturali, la build, il modello dati, "
-    "le migrazioni fino alla 108, Analytics, chat, gestione spese e governance contenuti risultano conformi."
+    "le migrazioni fino alla 109, Analytics, chat, gestione spese e governance contenuti risultano conformi."
 )
 fixed_table(doc, ["Esito", "Casi", "Interpretazione"], [
     ["SUPERATO", counts["SUPERATO"], "Flusso o contratto dimostrato da esecuzione ripetibile."],
@@ -282,7 +285,7 @@ for text in [
     "Neon validato: 74 tabelle, 60 con RLS, nessun indice invalido, nessun vincolo non validato e nessuna tabella tenant senza indice agency_id leading.",
     "Smoke Analytics superato con rollback: registrazione, lettura RLS, attore distinto e idempotenza.",
     "Smoke spese, chat, accesso agenzia e acceptance su owner, provisioning e cancellazione superati.",
-    "Migrazioni fino alla 108 verificate: KPI versionati, registro variazioni, ricevute di lettura, governance fonti e contratti runtime finali.",
+    "Migrazioni fino alla 109 verificate: KPI, registro variazioni, governance fonti, contratti runtime e dipendenza crittografica pgcrypto isolata.",
     "Template AWS SAM valido; pagine pubbliche, manifest PWA e service worker disponibili in produzione.",
 ]:
     add_bullet(doc, text)
@@ -291,7 +294,7 @@ add_heading(doc, "3. Anomalie e impedimenti", 1)
 fixed_table(doc, ["ID", "Severita", "Tipo", "Descrizione e impatto", "Azione raccomandata"], [
     ["DEF-001", "Chiusa", "Applicazione", "Il proxy intercettava le API protette e restituiva 307 HTML. Corretto escludendo tutte le route /api dal redirect di pagina.", "Regressione automatica e verifica runtime JSON 401 superate."],
     ["BLK-001", "Alta", "Ambiente test", "La DATABASE_URL scaricata da Vercel e protetta da placeholder e non e risolvibile dai processi locali. Le suite che richiedono esclusivamente tale URL non possono avviarsi.", "Fornire una URL pooled dedicata al ruolo smf_app nell'ambiente di collaudo locale, distinta dalla connessione owner."],
-    ["BLK-002", "Media", "Fixture", "La fixture gamification pubblicata non e disponibile; acceptance quiz/sfide non parte.", "Creare una partenza sintetica versionata con giochi, quiz, contest e due viaggiatori."],
+    ["BLK-002", "Media", "Fixture", "Quiz, missioni e giochi sono verificati; mancano fixture media per bingo e contest fotografico con valutazione AI.", "Creare asset R2 sintetici e una partenza versionata con bingo e contest."],
     ["BLK-003", "Media", "Integrazioni", "R2/SQS/Bedrock non sono stati invocati: credenziali R2 e coda di collaudo non sono esposte localmente.", "Predisporre risorse sandbox e budget massimo per test AI/documentali."],
     ["BLK-004", "Media", "Browser", "I tre ruoli sono stati verificati in lettura; mancano ancora scenari mutativi distruttivi completi su utenze e dati sintetici dedicati.", "Preparare un tenant sintetico eliminabile per completare le mutazioni UI senza impattare dati reali."],
     ["BLK-005", "Bassa", "Dispositivo", "Installazione PWA, modalita aereo, push e safe-area non sono verificabili senza smartphone reale.", "Eseguire matrice iOS Safari e Android Chrome su almeno due dispositivi."],
