@@ -140,7 +140,10 @@ export async function readV3Gamification(input: {
           activity.activity_type<>'quiz'
           OR app.has_active_activity_access_grant_v3(
             activity.agency_id,${input.departureId}::uuid,${input.partyId}::uuid,
-            app.resolve_legacy_user_id(${input.userId},${input.agencyId}),activity.id
+            (SELECT profile.id FROM travel.traveler_profiles profile
+             WHERE profile.agency_id=${input.agencyId}
+               AND profile.user_id=app.resolve_legacy_user_id(${input.userId},${input.agencyId})
+             LIMIT 1),activity.id
           )
         )
       ORDER BY COALESCE(day.day_number,0),activity.sort_order,item.ordinal

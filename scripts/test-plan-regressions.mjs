@@ -23,6 +23,7 @@ assert.match(loginRoute, /INVALID_USERNAME/);
 assert.match(loginRoute, /Username non valido/);
 
 assert.match(gamification, /app\.has_active_activity_access_grant_v3/);
+assert.match(gamification, /SELECT profile\.id FROM travel\.traveler_profiles profile/);
 assert.match(gamification, /app\.issue_activity_access_grant/);
 assert.match(gamification, /if \(count >= 10\) return false/);
 assert.match(challengesRoute, /questions\.length !== 10/);
