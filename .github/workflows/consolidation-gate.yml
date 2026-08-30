@@ -66,6 +66,7 @@ jobs:
           DATABASE_URL: ${{ steps.create-neon-branch.outputs.db_url_pooled }}
         run: |
           touch .env.local
+          npm run db:migrate:v3:shadow-users
           npm run db:backfill:v3
           npm run db:backfill:v3:operational
           npm run db:migrate:v3:document-constraint -- --apply

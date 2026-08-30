@@ -61,6 +61,8 @@
     "db:migrate:v3:async-ocr": "node --env-file=.env.local scripts/migrate-v3-async-ocr-resume.mjs --apply",
     "db:migrate:v3:document-constraint:dry-run": "node --env-file=.env.local scripts/migrate-v3-travel-document-constraint-validation.mjs",
     "db:migrate:v3:document-constraint": "node --env-file=.env.local scripts/migrate-v3-travel-document-constraint-validation.mjs --apply",
+    "db:migrate:v3:shadow-users:dry-run": "node --env-file=.env.local scripts/migrate-v3-shadow-user-reconciliation.mjs",
+    "db:migrate:v3:shadow-users": "node --env-file=.env.local scripts/migrate-v3-shadow-user-reconciliation.mjs --apply",
     "db:migrate:v3:useful-info-contacts:dry-run": "node --env-file=.env.local scripts/migrate-v3-generated-useful-information-contacts.mjs",
     "db:migrate:v3:useful-info-contacts": "node --env-file=.env.local scripts/migrate-v3-generated-useful-information-contacts.mjs --apply",
     "db:migrate:v3:agency-branding:dry-run": "node --env-file=.env.local scripts/migrate-v3-agency-branding-read.mjs",
