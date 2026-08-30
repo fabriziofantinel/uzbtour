@@ -114,9 +114,12 @@ PASSED = {
     "UC-IAM-04", "UC-IAM-05", "UC-IAM-06",
     "UC-ADM-02", "UC-ADM-03", "UC-ADM-05", "UC-ADM-06", "UC-ADM-07",
     "UC-AGY-03", "UC-TRP-14", "UC-GRP-02",
+    "UC-EXP-01", "UC-EXP-02", "UC-EXP-03", "UC-EXP-04",
+    "UC-EXP-05", "UC-EXP-06", "UC-EXP-07", "UC-EXP-08",
     "UC-FIN-01", "UC-FIN-02", "UC-FIN-03", "UC-FIN-04", "UC-FIN-05",
     "UC-VIS-01", "UC-VIS-02",
-    "UC-ANA-005", "UC-ANA-013",
+    "UC-ANA-001", "UC-ANA-004", "UC-ANA-005", "UC-ANA-010",
+    "UC-ANA-013", "UC-ANA-014", "UC-ANA-015",
 }
 
 BLOCKED = {
@@ -135,6 +138,7 @@ def evidence(case_id):
             "ADM": "Acceptance transazionale su agenzia/responsabile/cancellazione superata con rollback.",
             "AGY": "Smoke chat operativo superato con isolamento tenant.",
             "TRP": "Acceptance cancellazione viaggio/agenzia e vincoli referenziali superata.",
+            "EXP": "Percorso viaggiatore autenticato verificato in produzione: mappa, programma, documenti, finanza, sfide, informazioni e frasario isolati sul viaggio.",
             "GRP": "Provisioning gruppo e viaggiatore superato transazionalmente.",
             "FIN": "Smoke spese e quote superato: quadratura valuta, split e rollback.",
             "VIS": "Percorso pubblico verificato in produzione tramite browser e HTTP 200.",
@@ -193,6 +197,8 @@ def load_command_results():
         ["HTTP pagine e PWA", "SUPERATO", "6 endpoint", "Login, accessibilita, manifest, service worker e redirect home conformi."],
         ["HTTP API anonime", "SUPERATO", "5 endpoint", "Auth, Analytics, chat, spese (POST) e trip-data rispondono JSON 401; DEF-001 chiusa."],
         ["Browser pubblico", "SUPERATO", "3 pagine", "Login, recupero username e accessibilita caricati senza overflow nel viewport effettivo."],
+        ["Browser autenticato", "SUPERATO", "3 ruoli", "Superuser, agenzia e viaggiatore verificati in produzione; Analytics, programma, documenti, finanza, sfide, informazioni e frasario accessibili."],
+        ["Quiz pubblicati", "SUPERATO", "11 giornate", "10 domande approvate per giornata e sblocco runtime verificato dopo consolidamento del resolver identita."],
     ])
     return rows
 

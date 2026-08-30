@@ -15,8 +15,9 @@ try{
   const journeys=(await client.query("SELECT * FROM app.list_legacy_user_journeys($1)",[legacyUserId])).rows;
   const reports=[];
   for(const journey of journeys){
+    await client.query("SELECT set_config('app.agency_id',$1,false)",[journey.agency_id]);
     const params=[journey.agency_id,journey.departure_id,journey.party_id,journey.template_version_id];
-    const [catalog,activities,documents,finance,parties,referenceContent]=await Promise.all([
+    const [catalog,activities,documents,finance,parties,referenceContent,accessGrants,quizEligibility,runtimeCandidates,identityDiagnostic]=await Promise.all([
       client.query(`SELECT
         (SELECT count(*) FROM travel.template_days WHERE agency_id=$1 AND template_version_id=$3) days,
         (SELECT count(*) FROM travel.departure_itinerary_items WHERE agency_id=$1 AND departure_id=$2) items,
@@ -57,10 +58,52 @@ try{
           OR (entity.entity_type='site' AND content.visit_site_id=entity.entity_id)
         WHERE content.locale='it-IT' GROUP BY entity.entity_type,content.content_type,content.status
         ORDER BY entity.entity_type,content.content_type,content.status`,[journey.agency_id,journey.departure_id,journey.template_version_id]),
+      client.query(`SELECT count(*)::int total,
+          count(*) FILTER(WHERE revoked_at IS NULL AND available_at<=clock_timestamp()
+            AND (expires_at IS NULL OR expires_at>clock_timestamp()))::int active
+        FROM journey.activity_access_grants
+        WHERE agency_id=$1 AND departure_id=$2 AND party_id=$3`,
+        [journey.agency_id,journey.departure_id,journey.party_id]),
+      client.query(`SELECT activity.availability_rule,count(*)::int activities,
+          count(*) FILTER(WHERE activity.availability_rule='always' OR
+            (activity.availability_rule='relative_day_time' AND operational_day.service_date IS NOT NULL
+             AND (((operational_day.service_date+activity.relative_days)+activity.unlock_local_time)
+               AT TIME ZONE departure.timezone)<=clock_timestamp()))::int eligible
+        FROM content.activities activity
+        JOIN travel.departures departure ON departure.agency_id=activity.agency_id
+          AND departure.id=$2 AND departure.template_version_id=activity.template_version_id
+        LEFT JOIN travel.departure_days operational_day ON operational_day.agency_id=activity.agency_id
+          AND operational_day.departure_id=departure.id AND operational_day.template_day_id=activity.template_day_id
+        WHERE activity.agency_id=$1 AND activity.template_version_id=$3
+          AND activity.activity_type='quiz' AND activity.status='approved'
+        GROUP BY activity.availability_rule`,[journey.agency_id,journey.departure_id,journey.template_version_id]),
+      client.query(`SELECT count(*)::int candidates FROM travel.traveler_profiles traveler
+        JOIN travel.party_memberships membership ON membership.agency_id=traveler.agency_id
+          AND membership.traveler_id=traveler.id AND membership.departure_id=$2
+          AND membership.party_id=$3 AND membership.status='active'
+        JOIN travel.departures departure ON departure.agency_id=membership.agency_id AND departure.id=membership.departure_id
+        JOIN content.activities activity ON activity.agency_id=departure.agency_id
+          AND activity.template_version_id=departure.template_version_id
+          AND activity.activity_type='quiz' AND activity.status='approved'
+        LEFT JOIN travel.departure_days operational_day ON operational_day.agency_id=activity.agency_id
+          AND operational_day.departure_id=departure.id AND operational_day.template_day_id=activity.template_day_id
+        WHERE traveler.agency_id=$1 AND traveler.user_id=app.resolve_legacy_user_id($4,$1)
+          AND (activity.availability_rule='always' OR (activity.availability_rule='relative_day_time'
+            AND operational_day.service_date IS NOT NULL
+            AND (((operational_day.service_date+activity.relative_days)+activity.unlock_local_time)
+              AT TIME ZONE departure.timezone)<=clock_timestamp()))`,
+        [journey.agency_id,journey.departure_id,journey.party_id,legacyUserId]),
+      client.query(`SELECT traveler.id::text traveler_id,traveler.user_id::text profile_user_id,
+          app.resolve_legacy_user_id($4,$1)::text resolved_user_id
+        FROM travel.traveler_profiles traveler
+        JOIN travel.party_memberships membership ON membership.agency_id=traveler.agency_id
+          AND membership.traveler_id=traveler.id AND membership.departure_id=$2 AND membership.party_id=$3
+        WHERE traveler.agency_id=$1`,[journey.agency_id,journey.departure_id,journey.party_id,legacyUserId]),
     ]);
     reports.push({journey:{templateId:journey.template_id,departureId:journey.departure_id,title:journey.title,country:journey.destination_country,party:journey.party_name,
       agency:journey.agency_name,branding:journey.agency_branding},catalog:catalog.rows[0],activities:activities.rows,
-      documents:documents.rows[0],finance:finance.rows[0],parties:parties.rows[0],referenceContent:referenceContent.rows});
+      documents:documents.rows[0],finance:finance.rows[0],parties:parties.rows[0],referenceContent:referenceContent.rows,
+      accessGrants:accessGrants.rows[0],quizEligibility:quizEligibility.rows,runtimeCandidates:runtimeCandidates.rows[0],identityDiagnostic:identityDiagnostic.rows});
   }
   console.log(JSON.stringify({journeyCount:journeys.length,reports},null,2));
 }finally{await client.end();}
