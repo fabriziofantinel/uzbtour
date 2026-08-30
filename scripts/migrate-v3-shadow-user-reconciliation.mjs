@@ -120,7 +120,7 @@ JOIN LATERAL (
      AND membership.status='active'
    ORDER BY CASE WHEN traveler.user_id=um.target_id THEN 0
                  WHEN membership.role='organizer' THEN 1 ELSE 2 END,
-            membership.created_at,membership.id
+            membership.joined_at,membership.traveler_id
    LIMIT 1
 ) actor ON true`;
 if (!historicalOperational.includes(cashActorJoin)) {
