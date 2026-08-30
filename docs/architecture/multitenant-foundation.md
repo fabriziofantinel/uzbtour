@@ -1,8 +1,7 @@
 # Fondazione multi-agenzia
 
-Questa prima tranche affianca il nuovo modello SaaS all'app Uzbekistan esistente senza
-modificarne schermate o dati operativi. L'obiettivo è migrare per moduli, mantenendo
-sempre utilizzabile la demo pubblica.
+Questa fondazione descrive il modello SaaS consolidato di SMF Travel. Il modello V3
+è la fonte operativa corrente e i guardrail impediscono il ritorno ai percorsi legacy.
 
 ## Modello di dominio
 
@@ -21,10 +20,9 @@ sempre utilizzabile la demo pubblica.
 - `audit_events`: traccia delle modifiche importanti con autore e tenant.
 
 Ogni tabella di dominio contiene `agency_id`; le relazioni composte impediscono di
-collegare per errore record di agenzie differenti. Le API devono inoltre partire
-sempre dall'utente autenticato e dalle sue membership. La Row Level Security di Neon
-sarà attivata quando il login agenzia sostituirà le credenziali legacy: abilitarla ora
-con l'unico ruolo database usato dall'app interromperebbe le API esistenti.
+collegare per errore record di agenzie differenti. Neon applica `ENABLE FORCE RLS`;
+il ruolo runtime `smf_app` imposta il contesto tramite stored API controllate. Gli
+indici tenant-leading mantengono efficiente il filtro `agency_id`.
 
 ## Provider sostituibili
 
@@ -33,18 +31,17 @@ Il codice applicativo dipende da porte, non direttamente dai servizi esterni:
 - coda: Amazon SQS Standard con dead-letter queue;
 - worker: AWS Lambda ARM64 senza VPC o capacità riservata;
 - file: Cloudflare R2 privato;
-- AI: Amazon Bedrock on-demand, inizialmente Amazon Nova Lite.
+- AI: Amazon Bedrock Converse con Nova 2 Lite e Tool Use forzato;
+- identità: Amazon Cognito Lite dietro `lib/auth/auth-provider.ts`.
 
 Le variabili `PLATFORM_*_PROVIDER` selezionano l'implementazione. Questa separazione
 evita una riscrittura quando l'agenzia passa al piano a pagamento.
 
-## Sequenza di migrazione
+## Stato di consolidamento
 
-1. Creare il nuovo schema ed eseguire il seed Uzbekistan.
-2. Costruire il pannello agenzia su queste API.
-3. Implementare upload PDF, DOC e DOCX, estrazione asincrona e revisione.
-4. Migrare foto, spese, giochi e risultati aggiungendo partenza e famiglia.
-5. Sostituire il login legacy, applicare RLS e migrare definitivamente la UI viaggio.
+Modello V3, pannelli, Cognito, RLS, stored API, pubblicazione human-in-the-loop e
+worker asincrono sono operativi. La CI protegge baseline, migrazioni e confini runtime;
+sui pull request può creare un branch Neon effimero ed eseguire test cross-tenant.
 
 ## Importazione documenti asincrona
 
@@ -52,13 +49,16 @@ Il pannello agenzia carica il documento PDF, DOC o DOCX in R2 come oggetto priva
 `travel-programme.import` su Neon, poi pubblica su SQS un messaggio contenente soltanto
 gli identificativi necessari. Non vengono inseriti documenti o credenziali nella coda.
 
-Il worker Lambda acquisisce il job in modo atomico, legge l'oggetto privato, invia il file a
-Amazon Bedrock come documento nativo e valida la risposta con uno schema Zod. La bozza rimane
+Il worker Lambda acquisisce il job in modo atomico e prepara fino a cinque documenti
+Bedrock. I PDF grandi sono segmentati per pagina; i DOCX sono ricompressi senza media
+ed embedding e, se necessario, ridotti a testo. L'output Tool Use è validato con Zod. La bozza rimane
 in `import_jobs.result` finché un amministratore non la corregge e pubblica. Solo la
 pubblicazione trasferisce giorni, attività, alberghi e informazioni utili nelle tabelle
 normalizzate, all'interno di un'unica transazione Neon.
 
 In caso di errore il job e l'importazione passano a `failed` e possono essere ritentati.
-La dead-letter queue conserva i messaggi che falliscono quattro volte. I job rimasti
+SQS Standard usa `MessageGroupId=agency_id` per il fair sharing multi-tenant. La
+dead-letter queue conserva i messaggi che falliscono quattro volte e CloudWatch
+notifica il topic SNS operativo. I job rimasti
 in elaborazione per oltre dieci minuti possono essere acquisiti nuovamente, evitando
 che un arresto improvviso della Lambda blocchi definitivamente un'importazione.

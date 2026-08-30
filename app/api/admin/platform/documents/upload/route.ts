@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       !agencyId || !templateId || !isMatchingTravelDocument(originalName, contentType) ||
       !Number.isSafeInteger(sizeBytes) || sizeBytes <= 0 || sizeBytes > TRAVEL_DOCUMENT_MAX_BYTES
     ) {
-      return NextResponse.json({ error: "Documento non valido: usa PDF, DOC o DOCX fino a 4,5 MB" }, { status: 400 });
+      return NextResponse.json({ error: "Documento non valido: usa PDF, DOC o DOCX fino a 20 MB" }, { status: 400 });
     }
 
     await requireAgencyAdmin(agencyId);

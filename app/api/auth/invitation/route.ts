@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { createOrUpdateInvitedCognitoUser, setCognitoCookies, signInWithUsername } from "@/lib/auth/cognito";
+import { getAuthProvider } from "@/lib/auth/auth-provider";
 import { activateV3AccountInvitation, inspectV3AccountInvitation } from "@/lib/platform/v3-invitations";
 
 const schema = z.object({
@@ -11,6 +11,7 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
+  const auth = getAuthProvider();
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invito non valido" }, { status: 400 });
   const tokenHash = createHash("sha256").update(parsed.data.token).digest("hex");
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
   if (!parsed.data.password) return NextResponse.json({ error: "Scegli una password" }, { status: 400 });
   let subject: string;
   try {
-    subject = await createOrUpdateInvitedCognitoUser({
+    subject = await auth.provisionInvitedUser({
       username: invitation.username,
       email: invitation.email,
       name: invitation.name,
@@ -40,8 +41,8 @@ export async function POST(request: Request) {
   if (!activated) {
     return NextResponse.json({ error: "Invito scaduto o già utilizzato" }, { status: 409 });
   }
-  const authResult = await signInWithUsername(invitation.username, parsed.data.password);
+  const authResult = await auth.signIn(invitation.username, parsed.data.password);
   const response = NextResponse.json({ ok: true });
-  setCognitoCookies(response, authResult);
+  auth.setCookies(response, authResult);
   return response;
 }

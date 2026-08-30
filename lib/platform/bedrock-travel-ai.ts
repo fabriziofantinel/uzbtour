@@ -9,6 +9,7 @@ import { z } from "zod";
 import { travelProgrammeDraftSchema } from "./import-schema";
 import { travelDocumentType } from "./travel-document";
 import { normalizeTravelProgramme } from "./travel-programme-normalizer";
+import { bedrockDocumentBlocks, prepareBedrockDocuments, type BedrockDocumentPart } from "./document-preprocessor";
 
 const bedrockClients = new Map<string, BedrockRuntimeClient>();
 
@@ -142,9 +143,7 @@ function flagAccommodationCityConflicts(draft: z.infer<typeof travelProgrammeDra
 
 async function recoverAccommodations(input: {
   client: BedrockRuntimeClient;
-  documentBytes: Uint8Array;
-  documentFormat: "pdf" | "doc" | "docx" | "txt" | "md" | "html" | "csv" | "xls" | "xlsx";
-  documentName: string;
+  documentParts: BedrockDocumentPart[];
   model: string;
   maxOutputTokens: number;
   days: Array<{ dayNumber: number; date: string; city: string; country: string }>;
@@ -155,13 +154,7 @@ async function recoverAccommodations(input: {
     messages: [{
       role: "user",
       content: [
-        {
-          document: {
-            format: input.documentFormat,
-            name: input.documentName,
-            source: { bytes: input.documentBytes },
-          },
-        },
+        ...bedrockDocumentBlocks(input.documentParts),
         {
           text: `Il primo passaggio non ha trovato alcun hotel. Riesamina l'intero documento, soprattutto tabelle o allegati esterni al programma giornaliero, e associa gli hotel alle giornate elencate qui sotto:\n${JSON.stringify(input.days)}\n\nNon inventare strutture. Usa date, numero di notti e località per l'associazione. Se tabella alberghi e programma giornaliero sono incoerenti, conserva i dati espliciti della tabella e imposta needsValidation=true spiegando il conflitto. Imposta needsValidation=true anche quando la grafia del nome sembra incompleta, non canonica o potenzialmente errata. Restituisci solo giornate con una sistemazione esplicitamente ricavabile.`,
         },
@@ -197,9 +190,7 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
   }
   const documentType = travelDocumentType(filename);
   if (!documentType) throw new Error("Formato del programma non supportato");
-  if (documentBytes.byteLength > maxBytes) {
-    throw new Error(`Il documento supera il limite Bedrock configurato di ${Math.floor(maxBytes / 1_000_000)} MB`);
-  }
+  const documentParts = await prepareBedrockDocuments(documentBytes, filename, maxBytes);
 
   const schema = novaToolSchema(travelProgrammeDraftSchema);
   const documentName = safeDocumentName(filename);
@@ -210,13 +201,7 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
     messages: [{
       role: "user",
       content: [
-        {
-          document: {
-            format: documentType.bedrockFormat,
-            name: documentName,
-            source: { bytes: documentBytes },
-          },
-        },
+        ...bedrockDocumentBlocks(documentParts),
         { text: extractionPrompt },
       ],
     }],
@@ -250,9 +235,7 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
       if (draft.days.length > 0 && draft.days.every((day) => !day.accommodation.name.trim())) {
         const recovery = await recoverAccommodations({
           client,
-          documentBytes,
-          documentFormat: documentType.bedrockFormat,
-          documentName,
+          documentParts,
           model,
           maxOutputTokens,
           days: draft.days.map((day) => ({

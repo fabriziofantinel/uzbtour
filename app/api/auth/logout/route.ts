@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getAuthenticatedActor, IMPERSONATION_COOKIE } from "@/lib/current-user";
 import { endImpersonation } from "@/lib/platform/impersonation";
-import { clearCognitoCookies, COGNITO_REFRESH_COOKIE, isCognitoConfigured, revokeCognitoRefreshToken } from "@/lib/auth/cognito";
+import { AUTH_REFRESH_COOKIE, getAuthProvider } from "@/lib/auth/auth-provider";
 
 export async function POST(request: Request) {
   const cookieStore = await cookies();
@@ -14,9 +14,10 @@ export async function POST(request: Request) {
     response.cookies.set(IMPERSONATION_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
     return response;
   }
-  const refreshToken = cookieStore.get(COGNITO_REFRESH_COOKIE)?.value;
-  if (refreshToken && isCognitoConfigured()) await revokeCognitoRefreshToken(refreshToken).catch(() => undefined);
+  const auth = getAuthProvider();
+  const refreshToken = cookieStore.get(AUTH_REFRESH_COOKIE)?.value;
+  if (refreshToken && auth.isConfigured()) await auth.revoke(refreshToken).catch(() => undefined);
   const response = NextResponse.redirect(new URL("/login", request.url), 303);
-  clearCognitoCookies(response);
+  auth.clearCookies(response);
   return response;
 }

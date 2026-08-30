@@ -218,7 +218,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
       setError("Il preventivo deve essere in formato PDF, DOC o DOCX."); setBusy(""); return;
     }
     if (file.size > TRAVEL_DOCUMENT_MAX_BYTES) {
-      setError("Il documento supera il limite di 4,5 MB."); setBusy(""); return;
+      setError("Il documento supera il limite di 20 MB."); setBusy(""); return;
     }
     try {
       const title = String(form.get("title") || "").trim() || file.name.replace(/\.(pdf|docx?)$/i, "");
@@ -252,7 +252,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
       return;
     }
     if (file.size > TRAVEL_DOCUMENT_MAX_BYTES) {
-      setError("Il documento supera il limite di 4,5 MB.");
+      setError("Il documento supera il limite di 20 MB.");
       return;
     }
 
@@ -453,7 +453,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                   <label className={`quoteUploadField ${selectedProgrammeName ? "selected" : ""}`} htmlFor="trip-programme">
                     <input id="trip-programme" name="programme" type="file" aria-describedby="trip-programme-help" accept="application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx" required onChange={(event) => setSelectedProgrammeName(event.target.files?.[0]?.name ?? "")}/>
                     <span className="quoteUploadIcon">{selectedProgrammeName ? <FileCheck2/> : <Plus/>}</span>
-                    <span><b>{selectedProgrammeName || "Seleziona il preventivo"}</b><small id="trip-programme-help">PDF, DOC o DOCX · massimo 4,5 MB</small></span>
+                    <span><b>{selectedProgrammeName || "Seleziona il preventivo"}</b><small id="trip-programme-help">PDF, DOC o DOCX · massimo 20 MB</small></span>
                     <strong>{selectedProgrammeName ? "Cambia file" : "Scegli file"}</strong>
                   </label>
                   <p>Il file originale sarà conservato nei documenti privati del viaggio.</p>

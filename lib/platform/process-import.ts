@@ -40,7 +40,7 @@ export async function processTravelImport(
       throw new Error("Il formato del documento non è valido");
     }
     if (object.sizeBytes > TRAVEL_DOCUMENT_MAX_BYTES || (source.size_bytes ?? 0) > TRAVEL_DOCUMENT_MAX_BYTES) {
-      throw new Error(`Il documento ${travelDocumentLabel(source.original_name)} supera il limite di 4,5 MB`);
+      throw new Error(`Il documento ${travelDocumentLabel(source.original_name)} supera il limite di 20 MB`);
     }
 
     const bytes = object.bytes;

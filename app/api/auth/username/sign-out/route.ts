@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { clearCognitoCookies } from "@/lib/auth/cognito";
+import { getAuthProvider } from "@/lib/auth/auth-provider";
 
 export async function POST() {
   const response = NextResponse.json({ ok: true });
-  clearCognitoCookies(response);
+  getAuthProvider().clearCookies(response);
   return response;
 }

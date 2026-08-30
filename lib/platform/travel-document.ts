@@ -1,4 +1,4 @@
-export const TRAVEL_DOCUMENT_MAX_BYTES = 4_500_000;
+export const TRAVEL_DOCUMENT_MAX_BYTES = 20_000_000;
 
 export const TRAVEL_DOCUMENT_TYPES = {
   pdf: {

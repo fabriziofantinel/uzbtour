@@ -4,7 +4,7 @@ import {
   resolveV3CognitoAuthenticatedUser,
   resolveV3LegacyImpersonation,
 } from "./platform/v3-identity-access";
-import { getCognitoIdentity } from "./auth/cognito";
+import { getAuthProvider } from "./auth/auth-provider";
 
 export const IMPERSONATION_COOKIE = "smf_impersonation";
 
@@ -33,7 +33,7 @@ function initialsFor(name: string) {
 }
 
 export async function getAuthenticatedActor(): Promise<CurrentUser | null> {
-  const cognitoIdentity = await getCognitoIdentity();
+  const cognitoIdentity = await getAuthProvider().identity();
   if (cognitoIdentity) {
     const platformUser = await resolveV3CognitoAuthenticatedUser(cognitoIdentity.subject);
     if (!platformUser) return null;

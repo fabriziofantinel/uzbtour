@@ -24,3 +24,54 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run quality:gate
+
+  neon-tenant-isolation:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verifica configurazione Neon CI
+        id: neon-config
+        shell: bash
+        run: |
+          if [[ -n "$NEON_API_KEY" && -n "$NEON_PROJECT_ID" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Neon PR branch non eseguito: configurare NEON_API_KEY e NEON_PROJECT_ID."
+          fi
+      - uses: neondatabase/create-branch-action@v6
+        if: steps.neon-config.outputs.enabled == 'true'
+        id: create-neon-branch
+        with:
+          project_id: ${{ env.NEON_PROJECT_ID }}
+          branch_name: ci/pr-${{ github.event.pull_request.number }}-${{ github.run_id }}
+          api_key: ${{ env.NEON_API_KEY }}
+      - uses: actions/setup-node@v4
+        if: steps.neon-config.outputs.enabled == 'true'
+        with:
+          node-version: 24
+          cache: npm
+      - if: steps.neon-config.outputs.enabled == 'true'
+        run: npm ci
+      - name: Validazione schema, RLS e isolamento tenant
+        if: steps.neon-config.outputs.enabled == 'true'
+        env:
+          DATABASE_MIGRATION_URL: ${{ steps.create-neon-branch.outputs.db_url }}
+          DATABASE_URL_UNPOOLED: ${{ steps.create-neon-branch.outputs.db_url }}
+          DATABASE_URL: ${{ steps.create-neon-branch.outputs.db_url_pooled }}
+        run: |
+          npm run db:validate:v3
+          npm run smoke:v3:operational-read
+          npm run smoke:v3:travel-catalog-read
+          npm run smoke:v3:gamification-read
+      - uses: neondatabase/delete-branch-action@v3
+        if: always() && steps.neon-config.outputs.enabled == 'true' && steps.create-neon-branch.outputs.branch_id != ''
+        with:
+          project_id: ${{ env.NEON_PROJECT_ID }}
+          branch: ${{ steps.create-neon-branch.outputs.branch_id }}
+          api_key: ${{ env.NEON_API_KEY }}

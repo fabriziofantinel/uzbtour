@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     }
     if (object.sizeBytes <= 0 || object.sizeBytes > TRAVEL_DOCUMENT_MAX_BYTES) {
       await storage.delete(objectKey).catch(() => undefined);
-      return NextResponse.json({ error: "Il documento è vuoto o supera il limite di 4,5 MB" }, { status: 400 });
+      return NextResponse.json({ error: "Il documento è vuoto o supera il limite di 20 MB" }, { status: 400 });
     }
 
     const imported = await registerImportedDocument({

@@ -100,8 +100,9 @@ per l'applicazione web.
 - concorrenza massima del consumer SQS: 10, limitata anche come reserved concurrency;
 - batch SQS: 1;
 - retry SQS: 4;
-- documento PDF, DOC o DOCX inviabile direttamente a Bedrock: 4,5 MB, modificabile con
-  `AWS_BEDROCK_MAX_DOCUMENT_BYTES` dopo aver verificato i limiti del modello;
+- documento caricato: massimo 20 MB; i singoli blocchi Bedrock restano entro 4,5 MB.
+  I PDF vengono segmentati per pagina fino a cinque blocchi e i DOCX vengono
+  ricompressi senza media o convertiti in testo strutturato;
 - risposta Bedrock limitata a 12.000 token, sotto il limite di Nova 2 Lite;
 - nessuna risorsa con tariffazione oraria fissa.
 
