@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { z } from "zod";
 import { getAuthProvider } from "@/lib/auth/auth-provider";
 import { activateV3AccountInvitation, inspectV3AccountInvitation } from "@/lib/platform/v3-invitations";
 
 const schema = z.object({
-  action: z.enum(["inspect", "activate"]),
+  action: z.enum(["inspect", "activate", "activate_magic"]),
   token: z.string().min(32).max(200),
   password: z.string().min(10).max(256).regex(/[a-z]/).regex(/[A-Z]/).regex(/[0-9]/).optional(),
 });
@@ -20,14 +20,15 @@ export async function POST(request: Request) {
   if (parsed.data.action === "inspect") {
     return NextResponse.json(invitation);
   }
-  if (!parsed.data.password) return NextResponse.json({ error: "Scegli una password" }, { status: 400 });
+  if (parsed.data.action === "activate" && !parsed.data.password) return NextResponse.json({ error: "Scegli una password" }, { status: 400 });
+  const effectivePassword = parsed.data.password ?? `${randomBytes(24).toString("base64url")}aA7!`;
   let subject: string;
   try {
     subject = await auth.provisionInvitedUser({
       username: invitation.username,
       email: invitation.email,
       name: invitation.name,
-      password: parsed.data.password,
+      password: effectivePassword,
     });
   } catch (error) {
     console.error("Cognito invitation activation failed", error instanceof Error ? error.name : "unknown");
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
   if (!activated) {
     return NextResponse.json({ error: "Invito scaduto o già utilizzato" }, { status: 409 });
   }
-  const authResult = await auth.signIn(invitation.username, parsed.data.password);
+  const authResult = await auth.signIn(invitation.username, effectivePassword);
   const response = NextResponse.json({ ok: true });
   auth.setCookies(response, authResult);
   return response;

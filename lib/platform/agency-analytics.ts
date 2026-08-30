@@ -18,6 +18,7 @@ export type AgencyAnalytics = {
     itemId: string; dayNumber: number; dayTitle: string; itemTitle: string;
     average: number; responses: number;
   }>;
+  definitions: Array<{ code:string; label:string; formula:string; numerator:string; denominator:string; refreshMinutes:number; version:number }>;
 };
 
 const numberValue = (value: unknown) => Number(value ?? 0);
@@ -29,7 +30,7 @@ export async function getAgencyAnalytics(input: {
   const sql = getSql();
   const periodDays = [7, 30, 90].includes(input.periodDays) ? input.periodDays : 30;
   const departureId = input.departureId || null;
-  const [,,summaryRows,departureRows,feedbackRows] = await sql.transaction((txn) => [
+  const [,,summaryRows,departureRows,feedbackRows,definitionRows] = await sql.transaction((txn) => [
     txn`SELECT set_config('app.agency_id',${input.agencyId},true)`,
     txn`SELECT set_config('app.analytics_days',${String(periodDays)},true)`,
     txn`
@@ -104,6 +105,9 @@ export async function getAgencyAnalytics(input: {
         AND (${departureId}::uuid IS NULL OR feedback.departure_id=${departureId}::uuid)
       GROUP BY item.id,template_day.day_number,template_day.title,item.title
       ORDER BY template_day.day_number,average ASC,item.title LIMIT 80`,
+    txn`SELECT code,label,formula,numerator_definition,denominator_definition,
+      GREATEST(1,extract(epoch FROM refresh_interval)/60)::int refresh_minutes,version
+      FROM ops.analytics_kpi_definitions WHERE effective_to IS NULL ORDER BY code`,
   ], { readOnly: true });
   const summary = summaryRows[0] ?? {};
   return {
@@ -125,6 +129,9 @@ export async function getAgencyAnalytics(input: {
       itemId:String(row.item_id),dayNumber:numberValue(row.day_number),dayTitle:String(row.day_title),
       itemTitle:String(row.item_title),average:numberValue(row.average),responses:numberValue(row.responses),
     })),
+    definitions: definitionRows.map((row)=>({code:String(row.code),label:String(row.label),formula:String(row.formula),
+      numerator:String(row.numerator_definition),denominator:String(row.denominator_definition||"Non applicabile"),
+      refreshMinutes:Number(row.refresh_minutes),version:Number(row.version)})),
   };
 }
 

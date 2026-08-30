@@ -118,7 +118,8 @@ export async function readV3TravelCatalog(input: {
         ORDER BY membership.role, profile.display_name
       `,
       txn`
-        SELECT info.category, info.title, info.body, info.phone, info.url
+        SELECT info.category, info.title, info.body, info.phone, info.url,info.source_name,info.source_url,
+          info.verified_at,info.expires_at,info.review_status,info.disclaimer
         FROM travel.template_useful_information info
         WHERE info.agency_id = ${input.agencyId}
           AND info.template_version_id = ${input.templateVersionId}

@@ -209,12 +209,21 @@ export async function updateAgencyProgrammeDay(input: {
   hotels: Array<{ id: string; name: string; notes: string; sortOrder: number }>;
 }) {
   const sql = getSql();
+  const previousRows=await sql`SELECT label,title,city,description FROM travel.departure_days
+    WHERE departure_id=${input.departureId} AND id=${input.dayId} LIMIT 1`;
   const rows = await sql`SELECT app.update_departure_programme_day_v3(
     ${input.actorId},${input.departureId},${input.dayId},${input.label},${input.title},
     ${input.city},${input.description},${JSON.stringify(input.items)}::jsonb,
     ${JSON.stringify(input.hotels)}::jsonb
   ) AS updated`;
   if (!Boolean(rows[0]?.updated)) throw new PlatformRequestError("Giornata non disponibile");
+  const previous=previousRows[0]??{};
+  const current={label:input.label,title:input.title,city:input.city,description:input.description};
+  if(JSON.stringify(previous)!==JSON.stringify(current))await sql`SELECT app.publish_traveler_change_notice_v3(
+    ${input.actorId},${input.departureId}::uuid,${input.dayId}::uuid,'programme','important',
+    ${`Programma aggiornato: ${input.title||input.label||"giornata"}`},
+    ${`L’agenzia ha aggiornato il programma della giornata. Apri la giornata per consultare i dettagli.`},
+    ${JSON.stringify(previous)}::jsonb,${JSON.stringify(current)}::jsonb)`;
 }
 
 function departureCode(title: string) {

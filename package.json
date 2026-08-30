@@ -8,6 +8,8 @@
   "scripts": {
     "db:migrate:v3:agency-analytics:dry-run": "node --env-file=.env.local scripts/migrate-v3-agency-product-analytics.mjs",
     "db:migrate:v3:agency-analytics": "node --env-file=.env.local scripts/migrate-v3-agency-product-analytics.mjs --apply",
+    "db:migrate:v3:kpi-change-governance:dry-run": "node --env-file=.env.local scripts/migrate-v3-kpi-change-content-governance.mjs",
+    "db:migrate:v3:kpi-change-governance": "node --env-file=.env.local scripts/migrate-v3-kpi-change-content-governance.mjs --apply",
     "smoke:v3:agency-analytics": "node --env-file=.env.local scripts/smoke-v3-agency-analytics.mjs",
     "test:plan-regressions": "node scripts/test-plan-regressions.mjs",
     "db:migrate:v3:expense-shares-grants:dry-run": "node --env-file=.env.local scripts/migrate-v3-expense-shares-runtime-grants.mjs",

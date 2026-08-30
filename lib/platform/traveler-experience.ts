@@ -24,6 +24,7 @@ import {
   readV3TravelerJourneys,
   resolveV3TravelerContext,
 } from "./v3-traveler-scope";
+import { readTravelerChangeNotices } from "./traveler-change-notices";
 
 type Row = Record<string, unknown>;
 
@@ -49,12 +50,13 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
   const partyId = String(selected.party_id);
   await assertProgrammeFeedbackSchema();
 
-  const [activeExpenseRows, v3Journal, activeFeedbackRows, v3Catalog, v3Gamification] = await Promise.all([
+  const [activeExpenseRows, v3Journal, activeFeedbackRows, v3Catalog, v3Gamification, changeNotices] = await Promise.all([
     readV3ExpenseRows({ agencyId, departureId, partyId }),
     readV3JourneyJournalRows({ agencyId, departureId, partyId }),
     readV3ProgrammeFeedbackRows({ agencyId, departureId, partyId, userId }),
     readV3TravelCatalog({ agencyId, departureId, templateVersionId: versionId, partyId, userId }),
     readV3Gamification({ agencyId, departureId, templateVersionId: versionId, partyId, userId }),
+    readTravelerChangeNotices({agencyId,departureId,userId}),
   ]);
   const activeNoteRows = v3Journal.notes;
   const activeRestaurantRows = v3Journal.restaurants;
@@ -205,8 +207,11 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
     }),
     usefulInfo: activeInfoRows.map((row) => ({
       category: String(row.category), title: String(row.title), body: String(row.body),
-      phone: stringValue(row.phone), url: stringValue(row.url),
+      phone: stringValue(row.phone), url: stringValue(row.url),sourceName:stringValue(row.source_name),
+      sourceUrl:stringValue(row.source_url),verifiedAt:stringValue(row.verified_at),expiresAt:stringValue(row.expires_at),
+      reviewStatus:stringValue(row.review_status),disclaimer:stringValue(row.disclaimer),
     })),
+    changeNotices,
     phrases: activePhraseRows.map((row) => ({
       language: String(row.language_code), category: String(row.category), term: String(row.term),
       pronunciation: stringValue(row.pronunciation), translation: String(row.translation),
