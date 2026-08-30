@@ -157,8 +157,8 @@ VALUES
 INSERT INTO content.activities
   (id, agency_id, template_version_id, template_day_id, activity_type, contest_category, title, max_entries, status)
 VALUES
-  ('019d0000-0000-7000-8000-000000000606','019d0000-0000-7000-8000-000000000101','019d0000-0000-7000-8000-000000000301','019d0000-0000-7000-8000-000000000401','photo_contest','free','Contest libero',3,'approved'),
-  ('019d0000-0000-7000-8000-000000000607','019d0000-0000-7000-8000-000000000101','019d0000-0000-7000-8000-000000000301','019d0000-0000-7000-8000-000000000401','photo_contest','theme','Contest tema',3,'approved');
+  ('019d0000-0000-7000-8000-000000000606','019d0000-0000-7000-8000-000000000101','019d0000-0000-7000-8000-000000000301','019d0000-0000-7000-8000-000000000401','photo_contest','free','Contest libero',2,'approved'),
+  ('019d0000-0000-7000-8000-000000000607','019d0000-0000-7000-8000-000000000101','019d0000-0000-7000-8000-000000000301','019d0000-0000-7000-8000-000000000401','photo_contest','theme','Contest tema',2,'approved');
 INSERT INTO content.activities
   (id, agency_id, template_version_id, activity_type, title, status)
 VALUES

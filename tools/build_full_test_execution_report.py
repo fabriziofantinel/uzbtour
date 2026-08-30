@@ -125,7 +125,7 @@ PASSED = {
 
 BLOCKED = {
     "UC-TRP-01", "UC-TRP-02", "UC-TRP-06", "UC-TRP-08", "UC-TRP-09", "UC-TRP-10",
-    "UC-GAM-02", "UC-GAM-03", "UC-GAM-04", "UC-GAM-07", "UC-GAM-08", "UC-GAM-09",
+    "UC-GAM-02", "UC-GAM-03", "UC-GAM-04", "UC-GAM-08", "UC-GAM-09",
     "UC-MEM-02", "UC-PWA-01", "UC-PWA-02", "UC-PWA-04", "UC-PWA-05",
 }
 
@@ -200,6 +200,8 @@ def load_command_results():
         ["acceptance:v3:participant-provisioning", "SUPERATO", "Neon / rollback", "Creazione gruppo e viaggiatore, riconciliazione V3, invito monouso e invisibilita dopo il consumo verificati; nessun dato persistito."],
         ["acceptance:v3:gamification-write", "SUPERATO", "Neon / rollback", "Scrittura mission, quiz, order game e word game con ruolo smf_app; grant quiz e rollback verificati."],
         ["db:migrate:v3:pgcrypto-digest", "SUPERATO", "Neon", "Migrazione 109 applicata: pgcrypto isolato nello schema extensions e bridge digest non invocabile direttamente dal runtime."],
+        ["db:migrate:v3:photo-contest-limit", "SUPERATO", "Neon", "Migrazione 110 applicata: due foto massime nei dati, nelle attivita e nel vincolo participant_slot."],
+        ["db:migrate:v3:photo-contest-gate", "SUPERATO", "Neon", "Migrazione 111 applicata: publish gate allineato al contratto di due foto; validazione V3 completa superata."],
         ["HTTP pagine e PWA", "SUPERATO", "6 endpoint", "Login, accessibilita, manifest, service worker e redirect home conformi."],
         ["HTTP API anonime", "SUPERATO", "5 endpoint", "Auth, Analytics, chat, spese (POST) e trip-data rispondono JSON 401; DEF-001 chiusa."],
         ["Browser pubblico", "SUPERATO", "3 pagine", "Login, recupero username e accessibilita caricati senza overflow nel viewport effettivo."],
@@ -270,7 +272,7 @@ doc.add_paragraph(
     f"Sono stati censiti {len(cases)} casi d'uso. L'esecuzione ha prodotto {counts['SUPERATO']} casi superati, "
     f"{counts['PARZIALE']} parzialmente coperti, {counts['BLOCCATO']} bloccati da prerequisiti esterni e "
     f"{counts['NON SUPERATO']} casi completamente non superati. Le suite strutturali, la build, il modello dati, "
-    "le migrazioni fino alla 109, Analytics, chat, gestione spese e governance contenuti risultano conformi."
+    "le migrazioni fino alla 111, Analytics, chat, gestione spese e governance contenuti risultano conformi."
 )
 fixed_table(doc, ["Esito", "Casi", "Interpretazione"], [
     ["SUPERATO", counts["SUPERATO"], "Flusso o contratto dimostrato da esecuzione ripetibile."],
@@ -285,7 +287,7 @@ for text in [
     "Neon validato: 74 tabelle, 60 con RLS, nessun indice invalido, nessun vincolo non validato e nessuna tabella tenant senza indice agency_id leading.",
     "Smoke Analytics superato con rollback: registrazione, lettura RLS, attore distinto e idempotenza.",
     "Smoke spese, chat, accesso agenzia e acceptance su owner, provisioning e cancellazione superati.",
-    "Migrazioni fino alla 109 verificate: KPI, registro variazioni, governance fonti, contratti runtime e dipendenza crittografica pgcrypto isolata.",
+    "Migrazioni fino alla 111 verificate: KPI, governance fonti, contratti runtime, pgcrypto isolata e limite contest a due foto.",
     "Template AWS SAM valido; pagine pubbliche, manifest PWA e service worker disponibili in produzione.",
 ]:
     add_bullet(doc, text)
