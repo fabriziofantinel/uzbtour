@@ -56,14 +56,6 @@ const replacements = [
     "THEN ST_SetSRID(ST_MakePoint(hotel.longitude, hotel.latitude), 4326)::geography END,\n       hotel.last_verified_at, hotel.created_at, hotel.updated_at\nFROM public.hotels hotel\nJOIN ops.legacy_id_map hotel_map ON hotel_map.source_system='public-v2'\n AND hotel_map.entity_type='hotel' AND hotel_map.legacy_id=hotel.id::text\nJOIN ops.legacy_id_map city_map ON city_map.source_system='public-v2'\n AND city_map.entity_type='city' AND city_map.legacy_id=hotel.city_id::text",
   ],
   [
-    "CASE WHEN rc.entity_type = 'city' THEN rc.entity_id END,\n       CASE WHEN rc.entity_type = 'site' THEN rc.entity_id END,",
-    "CASE WHEN rc.entity_type = 'city' THEN city_map.target_id END,\n       CASE WHEN rc.entity_type = 'site' THEN site_map.target_id END,",
-  ],
-  [
-    "FROM public.reference_contents rc\nWHERE rc.entity_type IN ('country', 'city', 'site')",
-    "FROM public.reference_contents rc\nLEFT JOIN ops.legacy_id_map city_map ON rc.entity_type='city'\n AND city_map.source_system='public-v2' AND city_map.entity_type='city'\n AND city_map.legacy_id=rc.entity_id::text\nLEFT JOIN ops.legacy_id_map site_map ON rc.entity_type='site'\n AND site_map.source_system='public-v2' AND site_map.entity_type='visit_site'\n AND site_map.legacy_id=rc.entity_id::text\nWHERE rc.entity_type IN ('country', 'city', 'site')",
-  ],
-  [
     "SELECT d.agency_id, d.template_version_id, x.trip_day_id, x.city_id,",
     "SELECT d.agency_id, d.template_version_id, x.trip_day_id, city_map.target_id,",
   ],
@@ -96,6 +88,13 @@ for (const [before, after] of replacements) {
   }
   refreshedCore = refreshedCore.replace(before, after);
 }
+
+const referenceContentStart = refreshedCore.indexOf("INSERT INTO ref.reference_contents");
+const tripTemplateStart = refreshedCore.indexOf("INSERT INTO travel.trip_templates");
+if (referenceContentStart < 0 || tripTemplateStart <= referenceContentStart) {
+  throw new Error("Blocco reference contents del backfill core non riconosciuto");
+}
+refreshedCore = `${refreshedCore.slice(0, referenceContentStart)}-- Reference contents V3 gia canonici: nessuna sovrascrittura dal legacy.\n\n${refreshedCore.slice(tripTemplateStart)}`;
 const client = new Client(url);
 let open = false;
 
