@@ -4,7 +4,7 @@
   "short_name": "SMF Travel",
   "description": "Programma, documenti, spese e attività del tuo viaggio, disponibili anche offline.",
   "lang": "it",
-  "start_url": "/viaggio?source=pwa",
+  "start_url": "/viaggio",
   "scope": "/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone"],
