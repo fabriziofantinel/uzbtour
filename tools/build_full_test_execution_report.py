@@ -117,7 +117,7 @@ PASSED = {
     "UC-EXP-01", "UC-EXP-02", "UC-EXP-03", "UC-EXP-04",
     "UC-EXP-05", "UC-EXP-06", "UC-EXP-07", "UC-EXP-08",
     "UC-FIN-01", "UC-FIN-02", "UC-FIN-03", "UC-FIN-04", "UC-FIN-05",
-    "UC-GAM-05", "UC-GAM-06",
+    "UC-GAM-05", "UC-GAM-06", "UC-GAM-07",
     "UC-VIS-01", "UC-VIS-02",
     "UC-ANA-001", "UC-ANA-004", "UC-ANA-005", "UC-ANA-010",
     "UC-ANA-013", "UC-ANA-014", "UC-ANA-015",
@@ -125,7 +125,7 @@ PASSED = {
 
 BLOCKED = {
     "UC-TRP-01", "UC-TRP-02", "UC-TRP-06", "UC-TRP-08", "UC-TRP-09", "UC-TRP-10",
-    "UC-GAM-02", "UC-GAM-03", "UC-GAM-04", "UC-GAM-08", "UC-GAM-09",
+    "UC-GAM-02", "UC-GAM-03", "UC-GAM-04", "UC-GAM-08",
     "UC-MEM-02", "UC-PWA-01", "UC-PWA-02", "UC-PWA-04", "UC-PWA-05",
 }
 
@@ -141,7 +141,7 @@ def evidence(case_id):
             "EXP": "Percorso viaggiatore autenticato verificato in produzione: mappa, programma, documenti, finanza, sfide, informazioni e frasario isolati sul viaggio.",
             "GRP": "Provisioning gruppo e viaggiatore superato transazionalmente.",
             "FIN": "Smoke spese e quote superato: quadratura valuta, split e rollback.",
-            "GAM": "Acceptance runtime con ruolo smf_app e rollback: quiz giornalieri e giochi tematici salvati; grant quiz verificato.",
+            "GAM": "Acceptance runtime con rollback: quiz e giochi salvati; contest verificato con due bozze, sostituzione, conferma e limite autoritativo.",
             "VIS": "Percorso pubblico verificato in produzione tramite browser e HTTP 200.",
             "ANA": "Smoke Analytics superato: evento, RLS, idempotenza e rollback.",
         }
@@ -202,6 +202,7 @@ def load_command_results():
         ["db:migrate:v3:pgcrypto-digest", "SUPERATO", "Neon", "Migrazione 109 applicata: pgcrypto isolato nello schema extensions e bridge digest non invocabile direttamente dal runtime."],
         ["db:migrate:v3:photo-contest-limit", "SUPERATO", "Neon", "Migrazione 110 applicata: due foto massime nei dati, nelle attivita e nel vincolo participant_slot."],
         ["db:migrate:v3:photo-contest-gate", "SUPERATO", "Neon", "Migrazione 111 applicata: publish gate allineato al contratto di due foto; validazione V3 completa superata."],
+        ["acceptance:v3:photo-contest-lifecycle", "SUPERATO", "Neon / rollback", "Due bozze, sostituzione, rifiuto terza foto, conferma, scoring strutturato, selezione migliore e chiusura temporale verificati."],
         ["HTTP pagine e PWA", "SUPERATO", "6 endpoint", "Login, accessibilita, manifest, service worker e redirect home conformi."],
         ["HTTP API anonime", "SUPERATO", "5 endpoint", "Auth, Analytics, chat, spese (POST) e trip-data rispondono JSON 401; DEF-001 chiusa."],
         ["Browser pubblico", "SUPERATO", "3 pagine", "Login, recupero username e accessibilita caricati senza overflow nel viewport effettivo."],
