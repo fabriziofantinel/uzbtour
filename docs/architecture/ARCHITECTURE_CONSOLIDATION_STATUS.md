@@ -23,14 +23,14 @@ Data di riferimento: 2026-08-30.
 
 | Finding | Stato | Evidenza / condizione |
 | --- | --- | --- |
-| DLQ e allarmi | Chiuso lato AWS | DLQ bonificata e 5 allarmi in stato OK; la sottoscrizione e-mail SNS attende conferma del destinatario |
+| DLQ e allarmi | Chiuso | DLQ bonificata, 5 allarmi in stato OK e sottoscrizione e-mail SNS confermata |
 | Modello Bedrock | Chiuso | IaC e runtime usano `eu.amazon.nova-2-lite-v1:0` |
 | Fair sharing SQS | Chiuso | Standard Queue con `MessageGroupId=agency_id` |
 | Astrazione autenticazione | Chiuso nel software | Adapter unico davanti a Cognito |
 | Documenti oltre 4,5 MB | Implementato | split PDF, compattazione DOCX e fallback Textract asincrono con ripresa idempotente |
 | DR Neon | Drill PR superato | Il run GitHub Actions `33319384017` ha creato il branch effimero, riconciliato e validato lo schema, eseguito gli smoke RLS e rimosso il branch |
-| Immutabilità R2 | Disegno pronto | chiavi immutabili e soft delete; Bucket Lock richiede token Cloudflare dedicato |
-| WAF/rate limiting | Disegno pronto | applicazione sul dominio richiede zona e token Cloudflare |
+| Immutabilità R2 | Chiuso | Bucket Lock `smf-travel-retention-30d` attivo sul prefisso `agencies/`; chiavi immutabili e soft delete applicativi |
+| WAF/rate limiting | Bloccato dal dominio | L'account Cloudflare non contiene ancora una zona DNS; il dominio Vercel condiviso non è configurabile nella WAF Cloudflare |
 | Neon branch su PR | Chiuso | PR `#2`: gate `neon-tenant-isolation` superato in 49 secondi e `immutable-contracts` superato |
 
 ## Gate di rilascio
@@ -46,8 +46,7 @@ Data di riferimento: 2026-08-30.
 
 ## Dipendenze operative esterne
 
-Le attività seguenti non possono essere chiuse dal solo repository: conferma della
-sottoscrizione e-mail SNS e token Cloudflare limitato per Bucket Lock. Il WAF e il
-rate limiting richiedono inoltre un dominio applicativo personalizzato gestito da
-una zona Cloudflare: non possono proteggere direttamente il dominio Vercel condiviso
+Il WAF e il rate limiting richiedono un dominio applicativo personalizzato gestito
+da una zona Cloudflare. L'account non contiene ancora domini e queste protezioni non
+possono essere applicate direttamente al dominio Vercel condiviso
 `smf-travel.vercel.app`.
