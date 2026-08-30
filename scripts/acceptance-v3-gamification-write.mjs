@@ -2,9 +2,8 @@ import { randomUUID } from "node:crypto";
 import { Client } from "@neondatabase/serverless";
 
 const url = process.env.DATABASE_MIGRATION_URL ?? process.env.DATABASE_URL_UNPOOLED;
-const runtimeUrl = process.env.DATABASE_RUNTIME_URL;
+const runtimeUrl = process.env.DATABASE_RUNTIME_URL ?? url;
 if (!url) throw new Error("Connessione diretta Neon owner non configurata");
-if (!runtimeUrl) throw new Error("Connessione Neon smf_app non configurata");
 const client = new Client(url);
 const runtimeClient = new Client(runtimeUrl);
 let open = false;
@@ -20,6 +19,9 @@ try {
     JOIN ops.legacy_id_map mapping
       ON mapping.source_system='public-v2' AND mapping.entity_type='user'
      AND mapping.target_id=profile.user_id
+    JOIN public.traveler_profiles legacy_profile
+      ON legacy_profile.agency_id=membership.agency_id
+     AND legacy_profile.user_id=mapping.legacy_id
     JOIN travel.departures departure
       ON departure.agency_id=membership.agency_id AND departure.id=membership.departure_id
     JOIN travel.departure_days day
@@ -40,6 +42,12 @@ try {
   await runtimeClient.connect();
   await runtimeClient.query("BEGIN");
   open = true;
+  if (!process.env.DATABASE_RUNTIME_URL) {
+    await runtimeClient.query("GRANT smf_app TO current_user");
+    await runtimeClient.query("SET LOCAL ROLE smf_app");
+  }
+  const runtimeRole=(await runtimeClient.query("SELECT current_user role_name")).rows[0]?.role_name;
+  if(runtimeRole!=="smf_app")throw new Error(`Ruolo runtime inatteso: ${runtimeRole}`);
   await runtimeClient.query("SELECT set_config('app.agency_id',$1,true)",[fixture.agency_id]);
   const resultId = randomUUID();
   const saved = (await runtimeClient.query(`SELECT * FROM app.save_activity_item_result_v3(
@@ -51,7 +59,7 @@ try {
   await runtimeClient.query("ROLLBACK");
   open = false;
   console.log(JSON.stringify({ status: "passed", activityType: fixture.activity_type,
-    runtimeRole: "smf_app", rollback: true }, null, 2));
+    runtimeRole, rollback: true }, null, 2));
 } catch (error) {
   if (open) await runtimeClient.query("ROLLBACK").catch(() => {});
   throw error;

@@ -33,6 +33,8 @@ try{
     SELECT target_id,'cognito',$2 FROM ops.legacy_id_map WHERE legacy_id=$1`,[created.legacy_user_id,`acceptance-${suffix}`]);
   const active=(await client.query("SELECT app.read_username_login_state($1) state",[username])).rows[0].state;
   if(active!=="active")throw new Error(`Stato attivo inatteso: ${active}`);
+  const oldIdentity=(await client.query(`SELECT target_id FROM ops.legacy_id_map
+    WHERE source_system='public-v2' AND entity_type='user' AND legacy_id=$1`,[created.legacy_user_id])).rows[0];
   const replacementUsername=`${username}.new`;
   const replacementToken=createHash("sha256").update(randomUUID()).digest("hex");
   const replacement=(await client.query(`SELECT * FROM app.replace_platform_agency_owner(
@@ -43,10 +45,9 @@ try{
     throw new Error("Sostituzione responsabile non completata");
   const currentOwners=Number((await client.query(`SELECT count(*) total FROM iam.agency_memberships
     WHERE agency_id=$1 AND role='owner' AND status<>'revoked'`,[created.agency_id])).rows[0].total);
-  const revokedOwners=Number((await client.query(`SELECT count(*) total FROM iam.agency_memberships
-    WHERE agency_id=$1 AND role='owner' AND status='revoked'`,[created.agency_id])).rows[0].total);
-  if(currentOwners!==1||revokedOwners<1)
-    throw new Error(`Avvicendamento responsabile incompleto: ${currentOwners}/${revokedOwners}`);
+  const oldOwnerDeleted=!(await client.query("SELECT EXISTS(SELECT 1 FROM iam.users WHERE id=$1) present",[oldIdentity.target_id])).rows[0].present;
+  if(currentOwners!==1||!oldOwnerDeleted)
+    throw new Error(`Avvicendamento responsabile incompleto: ${currentOwners}/${oldOwnerDeleted}`);
   const registryOwners=Number((await client.query(`SELECT count(*) total
     FROM app.read_superadmin_agency_registry($1)
     WHERE agency_id=$2 AND agent_role='owner' AND agent_status<>'revoked'`,
@@ -68,7 +69,30 @@ try{
   if(!impersonated?.is_agency_admin)throw new Error("Impersonazione responsabile priva dei permessi agenzia");
   const resolvedImpersonation=Number((await client.query(`SELECT count(*) total
     FROM app.resolve_legacy_impersonation($1,$2)`,[actor,impersonationToken])).rows[0].total);
-  if(resolvedImpersonation!==1)throw new Error("Sessione impersonata non risolvibile");
+  const impersonationAudit=(await client.query(`SELECT actor_user_id::text,changes->>'targetUserId' target_user_id
+    FROM ops.audit_events WHERE entity_type='impersonation_session' AND action='impersonation_started'
+    ORDER BY id DESC LIMIT 1`)).rows[0];
+  const actorTarget=(await client.query(`SELECT actor_map.target_id::text actor_id,target_map.target_id::text target_id
+    FROM ops.legacy_id_map actor_map CROSS JOIN ops.legacy_id_map target_map
+    WHERE actor_map.legacy_id=$1 AND target_map.legacy_id=$2 LIMIT 1`,[actor,replacement.legacy_user_id])).rows[0];
+  if(resolvedImpersonation!==1||impersonationAudit?.actor_user_id!==actorTarget?.actor_id
+    ||impersonationAudit?.target_user_id!==actorTarget?.target_id)
+    throw new Error(`Audit impersonazione incompleto: ${JSON.stringify({resolvedImpersonation,impersonationAudit,actorTarget})}`);
+  const outsideTraveler=(await client.query(`SELECT map.legacy_id FROM travel.traveler_profiles profile
+    JOIN travel.party_memberships membership ON membership.agency_id=profile.agency_id
+      AND membership.traveler_id=profile.id AND membership.status='active'
+    JOIN ops.legacy_id_map map ON map.target_id=profile.user_id
+      AND map.source_system='public-v2' AND map.entity_type='user'
+    WHERE profile.agency_id<>$1 LIMIT 1`,[created.agency_id])).rows[0];
+  if(!outsideTraveler)throw new Error("Viaggiatore esterno non disponibile per il test di isolamento impersonazione");
+  let crossTenantDenied=false;
+  await client.query("SAVEPOINT cross_tenant_impersonation");
+  try{await client.query(`SELECT * FROM app.start_agency_traveler_impersonation(
+    $1,$2,$3,clock_timestamp()+interval '30 minutes',$4)`,[replacement.legacy_user_id,
+    outsideTraveler.legacy_id,createHash("sha256").update(randomUUID()).digest("hex"),"acceptance-cross-tenant"]);}
+  catch(error){crossTenantDenied=error?.code==="42501";await client.query("ROLLBACK TO SAVEPOINT cross_tenant_impersonation");}
+  await client.query("RELEASE SAVEPOINT cross_tenant_impersonation");
+  if(!crossTenantDenied)throw new Error("Impersonazione viaggiatore cross-tenant accettata");
   await client.query("SELECT app.update_platform_agency_status($1,$2,'suspended')",[actor,created.agency_id]);
   const disabled=(await client.query("SELECT app.read_username_login_state($1) state",[replacementUsername])).rows[0].state;
   const resolved=(await client.query("SELECT count(*)::integer total FROM app.resolve_cognito_authenticated_user($1)",[replacementSubject])).rows[0].total;
@@ -78,7 +102,7 @@ try{
     throw new Error(`Blocco agenzia incompleto: ${disabled}/${resolved}/${suspendedImpersonation}`);
   await client.query("ROLLBACK");open=false;
   console.log(JSON.stringify({status:"passed",gates:{atomicCreate:true,sharedEmail:true,pendingInvite:true,singleOwner:true,
-    activeAgencyAccess:true,ownerReplacement:true,impersonationContract:true,
+    activeAgencyAccess:true,ownerReplacement:true,impersonationContract:true,impersonationAudit:true,crossTenantDenied:true,
     suspendedAgencyBlocked:true,impersonationInvalidatedOnSuspension:true}},null,2));
 }catch(error){if(open)await client.query("ROLLBACK").catch(()=>{});throw error;}
 finally{await client.end().catch(()=>{});}

@@ -31,7 +31,7 @@ export default function PlatformTripRankings({ experience, userName }: { experie
     traveler.missioni = approved.filter((result) => result.type === "mission").reduce((sum, result) => sum + result.score, 0);
     traveler.giochi = approved.filter((result) => result.type === "game").reduce((sum, result) => sum + result.score, 0);
     traveler.bingo = bingoScore(new Set(approved.filter((result) => result.type === "bingo").map((result) => result.contentId)), bingoIds);
-    traveler.foto = experience.contestEntries.filter((entry) => entry.travelerName === name)
+    traveler.foto = experience.contestEntries.filter((entry) => entry.travelerName === name && entry.status === "completed")
       .reduce((sum, entry) => sum + (entry.score ?? (entry.isWinner ? 20 : 0)), 0);
   }
 

@@ -52,6 +52,8 @@ export async function readV3JourneyManagement(departureId: string, actorId: stri
           email: String(row.traveler_email || ""),
           phone: String(row.traveler_phone || ""),
           role: String(row.membership_role),
+          memberType: String(row.member_type || "adult"),
+          minorImageConsent: String(row.minor_image_consent || "missing"),
           status: String(row.user_status || row.membership_status),
           participatesInTripGames: Boolean(row.traveler_participates_in_trip_games),
         })),

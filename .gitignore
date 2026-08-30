@@ -14,8 +14,16 @@
 
 # temporary and generated files
 /tmp
+/.tmp
+/.tmp-docx-render
+/.impeccable
+**/__pycache__/
+*.pyc
 *.log
 *.tsbuildinfo
+
+# local test inputs
+/pianotestnew 15.txt
 
 # operating systems and editors
 .DS_Store

@@ -4,12 +4,15 @@ import { processTravelImport } from "@/lib/platform/process-import";
 import { loadWorkerParameters } from "@/lib/platform/worker-parameters";
 import { processReferenceEnrichment } from "@/lib/platform/reference-enrichment";
 import { processAgencyDeletion } from "@/lib/platform/agency-deletion";
+import { processPhotoEvidenceValidation } from "@/lib/platform/photo-evidence-ai";
+import {processPhotoContestEvaluation}from"@/lib/platform/photo-contest-ai";
+import{getSql}from"@/lib/db";
 
 const messageSchema = z.object({
   version: z.literal(1),
   jobId: z.string().uuid(),
   agencyId: z.string().uuid(),
-  type: z.enum(["travel-programme.import", "travel-reference.enrich", "agency.delete"]),
+  type: z.enum(["travel-programme.import", "travel-reference.enrich", "agency.delete", "photo-evidence.validate","photo-contest.evaluate"]),
   payload: z.record(z.string(), z.unknown()),
 });
 const textractNotificationSchema=z.object({JobId:z.string().min(1),Status:z.enum(["SUCCEEDED","FAILED","PARTIAL_SUCCESS"]),JobTag:z.string().uuid()});
@@ -17,9 +20,10 @@ const snsEnvelopeSchema=z.object({Type:z.literal("Notification"),Message:z.strin
 
 type SqsRecord = { messageId: string; body: string };
 type SqsEvent = { Records: SqsRecord[] };
+type ScheduledEvent={source:"aws.events";"detail-type":string};
 type SqsBatchResponse = { batchItemFailures: Array<{ itemIdentifier: string }> };
 
-export async function handler(event: SqsEvent): Promise<SqsBatchResponse> {
+export async function handler(event: SqsEvent|ScheduledEvent): Promise<SqsBatchResponse> {
   const batchItemFailures: SqsBatchResponse["batchItemFailures"] = [];
 
   try {
@@ -30,8 +34,13 @@ export async function handler(event: SqsEvent): Promise<SqsBatchResponse> {
       errorType: error instanceof Error ? error.name : "UnknownError",
     });
     return {
-      batchItemFailures: event.Records.map((record) => ({ itemIdentifier: record.messageId })),
+      batchItemFailures: "Records" in event?event.Records.map((record) => ({ itemIdentifier: record.messageId })):[],
     };
+  }
+  if(!("Records" in event)){
+    const rows=await getSql()`SELECT app.close_due_photo_contests_v3() closed`;
+    console.info("Due photo contests closed",{closed:Number(rows[0]?.closed||0)});
+    return{batchItemFailures:[]};
   }
 
   for (const record of event.Records) {
@@ -62,8 +71,15 @@ export async function handler(event: SqsEvent): Promise<SqsBatchResponse> {
               z.string().uuid().parse(message.payload.templateId),
               z.array(z.object({ entityType: z.enum(["country", "city", "site"]), entityId: z.string().uuid(), name: z.string().max(240) })).parse(message.payload.targets),
               z.array(z.enum(["useful_info", "phrasebook", "bingo"])).default([]).parse(message.payload.contentTypes)
-            ) : await processAgencyDeletion(message.jobId,message.agencyId,
-              z.string().uuid().parse(message.payload.deletionJobId));
+            ) : message.type === "photo-evidence.validate" ? await processPhotoEvidenceValidation({jobId:message.jobId,agencyId:message.agencyId,
+              userId:z.string().min(1).parse(message.payload.userId),departureId:z.string().uuid().parse(message.payload.departureId),
+              partyId:z.string().uuid().parse(message.payload.partyId),dayId:z.string().uuid().parse(message.payload.dayId),
+              itemId:z.string().uuid().parse(message.payload.itemId),mediaId:z.string().uuid().parse(message.payload.mediaId),resultId:z.string().uuid().parse(message.payload.resultId),
+              attemptNumber:z.number().int().min(1).max(2).parse(message.payload.attemptNumber)})
+            : message.type==="photo-contest.evaluate"?await processPhotoContestEvaluation({jobId:message.jobId,agencyId:message.agencyId,
+              departureId:z.string().uuid().parse(message.payload.departureId),partyId:z.string().uuid().parse(message.payload.partyId),
+              itemId:z.string().uuid().parse(message.payload.itemId),entryIds:z.array(z.string().uuid()).length(2).parse(message.payload.entryIds)})
+            : await processAgencyDeletion(message.jobId,message.agencyId,z.string().uuid().parse(message.payload.deletionJobId));
         console.info("Import job completed", {
           messageId: record.messageId,
           jobId: message.jobId,

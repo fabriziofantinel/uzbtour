@@ -498,7 +498,7 @@ Resources:
           PLATFORM_OBJECT_STORAGE_PROVIDER: r2
           PLATFORM_JOB_QUEUE_PROVIDER: sqs
           PLATFORM_AI_PROVIDER: bedrock
-          CONFIG_REVISION: "2026-08-30-async-ocr-v1"
+          CONFIG_REVISION: "2026-08-30-photo-contest-v1"
           AWS_BEDROCK_TEXT_MODEL: !Ref BedrockTextModel
           AWS_BEDROCK_MAX_DOCUMENT_BYTES: "4500000"
           AWS_BEDROCK_MAX_OUTPUT_TOKENS: "12000"
@@ -566,6 +566,12 @@ Resources:
             ScalingConfig:
               MaximumConcurrency: 5
             FunctionResponseTypes: [ReportBatchItemFailures]
+        ContestClosureSchedule:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0/5 * * * ? *)
+            Description: Chiude i contest fotografici dopo le 06:00 locali
+            Enabled: true
     Metadata:
       com.aws.cloudformation.Context:
         why: bounded elastic consumer for imports, tenant deletion and AI enrichment; concurrency ten removes the two-worker head-of-line bottleneck while protecting Neon

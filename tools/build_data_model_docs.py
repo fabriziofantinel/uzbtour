@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT_DIR = ROOT / "docs" / "data-model"
 QA_DIR = ROOT / "tmp" / "data-model-qa"
 DDL_PATH = ROOT / "database" / "schema-v3-review.sql"
-DOCUMENT_VERSION = "1.2"
+DOCUMENT_VERSION = "1.3"
 
 NAVY = "17324D"
 BLUE = "2E74B5"
@@ -65,9 +65,14 @@ TABLE_DESCRIPTIONS = {
     "travel.departure_itinerary_item_translations": "Traduzioni e override linguistici delle tappe effettive della partenza.",
     "travel.itinerary_disruption_events": "Cronologia append-only di ritardi, cancellazioni e riprogrammazioni operative.",
     "travel.traveler_profiles": "Profilo viaggiatore riusabile nell'ambito di un'agenzia.",
-    "travel.travel_parties": "Famiglia o nucleo di condivisione all'interno della partenza.",
-    "travel.party_memberships": "Partecipazione del viaggiatore alla famiglia, con ruolo, capacita e stato.",
+    "travel.travel_parties": "Gruppo di viaggio e perimetro di condivisione all'interno della partenza.",
+    "travel.party_memberships": "Partecipazione del viaggiatore al gruppo, con ruolo, capacita e stato.",
     "travel.traveler_guardianships": "Relazione contestuale e temporalizzata tra minore e adulto responsabile.",
+    "travel.template_countries": "Paesi coperti dal template, ordinati e coerenti con il tenant.",
+    "travel.template_accommodation_stays": "Pernottamenti multipli previsti nel giorno del template.",
+    "travel.departure_accommodation_stays": "Pernottamenti effettivi della partenza, modificabili senza perdere il template sorgente.",
+    "travel.template_useful_information": "Informazioni utili materializzate e localizzate per paese e versione.",
+    "travel.template_phrasebook_entries": "Frasi localizzate generate per la lingua del paese del viaggio.",
     "content.activities": "Definizione governata di quiz, missione, bingo, gioco o contest.",
     "content.activity_items": "Elementi atomici dell'attivita: domande, celle, missioni e regole.",
     "content.activity_translations": "Titoli e istruzioni localizzati delle attivita, senza duplicare la regola di gioco.",
@@ -80,6 +85,8 @@ TABLE_DESCRIPTIONS = {
     "ops.platform_jobs": "Coda applicativa idempotente con possibile consegna a SQS.",
     "ops.integration_outbox": "Outbox transazionale per side effect esterni, inclusa cancellazione oggetti.",
     "ops.agency_deletion_jobs": "Workflow durevole e a fasi per la cancellazione asincrona dell'agenzia.",
+    "ops.legacy_id_map": "Mappa tecnica owner-only tra identificativi legacy e UUID canonici V3.",
+    "ops.legacy_generated_content_map": "Mappa tecnica owner-only tra contenuti legacy e activity item V3.",
     "privacy.consent_records": "Decisioni di consenso append-only, versionate, revocabili e corredabili da evidenza.",
     "journey.expense_groups": "Perimetro esplicito di condivisione spese tra famiglie della stessa partenza.",
     "journey.expense_group_parties": "Adesione verificabile di una famiglia a un gruppo di condivisione spese.",
@@ -93,7 +100,7 @@ TABLE_DESCRIPTIONS = {
     "journey.activity_access_grants": "Autorizzazione server-side allo scaricamento del quiz dopo lo sblocco temporale.",
     "journey.activity_attempts": "Tentativo e punteggio con grant, tempo client informativo e ricezione server verificabile.",
     "journey.activity_evidence": "Foto probatoria associata a tentativo o elemento della sfida.",
-    "journey.photo_contest_entries": "Una delle massimo tre foto del partecipante per contest.",
+    "journey.photo_contest_entries": "Una delle massimo due foto del partecipante per contest.",
     "journey.photo_contest_judgements": "Valutazione AI o umana separata e riproducibile della foto.",
     "journey.programme_feedback": "Valutazione 1-5 della tappa effettiva della partenza.",
     "ops.audit_events": "Registro append-only delle azioni rilevanti e delle variazioni.",
@@ -122,15 +129,15 @@ BUSINESS_RULES = [
     ("BR-003", "Versioni", "Una versione pubblicata e immutabile; ogni correzione genera una nuova versione."),
     ("BR-004", "Programma", "La giornata e una scaletta ordinata. Gli orari sono opzionali e ammessi solo per trasferimento, volo e treno."),
     ("BR-005", "Esecuzione", "Il programma effettivo della partenza e materializzato; le modifiche dell'agente non alterano il template pubblicato."),
-    ("BR-006", "Famiglia", "Spese, cambi, ricordi, risultati, classifiche e contest sono isolati per famiglia."),
-    ("BR-007", "Partecipazione", "Solo un viaggiatore membro attivo della famiglia puo scrivere fatti per quella famiglia."),
+    ("BR-006", "Gruppo", "Spese, cambi, ricordi, risultati, classifiche e contest sono isolati per gruppo di viaggio."),
+    ("BR-007", "Partecipazione", "Solo un viaggiatore membro attivo del gruppo puo scrivere fatti per quel gruppo."),
     ("BR-008", "Valute", "Ogni spesa conserva minor unit, valuta, tasso applicato e importo base; i consuntivi storici non usano tassi live."),
     ("BR-009", "Media", "I blob sono privati in R2/S3; Neon conserva metadati, checksum, scope, retention e stato."),
-    ("BR-010", "Quiz", "Ogni quiz giornaliero pubblicabile contiene 15 domande; lo sblocco standard e alle 20:00 locali del giorno."),
+    ("BR-010", "Quiz", "Ogni quiz giornaliero pubblicabile contiene 10 domande coerenti con citta e siti del giorno; lo sblocco standard e alle 20:00 locali."),
     ("BR-011", "Missioni", "Il pacchetto giornaliero contiene 5 missioni; lo sblocco standard e alle 20:00 locali di due giorni prima."),
     ("BR-012", "Bingo", "Il bingo e sempre disponibile e contiene 15 celle su schema 3x9; punti per ambo, terno, quaterna, cinquina e tombola."),
     ("BR-013", "Giochi", "I giochi sono sempre disponibili; il puzzle usa un asset del giorno o l'icona applicativa come fallback."),
-    ("BR-014", "Contest", "Ogni giorno prevede contest libero e a tema; massimo tre foto per viaggiatore e contest."),
+    ("BR-014", "Contest", "Ogni giorno prevede contest libero e a tema; massimo due foto per viaggiatore e contest."),
     ("BR-015", "Validazione", "Le prove di missioni/bingo e l'avvio dei contest sono governati dal ruolo organizer, non da nomi propri."),
     ("BR-016", "Feedback", "Ogni viaggiatore puo assegnare un solo voto 1-5 a ciascuna tappa effettiva, incluso il pernottamento."),
     ("BR-017", "AI", "Nessun contenuto AI diventa visibile senza fonti, versione del modello, stato editoriale e approvazione umana."),
@@ -208,6 +215,30 @@ SOURCE_ROWS = [
 
 def rgb(hex_value: str) -> RGBColor:
     return RGBColor.from_string(hex_value)
+
+
+def apply_business_vocabulary(doc) -> None:
+    """Allinea la terminologia utente: party resta fisico, ma in italiano e sempre gruppo."""
+    paragraphs = list(doc.paragraphs)
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                paragraphs.extend(cell.paragraphs)
+    replacements = [
+        ("cross-family", "cross-group"),
+        ("Famiglie", "Gruppi"),
+        ("famiglie", "gruppi"),
+        ("Famiglia", "Gruppo"),
+        ("famiglia", "gruppo"),
+    ]
+    for paragraph in paragraphs:
+        updated = paragraph.text
+        for old, new in replacements:
+            updated = updated.replace(old, new)
+        if updated != paragraph.text:
+            for run in paragraph.runs:
+                run.text = ""
+            (paragraph.runs[0] if paragraph.runs else paragraph.add_run()).text = updated
 
 
 def set_cell_shading(cell, fill: str) -> None:
@@ -535,7 +566,7 @@ def draw_domain_overview(path: Path) -> None:
 
 def parse_tables(ddl: str):
     results = []
-    pattern = re.compile(r"CREATE TABLE\s+([a-z_]+\.[a-z_]+)\s*\(", re.I)
+    pattern = re.compile(r"CREATE TABLE\s+(?:IF NOT EXISTS\s+)?([a-z_]+\.[a-z_]+)\s*\(", re.I)
     for m in pattern.finditer(ddl):
         name = m.group(1)
         start = m.end()
@@ -579,7 +610,7 @@ def parse_tables(ddl: str):
 
 
 def build_logical(diagram_path: Path) -> Path:
-    path = OUT_DIR / "SMF_Travel_Modello_Logico_Dati_v1.2.docx"
+    path = OUT_DIR / "SMF_Travel_Modello_Logico_Dati_v1.3.docx"
     doc = Document()
     configure_document(doc, "Modello logico dati")
     doc.core_properties.title = "SMF Travel - Modello Logico dei Dati"
@@ -736,12 +767,13 @@ def build_logical(diagram_path: Path) -> Path:
     ])
 
     add_sources(doc)
+    apply_business_vocabulary(doc)
     doc.save(path)
     return path
 
 
 def build_physical(ddl: str, diagram_path: Path) -> Path:
-    path = OUT_DIR / "SMF_Travel_Modello_Fisico_Dati_v1.2.docx"
+    path = OUT_DIR / "SMF_Travel_Modello_Fisico_Dati_v1.3.docx"
     doc = Document()
     configure_document(doc, "Modello fisico dati")
     doc.core_properties.title = "SMF Travel - Modello Fisico dei Dati"
@@ -756,8 +788,8 @@ def build_physical(ddl: str, diagram_path: Path) -> Path:
         ("Tabelle target", f"{len(tables)} tabelle in 7 schemi di dominio + schema app"),
         ("Chiavi primarie", "100% delle tabelle"),
         ("Vincoli/index state", "0 vincoli non validati; 0 indici invalidi dopo la migrazione Production"),
-        ("Tenant RLS", "47 tabelle previste con ENABLE + FORCE RLS: radice agenzia + 46 sotto-tabelle"),
-        ("Indici RLS", "46/46 sotto-tabelle dichiarate con agency_id leading; audit catalogo incluso nello smoke"),
+        ("Tenant RLS", "54 tabelle verificate con RLS; 0 tabelle tenant prive di indice agency_id leading"),
+        ("Indici RLS", "0 tabelle tenant prive di indice agency_id leading; audit catalogo incluso nello smoke"),
         ("Comandi governati", "Publish, outbox, disruption, grant/payload quiz e cancellazione tramite SECURITY DEFINER"),
         ("Smoke test", "Scenario esteso eseguito in transazione e concluso con rollback dei dati sintetici"),
         ("SHA-256 DDL", ddl_hash),
@@ -767,7 +799,7 @@ def build_physical(ddl: str, diagram_path: Path) -> Path:
     add_table(doc, ["Area", "Produzione osservata", "Target v3"], [
         ("PostgreSQL", "18.6, 55 tabelle public", "18+, schemi di dominio"),
         ("Integrita catalogo", "0 indici invalidi; 0 vincoli non validati", "Stesso requisito, piu FK composite"),
-        ("RLS", "0 tabelle abilitate", "47 tabelle ENABLE + FORCE; code operative senza grant runtime"),
+        ("RLS", "54 tabelle abilitate e verificate", "RLS attiva; code operative senza grant runtime"),
         ("Identita", "Subject esterno come TEXT PK", "UUIDv7 interno + user_identities"),
         ("Template/partenza", "Override JSON e relazioni parziali", "Programma effettivo materializzato"),
         ("Giorno partenza", "Non materializzato nel live", "departure_days con version/date integrity"),
@@ -775,14 +807,14 @@ def build_physical(ddl: str, diagram_path: Path) -> Path:
         ("Valute", "Campi transitori numeric", "minor unit BIGINT + FX snapshot obbligatorio"),
         ("Cataloghi legacy", "places/accommodations ancora presenti", "cities/sites/hotels unici"),
     ], [2100, 3380, 3880], font_size=8.4)
-    p = doc.add_paragraph("La fondazione target e installata e collaudata in Production. Il runtime continua a usare le tabelle public finche backfill, dual read e cutover non completano il percorso expand-migrate-contract.")
+    p = doc.add_paragraph("La fondazione V3 e installata, riconciliata e collaudata in Production. I backfill core e operational risultano applicati senza utenti, movimenti di cassa o mapping mancanti; le copie legacy restano owner-only per audit e rollback controllato.")
     p.runs[0].italic = True
 
     doc.add_heading("3. Principi fisici", level=1)
     add_bullets(doc, [
         "UUIDv7 nativo PostgreSQL 18 per entita distribuite; BIGINT identity per audit/outbox append-only.",
         "Schemi: iam, ref, travel, content, ops, journey, privacy; app contiene domini e funzioni di contesto.",
-        "agency_id ridondante solo come scope key, protetto da FK composite e RLS; sulle 46 sotto-tabelle tenant esiste sempre un indice dichiarato con agency_id leading.",
+        "agency_id ridondante solo come scope key, protetto da FK composite e RLS; il gate verifica che ogni tabella tenant abbia un indice valido con agency_id leading.",
         "TIMESTAMPTZ per istanti, DATE per giorni di servizio, TIME solo per orari locali template.",
         "Denaro in minor unit BIGINT; tassi NUMERIC(24,12); mai FLOAT/DOUBLE per importi.",
         "PostGIS GEOGRAPHY(POINT,4326) per coordinate; GiST solo dove serve prossimita.",
@@ -804,7 +836,7 @@ def build_physical(ddl: str, diagram_path: Path) -> Path:
     add_table(doc, ["Tema", "Decisione", "Motivazione"], [
         ("PK distribuite", "UUID DEFAULT uuidv7()", "Ordinamento temporale migliore di UUIDv4 e generazione senza coordinamento."),
         ("Eventi ad alto volume", "BIGINT identity", "Compatto, sequenziale, adatto ad audit e outbox."),
-        ("Identita esterne", "Tabella user_identities", "Evita di legare il dominio a Neon Auth o a un singolo provider."),
+        ("Identita esterne", "Tabella user_identities", "Evita di legare il dominio a Cognito o a un singolo provider."),
         ("Giorni", "DATE + day_offset", "Evita conversioni UTC errate e mantiene template riusabile."),
         ("Orari template", "TIME locale solo trasporti", "Il template non dispone ancora di una data/fuso concreto."),
         ("Orari partenza", "TIMESTAMPTZ", "Istante inequivocabile per biglietti e monitoraggio."),
@@ -830,8 +862,8 @@ def build_physical(ddl: str, diagram_path: Path) -> Path:
     add_bullets(doc, [
         "smf_app e un ruolo LOGIN senza ownership, membership neon_superuser e BYPASSRLS.",
         "Ogni transazione runtime imposta app.agency_id con set_config(..., true) dopo autenticazione.",
-        "La radice agenzia e 46 sotto-tabelle tenant hanno ENABLE e FORCE ROW LEVEL SECURITY; la policy usa agency_id.",
-        "Ogni sotto-tabella soggetta alla policy dispone di almeno un indice valido con agency_id come prima chiave; tools/audit_tenant_indexes.py e lo smoke test verificano il catalogo.",
+        "Il catalogo consolidato contiene 67 tabelle di dominio, di cui 54 con RLS attiva; la policy tenant usa agency_id.",
+        "Ogni tabella tenant soggetta alla policy dispone di almeno un indice valido con agency_id come prima chiave; il gate CI conferma zero eccezioni.",
         "iam.users, user_identities e impersonation_sessions non ricevono DML diretto dal runtime tenant.",
         "Le operazioni superadmin cross-tenant passano da funzioni SECURITY DEFINER minimali e auditabili, non da una policy booleana generica.",
         "integration_outbox e agency_deletion_jobs sono code operative senza DML runtime: il worker usa soltanto funzioni SECURITY DEFINER con grant EXECUTE mirati.",
@@ -876,11 +908,11 @@ def build_physical(ddl: str, diagram_path: Path) -> Path:
 
     doc.add_heading("9. Contenuti, quiz e publish gate", level=1)
     add_table(doc, ["Regola aggregata", "Controllo al publish"], [
-        ("Quiz", "1 attivita per giorno, 15 activity_items question, answer_spec completo"),
+        ("Quiz", "1 attivita per giorno, 10 activity_items coerenti con citta e siti, answer_spec completo"),
         ("Missioni", "1 attivita per giorno, 5 activity_items mission, evidence richiesto"),
         ("Bingo", "1 attivita per versione, 15 celle, coordinate 3x9 e milestone punteggio"),
         ("Giochi", "3 attivita semplici per giorno; puzzle con fallback_media_asset configurato"),
-        ("Contest", "2 per giorno, category free/theme, max_entries=3"),
+        ("Contest", "2 per giorno, category free/theme, max_entries=2"),
         ("Freshness", "Reference content approved e non oltre refresh_after, oppure waiver motivato"),
         ("Fonti", "Almeno una fonte; fonte primaria quando esiste; human approval obbligatoria"),
     ], [2800, 6560], font_size=8.7)
@@ -908,6 +940,7 @@ def build_physical(ddl: str, diagram_path: Path) -> Path:
         "Il worker Lambda/SQS usa il pooled endpoint Neon con connessione dedicata al ruolo smf_worker: una nuova invocazione risveglia il compute dopo autosuspend, senza dipendere da un processo residente nel database.",
         "Il worker elimina l'oggetto in modo idempotente e completa l'evento; dead letter genera allarme.",
         "retention_until e legal_hold impediscono cancellazioni premature secondo policy ratificata.",
+        "Cloudflare R2 applica inoltre Bucket Lock per 30 giorni sul prefisso agencies/, impedendo overwrite e delete prematuri anche fuori dal database.",
         "Le FK dirette verso iam.agencies sono RESTRICT: la radice non puo avviare una cascata massiva.",
         "BR-019 e materializzata in agency_deletion_jobs con fasi, cursore, lease e retry; il DELETE finale e ammesso solo dopo status closed e assenza di figli.",
     ])
@@ -967,7 +1000,7 @@ def build_physical(ddl: str, diagram_path: Path) -> Path:
         "DDL riproducibile su PostgreSQL 18; migrazione 016 applicata atomicamente e registrata in Production.",
         "Tutte le tabelle hanno PK; catalogo Production conferma 0 vincoli non validati e 0 indici invalidi.",
         "Nessuna fact puo attraversare tenant, partenza, versione, giorno o famiglia.",
-        "RLS FORCE su radice e sotto-tabelle tenant; audit statico conferma agency_id leading su 46/46 sotto-tabelle.",
+        "RLS attiva su 54 tabelle; audit statico conferma zero tabelle tenant prive di indice agency_id leading.",
         "Publish gate atomico in stored procedure SECURITY DEFINER, con advisory lock e trigger anti-race verificati.",
         "FK ad alto volume indicizzate; eccezioni documentate con cardinalita e delete pattern.",
         "Importi e score deterministici; scritture mobile idempotenti.",
@@ -983,6 +1016,7 @@ def build_physical(ddl: str, diagram_path: Path) -> Path:
     ])
 
     add_sources(doc)
+    apply_business_vocabulary(doc)
     doc.save(path)
     return path
 
@@ -992,7 +1026,13 @@ def main() -> None:
     QA_DIR.mkdir(parents=True, exist_ok=True)
     diagram = QA_DIR / "domain-overview.png"
     draw_domain_overview(diagram)
-    ddl = DDL_PATH.read_text(encoding="utf-8")
+    ddl_sources = [
+        DDL_PATH,
+        ROOT / "database" / "backfill-v3-shadow-core.sql",
+        ROOT / "database" / "backfill-v3-shadow-operational.sql",
+        ROOT / "database" / "migrations" / "045_v3_operational_stays.sql",
+    ]
+    ddl = "\n\n".join(path.read_text(encoding="utf-8") for path in ddl_sources)
     logical = build_logical(diagram)
     physical = build_physical(ddl, diagram)
     print(logical)

@@ -29,11 +29,15 @@ function LoginContent() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setLoading(true);
     setError("");
+    const normalizedUsername = username.trim().toLocaleLowerCase("en-US");
+    if (!/^[a-z0-9][a-z0-9._-]{2,79}$/.test(normalizedUsername)) {
+      setError("Username non valido");
+      return;
+    }
+    setLoading(true);
 
     try {
-      const normalizedUsername = username.trim().toLocaleLowerCase("en-US");
       const { response: signInResponse, body } = await signIn(normalizedUsername, password);
       if (!signInResponse.ok && body?.code) {
         const messages:Record<string,string>={
@@ -118,6 +122,9 @@ function LoginContent() {
                 onChange={(event) => setUsername(event.target.value)}
                 placeholder="Il tuo username"
                 autoComplete="username"
+                pattern="[A-Za-z0-9][A-Za-z0-9._-]{2,79}"
+                minLength={3}
+                maxLength={80}
                 autoFocus
                 required
                 aria-invalid={Boolean(error)}

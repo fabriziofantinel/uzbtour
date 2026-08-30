@@ -220,10 +220,15 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       id: String(row.id), dayId: row.trip_day_id ? String(row.trip_day_id) : null,
       dayNumber: row.day_number == null ? null : Number(row.day_number), label: String(row.label),
       amount: Number(row.amount), currency: String(row.currency), paidBy: String(row.paid_by_name),
+      paidByTravelerId: stringValue(row.paid_by_traveler_id),
       baseCurrency: String(row.base_currency || "EUR"),
       exchangeRateToBase: row.exchange_rate_to_base == null ? null : Number(row.exchange_rate_to_base),
       baseAmount: row.base_amount == null ? null : Number(row.base_amount),
       createdAt: String(row.created_at),
+      shares: Array.isArray(row.shares) ? row.shares.map((share) => {
+        const value=share as Record<string,unknown>;
+        return {travelerId:String(value.travelerId),travelerName:String(value.travelerName),amount:Number(value.amount),baseAmount:Number(value.baseAmount)};
+      }) : [],
     })),
     notes: activeNoteRows.map((row) => ({
       id: String(row.id), dayId: String(row.trip_day_id), dayNumber: Number(row.day_number),
@@ -308,6 +313,7 @@ export async function addTravelerExpense(input: {
   currency: "EUR" | "USD" | "UZS" | "GBP" | "VND";
   clientOperationId: string;
   exchangeRateToBase?: number | null;
+  shareTravelerIds?: string[];
 }) {
   await assertArchitectureHardeningSchema();
   const agencyId = await assertTravelerPartyScope(input);

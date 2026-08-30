@@ -7,13 +7,17 @@ import {
   CalendarDays, Camera, ChevronRight, CircleUserRound, Clock3,
   Check, Download, ExternalLink, FileText, Info, Languages, LoaderCircle, LogOut, Map,
   MapPin, MessageCircle, Navigation, Plane, ReceiptText,
-  Sparkles, Star, TrainFront, Trash2, Utensils, Wallet, Wifi, WifiOff,
+  Phone, Share2, ShieldAlert, Sparkles, Star, TrainFront, Trash2, Utensils, Wallet, Wifi, WifiOff,
 } from "lucide-react";
 import ExpenseDialog from "@/components/expense-dialog";
 import CashMovementDialog from "@/components/cash-movement-dialog";
 import type { TripMapDay } from "@/components/trip-overview-map";
 import type { TravelerExperience as Experience } from "@/lib/platform/traveler-experience";
 import { agencyLogoSource } from "@/lib/platform/branding-ui";
+import { resilientMutation, uuidV7 } from "@/lib/pwa/offline-queue";
+import PwaCompanion from "@/components/pwa-companion";
+import OperationalChat from "@/components/operational-chat";
+import { downloadTripForOffline, type OfflinePackageState } from "@/lib/pwa/offline-package";
 
 const TripOverviewMap = dynamic(() => import("@/components/trip-overview-map"), {
   ssr: false,
@@ -23,7 +27,7 @@ const PlatformTripChallenges = dynamic(() => import("@/components/platform-trip-
   loading: () => <div className="componentLoading" role="status">Caricamento delle sfide…</div>,
 });
 
-type Tab = "mappa" | "programma" | "ricordi" | "documenti" | "spese" | "info" | "frasario" | "sfide";
+type Tab = "mappa" | "programma" | "ricordi" | "documenti" | "spese" | "info" | "frasario" | "sfide" | "sos" | "chat";
 type Day = Experience["days"][number];
 const colors = ["#D6663D", "#715C9D", "#C4902F", "#177A78", "#3D8B68", "#A35D55"];
 const som = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0 });
@@ -170,10 +174,15 @@ export default function TravelExperience({ initialExperience, userName, isAgency
   const [memoryDayFilter, setMemoryDayFilter] = useState<number | "all">("all");
   const [isOnline, setIsOnline] = useState(true);
   const [now, setNow] = useState(() => new Date());
+  const [offlinePackage,setOfflinePackage]=useState<OfflinePackageState>("idle");
+  const [offlineProgress,setOfflineProgress]=useState({done:0,total:0});
+  const [largeText,setLargeText]=useState(false);
+  const [simpleMode,setSimpleMode]=useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const moreButtonRef = useRef<HTMLButtonElement>(null);
   const firstTabRender = useRef(true);
+  const gestureStart = useRef<{ x: number; y: number; atTop: boolean } | null>(null);
   const day = experience.days[active] ?? experience.days[0];
   const photosByDay = useMemo(() => experience.photos.reduce<Record<number, Experience["photos"]>>((all, photo) => {
     all[photo.dayNumber] = [...(all[photo.dayNumber] || []), photo]; return all;
@@ -220,11 +229,38 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     }
     return total;
   }, [appliedEurRate, experience.expenses, localCurrency]);
-  const tripMapDays = useMemo<TripMapDay[]>(() => experience.days.flatMap((entry, index) => {
-    const city = mapCityForDay(entry);
-    return city ? [{ index, n: entry.number, date: dateParts(entry.date).full, city: city.name,
-      title: entry.title, lat: city.latitude!, lon: city.longitude!, color: colors[index % colors.length] }] : [];
-  }), [experience.days]);
+  const expenseBalances = useMemo(() => experience.journey.travelers.map((traveler) => {
+    let paid=0,owed=0;
+    for(const expense of experience.expenses){
+      const base=expense.baseAmount ?? (expense.currency==="EUR"?expense.amount:0);
+      if(expense.paidByTravelerId===traveler.id)paid+=base;
+      const share=expense.shares.find((entry)=>entry.travelerId===traveler.id);
+      if(share)owed+=share.baseAmount;
+      else if(expense.shares.length===0)owed+=base/Math.max(experience.journey.travelers.length,1);
+    }
+    return {id:traveler.id,name:traveler.name,balance:paid-owed};
+  }),[experience.expenses,experience.journey.travelers]);
+  const operationalPoints = useMemo<TripMapDay[]>(() => {
+    const points = [
+      ...day.items.filter((item) => item.latitude != null && item.longitude != null).map((item) => ({ title: item.title, city: day.city || item.title, lat: item.latitude!, lon: item.longitude! })),
+      ...day.sites.filter((site) => site.latitude != null && site.longitude != null).map((site) => ({ title: site.name, city: site.city || day.city, lat: site.latitude!, lon: site.longitude! })),
+      ...day.hotels.filter((hotel) => hotel.latitude != null && hotel.longitude != null).map((hotel) => ({ title: hotel.name, city: hotel.city || day.city, lat: hotel.latitude!, lon: hotel.longitude! })),
+    ];
+    return [...new globalThis.Map(points.map((point) => [`${point.lat}:${point.lon}:${point.title}`, point] as const)).values()].map((point, index) => ({ index, n: index + 1, date: dateParts(day.date).full, color: colors[index % colors.length], ...point }));
+  }, [day]);
+
+  function trackAnalytics(eventName:"traveler_session"|"programme_view"|"document_list_view"|"document_download",properties:Record<string,string|number|boolean|null>={}){
+    try{
+      const sessionKey="smf-analytics-session";let sessionId=sessionStorage.getItem(sessionKey);
+      if(!sessionId){sessionId=uuidV7();sessionStorage.setItem(sessionKey,sessionId);}
+      const dedupeKey=`smf-analytics:${sessionId}:${experience.journey.departureId}:${eventName}:${properties.documentId??day.id}`;
+      if(sessionStorage.getItem(dedupeKey))return;sessionStorage.setItem(dedupeKey,"1");
+      void fetch("/api/traveler/analytics",{method:"POST",headers:{"Content-Type":"application/json"},keepalive:true,body:JSON.stringify({
+        departureId:experience.journey.departureId,partyId:experience.journey.partyId,
+        dayId:day?.id??null,eventName,sessionId,clientOperationId:uuidV7(),properties,
+      })}).then((response)=>{if(!response.ok)sessionStorage.removeItem(dedupeKey);}).catch(()=>sessionStorage.removeItem(dedupeKey));
+    }catch{/* Le analytics non devono interrompere l'esperienza di viaggio. */}
+  }
 
   useEffect(() => {
     let activeRequest = true;
@@ -239,6 +275,21 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     const timer = window.setInterval(() => setNow(new Date()), 30_000);
     return () => window.clearInterval(timer);
   }, []);
+  useEffect(()=>{setLargeText(localStorage.getItem("smf-large-text")==="1");setSimpleMode(localStorage.getItem("smf-simple-mode")==="1");},[]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const requestedTab = params.get("tab");
+    if (["programma", "documenti", "spese", "mappa", "sfide", "info", "frasario", "sos", "chat"].includes(requestedTab || "")) setTab(requestedTab as Tab);
+  }, []);
+
+  useEffect(()=>{
+    trackAnalytics("traveler_session",{entryTab:tab});
+    if(tab==="programma")trackAnalytics("programme_view",{dayNumber:day.number});
+    if(tab==="documenti")trackAnalytics("document_list_view",{documentCount:travelDocuments.length});
+    // Il tracciamento è intenzionalmente legato all'apertura della sezione, non allo scroll.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[tab,day.id,experience.journey.departureId]);
 
   useEffect(() => {
     const updateConnectionState = () => setIsOnline(navigator.onLine);
@@ -289,7 +340,17 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     setTab("programma");
   }
   async function postJournal(body: Record<string, unknown>) {
-    const response = await fetch("/api/traveler/journal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ departureId: experience.journey.departureId, partyId: experience.journey.partyId, ...body }) });
+    const payload: Record<string, unknown> = { departureId: experience.journey.departureId, partyId: experience.journey.partyId, ...body };
+    const offlineKind = body.action === "cash" ? "cash" : null;
+    if (offlineKind) {
+      const result = await resilientMutation({ kind: offlineKind, url: "/api/traveler/journal", method: "POST", body: payload });
+      if (result.queued) return { queued: true, movement: { id: String(payload.clientOperationId), createdAt: new Date().toISOString() } };
+      const response = result.response!;
+      const responseBody = await response.json() as Record<string, unknown> & { error?: string };
+      if (!response.ok) throw new Error(responseBody.error || "Salvataggio non riuscito");
+      return responseBody;
+    }
+    const response = await fetch("/api/traveler/journal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     const result = await response.json() as Record<string, unknown> & { error?: string };
     if (!response.ok) throw new Error(result.error || "Salvataggio non riuscito");
     return result;
@@ -298,12 +359,8 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     const busyKey = `rating-${targetType}-${targetId}`;
     setSaving(busyKey); setError("");
     try {
-      const response = await fetch("/api/traveler/feedback", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ departureId: experience.journey.departureId, partyId: experience.journey.partyId, dayId, targetType, targetId, rating, clientOperationId: crypto.randomUUID() }),
-      });
-      const result = await response.json().catch(() => ({})) as { error?: string };
-      if (!response.ok) throw new Error(result.error || "Valutazione non salvata");
+      const result = await resilientMutation({ kind: "feedback", url: "/api/traveler/feedback", method: "POST", body: { departureId: experience.journey.departureId, partyId: experience.journey.partyId, dayId, targetType, targetId, rating, clientOperationId: uuidV7() } });
+      if (!result.queued && !result.response?.ok) throw new Error("Valutazione non salvata");
       setExperience((current) => ({ ...current, days: current.days.map((entry) => entry.id !== dayId ? entry : ({ ...entry,
         items: targetType === "itinerary_item" ? entry.items.map((item) => item.id === targetId ? { ...item, rating } : item) : entry.items,
         hotels: targetType === "hotel" ? entry.hotels.map((hotel) => hotel.id === targetId ? { ...hotel, rating } : hotel) : entry.hotels,
@@ -328,7 +385,7 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     if (!localAmount || !euroAmount) { setError("Inserisci importi validi per calcolare il cambio applicato."); return false; }
     setSaving("cash"); setError("");
     try {
-      const result = await postJournal({ action: "cash", dayId: day.id, kind, localAmount, euroAmount, localCurrency, feeEuro: null, clientOperationId: crypto.randomUUID() }) as { movement: { id: string; createdAt: string } };
+      const result = await postJournal({ action: "cash", dayId: day.id, kind, localAmount, euroAmount, localCurrency, feeEuro: null, clientOperationId: uuidV7() }) as { movement: { id: string; createdAt: string } };
       setExperience((current) => ({ ...current, cashMovements: [{ id: result.movement.id, dayId: day.id, dayNumber: day.number, kind, euroAmount, localAmount, localCurrency, feeEuro: null, addedBy: userName, createdAt: result.movement.createdAt }, ...current.cashMovements] }));
       return true;
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Movimento non salvato"); return false; }
@@ -358,20 +415,43 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Eliminazione del movimento non riuscita"); }
     finally { setSaving(""); }
   }
-  async function saveExpense(input: { label: string; amount: string; currency: string }) {
+  async function saveExpense(input: { label: string; amount: string; currency: string; shareTravelerIds: string[] }) {
     const amount = numberValue(input.amount);
     if (!amount || amount <= 0) { setError("Inserisci un importo valido."); return false; }
     setSaving("expense"); setError("");
     try {
       const exchangeRateToBase = input.currency === "EUR" ? 1 : appliedEurRate ? 1 / appliedEurRate : null;
-      const response = await fetch("/api/traveler/expenses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ departureId: experience.journey.departureId, partyId: experience.journey.partyId, dayId: expenseDayId, label: input.label, amount, currency: input.currency, exchangeRateToBase, clientOperationId: crypto.randomUUID() }) });
-      const result = await response.json() as { id?: string; error?: string };
-      if (!response.ok || !result.id) throw new Error(result.error || "Spesa non salvata");
+      const operationId = uuidV7();
+      const request = await resilientMutation({ kind: "expense", url: "/api/traveler/expenses", method: "POST", body: { departureId: experience.journey.departureId, partyId: experience.journey.partyId, dayId: expenseDayId, label: input.label, amount, currency: input.currency, exchangeRateToBase, shareTravelerIds: input.shareTravelerIds, clientOperationId: operationId } });
+      const result = request.queued ? { id: operationId } : await request.response!.json() as { id?: string; error?: string };
+      if (!request.queued && (!request.response?.ok || !result.id)) throw new Error(result.error || "Spesa non salvata");
       const expenseDay = experience.days.find((entry) => entry.id === expenseDayId);
-      setExperience((current) => ({ ...current, expenses: [{ id: result.id!, dayId: expenseDayId || null, dayNumber: expenseDay?.number ?? null, label: input.label, amount, currency: input.currency, baseCurrency: "EUR", exchangeRateToBase, baseAmount: exchangeRateToBase == null ? null : Math.round(amount * exchangeRateToBase * 10_000) / 10_000, paidBy: userName, createdAt: new Date().toISOString() }, ...current.expenses] }));
+      const baseAmount=exchangeRateToBase == null ? null : Math.round(amount * exchangeRateToBase * 10_000) / 10_000;
+      const currentTraveler=experience.journey.travelers.find((traveler)=>traveler.isCurrent);
+      const shareBase=baseAmount==null?0:baseAmount/input.shareTravelerIds.length;
+      setExperience((current) => ({ ...current, expenses: [{ id: result.id!, dayId: expenseDayId || null, dayNumber: expenseDay?.number ?? null, label: input.label, amount, currency: input.currency, baseCurrency: "EUR", exchangeRateToBase, baseAmount, paidBy: userName,paidByTravelerId:currentTraveler?.id||"",shares:input.shareTravelerIds.map((travelerId)=>({travelerId,travelerName:experience.journey.travelers.find((traveler)=>traveler.id===travelerId)?.name||"Viaggiatore",amount:amount/input.shareTravelerIds.length,baseAmount:shareBase})), createdAt: new Date().toISOString() }, ...current.expenses] }));
       return true;
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Spesa non salvata"); return false; }
     finally { setSaving(""); }
+  }
+  async function prepareOffline(){
+    setOfflinePackage("downloading");setError("");
+    const urls=[window.location.href,`/api/traveler/trip-data?partenza=${experience.journey.departureId}`,...travelDocuments.map((document)=>document.downloadUrl)];
+    try{await downloadTripForOffline(urls,(done,total)=>setOfflineProgress({done,total}));setOfflinePackage("ready");}
+    catch(caught){setOfflinePackage("failed");setError(caught instanceof Error?caught.message:"Download offline non riuscito");}
+  }
+  async function shareAlbum(){
+    const url=`/api/traveler/travel-album?partenza=${encodeURIComponent(experience.journey.departureId)}`;
+    try{
+      const response=await fetch(url,{cache:"no-store"});if(!response.ok)throw new Error();
+      const blob=await response.blob(),file=new File([blob],"diario-del-viaggio.pdf",{type:"application/pdf"});
+      if(navigator.share&&navigator.canShare?.({files:[file]}))await navigator.share({title:experience.journey.title,text:"Il diario del nostro viaggio",files:[file]});
+      else{const link=document.createElement("a");link.href=URL.createObjectURL(blob);link.download=file.name;link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);}
+    }catch(caught){if(caught instanceof DOMException&&caught.name==="AbortError")return;setError("Condivisione del diario non riuscita. Riprova quando sei online.");}
+  }
+  function togglePreference(kind:"text"|"simple"){
+    if(kind==="text")setLargeText((value)=>{localStorage.setItem("smf-large-text",value?"0":"1");return !value;});
+    else setSimpleMode((value)=>{localStorage.setItem("smf-simple-mode",value?"0":"1");return !value;});
   }
   if (!day) return null;
   const currentDate = dateParts(day.date);
@@ -387,7 +467,15 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     "--on-brand": "#111111",
   } as CSSProperties;
 
-  return <main className="travelExperience travelerRedesign" style={brandStyle} data-design-contract="b0beb44b" data-design-thesis="sentiero-delle-tappe">
+  return <main className={`travelExperience travelerRedesign${largeText?" largeTextMode":""}${simpleMode?" simpleMode":""}`} style={brandStyle} data-design-contract="b0beb44b" data-design-thesis="sentiero-delle-tappe"
+    onTouchStart={(event) => { const touch = event.touches[0]; gestureStart.current = { x: touch.clientX, y: touch.clientY, atTop: window.scrollY <= 2 }; }}
+    onTouchEnd={(event) => { const start = gestureStart.current; const touch = event.changedTouches[0]; gestureStart.current = null; if (!start) return; const dx = touch.clientX - start.x, dy = touch.clientY - start.y; if (start.atTop && dy > 90 && Math.abs(dy) > Math.abs(dx) * 1.5) { window.location.reload(); return; } if (tab === "programma" && Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.4) selectDay(Math.max(0, Math.min(experience.days.length - 1, active + (dx < 0 ? 1 : -1)))); }}>
+    <link rel="icon" href="/icons/icon-192.png" sizes="192x192" type="image/png"/>
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180"/>
+    <link rel="apple-touch-startup-image" href="/splash/iphone-1170x2532.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)"/>
+    <link rel="apple-touch-startup-image" href="/splash/iphone-1290x2796.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)"/>
+    <link rel="apple-touch-startup-image" href="/splash/iphone-1242x2688.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)"/>
+    <PwaCompanion/>
     <a className="skipLink" href="#travel-main-content">Salta al contenuto del viaggio</a>
     <header className="topbar"><div className="brand">{agencyLogo ? <img className="agencyLogo" src={agencyLogo} alt={`Logo ${experience.journey.agencyName}`}/> : <span className="brandMark">{initials(experience.journey.agencyName)}</span>}<div><strong>{experience.journey.agencyName}</strong><small>POWERED BY SMF TRAVEL</small></div></div><div className="tripDates"><CalendarDays/><span>{dateParts(experience.journey.startsOn).full} — {dateParts(experience.journey.endsOn).full}</span><i>{experience.days.length} gg</i></div><div className="people"><span className={`connectionStatus ${isOnline ? "online" : "offline"}`} role="status" aria-live="polite">{isOnline ? <Wifi/> : <WifiOff/>}<b>{isOnline ? (saving ? "Salvataggio…" : "Online") : "Solo consultazione"}</b></span><span className="currentUser"><i>{initials(userName)}</i><b>{userName}</b></span><div className="avatars">{experience.journey.travelers.slice(0, 4).map((traveler) => <i key={traveler.name}>{initials(traveler.name)}</i>)}</div>{isAgencyAdmin && <a className="agencyButton" href="/agenzia"><Building2/><span>Agenzia</span></a>}<form action="/api/auth/logout" method="post"><button className="logoutButton"><LogOut/><span>Esci</span></button></form></div></header>
     {experience.availableJourneys.length > 1 && <nav className="journeyPicker">{experience.availableJourneys.map((journey) => <a className={journey.departureId === experience.journey.departureId ? "active" : ""} href={`/viaggio?partenza=${journey.departureId}`} key={journey.departureId}>{journey.title}<small>{dateParts(journey.startsOn).full}</small></a>)}</nav>}
@@ -397,12 +485,16 @@ export default function TravelExperience({ initialExperience, userName, isAgency
       <div className="moreMenuHead"><strong>Altro</strong><small>Informazioni e frasi di viaggio</small></div>
       <button type="button" aria-current={tab === "info" ? "page" : undefined} onClick={() => { setTab("info"); setMoreOpen(false); }}><Info/><span><strong>Informazioni utili</strong><small>Contatti, valuta e consigli</small></span><ChevronRight/></button>
       <button type="button" aria-current={tab === "frasario" ? "page" : undefined} onClick={() => { setTab("frasario"); setMoreOpen(false); }}><Languages/><span><strong>Frasi</strong><small>Parole utili durante il viaggio</small></span><ChevronRight/></button>
+      <button type="button" aria-current={tab === "chat" ? "page" : undefined} onClick={() => { setTab("chat"); setMoreOpen(false); }}><MessageCircle/><span><strong>Chat con l’agenzia</strong><small>Domande e aggiornamenti operativi</small></span><ChevronRight/></button>
+      <button type="button" aria-current={tab === "sos" ? "page" : undefined} onClick={() => { setTab("sos"); setMoreOpen(false); }}><ShieldAlert/><span><strong>SOS e assistenza</strong><small>Contatti e posizione volontaria</small></span><ChevronRight/></button>
+      <button type="button" aria-pressed={largeText} onClick={()=>togglePreference("text")}><Accessibility/><span><strong>Testo grande</strong><small>{largeText?"Attivo":"Aumenta la leggibilità"}</small></span><ChevronRight/></button>
+      <button type="button" aria-pressed={simpleMode} onClick={()=>togglePreference("simple")}><Accessibility/><span><strong>Modalità semplificata</strong><small>{simpleMode?"Attiva":"Riduce gli elementi secondari"}</small></span><ChevronRight/></button>
     </div>}
     <div id="travel-main-content" className="travelMainContent" ref={contentRef} tabIndex={-1}>
     <div className="srStatus" role="status" aria-live="polite" aria-atomic="true">{saving ? "Salvataggio in corso" : ""}</div>
     {error && <p className="dataError" role="alert">{error}</p>}
 
-    {tab === "mappa" && <section className="overviewPage"><div className="overviewHead"><div><span>LA ROTTA DEL VIAGGIO</span><h2>{experience.days.length} giorni, una mappa</h2><p>Tocca un numero sulla mappa o una tappa qui sotto per aprire il programma.</p></div><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(experience.journey.destinationCountry)}`} target="_blank" rel="noreferrer">Apri la mappa completa <ExternalLink/></a></div>{tripMapDays.length > 0 ? <><div className="overviewMap"><TripOverviewMap days={tripMapDays} onSelect={openDay}/></div><div className="overviewDayList">{tripMapDays.map((entry) => <button key={entry.n} onClick={() => openDay(entry.index)}><span style={{ background: entry.color }}>{entry.n}</span><span><small>{entry.date}</small><strong>{entry.city}</strong></span><ChevronRight/></button>)}</div><p className="mapAttribution">Coordinate fornite da <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo</a>.</p></> : <div className="empty"><Map/><h3>Mappa in preparazione</h3><p>Stiamo recuperando le coordinate delle località. Ricarica la pagina tra pochi secondi.</p></div>}</section>}
+    {tab === "mappa" && <section className="overviewPage"><div className="overviewHead"><div><span>MAPPA OPERATIVA</span><h2>Giorno {day.number} · {day.city}</h2><p>Visite e pernottamenti disponibili per questa giornata.</p></div><a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(day.city || experience.journey.destinationCountry)}`} target="_blank" rel="noreferrer">Apri indicazioni <ExternalLink/></a></div>{operationalPoints.length > 0 ? <><div className="overviewMap"><TripOverviewMap days={operationalPoints} onSelect={()=>undefined}/></div><div className="overviewDayList">{operationalPoints.map((entry) => <a key={`${entry.lat}-${entry.lon}-${entry.title}`} href={`https://www.google.com/maps/dir/?api=1&destination=${entry.lat},${entry.lon}`} target="_blank" rel="noreferrer"><span style={{ background: entry.color }}>{entry.n}</span><span><small>{entry.city}</small><strong>{entry.title}</strong></span><ExternalLink/></a>)}</div><p className="mapAttribution">Le mappe già visualizzate restano disponibili offline per un periodo limitato.</p></> : <div className="empty"><Map/><h3>Luoghi in preparazione</h3><p>Per questa giornata non sono ancora disponibili coordinate operative.</p></div>}</section>}
 
     {tab === "programma" && <div className="dashboard">
       <aside className="timeline"><div className="sectionTitle"><div><span>ITINERARIO</span><h2>Giorno per giorno</h2></div><span>{active + 1} / {experience.days.length}</span></div><div className="dayList">{experience.days.map((entry, index) => { const date = dateParts(entry.date); const Transport = dayTransport(entry).Icon; return <button key={entry.id} className={`dayRow ${active === index ? "selected" : ""}`} onClick={() => selectDay(index)}><span className="dayDate"><b>{date.day}</b>{date.month}</span><span className="line"><i style={{ background: colors[index % colors.length] }}/></span><span className="dayInfo"><small>{entry.label || `GIORNO ${entry.number}`}</small><strong>{entry.city}</strong><em><Transport/>{entry.title}</em></span><ChevronRight/></button>; })}</div></aside>
@@ -442,6 +534,7 @@ export default function TravelExperience({ initialExperience, userName, isAgency
 
     {tab === "ricordi" && <section className="collection memoriesPage">
       <header className="memoriesHead"><div><Camera/><span><small>RICORDI DEL VIAGGIO</small><h2>La nostra galleria</h2><p>Le foto condivise dal gruppo, ordinate per giornata.</p></span></div>{experience.photos.length > 0 && <strong>{experience.photos.length}<small>{experience.photos.length === 1 ? "foto" : "foto"}</small></strong>}</header>
+      <div className="memoryAlbumActions"><a href={`/api/traveler/travel-album?partenza=${encodeURIComponent(experience.journey.departureId)}`} download><Download/> Scarica diario PDF</a><button type="button" onClick={()=>void shareAlbum()}><Share2/> Condividi diario</button></div>
       {experience.photos.length === 0 ? <div className="empty memoriesEmpty"><Camera/><h3>La galleria aspetta il primo ricordo</h3><p>Le foto caricate nelle sfide e nei contest appariranno qui, disponibili per tutto il gruppo.</p><button type="button" onClick={() => setTab("sfide")}>Apri le sfide</button></div> : <>
         {memoryDays.length > 1 && <div className="memoryFilters" role="group" aria-label="Filtra le foto per giornata"><button type="button" className={memoryDayFilter === "all" ? "active" : ""} aria-pressed={memoryDayFilter === "all"} onClick={() => setMemoryDayFilter("all")}>Tutte <span>{experience.photos.length}</span></button>{memoryDays.map((dayNumber) => <button type="button" key={dayNumber} className={memoryDayFilter === dayNumber ? "active" : ""} aria-pressed={memoryDayFilter === dayNumber} onClick={() => setMemoryDayFilter(dayNumber)}>Giorno {dayNumber} <span>{photosByDay[dayNumber].length}</span></button>)}</div>}
         <p className="memoryResult" role="status">{visiblePhotos.length === 1 ? "1 foto visualizzata" : `${visiblePhotos.length} foto visualizzate`}</p>
@@ -450,10 +543,10 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     </section>}
 
     {tab === "documenti" && <section className="collection documentsPage">
-      <header className="documentsHead"><div><FileText/><span><small>DOCUMENTI DI VIAGGIO</small><h2>Documenti sempre a portata di mano</h2><p>I documenti associati dall’agenzia alle giornate e alle attività del viaggio.</p></span></div><strong>{travelDocuments.length}<small>{travelDocuments.length === 1 ? "documento" : "documenti"}</small></strong></header>
+      <header className="documentsHead"><div><Wallet/><span><small>DOCUMENT WALLET</small><h2>Voucher, biglietti e documenti</h2><p>Archivio privato del tuo gruppo, consultabile anche offline dopo il download.</p></span></div><div className="offlinePackageAction"><button type="button" disabled={offlinePackage==="downloading"} onClick={()=>void prepareOffline()}><Download/>{offlinePackage==="downloading"?`Download ${offlineProgress.done}/${offlineProgress.total}`:offlinePackage==="ready"?"Disponibile offline":"Scarica il viaggio"}</button><small>{travelDocuments.length} {travelDocuments.length === 1 ? "documento" : "documenti"}</small></div></header>
       {travelDocuments.length === 0 ? <div className="empty documentsEmpty"><FileText/><h3>Nessun documento disponibile</h3><p>L’agenzia non ha ancora allegato documenti per il tuo gruppo. Li troverai qui appena saranno pubblicati.</p><button type="button" onClick={() => setTab("programma")}>Torna al programma</button></div> : <div className="documentList">{travelDocuments.map((ticket) => {
         const DocumentIcon = itemPresentation(ticket.itemType).Icon;
-        return <article key={ticket.id}><span className="documentIcon"><DocumentIcon/></span><span className="documentCopy"><small>GIORNO {ticket.dayNumber} · {dateParts(ticket.dayDate).full}</small><strong>{ticket.title}</strong><p>{ticket.itemTitle} · {ticket.dayTitle}</p></span><a href={ticket.downloadUrl} download aria-label={`Scarica ${ticket.title}`}><Download/><span>Scarica</span></a></article>;
+        return <article key={ticket.id}><span className="documentIcon"><DocumentIcon/></span><span className="documentCopy"><small>GIORNO {ticket.dayNumber} · {dateParts(ticket.dayDate).full}</small><strong>{ticket.title}</strong><p>{ticket.itemTitle} · {ticket.dayTitle}</p></span><a href={ticket.downloadUrl} download aria-label={`Scarica ${ticket.title}`} onClick={()=>trackAnalytics("document_download",{documentId:ticket.id,dayNumber:ticket.dayNumber})}><Download/><span>Scarica</span></a></article>;
       })}</div>}
     </section>}
 
@@ -461,9 +554,12 @@ export default function TravelExperience({ initialExperience, userName, isAgency
 
     {tab === "info" && <section className="usefulPage"><header className="usefulHero"><span>PRONTI A PARTIRE</span><h2>Informazioni utili</h2><p>Contatti e consigli pratici sempre a portata di mano.</p></header><div className="worldClockBar"><article><small>ITALIA</small><strong>{formatClock("Europe/Rome", now)}</strong><span>Ora italiana</span></article><div><ArrowRightLeft/><span>1 € = {appliedEurRate ? localFormatter.format(appliedEurRate) : "…"} {localCurrency}</span></div><article><small>{experience.journey.destinationCountry.toUpperCase()}</small><strong>{formatClock(localTimeZone, now)}</strong><span>Ora locale</span></article></div><section className="infoSection"><div className="infoSectionHead"><Info/><div><small>{experience.journey.destinationCountry}</small><h3>Tutto ciò che serve sapere</h3></div></div><div className="cultureGrid">{displayedUsefulInfo.map((item, index) => <article key={`${item.title}-${index}`}><Info/><h4>{item.title}</h4><p>{item.body}</p>{item.phone && <a href={`tel:${item.phone}`}>{item.phone}</a>}</article>)}</div></section></section>}
     {tab === "frasario" && <section className="phrasebookPage"><header className="phrasebookHero"><span><Languages/></span><div><small>PAROLE UTILI</small><h2>Frasario da viaggio</h2><p>Le parole giuste per salutare, ordinare, spostarsi e chiedere aiuto.</p></div></header><div className="languageNote">Pronuncia semplificata e traduzione italiana, preparate per <strong>{experience.journey.destinationCountry}</strong>.</div><div className="phraseList">{experience.phrases.map((phrase, index) => <article key={`${phrase.term}-${index}`}><span className="phraseCategory">{phrase.category}</span><h3>{phrase.translation}</h3><div className="phraseTranslations"><div><small>{phrase.language}</small><strong>{phrase.term}</strong><em>{phrase.pronunciation}</em></div></div></article>)}</div></section>}
+    {tab === "sos" && <section className="collection sosPage"><header><ShieldAlert/><div><small>ASSISTENZA IN VIAGGIO</small><h2>SOS e contatti utili</h2><p>Consulta le istruzioni e contatta subito i servizi competenti. SMF Travel non condivide né conserva la tua posizione.</p></div></header><div className="sosActions"><a href={`tel:${displayedUsefulInfo.find((section)=>section.title==="Numeri di emergenza")?.phone || "112"}`}><Phone/><span><strong>Chiama emergenze</strong><small>{displayedUsefulInfo.find((section)=>section.title==="Numeri di emergenza")?.phone || "112"}</small></span></a><button type="button" onClick={()=>setTab("chat")}><MessageCircle/><span><strong>Contatta l’agenzia</strong><small>Apri la chat operativa del gruppo</small></span></button></div><div className="sosGuidance"><h3>Prima di agire</h3><ol><li>Se sei in pericolo immediato, chiama il numero di emergenza locale.</li><li>Comunica nome, luogo e cosa è successo.</li><li>Avvisa il capogruppo o l’agenzia appena possibile.</li></ol></div></section>}
+    {tab === "spese" && experience.expenses.length>0 && <section className="collection expenseBalances" aria-labelledby="expense-balances-title"><div><small>PAREGGIO DEL GRUPPO</small><h2 id="expense-balances-title">Saldo per viaggiatore</h2><p>Valori positivi: deve ricevere. Valori negativi: deve versare.</p></div><div>{expenseBalances.map((traveler)=><article key={traveler.id}><span>{initials(traveler.name)}</span><strong>{traveler.name}</strong><b className={traveler.balance>=0?"credit":"debit"}>{traveler.balance>=0?"+":"−"} € {Math.abs(traveler.balance).toFixed(2)}</b></article>)}</div></section>}
+    {tab === "chat" && <OperationalChat departureId={experience.journey.departureId} partyId={experience.journey.partyId}/>}
     {tab === "sfide" && <PlatformTripChallenges experience={experience} userName={userName} isAdmin={isAgencyAdmin} onResultsChange={(challengeResults) => setExperience((current) => ({ ...current, challengeResults }))}/>}
     </div>
-    <ExpenseDialog open={expenseDayId !== undefined} dayLabel={expenseDayId ? currentDate.full : undefined} localCurrency={localCurrency} saving={saving === "expense"} onClose={() => setExpenseDayId(undefined)} onSave={saveExpense}/>
+    <ExpenseDialog open={expenseDayId !== undefined} dayLabel={expenseDayId ? currentDate.full : undefined} localCurrency={localCurrency} travelers={experience.journey.travelers.map(({id,name})=>({id,name}))} saving={saving === "expense"} onClose={() => setExpenseDayId(undefined)} onSave={saveExpense}/>
     <CashMovementDialog kind={cashDialogKind} dayLabel={String(day.number)} localCurrency={localCurrency} saving={saving === "cash"} onClose={() => setCashDialogKind(null)} onSave={(input) => cashDialogKind ? addCash(cashDialogKind, input) : Promise.resolve(false)}/>
   </main>;
 }

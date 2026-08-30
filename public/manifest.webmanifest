@@ -1,0 +1,42 @@
+{
+  "id": "/viaggio",
+  "name": "SMF Travel - Il tuo viaggio",
+  "short_name": "SMF Travel",
+  "description": "Programma, documenti, spese e attività del tuo viaggio, disponibili anche offline.",
+  "lang": "it",
+  "start_url": "/viaggio?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "portrait",
+  "theme_color": "#247a6b",
+  "background_color": "#faf7f0",
+  "categories": ["travel", "lifestyle"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Programma di oggi",
+      "short_name": "Oggi",
+      "description": "Apri il programma della giornata corrente",
+      "url": "/viaggio?tab=programma&day=oggi",
+      "icons": [{ "src": "/icons/shortcut-programme.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Spese e cassa",
+      "short_name": "Spese",
+      "description": "Registra spese, prelievi e cambi",
+      "url": "/viaggio?tab=spese",
+      "icons": [{ "src": "/icons/shortcut-expenses.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Voucher e documenti",
+      "short_name": "Documenti",
+      "description": "Consulta voucher e documenti del gruppo",
+      "url": "/viaggio?tab=documenti",
+      "icons": [{ "src": "/icons/shortcut-documents.png", "sizes": "96x96", "type": "image/png" }]
+    }
+  ]
+}

@@ -62,6 +62,11 @@ export async function setJourneyGroupLeader(input: {
   return Boolean(rows[0]?.updated);
 }
 
+export async function setMinorImageConsent(input:{actorId:string;agencyId:string;departureId:string;partyId:string;travelerId:string;decision:"granted"|"denied"|"withdrawn"}){
+  const rows=await getSql()`SELECT app.set_minor_image_consent_v3(${input.actorId},${input.agencyId}::uuid,${input.departureId}::uuid,${input.partyId}::uuid,${input.travelerId}::uuid,${input.decision},'') consent_id`;
+  return String(rows[0]?.consent_id||"");
+}
+
 export async function removeJourneyTraveler(input: { actorId:string; agencyId:string; departureId:string; partyId:string; travelerId:string }) {
   const rows=await getSql()`SELECT app.remove_journey_traveler_v3(${input.actorId},${input.agencyId}::uuid,${input.departureId}::uuid,${input.partyId}::uuid,${input.travelerId}::uuid) removed`;
   return Boolean(rows[0]?.removed);

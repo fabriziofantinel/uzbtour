@@ -1,8 +1,61 @@
 import "server-only";
 
+import { createHash, randomUUID } from "node:crypto";
 import { getSql } from "@/lib/db";
 
 type Row = Record<string, unknown>;
+
+function sha256(value: string) {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+async function ensureScheduledQuizGrants(input: {
+  agencyId: string; departureId: string; partyId: string; userId: string;
+}) {
+  const sql = getSql();
+  const [, candidates] = await sql.transaction((txn) => [
+    txn`SELECT set_config('app.agency_id',${input.agencyId},true)`,
+    txn`
+      SELECT activity.id::text,departure.template_version_id::text,traveler.id::text AS traveler_id
+      FROM travel.traveler_profiles traveler
+      JOIN travel.party_memberships membership ON membership.agency_id=traveler.agency_id
+        AND membership.traveler_id=traveler.id AND membership.departure_id=${input.departureId}
+        AND membership.party_id=${input.partyId} AND membership.status='active'
+      JOIN travel.departures departure ON departure.agency_id=membership.agency_id
+        AND departure.id=membership.departure_id
+      JOIN content.activities activity ON activity.agency_id=departure.agency_id
+        AND activity.template_version_id=departure.template_version_id
+        AND activity.activity_type='quiz' AND activity.status='approved'
+      LEFT JOIN travel.departure_days operational_day ON operational_day.agency_id=activity.agency_id
+        AND operational_day.departure_id=departure.id AND operational_day.template_day_id=activity.template_day_id
+      WHERE traveler.agency_id=${input.agencyId}
+        AND traveler.user_id=app.resolve_legacy_user_id(${input.userId},${input.agencyId})
+        AND (activity.availability_rule='always' OR (
+          activity.availability_rule='relative_day_time' AND operational_day.service_date IS NOT NULL
+          AND (((operational_day.service_date+activity.relative_days)+activity.unlock_local_time)
+            AT TIME ZONE departure.timezone)<=clock_timestamp()
+        ))
+        AND NOT EXISTS(
+          SELECT 1 FROM journey.activity_access_grants access_grant
+          WHERE access_grant.agency_id=activity.agency_id AND access_grant.departure_id=departure.id
+            AND access_grant.party_id=membership.party_id AND access_grant.traveler_id=traveler.id
+            AND access_grant.activity_id=activity.id AND access_grant.revoked_at IS NULL
+            AND access_grant.available_at<=clock_timestamp() AND access_grant.granted_at<=clock_timestamp()
+            AND (access_grant.expires_at IS NULL OR access_grant.expires_at>clock_timestamp())
+        )
+    `,
+  ]);
+  for (const candidate of candidates as Row[]) {
+    const activityId = String(candidate.id);
+    const travelerId = String(candidate.traveler_id);
+    const contentHash = sha256(`${activityId}:${String(candidate.template_version_id)}`);
+    const accessHash = sha256(`${input.partyId}:${travelerId}:${activityId}:${randomUUID()}`);
+    await sql`SELECT app.issue_activity_access_grant(
+      ${input.agencyId},${input.departureId},${input.partyId},${travelerId},${activityId},
+      ${accessHash}::char(64),${contentHash}::char(64),NULL
+    )`;
+  }
+}
 
 export function v3GamificationCutoverReadEnabled() {
   return process.env.V3_GAMIFICATION_READ_SOURCE !== "legacy";
@@ -41,6 +94,7 @@ export async function readV3Gamification(input: {
   partyId: string;
   userId: string;
 }) {
+  await ensureScheduledQuizGrants(input);
   const sql = getSql();
   const [, challenges, photos, results, contests, competitionGroups, competitionResults, competitionContests] = await sql.transaction((txn) => [
     txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
@@ -66,7 +120,9 @@ export async function readV3Gamification(input: {
             'description',COALESCE(item.payload->>'description',activity.instructions))
           WHEN 'photo_contest' THEN jsonb_build_object(
             'description',COALESCE(item.payload->>'description',activity.instructions),
-            'contestCategory',activity.contest_category)
+            'contestCategory',activity.contest_category,
+            'closesAt',(((operational_day.service_date+1)+time '06:00') AT TIME ZONE current_departure.timezone),
+            'closed',clock_timestamp()>=(((operational_day.service_date+1)+time '06:00') AT TIME ZONE current_departure.timezone))
           ELSE jsonb_build_object(
             'type',COALESCE(item.payload->>'type',''),
             'instructions',COALESCE(item.payload->>'instructions',activity.instructions))
@@ -78,9 +134,32 @@ export async function readV3Gamification(input: {
       LEFT JOIN travel.template_days day
         ON day.id=activity.template_day_id AND day.agency_id=activity.agency_id
        AND day.template_version_id=activity.template_version_id
+      LEFT JOIN travel.departure_days operational_day ON operational_day.agency_id=activity.agency_id
+        AND operational_day.departure_id=${input.departureId} AND operational_day.template_day_id=activity.template_day_id
+      LEFT JOIN travel.departures current_departure ON current_departure.agency_id=activity.agency_id
+        AND current_departure.id=${input.departureId}
       WHERE activity.agency_id=${input.agencyId}
         AND activity.template_version_id=${input.templateVersionId}
         AND activity.status='approved'
+        AND (
+          activity.activity_type<>'quiz'
+          OR EXISTS(
+            SELECT 1
+            FROM journey.activity_access_grants access_grant
+            JOIN travel.traveler_profiles current_traveler
+              ON current_traveler.id=access_grant.traveler_id
+             AND current_traveler.agency_id=access_grant.agency_id
+            WHERE access_grant.agency_id=activity.agency_id
+              AND access_grant.departure_id=${input.departureId}
+              AND access_grant.party_id=${input.partyId}
+              AND access_grant.activity_id=activity.id
+              AND current_traveler.user_id=app.resolve_legacy_user_id(${input.userId},${input.agencyId})
+              AND access_grant.revoked_at IS NULL
+              AND access_grant.granted_at<=clock_timestamp()
+              AND access_grant.available_at<=clock_timestamp()
+              AND (access_grant.expires_at IS NULL OR access_grant.expires_at>clock_timestamp())
+          )
+        )
       ORDER BY COALESCE(day.day_number,0),activity.sort_order,item.ordinal
     `,
     txn`
@@ -166,6 +245,9 @@ export async function readV3Gamification(input: {
        AND memory.agency_id=entry.agency_id AND memory.party_id=entry.party_id
       WHERE entry.agency_id=${input.agencyId} AND entry.departure_id=${input.departureId}
         AND entry.party_id=${input.partyId}
+        AND (entry.status IN('selected','ranked') OR (entry.traveler_id=(SELECT profile.id FROM travel.traveler_profiles profile
+          WHERE profile.agency_id=${input.agencyId} AND profile.user_id=app.resolve_legacy_user_id(${input.userId},${input.agencyId}) LIMIT 1)
+          AND entry.status IN('draft','evaluating')))
       ORDER BY entry.submitted_at DESC
     `,
     txn`
@@ -240,6 +322,7 @@ export async function readV3Gamification(input: {
         ORDER BY judged.judged_at DESC,judged.id DESC LIMIT 1
       ) judgement ON true
       WHERE entry.agency_id=${input.agencyId} AND entry.departure_id=${input.departureId}
+        AND entry.status='ranked'
         AND EXISTS(SELECT 1 FROM travel.party_memberships current_participant
           JOIN travel.traveler_profiles current_profile
             ON current_profile.id=current_participant.traveler_id
@@ -252,8 +335,18 @@ export async function readV3Gamification(input: {
     `,
   ], { readOnly: true });
 
+  const quizCountByDay = new Map<string, number>();
+  const boundedChallenges = (challenges as Row[]).filter((challenge) => {
+    if (String(challenge.content_type) !== "quiz_question") return true;
+    const dayId = String(challenge.trip_day_id || "");
+    const count = quizCountByDay.get(dayId) ?? 0;
+    if (count >= 10) return false;
+    quizCountByDay.set(dayId, count + 1);
+    return true;
+  });
+
   return {
-    challenges: challenges as Row[],
+    challenges: boundedChallenges,
     photos: photos as Row[],
     results: results as Row[],
     contests: contests as Row[],

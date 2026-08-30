@@ -32,6 +32,21 @@ export async function saveV3ActivityItemResult(input: {
   return rows[0] as Record<string, unknown>;
 }
 
+export async function submitV3PhotoEvidence(input: {
+  userId: string; agencyId: string; departureId: string; partyId: string;
+  dayId: string; itemId: string; mediaId: string;
+}) {
+  const sql = getSql();
+  const resultId = randomUUID();
+  const [, rows] = await sql.transaction((txn) => [
+    txn`SELECT set_config('app.agency_id',${input.agencyId},true)`,
+    txn`SELECT * FROM app.submit_photo_evidence_v3(
+      ${input.userId},${input.agencyId},${input.departureId},${input.partyId},${input.dayId},
+      ${input.itemId},${resultId},${input.mediaId})`,
+  ]);
+  return rows[0] as Record<string, unknown>;
+}
+
 export async function addV3PhotoContestEntry(input: {
   userId: string;
   agencyId: string;
@@ -40,15 +55,27 @@ export async function addV3PhotoContestEntry(input: {
   dayId: string;
   itemId: string;
   mediaId: string;
+  participantSlot?: number | null;
 }) {
   const sql = getSql();
   const [, rows] = await sql.transaction((txn) => [
     txn`SELECT set_config('app.agency_id',${input.agencyId},true)`,
-    txn`SELECT * FROM app.add_photo_contest_entry_v3(
+    txn`SELECT * FROM app.upsert_photo_contest_draft_v3(
       ${input.userId},${input.agencyId},${input.departureId},${input.partyId},${input.dayId},
-      ${input.itemId},${input.mediaId},${randomUUID()})`,
+      ${input.itemId},${input.mediaId},${randomUUID()},${input.participantSlot ?? null}::smallint)`,
   ]);
   return rows[0] as Record<string, unknown>;
+}
+
+export async function confirmV3PhotoContest(input: {
+  userId: string; agencyId: string; departureId: string; partyId: string; itemId: string;
+}) {
+  const sql=getSql();
+  const [,rows]=await sql.transaction((txn)=>[
+    txn`SELECT set_config('app.agency_id',${input.agencyId},true)`,
+    txn`SELECT * FROM app.confirm_photo_contest_v3(${input.userId},${input.agencyId},${input.departureId},${input.partyId},${input.itemId})`,
+  ]);
+  return rows[0] as Record<string,unknown>;
 }
 
 export async function reviewV3ActivityEvidence(input: {

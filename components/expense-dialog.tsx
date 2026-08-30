@@ -10,11 +10,13 @@ type ExpenseDialogProps = {
   dayLabel?: string;
   saving: boolean;
   localCurrency: string;
+  travelers: Array<{ id: string; name: string }>;
   onClose: () => void;
   onSave: (expense: {
     label: string;
     amount: string;
     currency: ExpenseCurrency;
+    shareTravelerIds: string[];
   }) => Promise<boolean>;
 };
 
@@ -23,6 +25,7 @@ export default function ExpenseDialog({
   dayLabel,
   saving,
   localCurrency,
+  travelers,
   onClose,
   onSave
 }: ExpenseDialogProps) {
@@ -30,6 +33,7 @@ export default function ExpenseDialog({
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState<ExpenseCurrency>("EUR");
   const [submitError, setSubmitError] = useState("");
+  const [shareTravelerIds, setShareTravelerIds] = useState<string[]>([]);
   const dialogRef = useRef<HTMLElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
@@ -46,7 +50,8 @@ export default function ExpenseDialog({
     setAmount("");
     setCurrency("EUR");
     setSubmitError("");
-  }, [open]);
+    setShareTravelerIds(travelers.map((traveler) => traveler.id));
+  }, [open, travelers]);
 
   useEffect(() => {
     if (!open) return;
@@ -89,7 +94,8 @@ export default function ExpenseDialog({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitError("");
-    if (await onSave({ label: label.trim(), amount, currency })) onClose();
+    if (shareTravelerIds.length === 0) { setSubmitError("Seleziona almeno un viaggiatore."); return; }
+    if (await onSave({ label: label.trim(), amount, currency, shareTravelerIds })) onClose();
     else setSubmitError("La spesa non è stata salvata. I valori inseriti sono rimasti disponibili: riprova.");
   }
 
@@ -134,6 +140,15 @@ export default function ExpenseDialog({
               required
             />
           </label>
+
+          <fieldset className="expenseShareChoice">
+            <legend>Dividi la spesa tra</legend>
+            <p>L’importo viene ripartito in parti uguali. Puoi escludere chi non ha partecipato.</p>
+            <div>{travelers.map((traveler) => <label key={traveler.id}>
+              <input type="checkbox" checked={shareTravelerIds.includes(traveler.id)} onChange={(event) => setShareTravelerIds((current) => event.target.checked ? [...current, traveler.id] : current.filter((id) => id !== traveler.id))}/>
+              <span>{traveler.name}</span>
+            </label>)}</div>
+          </fieldset>
 
           <fieldset className="currencyChoice">
             <legend>Valuta</legend>
@@ -180,7 +195,7 @@ export default function ExpenseDialog({
           </label>
 
           {submitError && <p className="cashDialogError" role="alert">{submitError}</p>}
-          <button className="expenseSubmit" type="submit" disabled={saving || !label.trim() || !amount.trim()}>
+          <button className="expenseSubmit" type="submit" disabled={saving || !label.trim() || !amount.trim() || shareTravelerIds.length === 0}>
             {saving
               ? <><LoaderCircle className="spin" size={18}/> Salvataggio…</>
               : "Salva spesa"

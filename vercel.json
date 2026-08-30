@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "regions": ["fra1"],
-  "fluid": true
+  "fluid": true,
+  "crons": [{"path": "/api/internal/push/scheduled", "schedule": "0 14 * * *"}]
 }

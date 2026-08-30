@@ -28,6 +28,16 @@ export function accessibleBrandColor(value?: string) {
   return candidate;
 }
 
+export function accessibleBrandBackground(value?: string) {
+  let candidate = validBrandColor(value);
+  let rgb = channels(candidate);
+  while (contrast(candidate, "#102F3A") < 4.5) {
+    rgb = rgb.map((channel) => Math.min(255, Math.round(channel + (255 - channel) * .18)));
+    candidate = `#${rgb.map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
+  }
+  return candidate;
+}
+
 export function agencyLogoSource(value: string | undefined, agencyId: string | undefined) {
   if (!value) return "";
   if (!value.startsWith("r2://")) return value;

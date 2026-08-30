@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useState, type CSSProperties } from "react";
-import { ArrowLeft, BookOpen, CalendarDays, CheckCircle2, CircleAlert, Download, FileText, FolderOpen, LoaderCircle, Trash2, Upload, UsersRound } from "lucide-react";
+import { ArrowLeft, BookOpen, CalendarDays, CheckCircle2, CircleAlert, Download, FileText, FolderOpen, LoaderCircle, MessageCircle, Trash2, Upload, UsersRound } from "lucide-react";
 import { uploadPrivateFile } from "@/lib/private-upload-client";
 import type { AgencyDayDocuments } from "@/lib/platform/day-documents-repository";
 
@@ -41,7 +41,7 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
     } catch(error){setMessage({kind:"error",text:error instanceof Error?error.message:"Eliminazione non riuscita"});} finally{setBusy(false);}
   }
   return <main className="journeyManagePage dayDocumentsPage" style={{"--smf-brand":departure.agencyPrimaryColor,"--smf-brand-deep":departure.agencyPrimaryColor,"--smf-action":departure.agencyPrimaryColor} as CSSProperties}>
-    <header><Link href="/agenzia"><ArrowLeft/> Tutti i viaggi</Link><nav aria-label="Gestione del viaggio"><Link href={`/agenzia/viaggi/${departure.id}/programma`}><BookOpen/> Programma</Link><Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Gruppi</Link><span aria-current="page"><FolderOpen/> Documenti</span></nav><span className="journeyAgencyName">{departure.programmeTitle}</span></header>
+    <header><Link href="/agenzia"><ArrowLeft/> Tutti i viaggi</Link><nav aria-label="Gestione del viaggio"><Link href={`/agenzia/viaggi/${departure.id}/programma`}><BookOpen/> Programma</Link><Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Gruppi</Link><span aria-current="page"><FolderOpen/> Documenti</span><Link href={`/agenzia/viaggi/${departure.id}/chat`}><MessageCircle/> Chat</Link></nav><span className="journeyAgencyName">{departure.programmeTitle}</span></header>
     <section className="journeyManageHero"><small>DOCUMENTI DEL VIAGGIO</small><h1>{departure.title}</h1><p><CalendarDays/> Associa ogni documento alla giornata e al gruppo corretti.</p></section>
     <div className="journeyManageShell">
       <div className="journeyManageHead"><div><small>ARCHIVIO PRIVATO</small><h2>Documenti per giornata e gruppo</h2></div></div>

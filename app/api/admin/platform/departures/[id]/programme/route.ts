@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { after } from "next/server";
 import { requirePlatformAdmin } from "@/lib/platform/authorization";
 import { cleanText, platformApiError } from "@/lib/platform/http";
-import { updateAgencyProgrammeDay } from "@/lib/platform/programme-repository";
+import { cancelAgencyProgrammeItem, updateAgencyProgrammeDay } from "@/lib/platform/programme-repository";
+import { sendDeparturePush } from "@/lib/platform/web-push";
 
 export const runtime = "nodejs";
 
@@ -14,6 +16,20 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const { id } = await context.params;
     const body = await request.json().catch(() => null) as Record<string, unknown> | null;
     const dayId = cleanText(body?.dayId ?? body?.id, 64);
+    if (body?.action === "cancelItem") {
+      const itemId = cleanText(body.itemId, 64);
+      const reason = cleanText(body.reason, 1000);
+      const clientOperationId = cleanText(body.clientOperationId, 64);
+      if (!uuid.test(id) || !uuid.test(itemId) || !uuid.test(clientOperationId) || reason.length < 3) {
+        return NextResponse.json({ error: "Attività o motivazione non valida" }, { status: 400 });
+      }
+      const eventId = await cancelAgencyProgrammeItem({
+        departureId: id, itemId, actorId: actor.id, reason, clientOperationId,
+      });
+      after(() => sendDeparturePush({ departureId: id, kind: "disruption" })
+        .catch((error) => console.error("Programme disruption push failed", error)));
+      return NextResponse.json({ ok: true, eventId });
+    }
     if (!uuid.test(id) || !uuid.test(dayId)) {
       return NextResponse.json({ error: "Partenza o giornata non valida" }, { status: 400 });
     }

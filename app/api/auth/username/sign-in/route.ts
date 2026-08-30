@@ -4,14 +4,14 @@ import { getAuthProvider } from "@/lib/auth/auth-provider";
 import { readUsernameLoginState } from "@/lib/auth/login-state";
 
 const schema = z.object({
-  username: z.string().trim().min(3).max(80),
+  username: z.string().trim().toLowerCase().regex(/^[a-z0-9][a-z0-9._-]{2,79}$/),
   password: z.string().min(1).max(256),
 });
 
 export async function POST(request: Request) {
   const auth = getAuthProvider();
   const parsed = schema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "Credenziali non valide" }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ code: "INVALID_USERNAME", error: "Username non valido" }, { status: 400 });
   if (!auth.isConfigured()) return NextResponse.json({ error: "Autenticazione in configurazione" }, { status: 503 });
   let state;
   try{state=await readUsernameLoginState(parsed.data.username);}

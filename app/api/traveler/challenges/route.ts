@@ -5,10 +5,13 @@ import {
 } from "@/lib/platform/v3-gamification";
 import {
   addV3PhotoContestEntry,
+  confirmV3PhotoContest,
   reviewV3ActivityEvidence,
   saveV3ActivityItemResult,
+  submitV3PhotoEvidence,
 } from "@/lib/platform/v3-gamification-mutations";
 import { resolveTravelerContext } from "@/lib/platform/traveler-experience";
+import { getJobQueue } from "@/lib/platform/job-queue";
 
 export const runtime = "nodejs";
 
@@ -31,6 +34,22 @@ export async function POST(request: Request) {
   if (!travelerContext) return NextResponse.json({ error: "Sfida non disponibile" }, { status: 403 });
   const agencyId = travelerContext.agencyId;
   const templateVersionId = travelerContext.templateVersionId;
+  if(body?.action==="confirmPhotoContest"){
+    const contentId=String(body.contentId||"");
+    if(!/^[0-9a-f-]{36}$/i.test(contentId))return NextResponse.json({error:"Contest non valido"},{status:400});
+    try{
+      const confirmed=await confirmV3PhotoContest({userId:user.id,agencyId,departureId,partyId,itemId:contentId});
+      const entryIds=Array.isArray(confirmed.entry_ids)?confirmed.entry_ids.map(String):[];
+      if(entryIds.length!==2)throw new Error("Conferma contest incompleta");
+      const queued=await getJobQueue().enqueue({actorId:user.id,agencyId,type:"photo-contest.evaluate",
+        idempotencyKey:`photo-contest:${partyId}:${user.id}:${contentId}`,payload:{departureId,partyId,itemId:contentId,entryIds}});
+      return NextResponse.json({id:queued.id,status:"evaluating",entryIds});
+    }catch(error){
+      if(error instanceof Error&&/exactly two/i.test(error.message))return NextResponse.json({error:"Carica due foto prima di confermare"},{status:409});
+      if(error instanceof Error&&/closed/i.test(error.message))return NextResponse.json({error:"Il contest è già chiuso"},{status:409});
+      throw error;
+    }
+  }
   if (body?.action === "photoEvidence") {
     const contentId = String(body.contentId || "");
     const mediaId = String(body.mediaId || "");
@@ -44,25 +63,37 @@ export async function POST(request: Request) {
     const contentType = String(linked[0].activity_type);
     if (contentType === "photo_contest") {
       try {
+        const participantSlot=body.participantSlot==null?null:Number(body.participantSlot);
+        if(participantSlot!==null&&![1,2].includes(participantSlot))return NextResponse.json({error:"Posizione foto non valida"},{status:400});
         const row = await addV3PhotoContestEntry({
-          userId: user.id, agencyId, departureId, partyId, dayId, itemId: contentId, mediaId,
+          userId: user.id, agencyId, departureId, partyId, dayId, itemId: contentId, mediaId,participantSlot,
         });
-        return NextResponse.json({ id: String(row.id), slot: Number(row.participant_slot), status: "submitted" });
+        return NextResponse.json({ id: String(row.id), slot: Number(row.participant_slot), status: "draft" });
       } catch (error) {
-        if (error instanceof Error && /contest entry limit reached/i.test(error.message)) {
+        if (error instanceof Error && /contest draft limit reached/i.test(error.message)) {
           return NextResponse.json({ error: "Hai già caricato 2 foto per questo contest" }, { status: 409 });
         }
+        if(error instanceof Error&&/no longer editable/i.test(error.message))return NextResponse.json({error:"Le foto sono già state confermate"},{status:409});
+        if(error instanceof Error&&/contest is closed/i.test(error.message))return NextResponse.json({error:"Il contest è già chiuso"},{status:409});
         throw error;
       }
     }
     if (!["mission", "bingo"].includes(contentType)) {
       return NextResponse.json({ error: "Foto e sfida non corrispondono" }, { status: 400 });
     }
-    const row = await saveV3ActivityItemResult({
-      userId: user.id, agencyId, departureId, partyId, dayId, itemId: contentId,
-      score: 0, maxScore: 10, status: "submitted", result: { mediaId }, mediaId,
-    });
-    return NextResponse.json({ id: String(row.id), status: "submitted" });
+    let row: Record<string, unknown>;
+    try {
+      row = await submitV3PhotoEvidence({ userId: user.id, agencyId, departureId, partyId, dayId, itemId: contentId, mediaId });
+    } catch (error) {
+      if (error instanceof Error && /validation pending/i.test(error.message)) return NextResponse.json({ error: "La foto è ancora in verifica" }, { status: 409 });
+      if (error instanceof Error && /already approved/i.test(error.message)) return NextResponse.json({ error: "La missione è già stata superata" }, { status: 409 });
+      if (error instanceof Error && /attempt limit reached/i.test(error.message)) return NextResponse.json({ error: "Hai esaurito i due tentativi disponibili" }, { status: 409 });
+      throw error;
+    }
+    const resultId=String(row.id);
+    const attemptNumber=Number(row.attempt_number);
+    await getJobQueue().enqueue({actorId:user.id,agencyId,type:"photo-evidence.validate",idempotencyKey:`photo-evidence:${resultId}`,payload:{userId:user.id,departureId,partyId,dayId,itemId:contentId,mediaId,resultId,attemptNumber}});
+    return NextResponse.json({ id: resultId, status: "submitted", aiValidation:"queued", attemptNumber, attemptsRemaining:Number(row.attempts_remaining) });
   }
   if (body?.action === "reviewEvidence") {
     if (!user.isAgencyAdmin) return NextResponse.json({ error: "Solo l’amministratore può validare le foto" }, { status: 403 });
@@ -115,7 +146,7 @@ export async function POST(request: Request) {
     ? await readV3ChallengeAnswerSpecs({ agencyId, templateVersionId, dayId, itemIds: questionIds })
     : [];
   const questions = questionCandidates.filter((question) => String(question.activity_type) === "quiz");
-  if (questions.length === 0 || questions.length !== questionIds.length) {
+  if (questions.length !== 10 || questions.length !== questionIds.length) {
     return NextResponse.json({ error: "Completa tutte le domande disponibili" }, { status: 400 });
   }
   const results = questions.map((question) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowDown, ArrowLeft, ArrowUp, BedDouble, BookOpen, Bus, CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, Clock3, Download, FileText, LoaderCircle, MapPin, Plane, Plus, Save, TrainFront, Trash2, Upload, UsersRound, Utensils } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, BedDouble, BookOpen, Bus, CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, Clock3, Download, FileText, LoaderCircle, MapPin, MessageCircle, Plane, Plus, Save, TrainFront, Trash2, Upload, UsersRound, Utensils } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { uploadPrivateFile } from "@/lib/private-upload-client";
@@ -20,7 +20,8 @@ const activityTypes = [
 const timedActivityTypes = new Set<Item["type"]>(["transport", "flight", "train", "meal", "meeting"]);
 
 function emptyItem(sortOrder: number): Item {
-  return { id: crypto.randomUUID(), type: "visit", title: "", description: "", startsAt: "", endsAt: "", sortOrder, tickets: [], includedInQuote: null };
+  return { id: crypto.randomUUID(), type: "visit", title: "", description: "", startsAt: "", endsAt: "", sortOrder,
+    operationalStatus: "planned", statusReason: "", tickets: [], includedInQuote: null };
 }
 
 function emptyHotel(sortOrder: number): Day["hotels"][number] {
@@ -63,6 +64,7 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
   const [expandedItems, setExpandedItems] = useState(() => new Set(initialProgramme.days.flatMap((day) => day.items[0] ? [day.items[0].id] : [])));
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
+  const [cancellationReasons, setCancellationReasons] = useState<Record<string, string>>({});
   const savedDaysRef = useRef(new Map(initialProgramme.days.map((day) => [day.id, JSON.stringify(day)])));
   const departure = initialProgramme.departure;
   const openDay = useMemo(() => days.find((day) => day.id === openDayId), [days, openDayId]);
@@ -108,6 +110,28 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
   function removeItem(day: Day, itemId: string) {
     updateDay(day.id, { items: day.items.filter((item) => item.id !== itemId) });
     setItemExpanded(itemId, false);
+  }
+
+  async function cancelItem(day: Day, item: Item) {
+    const reason = (cancellationReasons[item.id] || "").trim();
+    if (reason.length < 3) {
+      setMessage({ kind: "error", text: "Indica il motivo dell’annullamento della tappa." });
+      return;
+    }
+    if (!confirm(`Annullare “${item.title}”? La tappa resterà nello storico operativo.`)) return;
+    setBusy(`cancel-${item.id}`); setMessage(null);
+    try {
+      await responseJson(await fetch(`/api/admin/platform/departures/${departure.id}/programme`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cancelItem", itemId: item.id, reason, clientOperationId: crypto.randomUUID() }),
+      }));
+      const nextDay = { ...day, items: day.items.filter((entry) => entry.id !== item.id) };
+      setDays((current) => current.map((entry) => entry.id === day.id ? nextDay : entry));
+      savedDaysRef.current.set(day.id, JSON.stringify(nextDay));
+      setMessage({ kind: "success", text: "Tappa annullata. Lo storico operativo è stato conservato e i viaggiatori saranno avvisati." });
+    } catch (error) {
+      setMessage({ kind: "error", text: error instanceof Error ? error.message : "Annullamento non riuscito." });
+    } finally { setBusy(""); }
   }
 
   function addHotel(day: Day) {
@@ -179,7 +203,7 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
   return <main className="programmePage" style={agencyStyle}>
     <header className="programmeTopbar">
       <Link href="/agenzia"><ArrowLeft/> Tutti i viaggi</Link>
-      <nav aria-label="Gestione del viaggio"><span aria-current="page"><BookOpen/> Programma</span><Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Gruppi</Link><Link href={`/agenzia/viaggi/${departure.id}/documenti`}><FileText/> Documenti</Link>{departure.quoteImportId && <details className="programmeQuotes"><summary><Download/> Preventivi</summary><div><a href={`/api/admin/platform/imports/${departure.quoteImportId}/original`}><FileText/> Originale</a><a href={`/api/admin/platform/imports/${departure.quoteImportId}/normalized`}><Download/> Revisionato DOCX</a></div></details>}</nav>
+      <nav aria-label="Gestione del viaggio"><span aria-current="page"><BookOpen/> Programma</span><Link href={`/agenzia/viaggi/${departure.id}`}><UsersRound/> Gruppi</Link><Link href={`/agenzia/viaggi/${departure.id}/documenti`}><FileText/> Documenti</Link><Link href={`/agenzia/viaggi/${departure.id}/chat`}><MessageCircle/> Chat</Link>{departure.quoteImportId && <details className="programmeQuotes"><summary><Download/> Preventivi</summary><div><a href={`/api/admin/platform/imports/${departure.quoteImportId}/original`}><FileText/> Originale</a><a href={`/api/admin/platform/imports/${departure.quoteImportId}/normalized`}><Download/> Revisionato DOCX</a></div></details>}</nav>
       <span className="programmeHeaderBalance" aria-hidden="true"/>
     </header>
     <section className="journeyManageHero programmeHero"><small>{departure.destinationCountry}</small><h1>{departure.programmeTitle}</h1><p><CalendarDays/> {dateFor(departure.startsOn, 0)} – {dateFor(departure.startsOn, Math.max(0, days.length - 1))}</p></section>
@@ -210,7 +234,10 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
               {timedActivityTypes.has(item.type) && <div className="timeFields"><Clock3/><label>Orario di inizio<input type="time" value={item.startsAt} onChange={(event) => updateItem(openDay, item.id, { startsAt: event.target.value })}/></label><label>Orario di fine<input type="time" value={item.endsAt} onChange={(event) => updateItem(openDay, item.id, { endsAt: event.target.value })}/></label></div>}
               <label className="wide">{item.type === "transport" ? "Note operative (autista, telefono, targa o punto d’incontro)" : "Note"}<textarea rows={2} value={item.description} onChange={(event) => updateItem(openDay, item.id, { description: event.target.value })}/></label>
               {(["flight", "train"].includes(item.type)) && <div className="ticketManager"><div className="ticketManagerHead"><FileText/><div><b>Biglietti</b><small>Salva prima una nuova attività, poi allega PDF o immagini fino a 25 MB.</small></div><label className={busy === `ticket-${item.id}` ? "busy" : ""}>{busy === `ticket-${item.id}` ? <LoaderCircle className="spin"/> : <Upload/>}<span>{busy === `ticket-${item.id}` ? "Caricamento…" : "Allega biglietto"}</span><input type="file" aria-label={`Allega biglietto per ${item.title}`} accept="application/pdf,image/jpeg,image/png,image/webp,.pdf" disabled={busy === `ticket-${item.id}` || dirtyDayIds.has(openDay.id)} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void uploadTicket(openDay.id, item.id, file); }}/></label></div>{item.tickets.length > 0 ? <div className="ticketList">{item.tickets.map((ticket) => <a href={ticket.downloadUrl} key={ticket.id}><FileText/><span>{ticket.title}</span><Download/></a>)}</div> : <p className="ticketEmpty">Nessun biglietto allegato.</p>}</div>}
-              <button type="button" className="removeProgrammeItem" onClick={() => removeItem(openDay, item.id)}><Trash2/> Elimina attività</button>
+              <div className="programmeItemRemoval">
+                <button type="button" className="removeProgrammeItem" onClick={() => removeItem(openDay, item.id)}><Trash2/> Elimina dalla bozza</button>
+                {!dirtyDayIds.has(openDay.id) && <div className="programmeDisruption"><label>Motivo dell’annullamento<input value={cancellationReasons[item.id] || ""} maxLength={1000} placeholder="Es. visita annullata per chiusura straordinaria" onChange={(event) => setCancellationReasons((current) => ({ ...current, [item.id]: event.target.value }))}/></label><button type="button" className="cancelProgrammeItem" disabled={Boolean(busy)} onClick={() => void cancelItem(openDay, item)}>{busy === `cancel-${item.id}` ? <LoaderCircle className="spin"/> : <CircleAlert/>} Annulla tappa</button></div>}
+              </div>
             </div></details>
           </article>; })}
           {openDay.items.length === 0 && <div className="programmeEmpty"><CalendarDays/><b>Nessuna attività</b><p>Questa giornata non contiene ancora tappe modificabili.</p></div>}

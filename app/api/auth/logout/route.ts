@@ -19,5 +19,6 @@ export async function POST(request: Request) {
   if (refreshToken && auth.isConfigured()) await auth.revoke(refreshToken).catch(() => undefined);
   const response = NextResponse.redirect(new URL("/login", request.url), 303);
   auth.clearCookies(response);
+  response.headers.set("Clear-Site-Data", '"cache", "storage"');
   return response;
 }

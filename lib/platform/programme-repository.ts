@@ -80,7 +80,7 @@ export async function getAgencyProgramme(departureId: string, actorId: string) {
           ELSE to_char(item.scheduled_start_at AT TIME ZONE departure.timezone, 'HH24:MI:SS') END AS starts_at,
         CASE WHEN item.scheduled_end_at IS NULL THEN NULL
           ELSE to_char(item.scheduled_end_at AT TIME ZONE departure.timezone, 'HH24:MI:SS') END AS ends_at,
-        item.sort_order,
+        item.sort_order,item.operational_status,item.status_reason,
         item.metadata || jsonb_build_object('notes', item.notes) AS metadata
       FROM travel.departure_itinerary_items item
       JOIN travel.departure_days day
@@ -151,6 +151,8 @@ export async function getAgencyProgramme(departureId: string, actorId: string) {
         id: String(item.id), type: String(item.item_type), title: String(item.title),
         description: value(item.description), startsAt: value(item.starts_at).slice(0, 5),
         endsAt: value(item.ends_at).slice(0, 5), sortOrder: Number(item.sort_order),
+        operationalStatus: value(item.operational_status || "planned"),
+        statusReason: value(item.status_reason),
         tickets: documents.filter((document) => String(document.itinerary_item_id) === String(item.id)).map((document) => ({
           id: String(document.id), title: String(document.title), contentType: String(document.content_type),
           sizeBytes: document.size_bytes == null ? null : Number(document.size_bytes),
@@ -169,6 +171,31 @@ export async function getAgencyProgramme(departureId: string, actorId: string) {
 }
 
 export type AgencyProgramme = Awaited<ReturnType<typeof getAgencyProgramme>>;
+
+export async function cancelAgencyProgrammeItem(input: {
+  departureId: string;
+  itemId: string;
+  actorId: string;
+  reason: string;
+  clientOperationId: string;
+}) {
+  const sql = getSql();
+  const rows = await sql`
+    WITH scoped_item AS (
+      SELECT item.agency_id,item.id,item.departure_day_id,item.scheduled_start_at,item.scheduled_end_at
+      FROM travel.departure_itinerary_items item
+      WHERE item.departure_id=${input.departureId}::uuid AND item.id=${input.itemId}::uuid
+    )
+    SELECT app.record_itinerary_disruption(
+      scoped_item.agency_id,scoped_item.id,scoped_item.departure_day_id,
+      scoped_item.scheduled_start_at,scoped_item.scheduled_end_at,'cancelled',${input.reason},NULL,
+      app.resolve_legacy_user_id(${input.actorId},scoped_item.agency_id),${input.clientOperationId}::uuid
+    ) AS event_id
+    FROM scoped_item
+  `;
+  if (!rows[0]?.event_id) throw new PlatformRequestError("Attività non disponibile");
+  return String(rows[0].event_id);
+}
 
 export async function updateAgencyProgrammeDay(input: {
   departureId: string;
