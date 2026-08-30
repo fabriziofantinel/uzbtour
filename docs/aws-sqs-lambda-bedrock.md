@@ -3,7 +3,8 @@
 Questa configurazione crea l'elaborazione asincrona di produzione di SMF Travel:
 
 1. Vercel registra il job su Neon e invia a SQS solo `jobId`, `agencyId` e `importId`.
-2. SQS attiva una Lambda ARM64 con concorrenza massima pari a 2.
+2. SQS Standard applica Fair Queues tramite `MessageGroupId = agency_id` e attiva
+   una Lambda ARM64 con concorrenza massima configurabile, pari a 10 in produzione.
 3. Lambda legge il documento PDF, DOC o DOCX dal bucket R2 privato.
 4. Amazon Bedrock genera una bozza strutturata con Amazon Nova 2 Lite.
 5. Lambda valida la risposta e salva risultato, consumi e stato su Neon.
@@ -96,7 +97,7 @@ per l'applicazione web.
 
 ## Limiti di costo iniziali
 
-- concorrenza massima del consumer SQS: 2;
+- concorrenza massima del consumer SQS: 10, limitata anche come reserved concurrency;
 - batch SQS: 1;
 - retry SQS: 4;
 - documento PDF, DOC o DOCX inviabile direttamente a Bedrock: 4,5 MB, modificabile con
@@ -130,8 +131,13 @@ Quando un allarme scatta:
 ## Vincoli architetturali
 
 - Il visibility timeout SQS deve restare almeno sei volte il timeout Lambda.
-- La concorrenza dell'event source mapping resta limitata a due per proteggere
-  Neon e la spesa Bedrock; non si usa provisioned concurrency.
+- La concorrenza dell'event source mapping resta limitata e coincide con la
+  reserved concurrency per proteggere Neon e la spesa Bedrock; non si usa
+  provisioned concurrency.
+- Ogni messaggio Standard usa `MessageGroupId = agency_id`, attivando Fair Queues
+  e riducendo il dwell time dei tenant a basso volume senza introdurre i vincoli FIFO.
+- Il runbook di ripristino è in
+  [`docs/operations/DISASTER_RECOVERY_RUNBOOK.md`](operations/DISASTER_RECOVERY_RUNBOOK.md).
 - Il ruolo Vercel accetta solo il subject OIDC del progetto production e può
   esclusivamente inviare messaggi alla coda import di questo stack.
 - Le code sono cifrate con SSE-SQS e rifiutano traffico non TLS.

@@ -10,7 +10,8 @@ Metadata:
     must:
       - SQS visibility >= 6x Lambda timeout
       - Vercel role may only send to this stack import queue
-      - worker concurrency <= 2 to protect Neon and AI spend
+      - Standard SQS messages always carry agency_id as MessageGroupId for tenant fair sharing
+      - worker concurrency remains bounded to protect Neon and AI spend
       - Cognito username is login identity; email is non-unique contact and recovery data
     ref:
       - at: docs/aws-sqs-lambda-bedrock.md
@@ -47,6 +48,11 @@ Parameters:
     Type: String
     Default: ""
     AllowedPattern: "^$|^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+  ImportWorkerMaximumConcurrency:
+    Type: Number
+    Default: 10
+    MinValue: 2
+    MaxValue: 20
   InvitationSenderEmail:
     Type: String
     Default: ""
@@ -206,6 +212,14 @@ Resources:
 
   ImportDeadLetterQueue:
     Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: retains poison messages for root-cause analysis and controlled recovery
+        must:
+          - retain messages for fourteen days
+          - never purge before the failure is documented and a successful replacement job exists
+        mutable: change-with-constraints
+        trust: { src: authored, conf: high }
     Properties:
       QueueName: !Sub "${AWS::StackName}-import-dlq"
       MessageRetentionPeriod: 1209600
@@ -213,6 +227,15 @@ Resources:
 
   ImportQueue:
     Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: Standard queue provides elastic throughput and Fair Queues when producers set MessageGroupId to agency_id
+        must:
+          - visibility timeout remains at least six times the Lambda timeout
+          - redrive remains enabled
+          - producer must set MessageGroupId to agency_id
+        mutable: change-with-constraints
+        trust: { src: authored, conf: high }
     Properties:
       QueueName: !Sub "${AWS::StackName}-import"
       VisibilityTimeout: 1800
@@ -370,7 +393,7 @@ Resources:
           PLATFORM_OBJECT_STORAGE_PROVIDER: r2
           PLATFORM_JOB_QUEUE_PROVIDER: sqs
           PLATFORM_AI_PROVIDER: bedrock
-          CONFIG_REVISION: "2026-08-28-reference-batch-v1"
+          CONFIG_REVISION: "2026-08-30-architecture-consolidation-v1"
           AWS_BEDROCK_TEXT_MODEL: !Ref BedrockTextModel
           AWS_BEDROCK_MAX_DOCUMENT_BYTES: "4500000"
           AWS_BEDROCK_MAX_OUTPUT_TOKENS: "12000"
@@ -412,9 +435,17 @@ Resources:
             Queue: !GetAtt ImportQueue.Arn
             BatchSize: 1
             ScalingConfig:
-              MaximumConcurrency: 2
+              MaximumConcurrency: !Ref ImportWorkerMaximumConcurrency
             FunctionResponseTypes: [ReportBatchItemFailures]
     Metadata:
+      com.aws.cloudformation.Context:
+        why: bounded elastic consumer for imports, tenant deletion and AI enrichment; concurrency ten removes the two-worker head-of-line bottleneck while protecting Neon
+        must:
+          - event-source maximum concurrency remains bounded by parameter
+          - batch size remains one for per-job failure isolation
+          - use the pooled Neon runtime connection
+        mutable: change-with-constraints
+        trust: { src: authored, conf: high }
       BuildMethod: esbuild
       BuildProperties:
         EntryPoints: [workers/import-handler.ts]
@@ -433,7 +464,14 @@ Resources:
 
   AlarmTopic:
     Type: AWS::SNS::Topic
-    Condition: HasAlarmEmail
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: stable operational notification target for every production alarm, independent of the chosen subscriber channel
+        must:
+          - all production alarms publish here
+          - subscriptions require explicit endpoint confirmation
+        mutable: change-with-constraints
+        trust: { src: authored, conf: high }
     Properties:
       DisplayName: SMF Travel production alerts
       KmsMasterKeyId: alias/aws/sns
@@ -484,7 +522,7 @@ Resources:
           Expression: IF(invocations > 0, errors * 100 / invocations, 0)
           ReturnData: true
       AlarmActions:
-        - !If [HasAlarmEmail, !Ref AlarmTopic, !Ref AWS::NoValue]
+        - !Ref AlarmTopic
 
   ImportWorkerThrottleAlarm:
     Type: AWS::CloudWatch::Alarm
@@ -504,7 +542,7 @@ Resources:
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
       AlarmActions:
-        - !If [HasAlarmEmail, !Ref AlarmTopic, !Ref AWS::NoValue]
+        - !Ref AlarmTopic
 
   ImportWorkerDurationAlarm:
     Type: AWS::CloudWatch::Alarm
@@ -524,7 +562,7 @@ Resources:
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
       AlarmActions:
-        - !If [HasAlarmEmail, !Ref AlarmTopic, !Ref AWS::NoValue]
+        - !Ref AlarmTopic
 
   ImportQueueAgeAlarm:
     Type: AWS::CloudWatch::Alarm
@@ -544,7 +582,7 @@ Resources:
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
       AlarmActions:
-        - !If [HasAlarmEmail, !Ref AlarmTopic, !Ref AWS::NoValue]
+        - !Ref AlarmTopic
 
   ImportDeadLetterQueueAlarm:
     Type: AWS::CloudWatch::Alarm
@@ -564,7 +602,7 @@ Resources:
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
       AlarmActions:
-        - !If [HasAlarmEmail, !Ref AlarmTopic, !Ref AWS::NoValue]
+        - !Ref AlarmTopic
 
 Outputs:
   CognitoUserPoolId:
@@ -593,6 +631,5 @@ Outputs:
     Description: Valore AWS_ROLE_ARN da configurare su Vercel
     Value: !GetAtt VercelQueuePublisherRole.Arn
   AlarmTopicArn:
-    Condition: HasAlarmEmail
     Description: Topic SNS delle notifiche operative
     Value: !Ref AlarmTopic

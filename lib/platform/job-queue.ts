@@ -49,6 +49,10 @@ class SqsJobQueue implements JobQueue {
     try {
       await getSqsClient().send(new SendMessageCommand({
         QueueUrl: requiredEnvironment("AWS_SQS_IMPORT_QUEUE_URL"),
+        // On a Standard queue MessageGroupId enables SQS Fair Queues. This keeps
+        // a high-volume agency from monopolising worker capacity without FIFO's
+        // ordering and deduplication constraints.
+        MessageGroupId: input.agencyId,
         MessageBody: JSON.stringify({
           version: 1,
           jobId: row.id,
