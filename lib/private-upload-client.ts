@@ -27,7 +27,7 @@ async function responseJson<T>(response: Response): Promise<T> {
 
 function putFile(
   authorization: UploadAuthorization,
-  file: File,
+  file: Blob,
   onProgress?: (percentage: number) => void
 ) {
   return new Promise<void>((resolve, reject) => {
@@ -54,23 +54,47 @@ function putFile(
   });
 }
 
+async function optimizeAiPhoto(file: File) {
+  if (!file.type.startsWith("image/") || file.type === "image/gif") return file;
+  const bitmap = await createImageBitmap(file);
+  try {
+    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Ottimizzazione della foto non disponibile");
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(
+      (value) => value ? resolve(value) : reject(new Error("Compressione della foto non riuscita")),
+      "image/jpeg",
+      0.82,
+    ));
+    return new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" });
+  } finally {
+    bitmap.close();
+  }
+}
+
 export async function uploadPrivateFile(input: {
   endpoint: string;
   file: File;
   payload: Record<string, unknown>;
   onProgress?: (percentage: number) => void;
+  optimizeForAi?: boolean;
 }) {
-  const contentType = imageContentType(input.file);
+  const file = input.optimizeForAi ? await optimizeAiPhoto(input.file) : input.file;
+  const contentType = imageContentType(file);
   const authorization = await responseJson<UploadAuthorization>(await fetch(input.endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       ...input.payload,
-      originalName: input.file.name,
+      originalName: file.name,
       contentType,
-      sizeBytes: input.file.size,
+      sizeBytes: file.size,
     }),
   }));
-  await putFile(authorization, input.file, input.onProgress);
+  await putFile(authorization, file, input.onProgress);
   return { key: authorization.key, contentType };
 }

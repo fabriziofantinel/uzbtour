@@ -507,7 +507,8 @@ export default function TripChallenges() {
           day: input.day,
           challengeId: input.id,
           note: input.note
-        }
+        },
+        optimizeForAi: true,
       });
       await post({
         action: "submit",

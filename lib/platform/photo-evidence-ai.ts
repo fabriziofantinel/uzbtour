@@ -1,9 +1,9 @@
 import { BedrockRuntimeClient, ConverseCommand, type ContentBlock } from "@aws-sdk/client-bedrock-runtime";
 import type { DocumentType } from "@smithy/types";
-import sharp from "sharp";
 import { z } from "zod";
 import { getSql } from "@/lib/db";
 import { getObjectStorage } from "./object-storage";
+import { bedrockImage } from "./bedrock-image";
 
 const verdictSchema=z.object({compatible:z.boolean(),confidence:z.number().min(0).max(1),reason:z.string().min(1).max(500)});
 let client:BedrockRuntimeClient|null=null;
@@ -26,11 +26,10 @@ export async function processPhotoEvidenceValidation(input:{jobId:string;agencyI
     ],{readOnly:true});
     const row=rows[0];if(!row)throw new Error("Foto o sfida non disponibile");
     const object=await getObjectStorage().get(String(row.object_key));
-    const image=await sharp(object.bytes).rotate().resize({width:1600,height:1600,fit:"inside",withoutEnlargement:true}).jpeg({quality:82}).toBuffer();
     const modelId=process.env.AWS_BEDROCK_TEXT_MODEL?.trim();if(!modelId)throw new Error("AWS_BEDROCK_TEXT_MODEL non configurato");
     const response=await bedrock().send(new ConverseCommand({modelId,
       system:[{text:"Valuta prove fotografiche turistiche. Considera soltanto ciò che è chiaramente visibile. Non identificare persone, non inferire dati sensibili e usa esclusivamente lo strumento richiesto."}],
-      messages:[{role:"user",content:[{image:{format:"jpeg",source:{bytes:image}}},{text:`Tipo: ${String(row.activity_type)}. Tema da verificare: ${String(row.prompt).slice(0,1000)}. compatible=true solo se la foto dimostra chiaramente il tema; in caso di dubbio usa false. Spiega brevemente in italiano senza descrivere o identificare persone.`}]}],
+      messages:[{role:"user",content:[{image:bedrockImage(object.bytes,object.contentType)},{text:`Tipo: ${String(row.activity_type)}. Tema da verificare: ${String(row.prompt).slice(0,1000)}. compatible=true solo se la foto dimostra chiaramente il tema; in caso di dubbio usa false. Spiega brevemente in italiano senza descrivere o identificare persone.`}]}],
       toolConfig:{tools:[{toolSpec:{name:"emit_photo_evidence_verdict",description:"Esito strutturato della verifica fotografica",inputSchema:{json:z.toJSONSchema(verdictSchema,{target:"draft-7"}) as unknown as DocumentType}}}],toolChoice:{tool:{name:"emit_photo_evidence_verdict"}}},
       inferenceConfig:{maxTokens:300,temperature:0},requestMetadata:{application:"smf-travel",operation:"photo-evidence-validation"},
     }));

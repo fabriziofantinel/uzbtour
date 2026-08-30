@@ -420,6 +420,7 @@ export function PhotoContestHub() {
           endpoint: "/api/photo-contest/upload",
           file,
           payload: { day, contestType: kind.type },
+          optimizeForAi: true,
           onProgress: (percentage) => {
             setUploadProgress({
               key,

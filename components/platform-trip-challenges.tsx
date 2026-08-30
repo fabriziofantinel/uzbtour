@@ -174,7 +174,7 @@ export default function PlatformTripChallenges({ experience, userName, isAdmin, 
     try {
       const uploaded = await uploadPrivateFile({ endpoint: "/api/traveler/photos/upload", file, payload: {
         departureId: experience.journey.departureId, partyId: experience.journey.partyId, dayId: selectedDay.id,
-      } });
+      }, optimizeForAi: true });
       const registeredResponse = await fetch("/api/traveler/photos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
         departureId: experience.journey.departureId, partyId: experience.journey.partyId,
         dayId: selectedDay.id, objectKey: uploaded.key, originalName: file.name, privacyAttested: true,

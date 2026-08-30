@@ -501,7 +501,7 @@ Resources:
           CONFIG_REVISION: "2026-08-30-photo-contest-v1"
           AWS_BEDROCK_TEXT_MODEL: !Ref BedrockTextModel
           AWS_BEDROCK_MAX_DOCUMENT_BYTES: "4500000"
-          AWS_BEDROCK_MAX_OUTPUT_TOKENS: "12000"
+          AWS_BEDROCK_MAX_OUTPUT_TOKENS: "9000"
           R2_ACCOUNT_ID: !Ref R2AccountId
           R2_JURISDICTION: !If [UseDefaultR2Endpoint, "", !Ref R2Jurisdiction]
           R2_PARAMETER_NAME: !Ref R2ParameterName

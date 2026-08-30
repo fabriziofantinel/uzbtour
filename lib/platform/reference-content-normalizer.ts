@@ -58,7 +58,7 @@ const phrasebookSchema = z.array(z.object({
   language: z.string().min(1).max(80),
   term: z.string().min(1).max(500),
   pronunciation: z.string().min(1).max(500),
-  translation: z.string().min(1).max(500),
+  translation: z.enum(countryPhraseTranslations),
 })).min(12).max(36).superRefine((items, context) => {
   const byLanguage = new Map<string, typeof items>();
   items.forEach((item) => {

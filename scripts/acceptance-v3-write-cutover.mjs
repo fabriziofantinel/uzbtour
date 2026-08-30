@@ -1,9 +1,9 @@
 import crypto from "node:crypto";
 import { Client } from "@neondatabase/serverless";
 
-const runtimeUrl = process.env.DATABASE_URL;
-const ownerUrl = process.env.DATABASE_OWNER_URL;
-if (!runtimeUrl || !ownerUrl) throw new Error("DATABASE_URL e DATABASE_OWNER_URL richieste");
+const ownerUrl = process.env.DATABASE_OWNER_URL ?? process.env.DATABASE_MIGRATION_URL;
+const runtimeUrl = process.env.DATABASE_URL ?? ownerUrl;
+if (!runtimeUrl || !ownerUrl) throw new Error("Connessione Neon owner richiesta");
 
 const owner = new Client(ownerUrl);
 const runtime = new Client(runtimeUrl);
@@ -39,7 +39,7 @@ try {
   `)).rows[0];
   if (!scope) throw new Error("Nessun programma operativo disponibile per il test");
   const items = (await owner.query(`
-    SELECT item.id::text,item.title,item.description,
+    SELECT item.id::text,item.item_type AS type,item.title,item.description,
       coalesce(to_char(scheduled_start_at AT TIME ZONE departure.timezone,'HH24:MI'),'') AS "startsAt",
       coalesce(to_char(scheduled_end_at AT TIME ZONE departure.timezone,'HH24:MI'),'') AS "endsAt",
       row_number() over(order by item.sort_order,item.id)-1 AS "sortOrder",

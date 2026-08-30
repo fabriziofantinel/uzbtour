@@ -183,11 +183,14 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
   const region = requiredEnvironment("AWS_REGION");
   const model = requiredEnvironment("AWS_BEDROCK_TEXT_MODEL");
   const maxBytes = Number(process.env.AWS_BEDROCK_MAX_DOCUMENT_BYTES || 4_500_000);
-  const maxOutputTokens = Number(process.env.AWS_BEDROCK_MAX_OUTPUT_TOKENS || 12_000);
+  const configuredMaxOutputTokens = Number(process.env.AWS_BEDROCK_MAX_OUTPUT_TOKENS || 9_000);
   if (!Number.isFinite(maxBytes) || maxBytes <= 0) throw new Error("AWS_BEDROCK_MAX_DOCUMENT_BYTES non valida");
-  if (!Number.isInteger(maxOutputTokens) || maxOutputTokens <= 0 || maxOutputTokens > 64_000) {
+  if (!Number.isInteger(configuredMaxOutputTokens) || configuredMaxOutputTokens <= 0 || configuredMaxOutputTokens > 64_000) {
     throw new Error("AWS_BEDROCK_MAX_OUTPUT_TOKENS deve essere un intero tra 1 e 64000");
   }
+  // Nova Lite rifiuta richieste pari o superiori a 10.000 token. Il cap rende
+  // sicure anche configurazioni storiche impostate a 12.000 senza bloccare l'import.
+  const maxOutputTokens = Math.min(configuredMaxOutputTokens, 9_999);
   const documentType = filename.toLowerCase().endsWith(".ocr.txt") ? { bedrockFormat:"txt" } : travelDocumentType(filename);
   if (!documentType) throw new Error("Formato del programma non supportato");
   const documentParts = await prepareBedrockDocuments(documentBytes, filename, maxBytes);

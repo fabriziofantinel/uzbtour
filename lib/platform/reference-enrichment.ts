@@ -86,7 +86,7 @@ function validationMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
 }
 
-async function generate(target: ReferenceTarget, context: string) {
+export async function generateReferenceContent(target: ReferenceTarget, context: string) {
   const isCountry = target.entityType === "country";
   const modelId = process.env.AWS_BEDROCK_TEXT_MODEL?.trim();
   if (!modelId) throw new Error("AWS_BEDROCK_TEXT_MODEL non configurato");
@@ -180,7 +180,7 @@ async function needsRefresh(jobId: string, agencyId: string, target: ReferenceTa
   return Boolean(rows[0]?.refresh);
 }
 
-async function save(jobId: string, agencyId: string, target: ReferenceTarget, generated: Awaited<ReturnType<typeof generate>>) {
+async function save(jobId: string, agencyId: string, target: ReferenceTarget, generated: Awaited<ReturnType<typeof generateReferenceContent>>) {
   const sql = getSql();
   const sections: Array<[string, unknown]> = generated.kind === "country"
     ? [["useful_info", generated.data.usefulInfo], ["phrasebook", generated.data.phrasebook], ["bingo", generated.data.bingo]]
@@ -215,7 +215,7 @@ export async function processReferenceEnrichment(jobId: string, agencyId: string
           await sql`SELECT app.save_reference_content_v3(${jobId},${agencyId},'country',${target.entityId},
             'useful_info',${JSON.stringify(generated.data)}::jsonb,${generated.modelId},NOW()+(180*INTERVAL '1 day'))`;
         } else {
-          await save(jobId, agencyId, target, await generate(target, context));
+          await save(jobId, agencyId, target, await generateReferenceContent(target, context));
         }
         console.info("Reference target generation completed", {
           entityType: target.entityType,

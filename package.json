@@ -184,6 +184,8 @@
     "acceptance:v3:gamification-write": "node --env-file=.env.local scripts/acceptance-v3-gamification-write.mjs",
     "acceptance:v3:photo-contest-lifecycle": "node --env-file=.env.local scripts/acceptance-v3-photo-contest-lifecycle.mjs",
     "acceptance:bedrock:photo-evaluation": "node --env-file=.env.production.local scripts/acceptance-bedrock-photo-evaluation.mjs",
+    "acceptance:bedrock:travel-import": "tsx --env-file=.env.production.local scripts/acceptance-bedrock-travel-import.ts",
+    "acceptance:bedrock:reference-content": "tsx --env-file=.env.production.local scripts/acceptance-bedrock-reference-content.ts",
     "acceptance:v3:photo-evidence-attempts": "node --env-file=.env.local scripts/acceptance-v3-photo-evidence-attempts.mjs",
     "acceptance:bingo-scoring": "tsx scripts/acceptance-bingo-scoring.ts",
     "acceptance:travel-album": "tsx scripts/acceptance-travel-album-pdf.ts",
