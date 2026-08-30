@@ -12,6 +12,8 @@
     "db:migrate:v3:kpi-change-governance": "node --env-file=.env.local scripts/migrate-v3-kpi-change-content-governance.mjs --apply",
     "db:migrate:v3:runtime-read-fixes:dry-run": "node --env-file=.env.local scripts/migrate-v3-runtime-read-contract-fixes.mjs",
     "db:migrate:v3:runtime-read-fixes": "node --env-file=.env.local scripts/migrate-v3-runtime-read-contract-fixes.mjs --apply",
+    "db:migrate:v3:activity-access-read:dry-run": "node --env-file=.env.local scripts/migrate-v3-activity-access-read-contract.mjs",
+    "db:migrate:v3:activity-access-read": "node --env-file=.env.local scripts/migrate-v3-activity-access-read-contract.mjs --apply",
     "smoke:v3:agency-analytics": "node --env-file=.env.local scripts/smoke-v3-agency-analytics.mjs",
     "smoke:v3:kpi-change-governance": "node --env-file=.env.local scripts/smoke-v3-kpi-change-governance.mjs",
     "test:plan-regressions": "node scripts/test-plan-regressions.mjs",

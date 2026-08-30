@@ -22,9 +22,8 @@ assert.match(loginPage, /\[a-z0-9\._-\]/i);
 assert.match(loginRoute, /INVALID_USERNAME/);
 assert.match(loginRoute, /Username non valido/);
 
-assert.match(gamification, /activity_access_grants/);
+assert.match(gamification, /app\.has_active_activity_access_grant_v3/);
 assert.match(gamification, /app\.issue_activity_access_grant/);
-assert.match(gamification, /available_at<=clock_timestamp\(\)/);
 assert.match(gamification, /if \(count >= 10\) return false/);
 assert.match(challengesRoute, /questions\.length !== 10/);
 

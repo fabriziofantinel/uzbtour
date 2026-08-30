@@ -35,13 +35,8 @@ async function ensureScheduledQuizGrants(input: {
           AND (((operational_day.service_date+activity.relative_days)+activity.unlock_local_time)
             AT TIME ZONE departure.timezone)<=clock_timestamp()
         ))
-        AND NOT EXISTS(
-          SELECT 1 FROM journey.activity_access_grants access_grant
-          WHERE access_grant.agency_id=activity.agency_id AND access_grant.departure_id=departure.id
-            AND access_grant.party_id=membership.party_id AND access_grant.traveler_id=traveler.id
-            AND access_grant.activity_id=activity.id AND access_grant.revoked_at IS NULL
-            AND access_grant.available_at<=clock_timestamp() AND access_grant.granted_at<=clock_timestamp()
-            AND (access_grant.expires_at IS NULL OR access_grant.expires_at>clock_timestamp())
+        AND NOT app.has_active_activity_access_grant_v3(
+          activity.agency_id,departure.id,membership.party_id,traveler.id,activity.id
         )
     `,
   ]);
@@ -143,21 +138,9 @@ export async function readV3Gamification(input: {
         AND activity.status='approved'
         AND (
           activity.activity_type<>'quiz'
-          OR EXISTS(
-            SELECT 1
-            FROM journey.activity_access_grants access_grant
-            JOIN travel.traveler_profiles current_traveler
-              ON current_traveler.id=access_grant.traveler_id
-             AND current_traveler.agency_id=access_grant.agency_id
-            WHERE access_grant.agency_id=activity.agency_id
-              AND access_grant.departure_id=${input.departureId}
-              AND access_grant.party_id=${input.partyId}
-              AND access_grant.activity_id=activity.id
-              AND current_traveler.user_id=app.resolve_legacy_user_id(${input.userId},${input.agencyId})
-              AND access_grant.revoked_at IS NULL
-              AND access_grant.granted_at<=clock_timestamp()
-              AND access_grant.available_at<=clock_timestamp()
-              AND (access_grant.expires_at IS NULL OR access_grant.expires_at>clock_timestamp())
+          OR app.has_active_activity_access_grant_v3(
+            activity.agency_id,${input.departureId}::uuid,${input.partyId}::uuid,
+            app.resolve_legacy_user_id(${input.userId},${input.agencyId}),activity.id
           )
         )
       ORDER BY COALESCE(day.day_number,0),activity.sort_order,item.ordinal
