@@ -1,5 +1,5 @@
 /* SMF Travel service worker: bounded offline cache, sync bridge and Web Push. */
-const VERSION = "smf-pwa-v5";
+const VERSION = "smf-pwa-v6";
 const SHELL = `${VERSION}-shell`, DATA = `${VERSION}-data`, MAPS = `${VERSION}-maps`, MEDIA = `${VERSION}-media`;
 const OFFLINE_URL = "/offline.html";
 const SHELL_FILES = [OFFLINE_URL, "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
@@ -43,7 +43,12 @@ self.addEventListener("fetch", (event) => {
   const isTile = /(^|\.)tile\.openstreetmap\.org$/.test(url.hostname) || url.hostname.includes("openstreetmap");
   const isMedia = url.pathname.includes("/content") || url.pathname.includes("/photos/") || url.hostname.includes("r2.cloudflarestorage.com");
   const isTripData = url.pathname === "/api/trip-data" || url.pathname.startsWith("/api/traveler/");
-  const isShell = url.origin === self.location.origin && (request.mode === "navigate" || url.pathname.startsWith("/_next/static/") || /\.(?:css|js|woff2?)$/.test(url.pathname));
+  // Le pagine HTML autenticate non sono app-shell: inserirle nella cache
+  // condivisa del browser potrebbe mostrare dati del tenant precedente dopo
+  // un cambio identita o un'impersonazione. La shell contiene solo asset
+  // pubblici e immutabili; /viaggio usa la cache privata DATA separata.
+  const isShell = url.origin === self.location.origin && request.mode !== "navigate" &&
+    (url.pathname.startsWith("/_next/static/") || /\.(?:css|js|woff2?)$/.test(url.pathname));
   if (isTile) event.respondWith(cacheFirst(request, MAPS, 180, 14 * 86400000));
   else if (isMedia) event.respondWith(cacheFirst(request, MEDIA, 80, 30 * 86400000));
   else if (isTripData || (request.mode === "navigate" && url.pathname.startsWith("/viaggio"))) event.respondWith(networkFirst(request));
