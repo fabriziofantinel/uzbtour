@@ -12,8 +12,8 @@ from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "docs" / "testing" / "SMF_Travel_Casi_Uso_Completi_v1.0.docx"
-OUTPUT = ROOT / "docs" / "testing" / "SMF_Travel_Rapporto_Completo_Test_2026-08-30.docx"
+SOURCE = ROOT / "docs" / "testing" / "SMF_Travel_Casi_Uso_Completi_v1.1.docx"
+OUTPUT = ROOT / "docs" / "testing" / "SMF_Travel_Rapporto_Completo_Test_v1.1_2026-08-30.docx"
 TMP = ROOT / ".tmp" / "full-use-case-test-run"
 
 NAVY = "12313B"
@@ -162,13 +162,14 @@ def evidence(case_id):
         "MEM": "Route e generatore presenti e compilati; prova utente completa non eseguita.",
         "PWA": "Manifest, service worker e asset HTTP 200; prova fisica su dispositivo non eseguita.",
         "VIS": "Build e route verificate; pagina riservata non ispezionabile senza sessione Chrome dell'app.",
-        "ANA": "Schema, query e build verificati; dashboard autenticata e dati reali non ispezionabili. API anonima devia con 307 (DEF-001).",
+        "ANA": "Schema, query, definizioni KPI e build verificati; dashboard autenticata e dati reali non ispezionabili.",
     }
     return "PARZIALE", mapping.get(prefix, "Copertura statica positiva; esecuzione end-to-end non disponibile.")
 
 
 def load_command_results():
-    initial = json.loads((TMP / "results.json").read_text(encoding="utf-8-sig"))
+    initial_path = TMP / "rerun-results.json"
+    initial = json.loads(initial_path.read_text(encoding="utf-8-sig"))
     dry = json.loads((TMP / "dry-run-results.json").read_text(encoding="utf-8-sig"))
     rows = []
     for item in initial:
@@ -185,10 +186,12 @@ def load_command_results():
             rows.append([item["name"], "SUPERATO", "12,1 s", "Template SAM valido; rieseguito con accesso ai metadati SAM locali."])
         else:
             rows.append([item["name"], "SUPERATO" if item["exitCode"] == 0 else "NON SUPERATO", f"{item['durationSeconds']} s", "Dry-run completato senza modifiche persistenti."])
-    rows.append(["build", "SUPERATO", "~20 s", "Next.js 16: compilazione, TypeScript e generazione di 42 pagine completate."])
+    rows.append(["test:plan-regressions", "SUPERATO", "ripetibile", "Proxy API, magic link, quiz, disruption, registro variazioni e governance fonti verificati."])
+    rows.append(["smoke:v3:kpi-change-governance", "SUPERATO", "Neon", "6 KPI, 8 campi fonte, RLS forzata e privilegi minimi verificati."])
+    rows.append(["build", "SUPERATO", "~20 s", "Next.js 16: compilazione, TypeScript e generazione di 43 pagine completate."])
     rows.extend([
         ["HTTP pagine e PWA", "SUPERATO", "6 endpoint", "Login, accessibilita, manifest, service worker e redirect home conformi."],
-        ["HTTP API anonime", "NON SUPERATO", "4 endpoint", "Analytics, chat, spese e trip-data rispondono 307 invece del contratto JSON 401 (DEF-001)."],
+        ["HTTP API anonime", "SUPERATO", "5 endpoint", "Auth, Analytics, chat, spese (POST) e trip-data rispondono JSON 401; DEF-001 chiusa."],
         ["Browser pubblico", "SUPERATO", "3 pagine", "Login, recupero username e accessibilita caricati senza overflow nel viewport effettivo."],
     ])
     return rows
@@ -244,8 +247,8 @@ subtitle.runs[0].font.color.rgb = RGBColor.from_string(MUTED)
 subtitle.paragraph_format.space_after = Pt(16)
 fixed_table(doc, ["Campo", "Valore"], [
     ["Data esecuzione", "30 agosto 2026"],
-    ["Ambiente", "Produzione Vercel + Neon configurato localmente + repository commit 5342b8c"],
-    ["Sorgente", "SMF_Travel_Casi_Uso_Completi_v1.0.docx, inclusa appendice Analytics"],
+    ["Ambiente", "Build locale Next.js + Neon produzione tramite connessione owner di migrazione"],
+    ["Sorgente", "SMF_Travel_Casi_Uso_Completi_v1.1.docx, inclusi governance, onboarding e Analytics"],
     ["Casi censiti", str(len(cases))],
     ["Metodo", "Suite automatiche, dry-run DB, smoke HTTP, browser pubblico e verifica statica"],
 ], [1.65, 4.85])
@@ -255,7 +258,7 @@ doc.add_paragraph(
     f"Sono stati censiti {len(cases)} casi d'uso. L'esecuzione ha prodotto {counts['SUPERATO']} casi superati, "
     f"{counts['PARZIALE']} parzialmente coperti, {counts['BLOCCATO']} bloccati da prerequisiti esterni e "
     f"{counts['NON SUPERATO']} casi completamente non superati. Le suite strutturali, la build, il modello dati, "
-    "le nuove migrazioni 093-102, Analytics, chat e gestione spese risultano conformi."
+    "le migrazioni fino alla 103, Analytics, chat, gestione spese e governance contenuti risultano conformi."
 )
 fixed_table(doc, ["Esito", "Casi", "Interpretazione"], [
     ["SUPERATO", counts["SUPERATO"], "Flusso o contratto dimostrato da esecuzione ripetibile."],
@@ -267,21 +270,21 @@ fixed_table(doc, ["Esito", "Casi", "Interpretazione"], [
 add_heading(doc, "2. Evidenze tecniche principali", 1)
 for text in [
     "Quality guard, TypeScript e build Next.js di produzione superati; 42 pagine generate.",
-    "Neon validato: 71 tabelle, 58 con RLS, nessun indice invalido, nessun vincolo non validato e nessuna tabella tenant senza indice agency_id leading.",
+    "Neon validato: 74 tabelle, 60 con RLS, nessun indice invalido, nessun vincolo non validato e nessuna tabella tenant senza indice agency_id leading.",
     "Smoke Analytics superato con rollback: registrazione, lettura RLS, attore distinto e idempotenza.",
     "Smoke spese, chat, accesso agenzia e acceptance su owner, provisioning e cancellazione superati.",
-    "Dieci dry-run delle migrazioni 093-102 superati senza modifiche persistenti.",
+    "Migrazione 103 verificata: KPI versionati, registro variazioni, ricevute di lettura e governance delle fonti.",
     "Template AWS SAM valido; pagine pubbliche, manifest PWA e service worker disponibili in produzione.",
 ]:
     add_bullet(doc, text)
 
 add_heading(doc, "3. Anomalie e impedimenti", 1)
 fixed_table(doc, ["ID", "Severita", "Tipo", "Descrizione e impatto", "Azione raccomandata"], [
-    ["DEF-001", "Media", "Applicazione", "Le API protette analytics, chat, expenses e trip-data rispondono 307 verso /login quando la sessione manca. Un client fetch puo ricevere HTML invece del JSON 401 previsto.", "Escludere /api dal redirect del middleware oppure restituire NextResponse JSON 401 per le API."],
+    ["DEF-001", "Chiusa", "Applicazione", "Il proxy intercettava le API protette e restituiva 307 HTML. Corretto escludendo tutte le route /api dal redirect di pagina.", "Regressione automatica e verifica runtime JSON 401 superate."],
     ["BLK-001", "Alta", "Ambiente test", "Manca una DATABASE_URL del ruolo smf_app. Diciotto suite legacy non possono verificare RLS senza usare impropriamente la connessione owner.", "Fornire una URL pooled dedicata al ruolo smf_app nell'ambiente di collaudo."],
     ["BLK-002", "Media", "Fixture", "La fixture gamification pubblicata non e disponibile; acceptance quiz/sfide non parte.", "Creare una partenza sintetica versionata con giochi, quiz, contest e due viaggiatori."],
     ["BLK-003", "Media", "Integrazioni", "R2/SQS/Bedrock non sono stati invocati: credenziali R2 e coda di collaudo non sono esposte localmente.", "Predisporre risorse sandbox e budget massimo per test AI/documentali."],
-    ["BLK-004", "Media", "Browser", "Chrome non contiene una sessione aperta dell'app; disponibili solo schede Cloudflare, Neon e Gmail.", "Preparare utenze test superuser, agenzia e viaggiatore e una sessione dedicata."],
+    ["BLK-004", "Media", "Browser", "Non sono disponibili credenziali di collaudo per i tre ruoli applicativi.", "Preparare utenze test superuser, agenzia e viaggiatore e una sessione dedicata."],
     ["BLK-005", "Bassa", "Dispositivo", "Installazione PWA, modalita aereo, push e safe-area non sono verificabili senza smartphone reale.", "Eseguire matrice iOS Safari e Android Chrome su almeno due dispositivi."],
 ], [.7, .7, 1.0, 2.5, 2.6])
 
@@ -297,7 +300,7 @@ matrix_section.top_margin = matrix_section.bottom_margin = Inches(.65)
 matrix_section.left_margin = matrix_section.right_margin = Inches(.5)
 matrix_section.header_distance = matrix_section.footer_distance = Inches(.3)
 
-add_heading(doc, "5. Matrice completa dei 103 casi d'uso", 1)
+add_heading(doc, "5. Matrice completa dei 107 casi d'uso", 1)
 doc.add_paragraph("Ogni caso e stato valutato. Gli esiti parziali e bloccati indicano precisamente quale evidenza manca; non sono stati trasformati artificialmente in esiti positivi.")
 fixed_table(doc, ["ID", "Caso d'uso", "Esito", "Evidenza / limite"], case_rows, [1.0, 2.8, 1.15, 5.0], status_column=2)
 
@@ -308,7 +311,7 @@ final_section.top_margin = final_section.bottom_margin = final_section.left_marg
 
 add_heading(doc, "6. Piano di completamento del collaudo", 1)
 steps = [
-    ("P0", "Correggere DEF-001 e aggiungere un test automatico che richieda JSON 401 sulle API anonime."),
+    ("CHIUSO", "DEF-001 corretto; test automatico e runtime JSON 401 superati."),
     ("P0", "Configurare DATABASE_URL_TEST con ruolo smf_app e rieseguire le 18 suite bloccate."),
     ("P1", "Creare fixture sintetiche stabili per gamification, documenti, viaggio pubblicato e due tenant."),
     ("P1", "Eseguire test autenticati nei tre ruoli: superuser, responsabile/agente e viaggiatore."),
@@ -320,9 +323,9 @@ fixed_table(doc, ["Priorita", "Attivita"], [[p, t] for p, t in steps], [1.0, 5.5
 add_heading(doc, "7. Conclusione", 1)
 doc.add_paragraph(
     "La baseline tecnica e stabile e le nuove funzionalita risultano integrate senza regressioni di build o schema. "
-    "Il prodotto non puo tuttavia essere dichiarato collaudato al 100% sui 103 casi finche non vengono forniti "
+    "Il prodotto non puo tuttavia essere dichiarato collaudato al 100% sui 107 casi finche non vengono forniti "
     "ruolo DB runtime, fixture controllate, sessioni browser dedicate e dispositivi mobili reali. L'unico difetto "
-    "applicativo riproducibile emerso in questa esecuzione e DEF-001."
+    "applicativo riproducibile emerso in questa esecuzione, DEF-001, e stato corretto e ritestato."
 )
 
 doc.core_properties.title = "SMF Travel - Rapporto completo di esecuzione dei test"
