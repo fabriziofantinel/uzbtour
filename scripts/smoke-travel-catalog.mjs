@@ -13,9 +13,17 @@ const rows = await sql`
 const found = new Set(rows.map((row) => String(row.table_name)));
 const missing = expectedTables.filter((table) => !found.has(table));
 if (missing.length) throw new Error(`Tabelle mancanti: ${missing.join(", ")}`);
-const columns = await sql`
+const templateColumns = await sql`
   SELECT column_name FROM information_schema.columns
-  WHERE table_name = 'trip_templates' AND column_name IN ('starts_on', 'ends_on', 'primary_country_id')
+  WHERE table_schema = 'travel' AND table_name = 'trip_templates'
+    AND column_name = 'primary_country_id'
 `;
-if (columns.length !== 3) throw new Error("Testata viaggio incompleta");
-console.log(JSON.stringify({ catalogTables: found.size, tripHeaderColumns: columns.length }));
+const departureColumns = await sql`
+  SELECT column_name FROM information_schema.columns
+  WHERE table_schema = 'travel' AND table_name = 'departures'
+    AND column_name IN ('starts_on', 'ends_on')
+`;
+if (templateColumns.length !== 1 || departureColumns.length !== 2) {
+  throw new Error("Testata viaggio normalizzata incompleta");
+}
+console.log(JSON.stringify({ catalogTables: found.size, tripHeaderColumns: templateColumns.length + departureColumns.length }));

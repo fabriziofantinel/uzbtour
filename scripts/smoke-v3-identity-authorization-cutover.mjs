@@ -2,10 +2,13 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { Client } from "@neondatabase/serverless";
 
 const runtimeUrl=process.env.DATABASE_URL;
+const ownerUrl=process.env.DATABASE_MIGRATION_URL??process.env.DATABASE_URL_UNPOOLED;
 if(!runtimeUrl) throw new Error("DATABASE_URL runtime non configurata");
 const client=new Client(runtimeUrl);
+const owner=ownerUrl?new Client(ownerUrl):null;
 try{
   await client.connect();
+  if(owner) await owner.connect();
   const role=(await client.query("SELECT current_user role_name")).rows[0]?.role_name;
   const gates=(await client.query(`SELECT
     has_function_privilege(current_user,'app.resolve_neon_authenticated_user(text,text,text)','EXECUTE') authenticated,
@@ -32,7 +35,8 @@ try{
   if(!unknownAccess||!unknownAuth||!impersonationDenied)
     throw new Error("Gate negativi IAM non superati");
 
-  const candidates=(await client.query(`SELECT users.id,
+  if(!owner) throw new Error("Connessione owner necessaria per preparare la fixture IAM");
+  const candidates=(await owner.query(`SELECT users.id,
     users.platform_role='superadmin' AS expected_superadmin,
     EXISTS(SELECT 1 FROM public.agency_memberships membership
       WHERE membership.user_id=users.id AND membership.role IN ('owner','admin','editor')) AS expected_agency_admin
@@ -47,4 +51,4 @@ try{
   console.log(JSON.stringify({status:"passed",role,gates,unknownAccessDenied:unknownAccess,
     unknownAuthenticationDenied:unknownAuth,foreignImpersonationDenied:impersonationDenied,
     reconciledActiveUsers:candidates.length},null,2));
-}finally{await client.end().catch(()=>undefined);}
+}finally{await client.end().catch(()=>undefined);await owner?.end().catch(()=>undefined);}

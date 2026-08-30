@@ -2,12 +2,16 @@ import { randomUUID } from "node:crypto";
 import { Client } from "@neondatabase/serverless";
 
 const runtimeUrl=process.env.DATABASE_URL;
+const ownerUrl=process.env.DATABASE_MIGRATION_URL??process.env.DATABASE_URL_UNPOOLED;
 if(!runtimeUrl) throw new Error("DATABASE_URL runtime non configurata");
 const client=new Client(runtimeUrl);
+const owner=ownerUrl?new Client(ownerUrl):null;
 try{
   await client.connect();
+  if(!owner) throw new Error("Connessione owner necessaria per preparare la fixture viaggiatore");
+  await owner.connect();
   const role=(await client.query("SELECT current_user role_name")).rows[0]?.role_name;
-  const candidate=(await client.query(`SELECT profile.user_id,party.departure_id,party.id party_id,day.id day_id,
+  const candidate=(await owner.query(`SELECT profile.user_id,party.departure_id,party.id party_id,day.id day_id,
     profile.id traveler_id,departure.agency_id,departure.template_version_id
     FROM public.traveler_profiles profile
     JOIN public.party_memberships membership ON membership.traveler_id=profile.id AND membership.status='active'
@@ -27,4 +31,4 @@ try{
   if((await client.query("SELECT has_table_privilege(current_user,'ops.legacy_id_map','SELECT') allowed")).rows[0].allowed)
     throw new Error("La mappa identita e leggibile dal runtime");
   console.log(JSON.stringify({status:"passed",role,contextMatched:true,foreignDayDenied:true,identityMapPrivate:true},null,2));
-}finally{await client.end().catch(()=>undefined);}
+}finally{await client.end().catch(()=>undefined);await owner?.end().catch(()=>undefined);}

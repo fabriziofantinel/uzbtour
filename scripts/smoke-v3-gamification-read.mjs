@@ -2,11 +2,12 @@ import { randomUUID } from "node:crypto";
 
 import { Client } from "@neondatabase/serverless";
 
-const runtimeUrl=process.env.DATABASE_URL;
-if(!runtimeUrl) throw new Error("DATABASE_URL runtime non configurata");
+const runtimeUrl=process.env.DATABASE_URL??process.env.DATABASE_MIGRATION_URL??process.env.DATABASE_URL_UNPOOLED;
+if(!runtimeUrl) throw new Error("Connessione Neon non configurata");
 const client=new Client(runtimeUrl); let open=false;
 try{
   await client.connect();
+  const usingOwnerFallback=!process.env.DATABASE_URL;
   const role="smf_app";
   const required=["content.activities","content.activity_items","ops.media_assets","journey.memories",
     "journey.activity_attempts","journey.activity_evidence","journey.photo_contest_entries",
@@ -26,6 +27,7 @@ try{
   if(!scope) throw new Error("Nessuna famiglia disponibile per lo smoke test");
 
   await client.query("BEGIN"); open=true;
+  if(usingOwnerFallback) await client.query("GRANT smf_app TO current_user");
   await client.query("SET LOCAL statement_timeout='30s'");
   await client.query("SELECT set_config('app.agency_id',$1,true)",[scope.agency_id]);
   const reconciliation=(await client.query(`SELECT domain,legacy_count,target_count FROM (

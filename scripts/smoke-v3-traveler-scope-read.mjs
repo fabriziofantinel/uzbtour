@@ -2,18 +2,22 @@ import { randomUUID } from "node:crypto";
 import { Client } from "@neondatabase/serverless";
 
 const runtimeUrl=process.env.DATABASE_URL;
+const ownerUrl=process.env.DATABASE_MIGRATION_URL??process.env.DATABASE_URL_UNPOOLED;
 if(!runtimeUrl) throw new Error("DATABASE_URL runtime non configurata");
 const client=new Client(runtimeUrl);
+const owner=ownerUrl?new Client(ownerUrl):null;
 try{
   await client.connect();
+  if(!owner) throw new Error("Connessione owner necessaria per preparare la fixture viaggiatore");
+  await owner.connect();
   const role=(await client.query("SELECT current_user role_name")).rows[0]?.role_name;
-  const legacyUser=(await client.query(`SELECT profile.user_id
+  const legacyUser=(await owner.query(`SELECT profile.user_id
     FROM public.traveler_profiles profile
     JOIN public.party_memberships membership ON membership.traveler_id=profile.id AND membership.status='active'
     WHERE profile.user_id IS NOT NULL LIMIT 1`)).rows[0];
   if(!legacyUser) throw new Error("Nessun viaggiatore attivo disponibile");
   const target=(await client.query("SELECT * FROM app.list_legacy_user_journeys($1)",[legacyUser.user_id])).rows;
-  const legacy=(await client.query(`SELECT departure.id::text departure_id,party.id::text party_id
+  const legacy=(await owner.query(`SELECT departure.id::text departure_id,party.id::text party_id
     FROM public.traveler_profiles profile
     JOIN public.party_memberships membership ON membership.traveler_id=profile.id AND membership.status='active'
     JOIN public.travel_parties party ON party.id=membership.party_id AND party.agency_id=membership.agency_id
@@ -33,4 +37,4 @@ try{
   const mapReadable=(await client.query("SELECT has_table_privilege(current_user,'ops.legacy_id_map','SELECT') allowed")).rows[0].allowed;
   if(mapReadable) throw new Error("La mappa tecnica delle identita e leggibile dal runtime");
   console.log(JSON.stringify({status:"passed",role,journeys:target.length,scopeDenied:true,identityMapPrivate:true},null,2));
-}finally{await client.end().catch(()=>undefined);}
+}finally{await client.end().catch(()=>undefined);await owner?.end().catch(()=>undefined);}
