@@ -1,5 +1,5 @@
 /* SMF Travel service worker: bounded offline cache, sync bridge and Web Push. */
-const VERSION = "smf-pwa-v4";
+const VERSION = "smf-pwa-v5";
 const SHELL = `${VERSION}-shell`, DATA = `${VERSION}-data`, MAPS = `${VERSION}-maps`, MEDIA = `${VERSION}-media`;
 const OFFLINE_URL = "/offline.html";
 const SHELL_FILES = [OFFLINE_URL, "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
@@ -9,7 +9,7 @@ self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") void self.skipWaiting();
   if (event.data?.type === "CACHE_TRIP") {
     const port=event.ports?.[0],urls=Array.isArray(event.data.urls)?event.data.urls:[];
-    event.waitUntil((async()=>{try{const cache=await caches.open(DATA);let done=0;for(const url of urls){const request=new Request(url,{credentials:"include"});const response=await fetch(request);if(!response.ok)throw new Error(`Risorsa non disponibile: ${new URL(url,self.location.origin).pathname}`);await cache.put(request,await stamped(response));done+=1;port?.postMessage({type:"OFFLINE_PROGRESS",done,total:urls.length});}port?.postMessage({type:"OFFLINE_READY"});}catch(error){port?.postMessage({type:"OFFLINE_FAILED",message:error instanceof Error?error.message:"Download non riuscito"});}})());
+    event.waitUntil((async()=>{try{let done=0;for(const url of urls){const absoluteUrl=new URL(url,self.location.origin);const request=new Request(absoluteUrl,{credentials:"include"});const response=await fetch(request);if(!response.ok)throw new Error(`Risorsa non disponibile: ${absoluteUrl.pathname}`);const privateMedia=absoluteUrl.pathname.includes("/content")||absoluteUrl.pathname.includes("/photos/");const cache=await caches.open(privateMedia?MEDIA:DATA);await cache.put(request,await stamped(response));done+=1;port?.postMessage({type:"OFFLINE_PROGRESS",done,total:urls.length});}port?.postMessage({type:"OFFLINE_READY"});}catch(error){port?.postMessage({type:"OFFLINE_FAILED",message:error instanceof Error?error.message:"Download non riuscito"});}})());
   }
   if (event.data?.type === "CLEAR_PRIVATE_CACHES") event.waitUntil(Promise.all([caches.delete(DATA),caches.delete(MEDIA),caches.delete(MAPS)]));
 });
