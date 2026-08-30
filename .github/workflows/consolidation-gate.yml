@@ -66,6 +66,7 @@ jobs:
           DATABASE_URL: ${{ steps.create-neon-branch.outputs.db_url_pooled }}
         run: |
           touch .env.local
+          npm run db:migrate:v3:document-constraint -- --apply
           npm run db:validate:v3
           npm run smoke:v3:operational-read
           npm run smoke:v3:travel-catalog-read
