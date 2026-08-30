@@ -194,6 +194,9 @@ def load_command_results():
     rows.append(["smoke:v3:kpi-change-governance", "SUPERATO", "Neon", "6 KPI, 8 campi fonte, RLS forzata e privilegi minimi verificati."])
     rows.append(["build", "SUPERATO", "~20 s", "Next.js 16: compilazione, TypeScript e generazione di 43 pagine completate."])
     rows.extend([
+        ["smoke:v3:expenses", "SUPERATO", "Neon / rollback", "Ruolo smf_app, inserimento spesa, ripartizione esatta delle quote e idempotenza client_operation_id verificati; nessun dato persistito."],
+        ["smoke:v3:agency-analytics", "SUPERATO", "Neon / rollback", "Scrittura evento, lettura RLS, aggregazione, attori distinti e anti-replay verificati; nessun dato persistito."],
+        ["acceptance:v3:participant-provisioning", "SUPERATO", "Neon / rollback", "Creazione gruppo e viaggiatore, riconciliazione V3, invito monouso e invisibilita dopo il consumo verificati; nessun dato persistito."],
         ["HTTP pagine e PWA", "SUPERATO", "6 endpoint", "Login, accessibilita, manifest, service worker e redirect home conformi."],
         ["HTTP API anonime", "SUPERATO", "5 endpoint", "Auth, Analytics, chat, spese (POST) e trip-data rispondono JSON 401; DEF-001 chiusa."],
         ["Browser pubblico", "SUPERATO", "3 pagine", "Login, recupero username e accessibilita caricati senza overflow nel viewport effettivo."],
@@ -264,7 +267,7 @@ doc.add_paragraph(
     f"Sono stati censiti {len(cases)} casi d'uso. L'esecuzione ha prodotto {counts['SUPERATO']} casi superati, "
     f"{counts['PARZIALE']} parzialmente coperti, {counts['BLOCCATO']} bloccati da prerequisiti esterni e "
     f"{counts['NON SUPERATO']} casi completamente non superati. Le suite strutturali, la build, il modello dati, "
-    "le migrazioni fino alla 103, Analytics, chat, gestione spese e governance contenuti risultano conformi."
+    "le migrazioni fino alla 108, Analytics, chat, gestione spese e governance contenuti risultano conformi."
 )
 fixed_table(doc, ["Esito", "Casi", "Interpretazione"], [
     ["SUPERATO", counts["SUPERATO"], "Flusso o contratto dimostrato da esecuzione ripetibile."],
@@ -275,11 +278,11 @@ fixed_table(doc, ["Esito", "Casi", "Interpretazione"], [
 
 add_heading(doc, "2. Evidenze tecniche principali", 1)
 for text in [
-    "Quality guard, TypeScript e build Next.js di produzione superati; 42 pagine generate.",
+    "Quality guard, TypeScript e build Next.js di produzione superati; 43 pagine generate.",
     "Neon validato: 74 tabelle, 60 con RLS, nessun indice invalido, nessun vincolo non validato e nessuna tabella tenant senza indice agency_id leading.",
     "Smoke Analytics superato con rollback: registrazione, lettura RLS, attore distinto e idempotenza.",
     "Smoke spese, chat, accesso agenzia e acceptance su owner, provisioning e cancellazione superati.",
-    "Migrazione 103 verificata: KPI versionati, registro variazioni, ricevute di lettura e governance delle fonti.",
+    "Migrazioni fino alla 108 verificate: KPI versionati, registro variazioni, ricevute di lettura, governance fonti e contratti runtime finali.",
     "Template AWS SAM valido; pagine pubbliche, manifest PWA e service worker disponibili in produzione.",
 ]:
     add_bullet(doc, text)
@@ -287,10 +290,10 @@ for text in [
 add_heading(doc, "3. Anomalie e impedimenti", 1)
 fixed_table(doc, ["ID", "Severita", "Tipo", "Descrizione e impatto", "Azione raccomandata"], [
     ["DEF-001", "Chiusa", "Applicazione", "Il proxy intercettava le API protette e restituiva 307 HTML. Corretto escludendo tutte le route /api dal redirect di pagina.", "Regressione automatica e verifica runtime JSON 401 superate."],
-    ["BLK-001", "Alta", "Ambiente test", "Manca una DATABASE_URL del ruolo smf_app. Diciotto suite legacy non possono verificare RLS senza usare impropriamente la connessione owner.", "Fornire una URL pooled dedicata al ruolo smf_app nell'ambiente di collaudo."],
+    ["BLK-001", "Alta", "Ambiente test", "La DATABASE_URL scaricata da Vercel e protetta da placeholder e non e risolvibile dai processi locali. Le suite che richiedono esclusivamente tale URL non possono avviarsi.", "Fornire una URL pooled dedicata al ruolo smf_app nell'ambiente di collaudo locale, distinta dalla connessione owner."],
     ["BLK-002", "Media", "Fixture", "La fixture gamification pubblicata non e disponibile; acceptance quiz/sfide non parte.", "Creare una partenza sintetica versionata con giochi, quiz, contest e due viaggiatori."],
     ["BLK-003", "Media", "Integrazioni", "R2/SQS/Bedrock non sono stati invocati: credenziali R2 e coda di collaudo non sono esposte localmente.", "Predisporre risorse sandbox e budget massimo per test AI/documentali."],
-    ["BLK-004", "Media", "Browser", "Non sono disponibili credenziali di collaudo per i tre ruoli applicativi.", "Preparare utenze test superuser, agenzia e viaggiatore e una sessione dedicata."],
+    ["BLK-004", "Media", "Browser", "I tre ruoli sono stati verificati in lettura; mancano ancora scenari mutativi distruttivi completi su utenze e dati sintetici dedicati.", "Preparare un tenant sintetico eliminabile per completare le mutazioni UI senza impattare dati reali."],
     ["BLK-005", "Bassa", "Dispositivo", "Installazione PWA, modalita aereo, push e safe-area non sono verificabili senza smartphone reale.", "Eseguire matrice iOS Safari e Android Chrome su almeno due dispositivi."],
 ], [.7, .7, 1.0, 2.5, 2.6])
 
@@ -318,9 +321,9 @@ final_section.top_margin = final_section.bottom_margin = final_section.left_marg
 add_heading(doc, "6. Piano di completamento del collaudo", 1)
 steps = [
     ("CHIUSO", "DEF-001 corretto; test automatico e runtime JSON 401 superati."),
-    ("P0", "Configurare DATABASE_URL_TEST con ruolo smf_app e rieseguire le 18 suite bloccate."),
+    ("P0", "Configurare DATABASE_URL_TEST con ruolo smf_app e rieseguire le suite che richiedono una connessione runtime locale."),
     ("P1", "Creare fixture sintetiche stabili per gamification, documenti, viaggio pubblicato e due tenant."),
-    ("P1", "Eseguire test autenticati nei tre ruoli: superuser, responsabile/agente e viaggiatore."),
+    ("CHIUSO", "Eseguiti i percorsi autenticati in lettura per superuser, responsabile/agente e viaggiatore."),
     ("P1", "Eseguire flusso R2-SQS-Bedrock su risorse sandbox con verifica record Neon e cost cap."),
     ("P2", "Eseguire collaudo fisico PWA su iOS e Android: installazione, offline, sync e push."),
 ]
@@ -330,12 +333,12 @@ add_heading(doc, "7. Conclusione", 1)
 doc.add_paragraph(
     "La baseline tecnica e stabile e le nuove funzionalita risultano integrate senza regressioni di build o schema. "
     "Il prodotto non puo tuttavia essere dichiarato collaudato al 100% sui 107 casi finche non vengono forniti "
-    "ruolo DB runtime, fixture controllate, sessioni browser dedicate e dispositivi mobili reali. L'unico difetto "
+    "ruolo DB runtime locale, fixture controllate, scenari mutativi sintetici e dispositivi mobili reali. L'unico difetto "
     "applicativo riproducibile emerso in questa esecuzione, DEF-001, e stato corretto e ritestato."
 )
 
 doc.core_properties.title = "SMF Travel - Rapporto completo di esecuzione dei test"
-doc.core_properties.subject = "Esiti, anomalie, blocchi e copertura dei 103 casi d'uso"
+doc.core_properties.subject = "Esiti, anomalie, blocchi e copertura dei 107 casi d'uso"
 doc.core_properties.author = "SMF Travel Quality Engineering"
 doc.core_properties.keywords = "SMF Travel, test, casi d'uso, collaudo, Analytics, PWA, Neon, Vercel"
 doc.save(OUTPUT)
