@@ -28,10 +28,10 @@ Data di riferimento: 2026-08-30.
 | Fair sharing SQS | Chiuso | Standard Queue con `MessageGroupId=agency_id` |
 | Astrazione autenticazione | Chiuso nel software | Adapter unico davanti a Cognito |
 | Documenti oltre 4,5 MB | Implementato | split PDF, compattazione DOCX e fallback Textract asincrono con ripresa idempotente |
-| DR Neon | Procedura pronta | runbook e CI branch definiti; primo restore drill reale richiede credenziali Neon CI |
+| DR Neon | CI abilitata | `NEON_API_KEY` e `NEON_PROJECT_ID` configurati su GitHub; resta da registrare l'esito del primo restore drill reale |
 | Immutabilità R2 | Disegno pronto | chiavi immutabili e soft delete; Bucket Lock richiede token Cloudflare dedicato |
 | WAF/rate limiting | Disegno pronto | applicazione sul dominio richiede zona e token Cloudflare |
-| Neon branch su PR | Implementato in CI | si attiva con `NEON_API_KEY` e `NEON_PROJECT_ID` |
+| Neon branch su PR | Configurato | secret `NEON_API_KEY` e variabile `NEON_PROJECT_ID` presenti nel repository GitHub; collaudo reale su PR in corso |
 
 ## Gate di rilascio
 
@@ -45,5 +45,7 @@ Data di riferimento: 2026-08-30.
 ## Dipendenze operative esterne
 
 Le attività seguenti non possono essere chiuse dal solo repository: conferma della
-sottoscrizione e-mail SNS, token Neon per branch/drill e token Cloudflare limitato
-per Bucket Lock e WAF.
+sottoscrizione e-mail SNS e token Cloudflare limitato per Bucket Lock. Il WAF e il
+rate limiting richiedono inoltre un dominio applicativo personalizzato gestito da
+una zona Cloudflare: non possono proteggere direttamente il dominio Vercel condiviso
+`smf-travel.vercel.app`.
