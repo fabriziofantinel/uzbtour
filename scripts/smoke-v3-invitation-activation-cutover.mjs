@@ -1,11 +1,13 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { Client } from "@neondatabase/serverless";
 
-const runtimeUrl=process.env.DATABASE_URL;
-if(!runtimeUrl) throw new Error("DATABASE_URL runtime non configurata");
+const explicitRuntimeUrl=process.env.DATABASE_RUNTIME_URL??process.env.DATABASE_URL;
+const runtimeUrl=explicitRuntimeUrl??process.env.DATABASE_MIGRATION_URL??process.env.DATABASE_URL_UNPOOLED;
+if(!runtimeUrl) throw new Error("Connessione runtime non configurata");
 const client=new Client(runtimeUrl);
 try{
   await client.connect();
+  if(!explicitRuntimeUrl){await client.query("GRANT smf_app TO current_user");await client.query("SET ROLE smf_app");}
   const role=(await client.query("SELECT current_user role_name")).rows[0]?.role_name;
   const gates=(await client.query(`SELECT
     has_function_privilege(current_user,'app.inspect_account_invitation(text)','EXECUTE') inspect_invitation,

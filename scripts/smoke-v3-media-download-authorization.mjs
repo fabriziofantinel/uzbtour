@@ -1,13 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { Client } from "@neondatabase/serverless";
 
-const runtimeUrl=process.env.DATABASE_URL;
+const explicitRuntimeUrl=process.env.DATABASE_RUNTIME_URL??process.env.DATABASE_URL;
 const ownerUrl=process.env.DATABASE_MIGRATION_URL??process.env.DATABASE_URL_UNPOOLED;
-if(!runtimeUrl) throw new Error("DATABASE_URL runtime non configurata");
+const runtimeUrl=explicitRuntimeUrl??ownerUrl;
+if(!runtimeUrl) throw new Error("Connessione runtime non configurata");
 const client=new Client(runtimeUrl);
 const owner=ownerUrl?new Client(ownerUrl):null;
 try{
   await client.connect();
+  if(!explicitRuntimeUrl){await client.query("GRANT smf_app TO current_user");await client.query("SET ROLE smf_app");}
   if(!owner) throw new Error("Connessione owner necessaria per preparare le fixture media");
   await owner.connect();
   const role=(await client.query("SELECT current_user role_name")).rows[0]?.role_name;
