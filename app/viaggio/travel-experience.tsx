@@ -178,7 +178,6 @@ export default function TravelExperience({ initialExperience, userName, isAgency
   const [offlineProgress,setOfflineProgress]=useState({done:0,total:0});
   const [largeText,setLargeText]=useState(false);
   const [simpleMode,setSimpleMode]=useState(false);
-  const [logoutBusy,setLogoutBusy]=useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const moreButtonRef = useRef<HTMLButtonElement>(null);
@@ -462,15 +461,6 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     if(kind==="text")setLargeText((value)=>{localStorage.setItem("smf-large-text",value?"0":"1");return !value;});
     else setSimpleMode((value)=>{localStorage.setItem("smf-simple-mode",value?"0":"1");return !value;});
   }
-  async function logout() {
-    if (logoutBusy) return;
-    setLogoutBusy(true);
-    try {
-      await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin", cache: "no-store" });
-    } finally {
-      window.location.replace("/login");
-    }
-  }
   if (!day) return null;
   const currentDate = dateParts(day.date);
   const dayNote = experience.notes.find((entry) => entry.dayId === day.id);
@@ -495,7 +485,7 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     <link rel="apple-touch-startup-image" href="/splash/iphone-1242x2688.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)"/>
     <PwaCompanion/>
     <a className="skipLink" href="#travel-main-content">Salta al contenuto del viaggio</a>
-    <header className="topbar"><div className="brand">{agencyLogo ? <img className="agencyLogo" src={agencyLogo} alt={`Logo ${experience.journey.agencyName}`}/> : <span className="brandMark">{initials(experience.journey.agencyName)}</span>}<div><strong>{experience.journey.agencyName}</strong><small>POWERED BY SMF TRAVEL</small></div></div><div className="tripDates"><CalendarDays/><span>{dateParts(experience.journey.startsOn).full} — {dateParts(experience.journey.endsOn).full}</span><i>{experience.days.length} gg</i></div><div className="people"><span className={`connectionStatus ${isOnline ? "online" : "offline"}`} role="status" aria-live="polite">{isOnline ? <Wifi/> : <WifiOff/>}<b>{isOnline ? (saving ? "Salvataggio…" : "Online") : "Solo consultazione"}</b></span><span className="currentUser"><i>{initials(userName)}</i><b>{userName}</b></span><div className="avatars">{experience.journey.travelers.slice(0, 4).map((traveler) => <i key={traveler.name}>{initials(traveler.name)}</i>)}</div>{isAgencyAdmin && <a className="agencyButton" href="/agenzia"><Building2/><span>Agenzia</span></a>}<button type="button" className="logoutButton" disabled={logoutBusy} onClick={() => void logout()}><LogOut/><span>{logoutBusy ? "Uscita…" : "Esci"}</span></button></div></header>
+    <header className="topbar"><div className="brand">{agencyLogo ? <img className="agencyLogo" src={agencyLogo} alt={`Logo ${experience.journey.agencyName}`}/> : <span className="brandMark">{initials(experience.journey.agencyName)}</span>}<div><strong>{experience.journey.agencyName}</strong><small>POWERED BY SMF TRAVEL</small></div></div><div className="tripDates"><CalendarDays/><span>{dateParts(experience.journey.startsOn).full} — {dateParts(experience.journey.endsOn).full}</span><i>{experience.days.length} gg</i></div><div className="people"><span className={`connectionStatus ${isOnline ? "online" : "offline"}`} role="status" aria-live="polite">{isOnline ? <Wifi/> : <WifiOff/>}<b>{isOnline ? (saving ? "Salvataggio…" : "Online") : "Solo consultazione"}</b></span><span className="currentUser"><i>{initials(userName)}</i><b>{userName}</b></span><div className="avatars">{experience.journey.travelers.slice(0, 4).map((traveler) => <i key={traveler.name}>{initials(traveler.name)}</i>)}</div>{isAgencyAdmin && <a className="agencyButton" href="/agenzia"><Building2/><span>Agenzia</span></a>}<a className="logoutButton" href="/api/auth/logout"><LogOut/><span>Esci</span></a></div></header>
     {experience.availableJourneys.length > 1 && <nav className="journeyPicker">{experience.availableJourneys.map((journey) => <a className={journey.departureId === experience.journey.departureId ? "active" : ""} href={`/viaggio?partenza=${journey.departureId}`} key={journey.departureId}>{journey.title}<small>{dateParts(journey.startsOn).full}</small></a>)}</nav>}
     <section className="hero"><div className="heroTexture"/><div className="heroCopy"><p className="eyebrow">IL NOSTRO VIAGGIO</p><h1>{experience.journey.title}</h1><p>{experience.journey.destinationCountry} · {experience.journey.partyName}</p></div><div className="routeSummary"><div><strong>{experience.days.length}</strong><span>GIORNI</span></div><div><strong>{new Set(experience.days.flatMap((entry) => entry.cities.map((city) => city.name))).size}</strong><span>LOCALITÀ</span></div><div><strong>{experience.journey.travelers.length}</strong><span>VIAGGIATORI</span></div></div></section>
     <nav className="tabs" aria-label="Sezioni del viaggio"><button type="button" className={tab === "mappa" ? "active" : ""} aria-current={tab === "mappa" ? "page" : undefined} onClick={() => { setTab("mappa"); setMoreOpen(false); }}><Map/><span>Mappa</span></button><button type="button" className={tab === "programma" ? "active" : ""} aria-current={tab === "programma" ? "page" : undefined} onClick={() => { openProgramme(); setMoreOpen(false); }}><CalendarDays/><span>Programma</span></button><button type="button" className={tab === "documenti" ? "active" : ""} aria-current={tab === "documenti" ? "page" : undefined} onClick={() => { setTab("documenti"); setMoreOpen(false); }}><FileText/><span>Documenti</span></button><button type="button" aria-label="Spese, prelievi e cambi" className={tab === "spese" ? "active" : ""} aria-current={tab === "spese" ? "page" : undefined} onClick={() => { setTab("spese"); setMoreOpen(false); }}><Wallet/><span>Spese</span></button><button type="button" className={tab === "sfide" ? "active" : ""} aria-current={tab === "sfide" ? "page" : undefined} onClick={() => { setTab("sfide"); setMoreOpen(false); }}><Sparkles/><span>Sfide</span></button><button ref={moreButtonRef} type="button" className={moreOpen || ["ricordi", "info", "frasario"].includes(tab) ? "active" : ""} aria-expanded={moreOpen} aria-haspopup="true" aria-controls="travel-more-menu" onClick={() => setMoreOpen((value) => !value)}><CircleUserRound/><span>Altro</span></button></nav>

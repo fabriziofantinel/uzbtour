@@ -4,7 +4,7 @@ import { getAuthenticatedActor, IMPERSONATION_COOKIE } from "@/lib/current-user"
 import { endImpersonation } from "@/lib/platform/impersonation";
 import { AUTH_REFRESH_COOKIE, getAuthProvider } from "@/lib/auth/auth-provider";
 
-export async function POST(request: Request) {
+async function logout(request: Request) {
   const cookieStore = await cookies();
   const impersonationToken = cookieStore.get(IMPERSONATION_COOKIE)?.value;
   const actor = impersonationToken ? await getAuthenticatedActor() : null;
@@ -22,3 +22,6 @@ export async function POST(request: Request) {
   response.headers.set("Clear-Site-Data", '"cache", "storage"');
   return response;
 }
+
+export const GET = logout;
+export const POST = logout;
