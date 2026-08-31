@@ -2461,7 +2461,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
     gap: 11px;
     padding: 15px 0;
   }
-  .travelerRedesign .missionList > article > :is(.evidencePicker,.missionStatus,.missionOutcome) {
+  .travelerRedesign .missionList > article > :is(.evidencePicker,.missionStatus) {
     grid-column: 2;
     width: 100%;
     min-height: 48px;
