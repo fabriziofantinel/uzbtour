@@ -478,6 +478,7 @@ export default function TravelExperience({ initialExperience, userName, isAgency
   return <main className={`travelExperience travelerRedesign${largeText?" largeTextMode":""}${simpleMode?" simpleMode":""}`} style={brandStyle} data-design-contract="b0beb44b" data-design-thesis="sentiero-delle-tappe"
     onTouchStart={(event) => { const touch = event.touches[0]; gestureStart.current = { x: touch.clientX, y: touch.clientY, atTop: window.scrollY <= 2 }; }}
     onTouchEnd={(event) => { const start = gestureStart.current; const touch = event.changedTouches[0]; gestureStart.current = null; if (!start) return; const dx = touch.clientX - start.x, dy = touch.clientY - start.y; if (start.atTop && dy > 90 && Math.abs(dy) > Math.abs(dx) * 1.5) { window.location.reload(); return; } if (tab === "programma" && Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.4) selectDay(Math.max(0, Math.min(experience.days.length - 1, active + (dx < 0 ? 1 : -1)))); }}>
+    <link rel="manifest" href="/api/pwa/manifest" crossOrigin="use-credentials"/>
     <link rel="icon" href="/api/pwa/icon?size=192" sizes="192x192" type="image/png"/>
     <link rel="apple-touch-icon" href="/api/pwa/icon?size=192" sizes="192x192"/>
     <meta name="apple-mobile-web-app-title" content={experience.journey.agencyName}/>
