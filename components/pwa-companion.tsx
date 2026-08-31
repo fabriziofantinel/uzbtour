@@ -34,6 +34,7 @@ export default function PwaCompanion() {
   const [updateReady, setUpdateReady] = useState<ServiceWorker | null>(null);
   const [syncState, setSyncState] = useState<SyncState>("idle");
   const [pushAvailable, setPushAvailable] = useState(false);
+  const [pushError, setPushError] = useState("");
 
   useEffect(() => {
     if (!pathname.startsWith("/viaggio")) return;
@@ -53,7 +54,11 @@ export default function PwaCompanion() {
     void flushOfflineQueue();
     navigator.serviceWorker?.ready.then(async (registration) => {
       const existingSubscription = canUsePush ? await registration.pushManager.getSubscription() : null;
-      if (existingSubscription) setPushAvailable(!(await persistPushSubscription(existingSubscription)));
+      if (existingSubscription) {
+        const persisted = await persistPushSubscription(existingSubscription);
+        setPushAvailable(!persisted);
+        setPushError(persisted ? "" : "Attivazione non riuscita. Verifica la connessione e riprova.");
+      }
       if (registration.waiting) setUpdateReady(registration.waiting);
       registration.addEventListener("updatefound", () => {
         const worker = registration.installing;
@@ -82,13 +87,17 @@ export default function PwaCompanion() {
   }
 
   async function enablePush() {
+    setPushError("");
     const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     if (!key || Notification.permission === "denied") return;
     if (await Notification.requestPermission() !== "granted") return;
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.getSubscription()
       || await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: decodeVapidKey(key) });
-    if (!(await persistPushSubscription(subscription))) return;
+    if (!(await persistPushSubscription(subscription))) {
+      setPushError("Attivazione non riuscita. Verifica la connessione e riprova.");
+      return;
+    }
     setPushAvailable(false);
   }
 
@@ -100,6 +109,6 @@ export default function PwaCompanion() {
     </aside>}
     {updateReady && <aside className="pwaUpdateToast" role="status"><RefreshCw/><span><strong>Aggiornamento disponibile</strong><small>Ricarica per applicare la nuova versione.</small></span><button type="button" onClick={() => updateReady.postMessage({ type: "SKIP_WAITING" })}>Ricarica</button></aside>}
     {syncState !== "idle" && !(showInstallBanner && syncState === "complete") && <div className={`pwaSyncToast ${syncState}`} role="status">{syncState === "pending" ? "Modifiche salvate: sincronizzazione in attesa" : syncState === "complete" ? "Sincronizzazione completata" : "Alcune modifiche richiedono un nuovo tentativo"}</div>}
-    {pushAvailable && <button className="pwaPushButton" type="button" onClick={() => void enablePush()}><Bell/> Attiva avvisi di viaggio</button>}
+    {pushAvailable && <div className="pwaPushArea"><button className="pwaPushButton" type="button" onClick={() => void enablePush()}><Bell/> Attiva avvisi di viaggio</button>{pushError && <span className="pwaPushError" role="alert">{pushError}</span>}</div>}
   </>;
 }

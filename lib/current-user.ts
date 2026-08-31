@@ -10,6 +10,7 @@ export const IMPERSONATION_COOKIE = "smf_impersonation";
 
 export type CurrentUser = {
   id: string;
+  authSubject: string | null;
   name: string;
   initials: string;
   email: string;
@@ -39,6 +40,7 @@ export async function getAuthenticatedActor(): Promise<CurrentUser | null> {
     if (!platformUser) return null;
     return {
       id: platformUser.id,
+      authSubject: cognitoIdentity.subject,
       name: platformUser.name,
       initials: initialsFor(platformUser.name),
       email: platformUser.email,
@@ -62,6 +64,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   if (!target) return actor;
   return {
     id: target.id,
+    authSubject: null,
     name: target.name,
     initials: initialsFor(target.name),
     email: target.email,
