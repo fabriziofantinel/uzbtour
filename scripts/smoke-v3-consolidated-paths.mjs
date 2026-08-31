@@ -1,10 +1,12 @@
 import { neon } from "@neondatabase/serverless";
 
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) throw new Error("DATABASE_URL non configurata");
+const databaseUrl = process.env.DATABASE_RUNTIME_URL ?? process.env.DATABASE_URL ??
+  process.env.DATABASE_MIGRATION_URL ?? process.env.DATABASE_URL_UNPOOLED;
+if (!databaseUrl) throw new Error("DATABASE_RUNTIME_URL non configurata");
 
 const sql = neon(databaseUrl);
-const ownerSql = process.env.DATABASE_OWNER_URL ? neon(process.env.DATABASE_OWNER_URL) : null;
+const ownerUrl = process.env.DATABASE_MIGRATION_URL ?? process.env.DATABASE_OWNER_URL ?? process.env.DATABASE_URL_UNPOOLED;
+const ownerSql = ownerUrl ? neon(ownerUrl) : null;
 
 const [imports, programme, runtime, migrations] = await Promise.all([
   sql`
