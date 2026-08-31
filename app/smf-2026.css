@@ -2314,6 +2314,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
     backdrop-filter: blur(16px);
   }
   .travelerRedesign .tabs button { min-width: 0; min-height: 64px; padding: 7px 2px; font-size: 12px; }
+  .travelerRedesign .tabs button span { max-width: 100%; overflow: hidden; font-size: clamp(9px, 2.45vw, 11px); letter-spacing: -.02em; text-overflow: clip; white-space: nowrap; }
   .travelerRedesign .tabs button.active::after { inset: 0 24% auto; }
   .travelerRedesign .travelMainContent { min-height: calc(100svh - 62px); padding-bottom: calc(82px + env(safe-area-inset-bottom)); }
   .travelerRedesign .dashboard { display: block; min-height: auto; background: var(--smf-paper); }
