@@ -28,6 +28,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="it">
+      <head>
+        <link rel="manifest" href="/api/pwa/manifest?v=3" crossOrigin="use-credentials"/>
+      </head>
       <body className={`${manrope.variable} ${playfair.variable}`}>
         <ServiceWorkerRegister/>
         <ImpersonationBanner/>

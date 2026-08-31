@@ -46,6 +46,7 @@ assert.match(register, /register\("\/sw\.js", \{ scope: "\/", updateViaCache: "n
 const layout = await readFile("app/layout.tsx", "utf8");
 assert.doesNotMatch(layout, /manifest:/);
 assert.match(layout, /viewportFit: "cover"/);
+assert.match(layout, /rel="manifest" href="\/api\/pwa\/manifest\?v=3" crossOrigin="use-credentials"/);
 const dynamicManifest = await readFile("app/api/pwa/manifest/route.ts", "utf8");
 assert.match(dynamicManifest, /agencyName/);
 assert.match(dynamicManifest, /\/api\/pwa\/icon\?size=/);
@@ -53,7 +54,7 @@ const dynamicIcon = await readFile("app/api/pwa/icon/route.ts", "utf8");
 assert.match(dynamicIcon, /branding\.logoUrl/);
 assert.match(dynamicIcon, /resize\(/);
 const traveler = await readFile("app/viaggio/travel-experience.tsx", "utf8");
-assert.match(traveler, /rel="manifest" href="\/api\/pwa\/manifest" crossOrigin="use-credentials"/);
+assert.match(traveler, /<title>\{experience\.journey\.agencyName\}<\/title>/);
 assert.match(traveler, /rel="apple-touch-icon"/);
 assert.match(traveler, /apple-touch-startup-image/g);
 console.log(JSON.stringify({ status: "passed", manifest: true, icons: expectedImages.length, shortcuts: manifest.shortcuts.length, androidPrompt: true, iosGuide: true, serviceWorkerRegistration: true, updateFlow: true }));
