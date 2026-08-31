@@ -17,6 +17,15 @@ function decodeVapidKey(value: string) {
   return Uint8Array.from([...raw].map((character) => character.charCodeAt(0)));
 }
 
+async function persistPushSubscription(subscription: PushSubscription) {
+  const response = await fetch("/api/traveler/push-subscriptions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(subscription.toJSON()),
+  });
+  return response.ok;
+}
+
 export default function PwaCompanion() {
   const pathname = usePathname();
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
@@ -43,7 +52,8 @@ export default function PwaCompanion() {
     setPushAvailable(canUsePush && Notification.permission !== "denied");
     void flushOfflineQueue();
     navigator.serviceWorker?.ready.then(async (registration) => {
-      if (canUsePush && await registration.pushManager.getSubscription()) setPushAvailable(false);
+      const existingSubscription = canUsePush ? await registration.pushManager.getSubscription() : null;
+      if (existingSubscription) setPushAvailable(!(await persistPushSubscription(existingSubscription)));
       if (registration.waiting) setUpdateReady(registration.waiting);
       registration.addEventListener("updatefound", () => {
         const worker = registration.installing;
@@ -78,8 +88,7 @@ export default function PwaCompanion() {
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.getSubscription()
       || await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: decodeVapidKey(key) });
-    const response = await fetch("/api/traveler/push-subscriptions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(subscription.toJSON()) });
-    if (!response.ok) return;
+    if (!(await persistPushSubscription(subscription))) return;
     setPushAvailable(false);
   }
 
