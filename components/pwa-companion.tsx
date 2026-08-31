@@ -17,6 +17,13 @@ function decodeVapidKey(value: string) {
   return Uint8Array.from([...raw].map((character) => character.charCodeAt(0)));
 }
 
+function subscriptionUsesVapidKey(subscription: PushSubscription, expected: Uint8Array) {
+  const current = subscription.options.applicationServerKey;
+  if (!current) return false;
+  const bytes = new Uint8Array(current);
+  return bytes.length === expected.length && bytes.every((value, index) => value === expected[index]);
+}
+
 async function persistPushSubscription(subscription: PushSubscription) {
   const response = await fetch("/api/traveler/push-subscriptions", {
     method: "POST",
@@ -53,7 +60,14 @@ export default function PwaCompanion() {
     setPushAvailable(canUsePush && Notification.permission !== "denied");
     void flushOfflineQueue();
     navigator.serviceWorker?.ready.then(async (registration) => {
-      const existingSubscription = canUsePush ? await registration.pushManager.getSubscription() : null;
+      let existingSubscription = canUsePush ? await registration.pushManager.getSubscription() : null;
+      const configuredKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (existingSubscription && configuredKey && !subscriptionUsesVapidKey(existingSubscription, decodeVapidKey(configuredKey))) {
+        await existingSubscription.unsubscribe();
+        existingSubscription = null;
+        setPushAvailable(true);
+        setPushError("Gli avvisi devono essere riattivati dopo un aggiornamento di sicurezza.");
+      }
       if (existingSubscription) {
         const persisted = await persistPushSubscription(existingSubscription);
         setPushAvailable(!persisted);
@@ -92,8 +106,13 @@ export default function PwaCompanion() {
     if (!key || Notification.permission === "denied") return;
     if (await Notification.requestPermission() !== "granted") return;
     const registration = await navigator.serviceWorker.ready;
-    const subscription = await registration.pushManager.getSubscription()
-      || await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: decodeVapidKey(key) });
+    let subscription = await registration.pushManager.getSubscription();
+    const decodedKey = decodeVapidKey(key);
+    if (subscription && !subscriptionUsesVapidKey(subscription, decodedKey)) {
+      await subscription.unsubscribe();
+      subscription = null;
+    }
+    subscription ||= await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: decodedKey });
     if (!(await persistPushSubscription(subscription))) {
       setPushError("Attivazione non riuscita. Verifica la connessione e riprova.");
       return;
