@@ -125,6 +125,8 @@
     "db:migrate:v3:minor-guardianship": "node --env-file=.env.local scripts/migrate-v3-minor-guardianship-attestation.mjs --apply",
     "db:migrate:v3:group-privacy-archive:dry-run": "node --env-file=.env.local scripts/migrate-v3-group-privacy-safe-archive.mjs",
     "db:migrate:v3:group-privacy-archive": "node --env-file=.env.local scripts/migrate-v3-group-privacy-safe-archive.mjs --apply",
+    "db:migrate:v3:chat-analytics-policy:dry-run": "node --env-file=.env.local scripts/migrate-v3-operational-messages-analytics-policy.mjs",
+    "db:migrate:v3:chat-analytics-policy": "node --env-file=.env.local scripts/migrate-v3-operational-messages-analytics-policy.mjs --apply",
     "db:migrate:v3:photo-evidence-limit:dry-run": "node --env-file=.env.local scripts/migrate-v3-photo-evidence-attempt-limit.mjs",
     "db:migrate:v3:photo-evidence-limit": "node --env-file=.env.local scripts/migrate-v3-photo-evidence-attempt-limit.mjs --apply",
     "db:migrate:v3:photo-contest-lifecycle:dry-run": "node --env-file=.env.local scripts/migrate-v3-photo-contest-lifecycle.mjs",
