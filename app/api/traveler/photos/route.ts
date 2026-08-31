@@ -60,7 +60,7 @@ export async function POST(request: Request) {
       txn`SELECT set_config('app.agency_id',${agencyId},true)`,
       txn`INSERT INTO ops.audit_events(agency_id,actor_user_id,entity_type,entity_id,action,changes)
         VALUES(${agencyId},app.resolve_legacy_user_id(${user.id},${agencyId}),'media_asset',${mediaId},'privacy_attestation',
-        jsonb_build_object('departureId',${departureId},'partyId',${partyId},'minorConsentRequired',true))`,
+        jsonb_build_object('departureId',${departureId}::uuid,'partyId',${partyId}::uuid,'minorConsentRequired',true))`,
     ]);
     return NextResponse.json({ photo: {
       id: memory.id, mediaId, dayId, originalName,
