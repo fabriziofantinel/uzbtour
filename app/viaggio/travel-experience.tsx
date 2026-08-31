@@ -478,8 +478,9 @@ export default function TravelExperience({ initialExperience, userName, isAgency
   return <main className={`travelExperience travelerRedesign${largeText?" largeTextMode":""}${simpleMode?" simpleMode":""}`} style={brandStyle} data-design-contract="b0beb44b" data-design-thesis="sentiero-delle-tappe"
     onTouchStart={(event) => { const touch = event.touches[0]; gestureStart.current = { x: touch.clientX, y: touch.clientY, atTop: window.scrollY <= 2 }; }}
     onTouchEnd={(event) => { const start = gestureStart.current; const touch = event.changedTouches[0]; gestureStart.current = null; if (!start) return; const dx = touch.clientX - start.x, dy = touch.clientY - start.y; if (start.atTop && dy > 90 && Math.abs(dy) > Math.abs(dx) * 1.5) { window.location.reload(); return; } if (tab === "programma" && Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.4) selectDay(Math.max(0, Math.min(experience.days.length - 1, active + (dx < 0 ? 1 : -1)))); }}>
-    <link rel="icon" href="/icons/icon-192.png" sizes="192x192" type="image/png"/>
-    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180"/>
+    <link rel="icon" href="/api/pwa/icon?size=192" sizes="192x192" type="image/png"/>
+    <link rel="apple-touch-icon" href="/api/pwa/icon?size=192" sizes="192x192"/>
+    <meta name="apple-mobile-web-app-title" content={experience.journey.agencyName}/>
     <link rel="apple-touch-startup-image" href="/splash/iphone-1170x2532.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)"/>
     <link rel="apple-touch-startup-image" href="/splash/iphone-1290x2796.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)"/>
     <link rel="apple-touch-startup-image" href="/splash/iphone-1242x2688.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)"/>
