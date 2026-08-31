@@ -1,5 +1,5 @@
 /* SMF Travel service worker: bounded offline cache, sync bridge and Web Push. */
-const VERSION = "smf-pwa-v10";
+const VERSION = "smf-pwa-v11";
 const SHELL = `${VERSION}-shell`, DATA = `${VERSION}-data`, MAPS = `${VERSION}-maps`, MEDIA = `${VERSION}-media`;
 const OFFLINE_URL = "/offline.html";
 const SHELL_FILES = [OFFLINE_URL, "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
@@ -57,7 +57,7 @@ self.addEventListener("fetch", (event) => {
 self.addEventListener("sync", (event) => { if (event.tag === "smf-offline-mutations") event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => Promise.all(clients.map((client) => client.postMessage({ type: "FLUSH_OFFLINE_QUEUE" }))))); });
 self.addEventListener("push", (event) => {
   const data = event.data?.json() || {};
-  event.waitUntil(self.registration.showNotification(data.title || "SMF Travel", { body: data.body || "Hai un nuovo aggiornamento sul tuo viaggio.", icon: "/icons/icon-192.png", badge: "/icons/badge-96.png", tag: data.tag || "smf-travel-update", data: { url: data.url || "/viaggio" }, actions: [{ action: "open", title: "Apri il viaggio" }] }));
+  event.waitUntil(self.registration.showNotification(data.title || "SMF Travel", { body: data.body || "Hai un nuovo aggiornamento sul tuo viaggio.", icon: data.icon || "/icons/icon-192.png", tag: data.tag || "smf-travel-update", data: { url: data.url || "/viaggio" }, actions: [{ action: "open", title: "Apri il viaggio" }] }));
 });
 self.addEventListener("notificationclick", (event) => {
   event.notification.close(); const target = new URL(event.notification.data?.url || "/viaggio", self.location.origin).href;
