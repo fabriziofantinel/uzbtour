@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Award, Brain, Camera, Check, CheckCircle2, ChevronRight, Compass, Crown,
   Gamepad2, Grid3X3, LoaderCircle, Medal, RotateCcw, Send, Sparkles, Trophy, Upload, X, XCircle,
@@ -406,10 +407,10 @@ function MissionEvidencePhoto({ result, title }: {
   if (!result?.evidenceUrl) return null;
   return <>
     <button type="button" className="missionEvidenceLink" onClick={() => setOpen(true)} aria-label={`Visualizza l'ultima foto caricata per ${title}`}><span><Image src={result.evidenceUrl} alt={`Ultima foto caricata per ${title}`} fill sizes="72px" unoptimized/></span><small>Ultima foto</small></button>
-    {open && <div className="missionPhotoViewer" role="dialog" aria-modal="true" aria-label={`Ultima foto caricata per ${title}`} onClick={() => setOpen(false)}>
+    {open && createPortal(<div className="missionPhotoViewer" role="dialog" aria-modal="true" aria-label={`Ultima foto caricata per ${title}`} onClick={() => setOpen(false)}>
       <button type="button" className="missionPhotoViewerClose" aria-label="Chiudi la foto e torna alla missione" onClick={() => setOpen(false)}><X/></button>
       <div onClick={(event) => event.stopPropagation()}><Image src={result.evidenceUrl} alt={`Ultima foto caricata per ${title}`} fill sizes="100vw" unoptimized/></div>
-    </div>}
+    </div>, document.body)}
   </>;
 }
 
