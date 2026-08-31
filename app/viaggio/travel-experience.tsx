@@ -200,6 +200,10 @@ export default function TravelExperience({ initialExperience, userName, isAgency
       itemTitle: item.title, itemType: item.type,
     }))),
   ]), [experience.days]);
+  const offlineResourceUrls = useMemo(() => {
+    const logo=agencyLogoSource(experience.journey.agencyBranding.logoUrl,experience.journey.agencyId);
+    return [`/viaggio?partenza=${experience.journey.departureId}`,`/api/traveler/trip-data?partenza=${experience.journey.departureId}`,...(logo?[logo]:[]),...travelDocuments.map((document)=>document.downloadUrl)];
+  },[experience.journey.agencyBranding.logoUrl,experience.journey.agencyId,experience.journey.departureId,travelDocuments]);
   const localCurrency = destinationCurrency(experience.journey.destinationCountry);
   const localTimeZone = destinationTimeZone(experience.journey.destinationCountry, experience.journey.timezone);
   const displayedUsefulInfo = useMemo(() => usefulSections.map((section) => {
@@ -311,6 +315,14 @@ export default function TravelExperience({ initialExperience, userName, isAgency
       window.removeEventListener("offline", updateConnectionState);
     };
   }, []);
+
+  useEffect(()=>{
+    let current=true;
+    void Promise.all(offlineResourceUrls.map((url)=>caches.match(new Request(new URL(url,window.location.origin),{credentials:"include"})))).then((entries)=>{
+      if(current&&entries.every(Boolean))setOfflinePackage("ready");
+    }).catch(()=>undefined);
+    return()=>{current=false;};
+  },[offlineResourceUrls]);
 
   useEffect(() => {
     if (firstTabRender.current) {
@@ -446,9 +458,7 @@ export default function TravelExperience({ initialExperience, userName, isAgency
   }
   async function prepareOffline(){
     setOfflinePackage("downloading");setError("");
-    const logo=agencyLogoSource(experience.journey.agencyBranding.logoUrl,experience.journey.agencyId);
-    const urls=[window.location.href,`/api/traveler/trip-data?partenza=${experience.journey.departureId}`,...(logo?[logo]:[]),...travelDocuments.map((document)=>document.downloadUrl)];
-    try{const result=await downloadTripForOffline(urls,(done,total)=>setOfflineProgress({done,total}));setOfflinePackage("ready");if(result.skipped>0)setError(`Viaggio disponibile offline. ${result.skipped} ${result.skipped===1?"allegato richiede":"allegati richiedono"} la connessione.`);}
+    try{const result=await downloadTripForOffline(offlineResourceUrls,(done,total)=>setOfflineProgress({done,total}));setOfflinePackage("ready");if(result.skipped>0)setError(`Viaggio disponibile offline. ${result.skipped} ${result.skipped===1?"allegato richiede":"allegati richiedono"} la connessione.`);}
     catch(caught){setOfflinePackage("failed");setError(caught instanceof Error?caught.message:"Download offline non riuscito");}
   }
   async function openTravelDocument(event:MouseEvent<HTMLAnchorElement>,url:string,title:string){
@@ -568,7 +578,7 @@ export default function TravelExperience({ initialExperience, userName, isAgency
     </section>}
 
     {tab === "documenti" && <section className="collection documentsPage">
-      <header className="documentsHead"><div><Wallet/><span><small>DOCUMENT WALLET</small><h2>Voucher, biglietti e documenti</h2><p>Archivio privato del tuo gruppo, consultabile anche offline dopo il download.</p></span></div><div className="offlinePackageAction"><button type="button" disabled={offlinePackage==="downloading"} onClick={()=>void prepareOffline()}><Download/>{offlinePackage==="downloading"?`Download ${offlineProgress.done}/${offlineProgress.total}`:offlinePackage==="ready"?"Disponibile offline":"Scarica il viaggio"}</button><small>{travelDocuments.length} {travelDocuments.length === 1 ? "documento" : "documenti"}</small></div></header>
+      <header className="documentsHead"><div><Wallet/><span><small>DOCUMENT WALLET</small><h2>Voucher, biglietti e documenti</h2><p>Archivio privato del tuo gruppo, consultabile anche offline dopo il download.</p></span></div><div className="offlinePackageAction"><button type="button" disabled={offlinePackage==="downloading"||offlinePackage==="ready"||!isOnline} onClick={()=>void prepareOffline()}><Download/>{offlinePackage==="downloading"?`Download ${offlineProgress.done}/${offlineProgress.total}`:offlinePackage==="ready"?"Disponibile offline":!isOnline?"Connettiti per scaricare":"Scarica il viaggio"}</button><small>{travelDocuments.length} {travelDocuments.length === 1 ? "documento" : "documenti"}</small></div></header>
       {travelDocuments.length === 0 ? <div className="empty documentsEmpty"><FileText/><h3>Nessun documento disponibile</h3><p>L’agenzia non ha ancora allegato documenti per il tuo gruppo. Li troverai qui appena saranno pubblicati.</p><button type="button" onClick={() => setTab("programma")}>Torna al programma</button></div> : <div className="documentList">{travelDocuments.map((ticket) => {
         const DocumentIcon = itemPresentation(ticket.itemType).Icon;
         return <article key={ticket.id}><span className="documentIcon"><DocumentIcon/></span><span className="documentCopy"><small>GIORNO {ticket.dayNumber} · {dateParts(ticket.dayDate).full}</small><strong>{ticket.title}</strong><p>{ticket.itemTitle} · {ticket.dayTitle}</p></span><a href={ticket.downloadUrl} download aria-label={`Scarica ${ticket.title}`} onClick={(event)=>{trackAnalytics("document_download",{documentId:ticket.id,dayNumber:ticket.dayNumber});void openTravelDocument(event,ticket.downloadUrl,ticket.title);}}><Download/><span>Scarica</span></a></article>;
