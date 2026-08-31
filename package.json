@@ -6,6 +6,9 @@
     "node": ">=20.9.0"
   },
   "scripts": {
+    "db:migrate:v3:normalized-media:dry-run": "node --env-file=.env.local scripts/migrate-v3-normalized-media-registration.mjs",
+    "db:migrate:v3:normalized-media": "node --env-file=.env.local scripts/migrate-v3-normalized-media-registration.mjs --apply",
+    "acceptance:v3:traveler-engagement": "node --env-file=.env.local scripts/acceptance-v3-traveler-engagement.mjs",
     "db:migrate:v3:agency-analytics:dry-run": "node --env-file=.env.local scripts/migrate-v3-agency-product-analytics.mjs",
     "db:migrate:v3:agency-analytics": "node --env-file=.env.local scripts/migrate-v3-agency-product-analytics.mjs --apply",
     "db:migrate:v3:kpi-change-governance:dry-run": "node --env-file=.env.local scripts/migrate-v3-kpi-change-content-governance.mjs",
