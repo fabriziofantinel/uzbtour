@@ -514,8 +514,8 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 }
 .travelerRedesign .overviewDayList { margin-top: 24px; border-block: 1px solid var(--smf-line); scrollbar-width: none; }
 .travelerRedesign .overviewDayList::-webkit-scrollbar { display: none; }
-.travelerRedesign .overviewDayList button { min-height: 68px; border: 0; border-bottom: 1px solid var(--smf-line); border-radius: 0; background: transparent; }
-.travelerRedesign .overviewDayList button:last-child { border-bottom: 0; }
+.travelerRedesign .overviewDayList :is(button,a) { min-height: 68px; border: 0; border-bottom: 1px solid var(--smf-line); border-radius: 0; background: transparent; }
+.travelerRedesign .overviewDayList :is(button,a):last-child { border-bottom: 0; }
 .travelerRedesign .empty { border: 1px dashed #b8c3bf; border-radius: 16px; background: transparent; }
 
 .travelerRedesign .expenseHero {
@@ -2442,8 +2442,8 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   .travelerRedesign .challengeTabs::-webkit-scrollbar { display: none; }
   .travelerRedesign .challengeTabs button { min-height: 48px; padding: 0 13px; scroll-snap-align: center; }
   .travelerRedesign .challengeDayPicker {
-    margin: 0 -16px 22px;
-    padding: 4px 16px 9px;
+    margin: 0 0 22px;
+    padding: 4px 4px 9px;
     border-inline: 0;
     border-radius: 0;
     scroll-snap-type: x proximity;
