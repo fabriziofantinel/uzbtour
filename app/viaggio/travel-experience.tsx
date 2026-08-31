@@ -250,6 +250,7 @@ export default function TravelExperience({ initialExperience, userName, isAgency
   }),[experience.expenses,experience.journey.travelers]);
   const operationalPoints = useMemo<TripMapDay[]>(() => {
     const points = [
+      ...day.cities.filter((city) => city.latitude != null && city.longitude != null).map((city) => ({ title: city.name, city: city.name, lat: city.latitude!, lon: city.longitude! })),
       ...day.items.filter((item) => item.latitude != null && item.longitude != null).map((item) => ({ title: item.title, city: day.city || item.title, lat: item.latitude!, lon: item.longitude! })),
       ...day.sites.filter((site) => site.latitude != null && site.longitude != null).map((site) => ({ title: site.name, city: site.city || day.city, lat: site.latitude!, lon: site.longitude! })),
       ...day.hotels.filter((hotel) => hotel.latitude != null && hotel.longitude != null).map((hotel) => ({ title: hotel.name, city: hotel.city || day.city, lat: hotel.latitude!, lon: hotel.longitude! })),

@@ -2304,7 +2304,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
     top: auto;
     height: calc(70px + env(safe-area-inset-bottom));
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 0;
     padding: 0 5px env(safe-area-inset-bottom);
     border-top: 1px solid var(--smf-line);
