@@ -92,7 +92,13 @@ export async function POST(request: Request) {
     }
     const resultId=String(row.id);
     const attemptNumber=Number(row.attempt_number);
-    await getJobQueue().enqueue({actorId:user.id,agencyId,type:"photo-evidence.validate",idempotencyKey:`photo-evidence:${resultId}`,payload:{userId:user.id,departureId,partyId,dayId,itemId:contentId,mediaId,resultId,attemptNumber}});
+    try {
+      await getJobQueue().enqueue({actorId:user.id,agencyId,type:"photo-evidence.validate",idempotencyKey:`photo-evidence:${resultId}`,payload:{userId:user.id,departureId,partyId,dayId,itemId:contentId,mediaId,resultId,attemptNumber}});
+    } catch (error) {
+      console.error("Accodamento validazione foto non riuscito", error);
+      return NextResponse.json({ id: resultId, status: "submitted", aiValidation: "queue_failed",
+        error: "Foto registrata; validazione AI temporaneamente in attesa" }, { status: 503 });
+    }
     return NextResponse.json({ id: resultId, status: "submitted", aiValidation:"queued", attemptNumber, attemptsRemaining:Number(row.attempts_remaining) });
   }
   if (body?.action === "reviewEvidence") {

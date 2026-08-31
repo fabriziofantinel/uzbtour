@@ -123,6 +123,8 @@
     "db:migrate:v3:web-push": "node --env-file=.env.local scripts/migrate-v3-web-push-subscriptions.mjs --apply",
     "db:migrate:v3:memory-privacy-audit:dry-run": "node --env-file=.env.local scripts/migrate-v3-memory-privacy-audit.mjs",
     "db:migrate:v3:memory-privacy-audit": "node --env-file=.env.local scripts/migrate-v3-memory-privacy-audit.mjs --apply",
+    "db:migrate:v3:traveler-job-scope:dry-run": "node --env-file=.env.local scripts/migrate-v3-traveler-job-scope.mjs",
+    "db:migrate:v3:traveler-job-scope": "node --env-file=.env.local scripts/migrate-v3-traveler-job-scope.mjs --apply",
     "db:migrate:v3:scheduled-push:dry-run": "node --env-file=.env.local scripts/migrate-v3-scheduled-push-delivery.mjs",
     "db:migrate:v3:scheduled-push": "node --env-file=.env.local scripts/migrate-v3-scheduled-push-delivery.mjs --apply",
     "db:migrate:v3:chat:dry-run": "node --env-file=.env.local scripts/migrate-v3-operational-chat.mjs",
