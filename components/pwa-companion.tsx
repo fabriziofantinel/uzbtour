@@ -39,9 +39,11 @@ export default function PwaCompanion() {
     const guideTimer = window.setTimeout(() => {
       if (isAndroid() && !standalone) setShowAndroidGuide(true);
     }, 1800);
-    setPushAvailable("Notification" in window && "PushManager" in window && Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY));
+    const canUsePush = "Notification" in window && "PushManager" in window && Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY);
+    setPushAvailable(canUsePush && Notification.permission !== "denied");
     void flushOfflineQueue();
-    navigator.serviceWorker?.ready.then((registration) => {
+    navigator.serviceWorker?.ready.then(async (registration) => {
+      if (canUsePush && await registration.pushManager.getSubscription()) setPushAvailable(false);
       if (registration.waiting) setUpdateReady(registration.waiting);
       registration.addEventListener("updatefound", () => {
         const worker = registration.installing;
@@ -74,8 +76,10 @@ export default function PwaCompanion() {
     if (!key || Notification.permission === "denied") return;
     if (await Notification.requestPermission() !== "granted") return;
     const registration = await navigator.serviceWorker.ready;
-    const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: decodeVapidKey(key) });
-    await fetch("/api/traveler/push-subscriptions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(subscription.toJSON()) });
+    const subscription = await registration.pushManager.getSubscription()
+      || await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: decodeVapidKey(key) });
+    const response = await fetch("/api/traveler/push-subscriptions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(subscription.toJSON()) });
+    if (!response.ok) return;
     setPushAvailable(false);
   }
 
