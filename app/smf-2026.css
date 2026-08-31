@@ -161,7 +161,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 }
 .travelerRedesign .agencyButton,
 .travelerRedesign .logoutButton {
-  min-height: 42px;
+  min-height: 48px;
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -1348,7 +1348,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   scrollbar-width: thin;
 }
 .travelerRedesign :is(.challengeTabs,.challengeDayPicker,.quizDayList,.contestDayPicker,.phraseCategories) button {
-  min-height: 42px;
+  min-height: 48px;
   flex: 0 0 auto;
   padding: 0 13px;
   border: 0;
@@ -1357,6 +1357,13 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   background: transparent;
   font-size: 12px;
   font-weight: 750;
+}
+
+.travelerRedesign .puzzleStatus button {
+  min-width: 48px;
+  min-height: 48px;
+  justify-content: center;
+  padding: 0 12px;
 }
 .travelerRedesign :is(.challengeTabs,.challengeDayPicker,.quizDayList,.contestDayPicker,.phraseCategories) button.active,
 .travelerRedesign :is(.challengeTabs,.challengeDayPicker,.quizDayList,.contestDayPicker,.phraseCategories) button[aria-pressed="true"] {
