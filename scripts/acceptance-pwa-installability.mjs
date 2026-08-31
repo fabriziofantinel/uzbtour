@@ -37,6 +37,8 @@ assert.match(companion, /beforeinstallprompt/);
 assert.match(companion, /event\.preventDefault\(\)/);
 assert.match(companion, /installPrompt\.prompt\(\)/);
 assert.match(companion, /Aggiungi alla schermata Home/);
+assert.match(companion, /Installa app/);
+assert.match(companion, /sessionStorage/);
 assert.match(companion, /display-mode: standalone/);
 assert.match(companion, /SKIP_WAITING/);
 const register = await readFile("components/service-worker-register.tsx", "utf8");

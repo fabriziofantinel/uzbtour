@@ -48,6 +48,17 @@ body {
   padding-right: env(safe-area-inset-right);
   overscroll-behavior-y: none;
 }
+@media (max-width: 700px) and (pointer: coarse) {
+  html,
+  body {
+    height: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: auto;
+    touch-action: auto;
+  }
+  .travelExperience { touch-action: auto; }
+}
 button,
 input,
 textarea,

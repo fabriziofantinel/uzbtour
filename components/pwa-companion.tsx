@@ -9,6 +9,7 @@ type InstallPromptEvent = Event & { prompt(): Promise<void>; userChoice: Promise
 type SyncState = "idle" | "pending" | "complete" | "failed";
 
 function isIos() { return /iphone|ipad|ipod/i.test(navigator.userAgent); }
+function isAndroid() { return /android/i.test(navigator.userAgent); }
 function isStandalone() { return window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true; }
 function decodeVapidKey(value: string) {
   const padding = "=".repeat((4 - value.length % 4) % 4);
@@ -20,6 +21,7 @@ export default function PwaCompanion() {
   const pathname = usePathname();
   const [installPrompt, setInstallPrompt] = useState<InstallPromptEvent | null>(null);
   const [showIos, setShowIos] = useState(false);
+  const [showAndroidGuide, setShowAndroidGuide] = useState(false);
   const [updateReady, setUpdateReady] = useState<ServiceWorker | null>(null);
   const [syncState, setSyncState] = useState<SyncState>("idle");
   const [pushAvailable, setPushAvailable] = useState(false);
@@ -32,7 +34,11 @@ export default function PwaCompanion() {
     window.addEventListener("beforeinstallprompt", onPrompt);
     window.addEventListener("smf:sync-state", onSync);
     window.addEventListener("online", onOnline);
-    setShowIos(isIos() && !isStandalone() && localStorage.getItem("smf-install-dismissed") !== "1");
+    const standalone = isStandalone();
+    setShowIos(isIos() && !standalone && sessionStorage.getItem("smf-install-dismissed") !== "1");
+    const guideTimer = window.setTimeout(() => {
+      if (isAndroid() && !standalone) setShowAndroidGuide(true);
+    }, 1800);
     setPushAvailable("Notification" in window && "PushManager" in window && Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY));
     void flushOfflineQueue();
     navigator.serviceWorker?.ready.then((registration) => {
@@ -49,6 +55,7 @@ export default function PwaCompanion() {
       window.removeEventListener("smf:sync-state", onSync);
       window.removeEventListener("online", onOnline);
       navigator.serviceWorker?.removeEventListener("controllerchange", onController);
+      window.clearTimeout(guideTimer);
     };
   }, [pathname]);
 
@@ -72,10 +79,10 @@ export default function PwaCompanion() {
   }
 
   return <>
-    {(installPrompt || showIos) && <aside className="pwaInstallBanner" aria-label="Installa SMF Travel">
-      <Download aria-hidden="true"/><div><strong>Porta il viaggio sempre con te</strong><span>{showIos ? <>Tocca <Share aria-label="Condividi"/> e poi “Aggiungi alla schermata Home”.</> : "Installa l’app per usare programma e documenti anche offline."}</span></div>
+    {(installPrompt || showIos || showAndroidGuide) && <aside className="pwaInstallBanner" aria-label="Installa l’app del viaggio">
+      <Download aria-hidden="true"/><div><strong>Porta il viaggio sempre con te</strong><span>{showIos ? <>Tocca <Share aria-label="Condividi"/> e poi “Aggiungi alla schermata Home”.</> : showAndroidGuide && !installPrompt ? <>In Chrome apri il menu <b>⋮</b> e scegli “Installa app” o “Aggiungi a schermata Home”.</> : "Installa l’app per usare programma e documenti anche offline."}</span></div>
       {installPrompt && <button type="button" onClick={() => void install()}>Installa</button>}
-      <button type="button" className="pwaDismiss" aria-label="Chiudi suggerimento" onClick={() => { setShowIos(false); setInstallPrompt(null); localStorage.setItem("smf-install-dismissed", "1"); }}><X/></button>
+      <button type="button" className="pwaDismiss" aria-label="Chiudi suggerimento" onClick={() => { setShowIos(false); setShowAndroidGuide(false); setInstallPrompt(null); sessionStorage.setItem("smf-install-dismissed", "1"); }}><X/></button>
     </aside>}
     {updateReady && <aside className="pwaUpdateToast" role="status"><RefreshCw/><span><strong>Aggiornamento disponibile</strong><small>Ricarica per applicare la nuova versione.</small></span><button type="button" onClick={() => updateReady.postMessage({ type: "SKIP_WAITING" })}>Ricarica</button></aside>}
     {syncState !== "idle" && <div className={`pwaSyncToast ${syncState}`} role="status">{syncState === "pending" ? "Modifiche salvate: sincronizzazione in attesa" : syncState === "complete" ? "Sincronizzazione completata" : "Alcune modifiche richiedono un nuovo tentativo"}</div>}
