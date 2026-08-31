@@ -1,5 +1,5 @@
 /* SMF Travel service worker: bounded offline cache, sync bridge and Web Push. */
-const VERSION = "smf-pwa-v9";
+const VERSION = "smf-pwa-v10";
 const SHELL = `${VERSION}-shell`, DATA = `${VERSION}-data`, MAPS = `${VERSION}-maps`, MEDIA = `${VERSION}-media`;
 const OFFLINE_URL = "/offline.html";
 const SHELL_FILES = [OFFLINE_URL, "/manifest.webmanifest", "/icons/icon-192.png", "/icons/icon-512.png"];
