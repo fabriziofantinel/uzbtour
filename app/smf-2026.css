@@ -233,7 +233,8 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
   font-weight: 750;
 }
 .travelerRedesign .tabs button:hover { color: var(--smf-ink); }
-.travelerRedesign .tabs button.active { color: var(--trail-primary); }
+.travelerRedesign .tabs button.active { color: #111111; }
+.travelerRedesign .tabs button.active svg { color: #111111; }
 .travelerRedesign .tabs button.active::after { height: 3px; background: var(--trail-primary); }
 
 .travelerRedesign .travelMainContent { min-height: calc(100svh - 264px); }
@@ -348,7 +349,7 @@ body::-webkit-scrollbar-thumb { border: 3px solid var(--smf-paper); border-radiu
 .travelerRedesign .programmeStep.withoutTypeIcon .programmeStepBody,
 .travelerRedesign .programmeStep.type-hotel .programmeStepBody { grid-column: 3; }
 .travelerRedesign .programmeStepBody h4 { margin: 6px 0; font: 700 20px/1.25 var(--font-serif), serif; }
-.travelerRedesign .programmeStepMeta small { color: var(--trail-primary); letter-spacing: .05em; }
+.travelerRedesign .programmeStepMeta small { color: #111111; letter-spacing: .05em; }
 .travelerRedesign .programmeStep.is-current .programmeStepIcon {
   color: var(--agency-on-primary, white);
   background: var(--trail-primary);

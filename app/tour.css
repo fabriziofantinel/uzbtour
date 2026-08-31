@@ -4785,7 +4785,11 @@
 }
 
 .travelerRedesign .tabs button.active {
-  color: var(--trail-primary);
+  color: #111111;
+}
+
+.travelerRedesign .tabs button.active svg {
+  color: #111111;
 }
 
 .travelerRedesign .tabs button.active::after {
@@ -5039,7 +5043,7 @@
 }
 
 .travelerRedesign .programmeStepMeta small {
-  color: var(--trail-green);
+  color: #111111;
 }
 
 .travelerRedesign .programmeStepMeta time {
