@@ -280,7 +280,7 @@ function ContestCard({
               }</span>
               <input
                 type="file"
-                accept="image/*,.heic,.heif"
+                accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
                 multiple
                 disabled={uploading || remaining === 0 || processing}
                 onChange={(event) => {

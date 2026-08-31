@@ -391,5 +391,5 @@ function ChallengeEmpty({ icon, title, copy }: { icon: React.ReactNode; title: s
 }
 
 function PhotoPicker({ label, busy, disabled = false, onFile }: { label: string; busy: boolean; disabled?: boolean; onFile: (file: File) => void }) {
-  return <label className={`evidencePicker ${disabled ? "disabled" : ""}`}>{busy ? <LoaderCircle className="spin"/> : <Upload/>}{label}<input type="file" accept="image/*,.heic,.heif" capture="environment" disabled={busy || disabled} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if(file&&confirm("Confermi di avere il consenso delle persone riconoscibili nella foto? Per i minori serve il consenso del genitore o tutore."))onFile(file); }}/></label>;
+  return <label className={`evidencePicker ${disabled ? "disabled" : ""}`}>{busy ? <LoaderCircle className="spin"/> : <Upload/>}{label}<input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif" disabled={busy || disabled} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if(file&&confirm("Confermi di avere il consenso delle persone riconoscibili nella foto? Per i minori serve il consenso del genitore o tutore."))onFile(file); }}/></label>;
 }

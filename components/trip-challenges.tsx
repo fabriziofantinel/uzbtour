@@ -149,8 +149,7 @@ function EvidencePicker({
       {label}
       <input
         type="file"
-        accept="image/*,.heic,.heif"
-        capture="environment"
+        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
         disabled={disabled}
         onChange={(event) => {
           const file = event.target.files?.[0];
@@ -319,7 +318,7 @@ function BingoBoard({
                     aria-label={`Nota per ${item.title}`}
                   />
                   <EvidencePicker
-                    label={submission?.status === "rejected" ? "Nuova foto" : "Fotografa"}
+                    label={submission?.status === "rejected" ? "Scegli un'altra foto" : "Scegli foto"}
                     disabled={Boolean(uploadingKey)}
                     busy={uploadingKey === key}
                     onFile={(file) => void uploadEvidence({
