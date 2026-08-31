@@ -60,6 +60,7 @@ export default function PwaCompanion() {
   }, [pathname]);
 
   if (!pathname.startsWith("/viaggio")) return null;
+  const showInstallBanner = Boolean(installPrompt || showIos || showAndroidGuide);
 
   async function install() {
     if (!installPrompt) return;
@@ -79,13 +80,13 @@ export default function PwaCompanion() {
   }
 
   return <>
-    {(installPrompt || showIos || showAndroidGuide) && <aside className="pwaInstallBanner" aria-label="Installa l’app del viaggio">
+    {showInstallBanner && <aside className="pwaInstallBanner" aria-label="Installa l’app del viaggio">
       <Download aria-hidden="true"/><div><strong>Porta il viaggio sempre con te</strong><span>{showIos ? <>Tocca <Share aria-label="Condividi"/> e poi “Aggiungi alla schermata Home”.</> : showAndroidGuide && !installPrompt ? <>In Chrome apri il menu <b>⋮</b> e scegli “Installa app” o “Aggiungi a schermata Home”.</> : "Installa l’app per usare programma e documenti anche offline."}</span></div>
       {installPrompt && <button type="button" onClick={() => void install()}>Installa</button>}
       <button type="button" className="pwaDismiss" aria-label="Chiudi suggerimento" onClick={() => { setShowIos(false); setShowAndroidGuide(false); setInstallPrompt(null); sessionStorage.setItem("smf-install-dismissed", "1"); }}><X/></button>
     </aside>}
     {updateReady && <aside className="pwaUpdateToast" role="status"><RefreshCw/><span><strong>Aggiornamento disponibile</strong><small>Ricarica per applicare la nuova versione.</small></span><button type="button" onClick={() => updateReady.postMessage({ type: "SKIP_WAITING" })}>Ricarica</button></aside>}
-    {syncState !== "idle" && <div className={`pwaSyncToast ${syncState}`} role="status">{syncState === "pending" ? "Modifiche salvate: sincronizzazione in attesa" : syncState === "complete" ? "Sincronizzazione completata" : "Alcune modifiche richiedono un nuovo tentativo"}</div>}
+    {syncState !== "idle" && !(showInstallBanner && syncState === "complete") && <div className={`pwaSyncToast ${syncState}`} role="status">{syncState === "pending" ? "Modifiche salvate: sincronizzazione in attesa" : syncState === "complete" ? "Sincronizzazione completata" : "Alcune modifiche richiedono un nuovo tentativo"}</div>}
     {pushAvailable && <button className="pwaPushButton" type="button" onClick={() => void enablePush()}><Bell/> Attiva avvisi di viaggio</button>}
   </>;
 }

@@ -7,7 +7,8 @@ export async function GET() {
   const branding = await getTravelerPwaBranding();
   const name = branding?.agencyName || "SMF Travel";
   const color = branding?.primaryColor || "#247a6b";
-  const icon = (size: 192 | 512) => branding ? `/api/pwa/icon?size=${size}` : `/icons/icon-${size}.png`;
+  const logoSource = branding?.logoUrl ? Buffer.from(branding.logoUrl, "utf8").toString("base64url") : "";
+  const icon = (size: 192 | 512) => logoSource ? `/api/pwa/icon?size=${size}&source=${encodeURIComponent(logoSource)}` : `/icons/icon-${size}.png`;
   return NextResponse.json({
     id: branding ? `/viaggio?agenzia=${encodeURIComponent(branding.agencyId)}` : "/viaggio",
     name,

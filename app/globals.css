@@ -69,6 +69,7 @@ button {
   cursor: pointer;
   touch-action: manipulation;
 }
+.logoutForm{margin:0}
 @media (pointer: coarse) {
   :is(button, [role="button"], input, select, textarea, a) { min-height: 48px; }
 }

@@ -99,7 +99,7 @@ export async function flushOfflineQueue() {
     }
   }
   const pending = (await pendingMutations()).length;
-  window.dispatchEvent(new CustomEvent("smf:sync-state", { detail: { state: pending ? "pending" : "complete", completed } }));
+  window.dispatchEvent(new CustomEvent("smf:sync-state", { detail: { state: pending ? "pending" : completed > 0 ? "complete" : "idle", completed } }));
   return { completed, pending };
 }
 

@@ -50,9 +50,11 @@ assert.match(layout, /rel="manifest" href="\/api\/pwa\/manifest\?v=3" crossOrigi
 const dynamicManifest = await readFile("app/api/pwa/manifest/route.ts", "utf8");
 assert.match(dynamicManifest, /agencyName/);
 assert.match(dynamicManifest, /\/api\/pwa\/icon\?size=/);
+assert.match(dynamicManifest, /source=/);
 const dynamicIcon = await readFile("app/api/pwa/icon/route.ts", "utf8");
-assert.match(dynamicIcon, /branding\.logoUrl/);
+assert.match(dynamicIcon, /branding\?\.logoUrl/);
 assert.match(dynamicIcon, /resize\(/);
+assert.match(dynamicIcon, /base64url/);
 const traveler = await readFile("app/viaggio/travel-experience.tsx", "utf8");
 assert.match(traveler, /<title>\{experience\.journey\.agencyName\}<\/title>/);
 assert.match(traveler, /rel="apple-touch-icon"/);

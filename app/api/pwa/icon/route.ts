@@ -7,13 +7,18 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const size = new URL(request.url).searchParams.get("size") === "512" ? 512 : 192;
+  const requestUrl = new URL(request.url);
+  const size = requestUrl.searchParams.get("size") === "512" ? 512 : 192;
+  const encodedSource = requestUrl.searchParams.get("source") || "";
   const branding = await getTravelerPwaBranding();
-  const expectedPrefix = branding ? `r2://agencies/${branding.agencyId}/branding/` : "";
-  if (!branding?.logoUrl.startsWith(expectedPrefix)) {
+  let logoUrl = branding?.logoUrl || "";
+  if (!logoUrl && encodedSource) {
+    try { logoUrl = Buffer.from(encodedSource, "base64url").toString("utf8"); } catch { logoUrl = ""; }
+  }
+  if (!/^r2:\/\/agencies\/[0-9a-f-]{36}\/branding\/[0-9a-f-]{36}\.(png|jpe?g|webp)$/i.test(logoUrl)) {
     return NextResponse.redirect(new URL(`/icons/icon-${size}.png`, request.url));
   }
-  const key = branding.logoUrl.slice("r2://".length);
+  const key = logoUrl.slice("r2://".length);
   if (!/^agencies\/[0-9a-f-]{36}\/branding\/[0-9a-f-]{36}\.(png|jpe?g|webp)$/i.test(key)) {
     return NextResponse.redirect(new URL(`/icons/icon-${size}.png`, request.url));
   }
@@ -29,7 +34,7 @@ export async function GET(request: Request) {
       .composite([{ input: logo, gravity: "center" }])
       .png()
       .toBuffer();
-    return new NextResponse(new Uint8Array(image), { headers: { "Content-Type": "image/png", "Cache-Control": "private, max-age=3600", Vary: "Cookie" } });
+    return new NextResponse(new Uint8Array(image), { headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400, immutable" } });
   } catch {
     return NextResponse.redirect(new URL(`/icons/icon-${size}.png`, request.url));
   }
