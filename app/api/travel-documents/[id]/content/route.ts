@@ -19,6 +19,17 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     return NextResponse.json({ error: "Storage non coerente" }, { status: 409 });
   }
   const filename = asset.originalName.replace(/["\r\n]/g, "");
+  if (request.headers.get("x-smf-offline-package") === "1") {
+    const object = await storage.get(asset.objectKey);
+    return new Response(Buffer.from(object.bytes), {
+      headers: {
+        "Content-Type": asset.contentType,
+        "Content-Disposition": `inline; filename="${filename}"`,
+        "Cache-Control": "private, max-age=0, must-revalidate",
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  }
   const url = await storage.createDownloadUrl(asset.objectKey, 5 * 60, {
     contentType: asset.contentType,
     contentDisposition: `attachment; filename="${filename}"`,
