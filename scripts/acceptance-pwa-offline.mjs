@@ -53,7 +53,7 @@ async function dispatchWait(type, data = {}) {
   await pending;
 }
 await dispatchWait("install");
-assert.ok(await (await caches.open("smf-pwa-v8-shell")).match("https://smf.test/offline.html"));
+assert.ok(await (await caches.open("smf-pwa-v9-shell")).match("https://smf.test/offline.html"));
 
 const messages = [];
 await dispatchWait("message", {
@@ -90,6 +90,6 @@ listeners.get("fetch")({
 assert.equal(privateNavigationResponse, undefined, "Il back-office autenticato non deve essere servito dalla cache PWA");
 
 await dispatchWait("message", { data: { type: "CLEAR_PRIVATE_CACHES" } });
-assert.equal(await (await caches.open("smf-pwa-v8-data")).keys().then((keys) => keys.length), 0);
-assert.equal(await (await caches.open("smf-pwa-v8-media")).keys().then((keys) => keys.length), 0);
+assert.equal(await (await caches.open("smf-pwa-v9-data")).keys().then((keys) => keys.length), 0);
+assert.equal(await (await caches.open("smf-pwa-v9-media")).keys().then((keys) => keys.length), 0);
 console.log(JSON.stringify({ status: "passed", cachedResources: 3, offlineProgramme: true, offlineTripData: true, offlineDocument: true, privateBackOfficeExcluded: true, privateCacheCleared: true }));
