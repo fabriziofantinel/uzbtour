@@ -109,6 +109,16 @@
 .dailyGameCard.interactiveGame{display:flex;flex-direction:column;min-height:330px}.dailyGameCard.interactiveGame.solved{border-color:var(--text-subtle);background:var(--surface-success)}.interactiveGame>header>span{font-family:var(--font-serif);font-size:20px;font-weight:900}.gameAnswerBox{margin-top:auto;padding-top:14px}.gameAnswerBox>label{display:block;margin-bottom:5px;color:var(--rust);font-size:var(--text-caption);font-weight:900;letter-spacing:1px}.gameAnswerBox>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px}.gameAnswerBox input{min-width:0;padding:10px;border:1px solid var(--line);border-radius:9px;background:var(--surface-raised);font-size:var(--text-meta)}.gameAnswerBox button{display:flex;align-items:center;justify-content:center;gap:5px;padding:9px 11px;color:var(--on-brand);border:0;border-radius:9px;background:var(--teal);font-size:var(--text-caption);font-weight:900}.gameAnswerBox button:disabled{opacity:.55}.gameAnswerBox button svg{width:14px}.gameFeedback{margin:9px 0 0!important;padding:9px;border-radius:8px;font-weight:800}.gameFeedback.correct{color:var(--success);background:var(--surface-brand)}.gameFeedback.wrong{color:var(--rust-deep);background:var(--surface-danger)}.gamesNotice{padding:14px;color:var(--muted);border-radius:10px;background:var(--cream);font-size:var(--text-meta);text-align:center}
 .gameVisitHint{margin:14px 0 0;padding:11px;color:var(--gold-deep);border-radius:10px;background:var(--surface-warning);font-size:var(--text-meta)}.gameVisitHint strong{color:var(--rust);font-family:var(--font-serif);font-size:18px}
 @media(max-width:700px){.bingoAwards{grid-template-columns:1fr 1fr}.tombolaScroller{margin-right:-14px;margin-left:-14px;padding-right:14px;padding-left:14px}.dailyGameCard.interactiveGame{min-height:0}.gameAnswerBox>div{grid-template-columns:1fr}.gameAnswerBox button{min-height:42px}}
+@media(max-width:700px){
+  .tombolaScroller{margin:0;padding:2px 0 8px;overflow:visible}
+  .tombolaCard{width:100%;min-width:0;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:none;grid-auto-rows:minmax(190px,auto);gap:8px;padding:8px;border-width:3px}
+  .tombolaBlank{display:none}
+  .tombolaCard>article{min-height:190px;padding:12px}
+  .tombolaCard article>strong{overflow:visible;font-size:14px;line-height:1.35;overflow-wrap:break-word;word-break:normal}
+  .tombolaCard .missionEvidenceLink{display:flex;grid-template-columns:none;min-height:48px;white-space:nowrap}
+  .tombolaCard .evidencePicker{min-height:48px;white-space:nowrap}
+  .bingoRules{padding:0 6px;font-size:13px;line-height:1.5}
+}
 
 /* Hub visibile del contest fotografico */
 .contestHub{display:grid;gap:16px}

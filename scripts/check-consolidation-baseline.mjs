@@ -7,7 +7,7 @@ const root=resolve(fileURLToPath(new URL("..",import.meta.url)));
 const immutableMigrationMax=59;
 const expected={
   database:{count:45,digest:"8e3010cd3035f2fe7ab8d71db5d4524eb4650d9288cf35f2f279098e3439f69b"},
-  layout:{count:57,digest:"55a6c76436689f2bfadd3c0900bb48154766a6aca739354abb05159801f2addf"},
+  layout:{count:57,digest:"e77b270a75017cd027980dfc0adfe58081a98625298f3f45a8280aea6e464530"},
 };
 
 async function filesBelow(directory,predicate){
