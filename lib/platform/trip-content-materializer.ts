@@ -24,13 +24,17 @@ function arrayContent(value: unknown): Array<Record<string, unknown>> {
 }
 function text(value: unknown) { return typeof value === "string" ? value.trim() : ""; }
 function record(value: unknown): Record<string, unknown> { return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
-async function applyUsefulInformationGovernance(agencyId:string,versionId:string){
-  await getSql()`UPDATE travel.template_useful_information SET
-    source_name=CASE WHEN COALESCE(url,'')<>'' THEN 'Fonte ufficiale indicata' ELSE NULL END,
-    source_url=NULLIF(url,''),source_retrieved_at=clock_timestamp(),review_status='needs_review',verified_at=NULL,
-    expires_at=clock_timestamp()+CASE WHEN lower(category)~'(salute|document|sicurezza|emergenza|ambasciata)' THEN interval '7 days' ELSE interval '90 days' END,
-    disclaimer='Contenuto informativo generato con supporto AI e soggetto a verifica dell’agenzia. Per salute, sicurezza e requisiti di ingresso consulta sempre la fonte ufficiale.'
-    WHERE agency_id=${agencyId} AND template_version_id=${versionId}`;
+async function applyUsefulInformationGovernance(jobId:string,agencyId:string,versionId:string){
+  const sql=getSql();
+  await sql.transaction((txn)=>[
+    txn`SELECT set_config('app.materialization_job_id',${jobId},true)`,
+    txn`UPDATE travel.template_useful_information SET
+      source_name=CASE WHEN COALESCE(url,'')<>'' THEN 'Fonte ufficiale indicata' ELSE NULL END,
+      source_url=NULLIF(url,''),source_retrieved_at=clock_timestamp(),review_status='needs_review',verified_at=NULL,
+      expires_at=clock_timestamp()+CASE WHEN lower(category)~'(salute|document|sicurezza|emergenza|ambasciata)' THEN interval '7 days' ELSE interval '90 days' END,
+      disclaimer='Contenuto informativo generato con supporto AI e soggetto a verifica dell’agenzia. Per salute, sicurezza e requisiti di ingresso consulta sempre la fonte ufficiale.'
+      WHERE agency_id=${agencyId} AND template_version_id=${versionId}`,
+  ]);
 }
 
 export async function materializeTripUsefulInformation(jobId: string, templateId: string, agencyId: string) {
@@ -46,7 +50,7 @@ export async function materializeTripUsefulInformation(jobId: string, templateId
   if (usefulEntries.length === 0) throw new Error("Informazioni utili di riferimento non disponibili");
   const result = await sql`SELECT * FROM app.replace_trip_useful_information_v3(${jobId},${agencyId},${templateId},${JSON.stringify(usefulEntries)}::jsonb)`;
   if (!result[0]) throw new Error("Materializzazione delle informazioni utili non completata");
-  await applyUsefulInformationGovernance(agencyId,String(result[0].template_version_id));
+  await applyUsefulInformationGovernance(jobId,agencyId,String(result[0].template_version_id));
   return { versionId: String(result[0].template_version_id), generatedSections: Number(result[0].generated_sections) };
 }
 
@@ -193,6 +197,6 @@ export async function materializeTripExperience(jobId: string, templateId: strin
   const result = await sql`SELECT * FROM app.replace_trip_experience_v3(${jobId},${agencyId},${templateId},${JSON.stringify(usefulEntries)}::jsonb,${JSON.stringify(phraseEntries)}::jsonb,${JSON.stringify(activities)}::jsonb)`;
   if (!result[0]) throw new Error("Materializzazione dei contenuti non completata");
   await sql`SELECT app.apply_generated_useful_information_contacts_v3(${jobId},${agencyId},${templateId},${JSON.stringify(usefulEntries)}::jsonb)`;
-  await applyUsefulInformationGovernance(agencyId,String(result[0].template_version_id));
+  await applyUsefulInformationGovernance(jobId,agencyId,String(result[0].template_version_id));
   return { versionId: String(result[0].template_version_id), generatedSections: Number(result[0].generated_sections) };
 }
