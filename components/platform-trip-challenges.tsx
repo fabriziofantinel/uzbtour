@@ -404,7 +404,7 @@ export default function PlatformTripChallenges({ experience, userName, isAdmin, 
       const confirmed=closed||ownEntries.some((entry)=>["selected","completed","rejected"].includes(entry.status));
       const tiedWinner=publicEntries.find((entry)=>entry.isWinner&&entry.score!=null&&publicEntries.some((candidate)=>candidate.id!==entry.id&&candidate.score!=null&&Number(candidate.score)===Number(entry.score)));
       return <article className={`dualContestCard ${index===0?"free":"theme"}`} key={contest.id}><header><span>{index===0?<Camera/>:<Sparkles/>}</span><div><small>CONTEST {index+1} · {index===0?"TEMA LIBERO":"TEMA DEL GIORNO"}</small><h3>{contest.title}</h3><p>{text(contest.content,"description")}</p></div><b>{publicEntries.length} foto</b></header>
-        {publicEntries.length>0&&<div className="contestEntryGrid">{publicEntries.map((entry)=>entry.contentUrl&&<ContestPhotoDetails key={entry.id} entry={entry} title={contest.title} isOwn={entry.travelerName===userName} wonOnTie={tiedWinner?.id===entry.id}/>)}</div>}
+        {publicEntries.length>0&&<div className="contestEntryGrid">{publicEntries.map((entry)=>entry.contentUrl&&<ContestPhotoDetails key={entry.id} entry={entry} title={contest.title} isOwn={entry.travelerName===userName} isClosed={closed} wonOnTie={tiedWinner?.id===entry.id}/>)}</div>}
         {!confirmed&&!evaluating&&<><div className="contestDraftGrid">{[1,2].map((slot)=>{const draft=drafts.find((entry)=>entry.slot===slot);return <div key={slot}>{draft?.contentUrl?<><figure><div><Image src={draft.contentUrl} alt={`Foto ${slot} in bozza`} fill sizes="180px" unoptimized/></div><figcaption>Foto {slot} · modificabile</figcaption></figure><PhotoPicker busy={busy===`${contest.id}-photo`} label="Cambia foto" onFile={(file)=>void uploadEvidence(contest,day,file,slot)}/></>:<PhotoPicker busy={busy===`${contest.id}-photo`} label={`Carica foto ${slot}`} onFile={(file)=>void uploadEvidence(contest,day,file)}/>}</div>})}</div><div className="contestJudgeBar"><p>Solo dopo la conferma le foto vengono valutate dall’AI.</p><button type="button" disabled={drafts.length!==2||busy===`${contest.id}-confirm`} onClick={()=>void confirmPhotoContest(contest)}>{busy===`${contest.id}-confirm`?<LoaderCircle className="spin"/>:<Check/>} Conferma le due foto</button></div></>}
         {evaluating&&<div className="contestEvaluationPending"><LoaderCircle className="spin"/><strong>Valutazione AI in corso</strong><small>Verrà mostrata soltanto la foto con il punteggio migliore.</small></div>}
         {confirmed&&!closed&&!evaluating&&<div className="contestJudgeBar"><p><CheckCircle2/> Foto confermate. La migliore concorrerà alla classifica dopo la chiusura.</p></div>}
@@ -460,10 +460,11 @@ function ChallengeEmpty({ icon, title, copy }: { icon: React.ReactNode; title: s
   return <div className="challengeEmpty" role="status"><span>{icon}</span><div><h3>{title}</h3><p>{copy}</p></div></div>;
 }
 
-function ContestPhotoDetails({ entry, title, isOwn, wonOnTie }: {
+function ContestPhotoDetails({ entry, title, isOwn, isClosed, wonOnTie }: {
   entry: Experience["contestEntries"][number];
   title: string;
   isOwn: boolean;
+  isClosed: boolean;
   wonOnTie: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -477,6 +478,7 @@ function ContestPhotoDetails({ entry, title, isOwn, wonOnTie }: {
   }, [open]);
   if (!entry.contentUrl) return null;
   const scoreLabel = entry.score == null ? "Punteggio non disponibile" : `${entry.score}/100`;
+  const isFinalWinner = isClosed && entry.isWinner;
   const criteria = [
     ["Soggetto e racconto", entry.criteria.storytelling, 25],
     ["Composizione", entry.criteria.composition, 25],
@@ -485,16 +487,16 @@ function ContestPhotoDetails({ entry, title, isOwn, wonOnTie }: {
     ["Aderenza al tema", entry.criteria.relevance, 15],
   ] as const;
   return <>
-    <article className={`contestEntryPreview${isOwn ? " mine" : ""}${entry.isWinner ? " winner" : ""}`}>
+    <article className={`contestEntryPreview${isOwn ? " mine" : ""}${isFinalWinner ? " winner" : ""}`}>
       <button type="button" onClick={() => setOpen(true)} aria-label={`Apri foto, punteggio e giudizio di ${entry.travelerName}`}>
         <span className="contestEntryImage"><Image src={entry.contentUrl} alt={`Foto selezionata di ${entry.travelerName}`} fill sizes="180px" unoptimized/></span>
-        <span className="contestEntryCaption"><strong>{isOwn ? "La mia foto" : entry.travelerName}</strong><span>{scoreLabel}</span>{entry.isWinner && <small><Trophy/> Vincitrice{wonOnTie ? " per caricamento precedente" : ""}</small>}</span>
+        <span className="contestEntryCaption"><strong>{isOwn ? "La mia foto" : entry.travelerName}</strong><span>{scoreLabel}</span>{isFinalWinner ? <small><Trophy/> Vincitrice{wonOnTie ? " per caricamento precedente" : ""}</small> : <small>Foto candidata</small>}</span>
       </button>
     </article>
     {open && createPortal(<div className="contestPhotoViewer" role="dialog" aria-modal="true" aria-label={`Valutazione foto di ${entry.travelerName}`} onClick={() => setOpen(false)}>
       <button type="button" className="contestPhotoViewerClose" aria-label="Chiudi la foto e torna al contest" onClick={() => setOpen(false)}><X/></button>
       <div className="contestPhotoViewerImage" onClick={(event) => event.stopPropagation()}><Image src={entry.contentUrl} alt={`Foto del contest ${title} di ${entry.travelerName}`} fill sizes="(max-width: 520px) 100vw, 70vw" unoptimized/></div>
-      <aside className="contestPhotoViewerCopy" onClick={(event) => event.stopPropagation()}><small>{entry.isWinner ? "FOTO VINCITRICE" : isOwn ? "LA MIA FOTO" : "FOTO DEL CONTEST"}</small><h3>{title}</h3><span>{entry.travelerName}</span><strong>{scoreLabel}</strong>{criteria.some(([, value]) => value != null) && <dl className="contestPhotoCriteria">{criteria.map(([label,value,maximum]) => value == null ? null : <div key={label}><dt>{label}</dt><dd><span style={{width:`${Math.min(100,Number(value)/maximum*100)}%`}}/><b>{value}/{maximum}</b></dd></div>)}</dl>}<p>{entry.reason || "Il giudizio AI non è ancora disponibile."}</p>{wonOnTie && <div className="contestPhotoViewerTie">Parità di punteggio: questa foto ha vinto perché è stata caricata prima.</div>}</aside>
+      <aside className="contestPhotoViewerCopy" onClick={(event) => event.stopPropagation()}><small>{isFinalWinner ? "FOTO VINCITRICE" : "FOTO CANDIDATA"}</small><h3>{title}</h3><span>{entry.travelerName}</span><strong>{scoreLabel}</strong>{criteria.some(([, value]) => value != null) && <dl className="contestPhotoCriteria">{criteria.map(([label,value,maximum]) => value == null ? null : <div key={label}><dt>{label}</dt><dd><span style={{width:`${Math.min(100,Number(value)/maximum*100)}%`}}/><b>{value}/{maximum}</b></dd></div>)}</dl>}<p>{entry.reason || "Il giudizio AI non è ancora disponibile."}</p>{wonOnTie && <div className="contestPhotoViewerTie">Parità di punteggio: questa foto ha vinto perché è stata caricata prima.</div>}</aside>
     </div>, document.body)}
   </>;
 }
