@@ -74,7 +74,10 @@ export async function readV3ChallengeAnswerSpecs(input: {
        AND activity.template_version_id=item.template_version_id
       WHERE item.agency_id=${input.agencyId}
         AND item.template_version_id=${input.templateVersionId}
-        AND activity.template_day_id=${input.dayId}
+        AND (
+          activity.template_day_id=${input.dayId}
+          OR (activity.activity_type='bingo' AND activity.template_day_id IS NULL)
+        )
         AND activity.status='approved'
         AND item.id=ANY(${input.itemIds}::uuid[])
     `,
