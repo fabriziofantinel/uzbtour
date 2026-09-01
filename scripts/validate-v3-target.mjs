@@ -63,7 +63,9 @@ try {
   const result = inventory.rows[0];
   const shadowCoreInstalled = result.table_count >= 62;
   const shadowOperationalInstalled = result.table_count >= 65;
-  const expectedRlsTableCount = result.table_count >= 74
+  const expectedRlsTableCount = result.table_count >= 75
+    ? 61
+    : result.table_count >= 74
     ? 60
     : result.table_count >= 71
     ? 58
@@ -115,7 +117,7 @@ try {
     ).rows[0];
   }
   if (
-    ![60, 62, 65, 67, 68, 69, 70, 71, 74].includes(result.table_count) ||
+    ![60, 62, 65, 67, 68, 69, 70, 71, 74, 75].includes(result.table_count) ||
     result.rls_table_count !== expectedRlsTableCount ||
     result.unvalidated_constraints !== 0 ||
     result.invalid_indexes !== 0 ||
