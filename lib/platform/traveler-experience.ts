@@ -38,6 +38,17 @@ function withoutAnswerKeys(value: unknown) {
   return safe;
 }
 
+function contestCriteria(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const source = value as Record<string, unknown>;
+  const criteria: Record<string, number> = {};
+  for (const key of ["composition", "technical", "storytelling", "originality", "relevance"] as const) {
+    const score = Number(source[key]);
+    if (Number.isFinite(score) && score >= 0) criteria[key] = score;
+  }
+  return criteria;
+}
+
 export async function getTravelerExperience(userId: string, requestedDepartureId?: string) {
   const journeys = await readV3TravelerJourneys(userId);
   if (journeys.length === 0) return null;
@@ -272,6 +283,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       contentId: String(row.generated_content_id), mediaId: String(row.media_asset_id),
       slot: Number(row.participant_slot), status: String(row.status),
       score: row.score == null ? null : Number(row.score), reason: String(row.reason),
+      criteria: contestCriteria(row.criteria),
       isWinner: Boolean(row.is_winner), submittedAt: String(row.submitted_at),
       contentUrl: row.memory_id ? `/api/traveler/photos/${String(row.memory_id)}/content` : "",
     })),

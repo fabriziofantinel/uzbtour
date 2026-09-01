@@ -217,7 +217,8 @@ export async function readV3Gamification(input: {
         item.id::text AS generated_content_id, entry.media_asset_id::text,
         entry.participant_slot,
         CASE WHEN entry.status='ranked' THEN 'completed' ELSE entry.status END AS status,
-        judgement.score, COALESCE(judgement.reason,'') AS reason, entry.is_winner,
+        judgement.score, COALESCE(judgement.criteria,'{}'::jsonb) AS criteria,
+        COALESCE(judgement.reason,'') AS reason, entry.is_winner,
         entry.submitted_at::text, memory.id::text AS memory_id
       FROM journey.photo_contest_entries entry
       JOIN content.activity_items item
@@ -226,7 +227,7 @@ export async function readV3Gamification(input: {
       JOIN travel.traveler_profiles profile
         ON profile.id=entry.traveler_id AND profile.agency_id=entry.agency_id
       LEFT JOIN LATERAL (
-        SELECT judged.score,judged.reason
+        SELECT judged.score,judged.criteria,judged.reason
         FROM journey.photo_contest_judgements judged
         WHERE judged.agency_id=entry.agency_id AND judged.party_id=entry.party_id
           AND judged.activity_id=entry.activity_id AND judged.entry_id=entry.id
