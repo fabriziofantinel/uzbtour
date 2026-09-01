@@ -41,7 +41,8 @@ function withoutAnswerKeys(value: unknown) {
 function contestCriteria(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   const source = value as Record<string, unknown>;
-  const criteria: Record<string, number> = {};
+  const criteria: Record<string, number | boolean> = {};
+  if (typeof source.eligible === "boolean") criteria.eligible = source.eligible;
   for (const key of ["composition", "technical", "storytelling", "originality", "relevance"] as const) {
     const score = Number(source[key]);
     if (Number.isFinite(score) && score >= 0) criteria[key] = score;
