@@ -250,7 +250,28 @@ export default function PlatformTripChallenges({ experience, userName, isAdmin, 
       })});
       const result=await response.json()as{status?:string;error?:string};if(!response.ok)throw new Error(result.error||"Conferma non riuscita");
       setContestEntries((current)=>current.map((item)=>item.contentId===contest.id&&item.travelerName===userName&&item.status==="draft"?{...item,status:"evaluating"}:item));
+      void pollPhotoContest(contest.id);
     }catch(caught){setError(caught instanceof Error?caught.message:"Conferma non riuscita");}finally{setBusy("");}
+  }
+
+  async function pollPhotoContest(contentId: string) {
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      try {
+        const response = await fetch(`/api/traveler/trip-data?partenza=${encodeURIComponent(experience.journey.departureId)}`, {
+          cache: "no-store",
+        });
+        if (!response.ok) continue;
+        const fresh = await response.json() as Experience;
+        const ownEntries = fresh.contestEntries.filter((entry) => entry.contentId === contentId && entry.travelerName === userName);
+        if (ownEntries.length !== 2 || ownEntries.some((entry) => entry.status === "evaluating")) continue;
+        setContestEntries(fresh.contestEntries);
+        return;
+      } catch {
+        // Un errore transitorio non deve interrompere il controllo dell'esito.
+      }
+    }
+    setError("La valutazione richiede più tempo del previsto. Riapri il contest tra poco.");
   }
 
   async function submitQuiz() {
