@@ -120,7 +120,10 @@ export async function readV3Gamification(input: {
             'description',COALESCE(item.payload->>'description',activity.instructions),
             'contestCategory',activity.contest_category,
             'closesAt',(((operational_day.service_date+1)+time '06:00') AT TIME ZONE current_departure.timezone),
-            'closed',clock_timestamp()>=(((operational_day.service_date+1)+time '06:00') AT TIME ZONE current_departure.timezone))
+            'closed',clock_timestamp()>=(((operational_day.service_date+1)+time '06:00') AT TIME ZONE current_departure.timezone)
+              AND NOT app.has_photo_contest_access_override_v3(
+                activity.agency_id,${input.departureId}::uuid,${input.partyId}::uuid,${input.userId},activity.id
+              ))
           ELSE jsonb_build_object(
             'type',COALESCE(item.payload->>'type',''),
             'instructions',COALESCE(item.payload->>'instructions',activity.instructions))
