@@ -394,7 +394,7 @@ export default function PlatformTripChallenges({ experience, userName, isAdmin, 
       return <article key={item.id} className={approved.has(item.id) ? "approved" : submitted.has(item.id) ? "pending" : (rejectedOnce.has(item.id) || attemptsExhausted.has(item.id)) ? "rejected" : ""}><span className="tombolaNumber">{columnIndex * 10 + rowIndex * 3 + 1}</span><strong>{item.title}</strong>{approved.has(item.id) ? <div className="bingoOutcome"><MissionEvidencePhoto result={latestEvidence} title={item.title}/><b className="bingoStatus approved"><Check/> Validata</b></div> : submitted.has(item.id) ? <div className="bingoOutcome"><MissionEvidencePhoto result={latestEvidence} title={item.title}/><b className="bingoStatus pending">In verifica</b></div> : attemptsExhausted.has(item.id) ? <div className="bingoOutcome"><MissionEvidencePhoto result={latestEvidence} title={item.title}/><b className="bingoStatus rejected">Tentativi esauriti</b></div> : <div className="bingoOutcome">{rejectedOnce.has(item.id) && <MissionEvidencePhoto result={latestEvidence} title={item.title}/>}<PhotoPicker busy={busy === `${item.id}-photo`} label={rejectedOnce.has(item.id) ? "2° tentativo" : "Foto"} onFile={(file) => void uploadEvidence(item, day, file)}/></div>}</article>;
     })}</div></div><p className="bingoRules">Punteggi per ogni riga: ambo 5, terno 10, quaterna 20, cinquina 30. Completando tutte le 15 caselle ottieni altri 50 punti.</p></section>}
 
-    {tab === "foto" && <section className="contestHub"><header className="contestHubHero"><span><Camera/></span><div><small>DUE CONTEST · DUE FOTO A TESTA</small><h3>Contest fotografici</h3><p>Carica due foto, cambiale liberamente e confermale quando sei soddisfatto.</p></div></header><DayPicker days={experience.days} activeDayId={day.id} onDay={setActiveDayId} count={(entry) => experience.challenges.filter((item) => item.type === "photo_contest" && item.dayId === entry.id).length}/><div className="dualContestDayHeading"><div><small>GIORNO {day.number} · {dateLabel(day.date)}</small><h3>{day.city}</h3></div><span>Chiusura alle 06:00 del giorno successivo</span></div>{contests.length === 0 ? <ChallengeEmpty icon={<Camera/>} title="Contest in preparazione" copy="I due contest fotografici appariranno qui appena saranno pubblicati."/> : <div className="dualContestGrid">{contests.map((contest,index)=>{
+    {tab === "foto" && <section className="contestHub"><header className="contestHubHero"><span><Camera/></span><div><small>DUE CONTEST · DUE FOTO A TESTA</small><h3>Contest fotografici</h3><p>Carica due foto, cambiale liberamente e confermale quando sei soddisfatto.</p></div></header><p className="contestTieRule"><Trophy/> Vince la foto con il punteggio AI più alto. In caso di parità vince quella caricata prima.</p><DayPicker days={experience.days} activeDayId={day.id} onDay={setActiveDayId} count={(entry) => experience.challenges.filter((item) => item.type === "photo_contest" && item.dayId === entry.id).length}/><div className="dualContestDayHeading"><div><small>GIORNO {day.number} · {dateLabel(day.date)}</small><h3>{day.city}</h3></div><span>Chiusura alle 06:00 del giorno successivo</span></div>{contests.length === 0 ? <ChallengeEmpty icon={<Camera/>} title="Contest in preparazione" copy="I due contest fotografici appariranno qui appena saranno pubblicati."/> : <div className="dualContestGrid">{contests.map((contest,index)=>{
       const entries=contestEntries.filter((entry)=>entry.contentId===contest.id);
       const ownEntries=entries.filter((entry)=>entry.travelerName===userName);
       const drafts=ownEntries.filter((entry)=>entry.status==="draft").sort((a,b)=>a.slot-b.slot);
@@ -402,8 +402,9 @@ export default function PlatformTripChallenges({ experience, userName, isAdmin, 
       const publicEntries=entries.filter((entry)=>["selected","completed"].includes(entry.status));
       const closed=Boolean(data(contest.content).closed);
       const confirmed=closed||ownEntries.some((entry)=>["selected","completed","rejected"].includes(entry.status));
+      const tiedWinner=publicEntries.find((entry)=>entry.isWinner&&entry.score!=null&&publicEntries.some((candidate)=>candidate.id!==entry.id&&candidate.score!=null&&Number(candidate.score)===Number(entry.score)));
       return <article className={`dualContestCard ${index===0?"free":"theme"}`} key={contest.id}><header><span>{index===0?<Camera/>:<Sparkles/>}</span><div><small>CONTEST {index+1} · {index===0?"TEMA LIBERO":"TEMA DEL GIORNO"}</small><h3>{contest.title}</h3><p>{text(contest.content,"description")}</p></div><b>{publicEntries.length} foto</b></header>
-        {publicEntries.length>0&&<div className="contestEntryGrid">{publicEntries.map((entry)=>entry.contentUrl&&<figure key={entry.id}><div><Image src={entry.contentUrl} alt={`Foto selezionata di ${entry.travelerName}`} fill sizes="180px" unoptimized/></div><figcaption>{entry.travelerName}{entry.status==="completed"&&entry.score!=null?` · ${entry.score}/100`:""}</figcaption></figure>)}</div>}
+        {publicEntries.length>0&&<div className="contestEntryGrid">{publicEntries.map((entry)=>entry.contentUrl&&<ContestPhotoDetails key={entry.id} entry={entry} title={contest.title} isOwn={entry.travelerName===userName} wonOnTie={tiedWinner?.id===entry.id}/>)}</div>}
         {!confirmed&&!evaluating&&<><div className="contestDraftGrid">{[1,2].map((slot)=>{const draft=drafts.find((entry)=>entry.slot===slot);return <div key={slot}>{draft?.contentUrl?<><figure><div><Image src={draft.contentUrl} alt={`Foto ${slot} in bozza`} fill sizes="180px" unoptimized/></div><figcaption>Foto {slot} · modificabile</figcaption></figure><PhotoPicker busy={busy===`${contest.id}-photo`} label="Cambia foto" onFile={(file)=>void uploadEvidence(contest,day,file,slot)}/></>:<PhotoPicker busy={busy===`${contest.id}-photo`} label={`Carica foto ${slot}`} onFile={(file)=>void uploadEvidence(contest,day,file)}/>}</div>})}</div><div className="contestJudgeBar"><p>Solo dopo la conferma le foto vengono valutate dall’AI.</p><button type="button" disabled={drafts.length!==2||busy===`${contest.id}-confirm`} onClick={()=>void confirmPhotoContest(contest)}>{busy===`${contest.id}-confirm`?<LoaderCircle className="spin"/>:<Check/>} Conferma le due foto</button></div></>}
         {evaluating&&<div className="contestEvaluationPending"><LoaderCircle className="spin"/><strong>Valutazione AI in corso</strong><small>Verrà mostrata soltanto la foto con il punteggio migliore.</small></div>}
         {confirmed&&!closed&&!evaluating&&<div className="contestJudgeBar"><p><CheckCircle2/> Foto confermate. La migliore concorrerà alla classifica dopo la chiusura.</p></div>}
@@ -457,6 +458,38 @@ function DayPicker({ days, activeDayId, onDay, count: _count }: { days: Day[]; a
 
 function ChallengeEmpty({ icon, title, copy }: { icon: React.ReactNode; title: string; copy: string }) {
   return <div className="challengeEmpty" role="status"><span>{icon}</span><div><h3>{title}</h3><p>{copy}</p></div></div>;
+}
+
+function ContestPhotoDetails({ entry, title, isOwn, wonOnTie }: {
+  entry: Experience["contestEntries"][number];
+  title: string;
+  isOwn: boolean;
+  wonOnTie: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [open]);
+  if (!entry.contentUrl) return null;
+  const scoreLabel = entry.score == null ? "Punteggio non disponibile" : `${entry.score}/100`;
+  return <>
+    <article className={`contestEntryPreview${isOwn ? " mine" : ""}${entry.isWinner ? " winner" : ""}`}>
+      <button type="button" onClick={() => setOpen(true)} aria-label={`Apri foto, punteggio e giudizio di ${entry.travelerName}`}>
+        <span className="contestEntryImage"><Image src={entry.contentUrl} alt={`Foto selezionata di ${entry.travelerName}`} fill sizes="180px" unoptimized/></span>
+        <span className="contestEntryCaption"><strong>{isOwn ? "La mia foto" : entry.travelerName}</strong><span>{scoreLabel}</span>{entry.isWinner && <small><Trophy/> Vincitrice{wonOnTie ? " per caricamento precedente" : ""}</small>}</span>
+      </button>
+    </article>
+    {open && createPortal(<div className="contestPhotoViewer" role="dialog" aria-modal="true" aria-label={`Valutazione foto di ${entry.travelerName}`} onClick={() => setOpen(false)}>
+      <button type="button" className="contestPhotoViewerClose" aria-label="Chiudi la foto e torna al contest" onClick={() => setOpen(false)}><X/></button>
+      <div className="contestPhotoViewerImage" onClick={(event) => event.stopPropagation()}><Image src={entry.contentUrl} alt={`Foto del contest ${title} di ${entry.travelerName}`} fill sizes="(max-width: 520px) 100vw, 70vw" unoptimized/></div>
+      <aside className="contestPhotoViewerCopy" onClick={(event) => event.stopPropagation()}><small>{entry.isWinner ? "FOTO VINCITRICE" : isOwn ? "LA MIA FOTO" : "FOTO DEL CONTEST"}</small><h3>{title}</h3><span>{entry.travelerName}</span><strong>{scoreLabel}</strong><p>{entry.reason || "Il giudizio AI non è ancora disponibile."}</p>{wonOnTie && <div className="contestPhotoViewerTie">Parità di punteggio: questa foto ha vinto perché è stata caricata prima.</div>}</aside>
+    </div>, document.body)}
+  </>;
 }
 
 function MissionEvidencePhoto({ result, title }: {
