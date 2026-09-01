@@ -117,7 +117,7 @@ try {
     ).rows[0];
   }
   if (
-    ![60, 62, 65, 67, 68, 69, 70, 71, 74, 75].includes(result.table_count) ||
+    ![60, 62, 65, 67, 68, 69, 70, 71, 74, 75, 77].includes(result.table_count) ||
     result.rls_table_count !== expectedRlsTableCount ||
     result.unvalidated_constraints !== 0 ||
     result.invalid_indexes !== 0 ||

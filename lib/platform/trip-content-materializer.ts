@@ -30,9 +30,9 @@ async function applyUsefulInformationGovernance(jobId:string,agencyId:string,ver
     txn`SELECT set_config('app.materialization_job_id',${jobId},true)`,
     txn`UPDATE travel.template_useful_information SET
       source_name=CASE WHEN COALESCE(url,'')<>'' THEN 'Fonte ufficiale indicata' ELSE NULL END,
-      source_url=NULLIF(url,''),source_retrieved_at=clock_timestamp(),review_status='needs_review',verified_at=NULL,
-      expires_at=clock_timestamp()+CASE WHEN lower(category)~'(salute|document|sicurezza|emergenza|ambasciata)' THEN interval '7 days' ELSE interval '90 days' END,
-      disclaimer='Contenuto informativo generato con supporto AI e soggetto a verifica dell’agenzia. Per salute, sicurezza e requisiti di ingresso consulta sempre la fonte ufficiale.'
+      source_url=NULLIF(url,''),source_retrieved_at=clock_timestamp(),review_status='approved',verified_at=clock_timestamp(),
+      expires_at=clock_timestamp()+interval '30 days',
+      disclaimer='Dato tratto dal profilo Paese verificato. Per salute, sicurezza e requisiti di ingresso consulta comunque la fonte ufficiale prima della partenza.'
       WHERE agency_id=${agencyId} AND template_version_id=${versionId}`,
   ]);
 }

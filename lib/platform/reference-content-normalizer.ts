@@ -45,8 +45,15 @@ export const countryUsefulInfoSchema = z.array(z.object({
     if (count !== 1) context.addIssue({ code: "custom", message: `La categoria '${category}' deve comparire esattamente una volta` });
   }
   const embassy = items.find((item) => item.category === "Ambasciata italiana");
-  if (embassy?.url && !/^https:\/\/[^/]+\.esteri\.it(?:\/|$)/i.test(embassy.url)) {
+  if (!embassy?.url || !/^https:\/\/[^/]+\.esteri\.it(?:\/|$)/i.test(embassy.url)) {
     context.addIssue({ code: "custom", message: "Il riferimento dell'Ambasciata deve usare un dominio ufficiale esteri.it" });
+  }
+  if (!embassy?.phone.trim()) {
+    context.addIssue({ code: "custom", message: "Il telefono dell'Ambasciata deve essere valorizzato nel campo dedicato" });
+  }
+  const emergency = items.find((item) => item.category === "Numeri di emergenza");
+  if (!emergency?.url || !emergency.phone.trim()) {
+    context.addIssue({ code: "custom", message: "I numeri di emergenza devono avere telefono e fonte ufficiale nei campi dedicati" });
   }
   const documents = items.find((item) => item.category === "Documenti e sicurezza");
   if (documents && /(?:non (?:serve|e' richiesto|è richiesto) il visto)[\s\S]{0,500}(?:visto (?:obbligatorio|necessario))|(?:visto (?:obbligatorio|necessario))[\s\S]{0,500}(?:non (?:serve|e' richiesto|è richiesto) il visto)/i.test(documents.body)) {
@@ -190,7 +197,7 @@ export const destinationReferenceSchema = z.object({
     explanation: z.string().min(10).max(1000),
     sourceUrl: z.string().url().max(500),
   })).min(7).max(15),
-  missions: z.array(z.object({ title: z.string(), description: z.string(), photoValidation: photoValidationSchema.optional() })).min(5).max(10),
+  missions: z.array(z.object({ title: z.string(), description: z.string(), photoValidation: photoValidationSchema.optional() })).length(5),
   games: z.array(z.object({
     type: z.enum(["photo_puzzle", "memory", "odd_one_out"]),
     title: z.string().trim().min(1).max(240),
@@ -201,12 +208,17 @@ export const destinationReferenceSchema = z.object({
     })).length(4).optional(),
     options: z.array(z.string().trim().min(1).max(160)).length(4).optional(),
     correctIndex: z.number().int().min(0).max(3).optional(),
+    commonRule: z.string().trim().min(8).max(300).optional(),
+    intruderReason: z.string().trim().min(8).max(300).optional(),
   }).superRefine((game, context) => {
     if (game.type === "memory" && game.pairs?.length !== 4) {
       context.addIssue({ code: "custom", message: "Il memory deve contenere esattamente quattro coppie" });
     }
     if (game.type === "odd_one_out" && (game.options?.length !== 4 || game.correctIndex == null)) {
       context.addIssue({ code: "custom", message: "Trova l'intruso deve contenere quattro opzioni e correctIndex" });
+    }
+    if (game.type === "odd_one_out" && (!game.commonRule || !game.intruderReason)) {
+      context.addIssue({ code: "custom", message: "Trova l'intruso deve motivare l'insieme comune e l'elemento estraneo" });
     }
   })).length(3).superRefine((games, context) => {
     for (const type of ["photo_puzzle", "memory", "odd_one_out"] as const) {
@@ -271,6 +283,15 @@ function validateNamedDestinationActivities(
       issues.push(`${item.path}: deve riferirsi esplicitamente a '${destinationName}'`);
     }
   });
+  const missionKeys = value.missions.map((item) => normalizedQuizText(`${item.title} ${item.description}`));
+  if (new Set(missionKeys).size !== missionKeys.length) issues.push("Le missioni devono essere tutte diverse");
+  const contestKeys = value.photoContests.map((item) => normalizedQuizText(`${item.title} ${item.description}`));
+  if (new Set(contestKeys).size !== contestKeys.length) issues.push("I contest fotografici devono essere tutti diversi");
+  const memory = value.games.find((game) => game.type === "memory");
+  if (memory?.pairs) {
+    const pairKeys = memory.pairs.flatMap((pair) => [normalizedQuizText(pair.first), normalizedQuizText(pair.second)]);
+    if (new Set(pairKeys).size !== pairKeys.length) issues.push("Le tessere del memory devono essere tutte diverse");
+  }
 }
 
 export function validateCityReferenceContent(value: z.infer<typeof destinationReferenceSchema>, cityName: string) {
