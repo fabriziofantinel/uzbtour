@@ -123,6 +123,27 @@ export default function PlatformTripChallenges({ experience, userName, isAdmin, 
     ?? experience.journey.travelers.find((traveler) => traveler.name === userName);
   const [tripCompetitionEnabled, setTripCompetitionEnabled] = useState(Boolean(currentTraveler?.participatesInTripGames));
   const [profileRole, setProfileRole] = useState(currentTraveler?.role ?? "member");
+
+  useEffect(() => {
+    const restoreChallengeTab = () => {
+      const requestedTab = new URLSearchParams(window.location.search).get("sfida");
+      if (["missioni", "bingo", "foto", "quiz", "giochi", "profilo", "classifica", "valida"].includes(requestedTab || "")) {
+        setTab(requestedTab as ChallengeTab);
+      }
+    };
+    restoreChallengeTab();
+    window.addEventListener("popstate", restoreChallengeTab);
+    return () => window.removeEventListener("popstate", restoreChallengeTab);
+  }, []);
+
+  function selectChallengeTab(nextTab: ChallengeTab) {
+    setTab(nextTab);
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", "sfide");
+    if (nextTab === "missioni") url.searchParams.delete("sfida");
+    else url.searchParams.set("sfida", nextTab);
+    window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  }
   const [newLeaderId, setNewLeaderId] = useState("");
   const [profileNotice, setProfileNotice] = useState("");
   const challengeTabsRef = useRef<HTMLElement>(null);
@@ -338,7 +359,7 @@ export default function PlatformTripChallenges({ experience, userName, isAdmin, 
         className={tab === item.id ? "active" : ""}
         aria-selected={tab === item.id}
         aria-controls={`challenge-panel-${item.id}`}
-        onClick={() => setTab(item.id)}
+        onClick={() => selectChallengeTab(item.id)}
       >{item.icon}<span>{item.label}</span>{item.badge !== undefined && <b aria-label={`${item.badge} prove da validare`}>{item.badge}</b>}</button>)}
     </nav>
     {error && <p className="quizError" role="alert">{error}</p>}
