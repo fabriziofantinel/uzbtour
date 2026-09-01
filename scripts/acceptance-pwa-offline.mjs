@@ -45,7 +45,10 @@ const self = {
   skipWaiting: async () => {},
 };
 const context = vm.createContext({ self, caches, fetch: fetcher, Request, Response, Headers, URL, Date, Promise, Map, Set, console });
-vm.runInContext(await readFile("public/sw.js", "utf8"), context, { filename: "public/sw.js" });
+const serviceWorkerSource = await readFile("public/sw.js", "utf8");
+const cacheVersion = serviceWorkerSource.match(/const VERSION = "([^"]+)"/)?.[1];
+assert.ok(cacheVersion, "Versione cache service worker non rilevata");
+vm.runInContext(serviceWorkerSource, context, { filename: "public/sw.js" });
 
 async function dispatchWait(type, data = {}) {
   let pending = Promise.resolve();
@@ -53,7 +56,7 @@ async function dispatchWait(type, data = {}) {
   await pending;
 }
 await dispatchWait("install");
-assert.ok(await (await caches.open("smf-pwa-v9-shell")).match("https://smf.test/offline.html"));
+assert.ok(await (await caches.open(`${cacheVersion}-shell`)).match("https://smf.test/offline.html"));
 
 const messages = [];
 await dispatchWait("message", {
@@ -90,6 +93,6 @@ listeners.get("fetch")({
 assert.equal(privateNavigationResponse, undefined, "Il back-office autenticato non deve essere servito dalla cache PWA");
 
 await dispatchWait("message", { data: { type: "CLEAR_PRIVATE_CACHES" } });
-assert.equal(await (await caches.open("smf-pwa-v9-data")).keys().then((keys) => keys.length), 0);
-assert.equal(await (await caches.open("smf-pwa-v9-media")).keys().then((keys) => keys.length), 0);
+assert.equal(await (await caches.open(`${cacheVersion}-data`)).keys().then((keys) => keys.length), 0);
+assert.equal(await (await caches.open(`${cacheVersion}-media`)).keys().then((keys) => keys.length), 0);
 console.log(JSON.stringify({ status: "passed", cachedResources: 3, offlineProgramme: true, offlineTripData: true, offlineDocument: true, privateBackOfficeExcluded: true, privateCacheCleared: true }));

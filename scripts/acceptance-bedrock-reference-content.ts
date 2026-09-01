@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { generateReferenceContent } from "../lib/platform/reference-enrichment";
+import { countryUsefulInfoCategories } from "../lib/platform/reference-content-normalizer";
+import { verifiedCountryProfileSchema } from "../lib/platform/verified-country-profile";
 
 function assertPhotoValidation(items: Array<{ photoValidation?: { target: string; requiredFeatures: string[]; rejectIf: string[]; minimumConfidence: number } }>, label: string) {
   if (items.some((item) => !item.photoValidation || !item.photoValidation.target || item.photoValidation.requiredFeatures.length === 0 || item.photoValidation.rejectIf.length === 0 || item.photoValidation.minimumConfidence < 0.65)) {
@@ -17,9 +19,27 @@ function assertGames(games: Array<{ type: string; pairs?: unknown[]; options?: u
 }
 
 async function main() {
+  const embassyUrl = "https://ambbruxelles.esteri.it/it/chi-siamo/contatti/";
+  const emergencyUrl = "https://www.112.be/it";
+  const officialUrl = "https://www.viaggiaresicuri.it/find-country/country/BEL";
+  const verifiedProfile = verifiedCountryProfileSchema.parse({
+    countryName: "Belgio", iso2: "BE", timeZones: ["Europe/Brussels"], currencyCode: "EUR",
+    usefulInfo: countryUsefulInfoCategories.map((category) => ({
+      category, title: category, body: `Informazione verificata per ${category}.`,
+      phone: category === "Numeri di emergenza" ? "112" : category === "Ambasciata italiana" ? "+32 2 543 15 50" : "",
+      url: category === "Numeri di emergenza" ? emergencyUrl : category === "Ambasciata italiana" ? embassyUrl
+        : category === "Documenti e sicurezza" || category === "Salute e assistenza" ? officialUrl : "",
+    })),
+    sources: [
+      { category: "Numeri di emergenza", title: "Numero unico europeo", url: emergencyUrl },
+      { category: "Ambasciata italiana", title: "Ambasciata d'Italia", url: embassyUrl },
+      { category: "Documenti e sicurezza", title: "Viaggiare Sicuri", url: officialUrl },
+      { category: "Salute e assistenza", title: "Viaggiare Sicuri", url: officialUrl },
+    ],
+  });
   const country = await generateReferenceContent(
     { entityType: "country", entityId: randomUUID(), name: "Belgio" },
-    "Belgio, viaggio culturale tra Bruxelles e Bruges",
+    "Belgio, viaggio culturale tra Bruxelles e Bruges", verifiedProfile,
   );
   if (country.kind !== "country") throw new Error("Contenuto Paese non generato");
   assertPhotoValidation(country.data.bingo, "bingo Paese");

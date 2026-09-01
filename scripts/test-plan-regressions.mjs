@@ -43,7 +43,8 @@ assert.match(travelerExperience, /changeNotices/);
 assert.match(travelerExperience, /Ho letto/);
 assert.match(referenceRepository, /source_name/);
 assert.match(referenceRepository, /source_url/);
-assert.match(referenceRepository, /review_status='needs_review'/);
+assert.match(referenceRepository, /review_status='approved'/);
+assert.match(referenceRepository, /profilo Paese verificato/);
 assert.match(referenceRepository, /disclaimer=/);
 assert.match(superadminCss, /\.impersonationList article>button\{min-width:48px;min-height:48px/);
 
