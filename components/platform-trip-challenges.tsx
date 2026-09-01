@@ -189,6 +189,7 @@ export default function PlatformTripChallenges({ experience, userName, isAdmin, 
       const linked = await linkedResponse.json() as { id?: string; slot?: number; status?: string; attemptNumber?: number; error?: string };
       if (!linkedResponse.ok || !linked.id) throw new Error(linked.error || "Foto non collegata alla sfida");
       setSubmitted((current) => new Set(current).add(challenge.id));
+      if (["mission", "bingo"].includes(challenge.type)) void pollPhotoEvidence(linked.id);
       if (challenge.type === "photo_contest") setContestEntries((current) => {
         const entry={id:linked.id!,travelerId:"current",travelerName:userName,contentId:challenge.id,
           mediaId:registered.photo!.mediaId,slot:linked.slot||1,status:"draft",score:null,reason:"",isWinner:false,
@@ -197,6 +198,27 @@ export default function PlatformTripChallenges({ experience, userName, isAdmin, 
       });
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Foto non caricata"); }
     finally { setBusy(""); }
+  }
+
+  async function pollPhotoEvidence(resultId: string) {
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      try {
+        const response = await fetch(`/api/traveler/trip-data?partenza=${encodeURIComponent(experience.journey.departureId)}`, {
+          cache: "no-store",
+        });
+        if (!response.ok) continue;
+        const fresh = await response.json() as Experience;
+        const result = fresh.challengeResults.find((entry) => entry.id === resultId);
+        if (!result || result.status === "submitted") continue;
+        setChallengeResults(fresh.challengeResults);
+        setSubmitted(new Set(fresh.challengeResults.filter((entry) => entry.travelerName === userName && entry.status !== "rejected").map((entry) => entry.contentId)));
+        onResultsChange?.(fresh.challengeResults);
+        return;
+      } catch {
+        // La verifica continua al tentativo successivo senza interrompere l'esperienza.
+      }
+    }
   }
 
   async function confirmPhotoContest(contest:Challenge){
@@ -419,5 +441,15 @@ function MissionEvidencePhoto({ result, title }: {
 }
 
 function PhotoPicker({ label, busy, disabled = false, onFile }: { label: string; busy: boolean; disabled?: boolean; onFile: (file: File) => void }) {
-  return <label className={`evidencePicker ${disabled ? "disabled" : ""}`}>{busy ? <LoaderCircle className="spin"/> : <Upload/>}{label}<input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif" disabled={busy || disabled} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if(file&&confirm("Confermi di avere il consenso delle persone riconoscibili nella foto? Per i minori serve il consenso del genitore o tutore."))onFile(file); }}/></label>;
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  return <>
+    <label className={`evidencePicker ${disabled ? "disabled" : ""}`}>{busy ? <LoaderCircle className="spin"/> : <Upload/>}{label}<input type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif" disabled={busy || disabled} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) setPendingFile(file); }}/></label>
+    {pendingFile && createPortal(<div className="appConfirmOverlay" role="dialog" aria-modal="true" aria-labelledby="photo-confirm-title">
+      <div className="appConfirmDialog">
+        <span><Camera/></span><h3 id="photo-confirm-title">Conferma caricamento</h3>
+        <p>Confermi di avere il consenso delle persone riconoscibili nella foto? Per i minori serve il consenso del genitore o tutore.</p>
+        <div><button type="button" className="secondary" onClick={() => setPendingFile(null)}>Annulla</button><button type="button" onClick={() => { const file = pendingFile; setPendingFile(null); onFile(file); }}><Check/> Conferma</button></div>
+      </div>
+    </div>, document.body)}
+  </>;
 }
