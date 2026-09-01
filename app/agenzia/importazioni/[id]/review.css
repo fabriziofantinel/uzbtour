@@ -187,6 +187,54 @@
 .reviewHeading > span svg {
   width: 15px;
 }
+.extractionQuality {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-raised);
+  overflow: hidden;
+}
+.extractionQuality.blocking { border-color: var(--danger); }
+.extractionQuality > summary {
+  min-height: 66px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 20px;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  cursor: pointer;
+  list-style: none;
+}
+.extractionQuality > summary::-webkit-details-marker { display: none; }
+.extractionQuality > summary div small,
+.extractionQuality > summary div b { display: block; }
+.extractionQuality > summary div small { color: var(--rust); font-size: var(--text-meta); font-weight: 900; letter-spacing: 1px; }
+.extractionQuality > summary > span { color: var(--text-subtle); font-size: var(--text-small); }
+.extractionQuality[open] > summary > svg { transform: rotate(180deg); }
+.extractionIssues { display: grid; gap: 8px; padding: 0 16px 14px; }
+.extractionIssues > article {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--surface-brand);
+}
+.extractionIssues > article.blocking { background: var(--surface-danger); }
+.extractionIssues svg { width: 18px; }
+.extractionIssues small,
+.extractionIssues b { display: block; }
+.extractionIssues small { margin-bottom: 4px; font-size: var(--text-meta); font-weight: 900; }
+.extractionIssues blockquote { margin: 7px 0 0; color: var(--text-subtle); font-size: var(--text-small); }
+.extractionIssues button { min-height: 40px; display: flex; align-items: center; gap: 6px; color: var(--ink); }
+.extractionEvidence { border-top: 1px solid var(--line); padding: 12px 16px; }
+.extractionEvidence > summary { cursor: pointer; color: var(--ink); font-weight: 800; }
+.extractionEvidence > div { display: grid; gap: 8px; margin-top: 12px; }
+.extractionEvidence article { display: grid; grid-template-columns: minmax(180px, .7fr) minmax(0, 2fr); gap: 12px; padding: 10px; border-radius: 8px; background: var(--surface-muted); }
+.extractionEvidence span b,
+.extractionEvidence span small { display: block; overflow-wrap: anywhere; }
+.extractionEvidence span small { margin-top: 3px; color: var(--text-subtle); font-size: var(--text-caption); }
+.extractionEvidence p { margin: 0; overflow-wrap: anywhere; }
 .reviewDays {
   display: grid;
   gap: 14px;
@@ -785,6 +833,13 @@
   .reviewGeneral .wide {
     grid-column: auto;
   }
+  .extractionQuality > summary {
+    grid-template-columns: minmax(0, 1fr) 20px;
+  }
+  .extractionQuality > summary > span { display: none; }
+  .extractionIssues > article { grid-template-columns: 22px minmax(0, 1fr); }
+  .extractionIssues button { grid-column: 1/-1; justify-content: center; }
+  .extractionEvidence article { grid-template-columns: 1fr; }
   .reviewItineraryWorkspace {
     grid-template-columns: 1fr;
     gap: 12px;

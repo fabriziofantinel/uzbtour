@@ -31,6 +31,13 @@ export async function POST(
     if (!imported.draft) {
       return NextResponse.json({ error: "Nessuna bozza da pubblicare" }, { status: 400 });
     }
+    const blockingIssues = imported.draft.reconciliationIssues.filter((issue) => issue.severity === "blocking" && !issue.resolved);
+    if (blockingIssues.length > 0) {
+      return NextResponse.json({
+        error: `Risolvi le ${blockingIssues.length} anomalie bloccanti prima di pubblicare.`,
+        issues: blockingIssues,
+      }, { status: 409 });
+    }
     const documentContext = await getImportDocumentPublicationContext(id, agencyId);
     const normalizedName = normalizedTravelDocumentName(imported.draft.title);
     const normalizedBytes = await createNormalizedTravelDocument(imported.draft, documentContext.sourceName);

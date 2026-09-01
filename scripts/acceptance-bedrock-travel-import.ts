@@ -44,6 +44,11 @@ if (visits.length < 4) throw new Error(`Visite insufficienti: ${visits.length}`)
 const meals = draft.days.flatMap((day) => day.activities.filter((activity) => activity.type === "meal"));
 if (meals.length !== 1 || meals[0]?.includedInQuote !== true) throw new Error("Inclusione cena non rispettata");
 if (!draft.days[0]?.accommodation.name.toLowerCase().includes("amigo")) throw new Error("Hotel non estratto");
+if (!draft.extractionEvidence.length) throw new Error("Nessuna evidenza sorgente estratta");
+if (!draft.extractionEvidence.some((item) => item.fieldPath.includes("commercialDetails"))) {
+  throw new Error("Mancano evidenze per i dati commerciali");
+}
+if (!Array.isArray(draft.reconciliationIssues)) throw new Error("Riconciliazione non eseguita");
 
 const normalizedBytes = await createNormalizedTravelDocument(draft, "acceptance-belgio.txt");
 const roundTrip = await readNormalizedTravelDocument(normalizedBytes);
@@ -60,6 +65,8 @@ console.log(JSON.stringify({
   mealsIncluded: meals.length,
   accommodations: draft.days.filter((day) => day.accommodation.name).length,
   commercialRows: draft.commercialDetails.includedServices.length,
+  evidence: draft.extractionEvidence.length,
+  reconciliationIssues: draft.reconciliationIssues.length,
   normalizedDocumentBytes: normalizedBytes.byteLength,
   validationIssues: catalogValidationIssues(draft),
   usage: extracted.usage,

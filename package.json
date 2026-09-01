@@ -276,6 +276,7 @@
     "db:migrate:v3:country-profiles:dry-run": "node --env-file=.env.local scripts/migrate-v3-verified-country-profiles.mjs",
     "db:migrate:v3:country-profiles": "node --env-file=.env.local scripts/migrate-v3-verified-country-profiles.mjs --apply",
     "acceptance:country-profiles": "tsx scripts/acceptance-verified-country-profile.ts",
+    "acceptance:travel-import-quality": "tsx scripts/acceptance-travel-import-quality.ts",
     "check:v3:runtime-boundaries": "node scripts/check-v3-runtime-boundaries.mjs",
     "db:validate:v3": "node --env-file=.env.local scripts/validate-v3-target.mjs",
     "db:link-neon-user": "node --env-file=.env.local scripts/link-neon-auth-user.mjs",

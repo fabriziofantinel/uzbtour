@@ -107,6 +107,9 @@ export default function ImportReview({ initialImport, agencyPrimaryColor }: { in
   const draftSignature = useMemo(() => JSON.stringify(draft), [draft]);
   const isDirty = draftSignature !== savedSignatureRef.current;
   const validationsPending = useMemo(() => draft ? pendingValidationCount(draft) : 0, [draft]);
+  const unresolvedIssues = useMemo(() => draft?.reconciliationIssues.filter((issue) => !issue.resolved) ?? [], [draft]);
+  const blockingIssues = useMemo(() => unresolvedIssues.filter((issue) => issue.severity === "blocking"), [unresolvedIssues]);
+  const evidenceCoverage = useMemo(() => new Set(draft?.extractionEvidence.map((item) => item.fieldPath) ?? []).size, [draft]);
   const brand = validBrandColor(agencyPrimaryColor);
   const brandStyle = {
     "--agency-ui": brand, "--agency-ui-ink": "#111111", "--smf-brand": brand,
@@ -159,6 +162,14 @@ export default function ImportReview({ initialImport, agencyPrimaryColor }: { in
   function updateCommercial(changes: Partial<TravelProgrammeDraft["commercialDetails"]>) {
     if (!draft) return;
     setDraft({ ...draft, commercialDetails: { ...draft.commercialDetails, ...changes } });
+  }
+
+  function setIssueResolved(index: number, resolved: boolean) {
+    if (!draft) return;
+    setDraft({
+      ...draft,
+      reconciliationIssues: draft.reconciliationIssues.map((issue, position) => position === index ? { ...issue, resolved } : issue),
+    });
   }
 
   function updateActivity(dayIndex: number, activityIndex: number, changes: Partial<TravelProgrammeDraft["days"][number]["activities"][number]>) {
@@ -227,6 +238,10 @@ export default function ImportReview({ initialImport, agencyPrimaryColor }: { in
     const pending = validationsPending;
     if (pending > 0) {
       setError(`Restano ${pending} anagrafiche da validare. Controllale su Google e confermale prima di pubblicare.`);
+      return;
+    }
+    if (blockingIssues.length > 0) {
+      setError(`Restano ${blockingIssues.length} anomalie bloccanti. Correggi i dati e segnala le anomalie come risolte prima di pubblicare.`);
       return;
     }
     setError("");
@@ -299,6 +314,37 @@ export default function ImportReview({ initialImport, agencyPrimaryColor }: { in
           <div><small>FONTE EFFETTIVAMENTE IMPORTATA</small><b>{initialImport.normalizedFileName ?? "In preparazione"}</b></div>
           {initialImport.normalizedFileName && <a href={`/api/admin/platform/imports/${initialImport.id}/normalized`}><ExternalLink/> Scarica DOCX SMF</a>}
         </section>
+
+        <details className={blockingIssues.length ? "extractionQuality blocking" : "extractionQuality"} open={unresolvedIssues.length > 0}>
+          <summary>
+            <div>
+              <small>QUALITÀ DELLA CONVERSIONE</small>
+              <b>{unresolvedIssues.length ? `${unresolvedIssues.length} controlli da completare` : "Nessuna anomalia aperta"}</b>
+            </div>
+            <span>{evidenceCoverage} campi con fonte</span>
+            <ChevronDown/>
+          </summary>
+          {unresolvedIssues.length > 0 && <div className="extractionIssues">
+            {draft.reconciliationIssues.map((issue, index) => issue.resolved ? null : <article key={`${issue.code}-${issue.fieldPath}-${index}`} className={issue.severity}>
+              <CircleAlert/>
+              <div>
+                <small>{issue.severity === "blocking" ? "BLOCCANTE" : "DA CONTROLLARE"} · {issue.fieldPath || "documento"}</small>
+                <b>{issue.message}</b>
+                {issue.sourceText && <blockquote>“{issue.sourceText}”</blockquote>}
+              </div>
+              <button type="button" onClick={() => setIssueResolved(index, true)}><Check/> Segna risolta</button>
+            </article>)}
+          </div>}
+          <details className="extractionEvidence">
+            <summary>Mostra le fonti estratte dal preventivo</summary>
+            <div>
+              {draft.extractionEvidence.length ? draft.extractionEvidence.map((item, index) => <article key={`${item.fieldPath}-${index}`}>
+                <span><b>{item.fieldPath}</b><small>{item.sourcePage ? `Pagina ${item.sourcePage} · ` : ""}{Math.round(item.confidence * 100)}% affidabilità</small></span>
+                <p>“{item.sourceText}”</p>
+              </article>) : <p>Nessuna citazione puntuale disponibile per questa importazione.</p>}
+            </div>
+          </details>
+        </details>
 
         <section className="reviewGeneral">
           <label>Titolo del viaggio<input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })}/></label>
@@ -403,7 +449,7 @@ export default function ImportReview({ initialImport, agencyPrimaryColor }: { in
           </section>
         </div>
 
-        <footer className="reviewActions"><div><BedDouble/><span><b>{validationsPending > 0 ? `${validationsPending} anagrafiche da validare` : "Pronto per la pubblicazione"}</b><small>{validationsPending > 0 ? "Apri Google, correggi se necessario e conferma ogni elemento." : isDirty ? "Salva le modifiche o pubblica direttamente la versione aggiornata." : `Verranno create ${draft.days.length} giornate.`}</small></span></div><button type="button" className="secondary dangerText" aria-label="Elimina bozza" onClick={removeDraft} disabled={Boolean(busy)}><Trash2/><span>Elimina bozza</span></button><button type="button" className="secondary" onClick={save} disabled={Boolean(busy) || !isDirty}>{busy === "save" ? <LoaderCircle className="spin"/> : <Save/>}<span>{busy === "save" ? "Salvataggio…" : "Salva bozza"}</span></button><button type="button" onClick={publish} disabled={Boolean(busy) || validationsPending > 0}><Send/><span>Pubblica programma</span></button></footer>
+        <footer className="reviewActions"><div><BedDouble/><span><b>{validationsPending > 0 ? `${validationsPending} anagrafiche da validare` : blockingIssues.length ? `${blockingIssues.length} anomalie bloccanti` : "Pronto per la pubblicazione"}</b><small>{validationsPending > 0 ? "Apri Google, correggi se necessario e conferma ogni elemento." : blockingIssues.length ? "Correggi i dati e segna risolte le anomalie." : isDirty ? "Salva le modifiche o pubblica direttamente la versione aggiornata." : `Verranno create ${draft.days.length} giornate.`}</small></span></div><button type="button" className="secondary dangerText" aria-label="Elimina bozza" onClick={removeDraft} disabled={Boolean(busy)}><Trash2/><span>Elimina bozza</span></button><button type="button" className="secondary" onClick={save} disabled={Boolean(busy) || !isDirty}>{busy === "save" ? <LoaderCircle className="spin"/> : <Save/>}<span>{busy === "save" ? "Salvataggio…" : "Salva bozza"}</span></button><button type="button" onClick={publish} disabled={Boolean(busy) || validationsPending > 0 || blockingIssues.length > 0}><Send/><span>Pubblica programma</span></button></footer>
       </div>
       {pendingAction && (
         <div className="reviewDialogBackdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) setPendingAction(null); }}>

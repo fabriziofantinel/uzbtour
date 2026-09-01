@@ -78,6 +78,8 @@ const draft: TravelProgrammeDraft = {
     phone: "112",
     url: "",
   }],
+  extractionEvidence: [],
+  reconciliationIssues: [],
 };
 
 async function main() {

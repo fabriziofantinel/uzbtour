@@ -4,6 +4,23 @@ export const itineraryItemTypeSchema = z.enum([
   "visit", "transport", "flight", "train", "hotel", "meal", "free_time", "meeting", "other",
 ]);
 
+export const extractionEvidenceSchema = z.object({
+  fieldPath: z.string().min(1).max(300),
+  sourcePage: z.number().int().positive().nullable().default(null),
+  sourceText: z.string().min(1).max(1200),
+  confidence: z.number().min(0).max(1),
+  method: z.enum(["bedrock_native", "textract", "derived", "agent"]),
+});
+
+export const reconciliationIssueSchema = z.object({
+  code: z.string().min(1).max(80),
+  severity: z.enum(["warning", "blocking"]),
+  fieldPath: z.string().max(300).default(""),
+  message: z.string().min(1).max(1200),
+  sourceText: z.string().max(1200).default(""),
+  resolved: z.boolean().default(false),
+});
+
 export const catalogValidationSchema = z.object({
   needsValidation: z.boolean().default(true),
   reason: z.string().max(500).default("Da verificare prima della pubblicazione"),
@@ -95,6 +112,8 @@ export const travelProgrammeDraftSchema = z.object({
     phone: z.string().max(100).default(""),
     url: z.string().max(500).default(""),
   })).max(80),
+  extractionEvidence: z.array(extractionEvidenceSchema).max(1000).default([]),
+  reconciliationIssues: z.array(reconciliationIssueSchema).max(200).default([]),
 });
 
 export type TravelProgrammeDraft = z.infer<typeof travelProgrammeDraftSchema>;
