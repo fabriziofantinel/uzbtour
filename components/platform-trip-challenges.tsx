@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   Award, Brain, Camera, Check, CheckCircle2, ChevronRight, Compass, Crown,
-  Gamepad2, Grid3X3, LoaderCircle, Medal, RotateCcw, Send, Sparkles, Trophy, Upload, X, XCircle,
+  Gamepad2, Grid3X3, Images, LoaderCircle, Medal, RotateCcw, Send, Sparkles, Trophy, Upload, X, XCircle,
 } from "lucide-react";
 import PlatformTripRankings from "@/components/platform-trip-rankings";
 import { uploadPrivateFile } from "@/lib/private-upload-client";
@@ -153,14 +153,20 @@ export default function PlatformTripChallenges({ experience, userName, isAdmin, 
   const contests = experience.challenges.filter((entry) => entry.type === "photo_contest" && entry.dayId === day?.id);
   const questions = experience.challenges.filter((entry) => entry.type === "quiz_question" && entry.dayId === day?.id).slice(0, 10);
   const games = experience.challenges.filter((entry) => ["word_game", "order_game"].includes(entry.type) && entry.dayId === day?.id).slice(0, 3);
-  const puzzleGame = games[0];
-  const cityGame = games[1];
-  const visitCountGame = games[2];
+  const puzzleGame = games.find((game) => text(game.content, "type") === "photo_puzzle") ?? games[0];
+  const memoryGame = games.find((game) => text(game.content, "type") === "memory");
+  const oddOneOutGame = games.find((game) => text(game.content, "type") === "odd_one_out");
   const dayPhotos = experience.photos.filter((photo) => photo.dayId === day?.id);
-  const puzzleCandidates = dayPhotos.length > 0 ? dayPhotos : experience.photos;
+  const winningPhotos = experience.contestEntries.filter((entry) => entry.isWinner && entry.contentUrl);
+  const winningDayPhotos = winningPhotos.filter((entry) => experience.challenges.some((challenge) => challenge.id === entry.contentId && challenge.dayId === day?.id));
+  const puzzleCandidates = winningDayPhotos.length > 0 ? winningDayPhotos
+    : winningPhotos.length > 0 ? winningPhotos
+      : dayPhotos.length > 0 ? dayPhotos : experience.photos;
   const puzzlePhoto = puzzleCandidates.length > 0
-    ? puzzleCandidates[(day?.number || 0) % puzzleCandidates.length]
-    : { contentUrl: "/app-icon.svg", originalName: "Icona SMF Travel" };
+    ? { contentUrl: puzzleCandidates[(day?.number || 0) % puzzleCandidates.length].contentUrl, originalName: "Fotografia del viaggio" }
+    : experience.journey.agencyBranding.logoUrl
+      ? { contentUrl: experience.journey.agencyBranding.logoUrl, originalName: `Logo ${experience.journey.agencyName}` }
+      : { contentUrl: "/travel-puzzle-fallback.svg", originalName: "Illustrazione di viaggio" };
   const approved = new Set(challengeResults.filter((item) => item.travelerName === userName && item.status === "approved").map((item) => item.contentId));
   const rejectedOnce = new Set(challengeResults.filter((item) => item.travelerName === userName && item.status === "rejected"
     && Number(data(data(item.result).aiValidation).attemptCount || 0) === 1).map((item) => item.contentId));
@@ -298,10 +304,10 @@ export default function PlatformTripChallenges({ experience, userName, isAdmin, 
     finally { setBusy(""); }
   }
 
-  async function submitGame(game: Challenge, action: "puzzle" | "city" | "visitCount", suppliedAnswer = "") {
+  async function submitGame(game: Challenge, action: "puzzle" | "memory" | "oddOneOut", suppliedAnswer = "") {
     if (!day) return;
-    const answer = suppliedAnswer || gameAnswers[game.id]?.trim() || "";
-    if (action !== "puzzle" && !answer) { setError("Inserisci una risposta prima di verificare."); return; }
+    const answer = action === "memory" ? "complete" : suppliedAnswer || gameAnswers[game.id]?.trim() || "";
+    if (action === "oddOneOut" && !answer) { setError("Scegli una risposta prima di verificare."); return; }
     const key = `game-${game.id}`;
     setBusy(key); setError("");
     try {
@@ -415,7 +421,7 @@ export default function PlatformTripChallenges({ experience, userName, isAdmin, 
     {tab === "quiz" && <section className="quizPage"><div className="quizHero"><div><span>SFIDA DELLA GIORNATA</span><h2>Il quiz della giornata</h2><p>{questions.length} domande, un punto per ogni risposta corretta.</p></div><Trophy/></div><div className="quizLayout"><aside className="quizDays"><div className="quizSectionHead"><div><span>LE SFIDE</span><h3>Scegli la giornata</h3></div></div><div className="quizDayList">{experience.days.map((entry) => <button className={entry.id === day.id ? "active" : ""} aria-current={entry.id === day.id ? "date" : undefined} onClick={() => { setActiveDayId(entry.id); setAnswers({}); setQuizResult(null); }} key={entry.id}><span className="quizDayNumber">{entry.number}</span><span><small>{dateLabel(entry.date)}</small><strong>{entry.city}</strong></span><ChevronRight/></button>)}</div></aside><div className="quizPlay"><div className="quizPlayHead"><div><span>GIORNO {day.number} · {dateLabel(day.date).toUpperCase()}</span><h3>{day.city}</h3></div>{quizResult && <div className="quizScoreBadge"><Medal/><strong>{quizResult.score}/{quizResult.maximum}</strong></div>}</div>{quizResult ? <div className="quizResultBanner"><span className={quizResult.score >= Math.ceil(quizResult.maximum * .8) ? "great" : ""}><Trophy/></span><div><small>RISULTATO CONFERMATO</small><strong>{quizResult.score} risposte corrette su {quizResult.maximum}</strong></div></div> : <><div className="quizProgress"><span><b style={{ transform: `scaleX(${questions.length ? Object.keys(answers).length / questions.length : 0})` }}/></span><small>{Object.keys(answers).length} di {questions.length} risposte</small></div><div className="quizQuestions">{questions.map((question, questionIndex) => { const item = data(question.content); const options = Array.isArray(item.options) ? item.options.map(String) : []; return <fieldset key={question.id}><legend><span>{questionIndex + 1}</span>{text(question.content, "question") || question.title}</legend><div>{options.map((option, optionIndex) => <label className={answers[question.id] === optionIndex ? "selected" : ""} key={option}><input type="radio" checked={answers[question.id] === optionIndex} onChange={() => setAnswers((current) => ({ ...current, [question.id]: optionIndex }))}/><span>{String.fromCharCode(65 + optionIndex)}</span><strong>{option}</strong></label>)}</div></fieldset>; })}</div><div className="quizSubmitBar"><span><CheckCircle2/> {Object.keys(answers).length}/{questions.length} completate</span><button disabled={busy === "quiz" || Object.keys(answers).length !== questions.length || questions.length === 0} onClick={() => void submitQuiz()}>{busy === "quiz" ? <LoaderCircle className="spin"/> : <Send/>} Conferma risposte</button></div></>}</div></div></section>}
 
     {tab === "giochi" && <section className="gamesPage">
-      <div className="gamesHero"><div><span>SEMPRE SBLOCCATI · 3 GIOCHI FACILI</span><h2>Giochi della giornata</h2><p>Un puzzle fotografico e due domande semplici sul programma del giorno.</p></div><Gamepad2/></div>
+      <div className="gamesHero"><div><span>SEMPRE SBLOCCATI · 3 GIOCHI FACILI</span><h2>Giochi della giornata</h2><p>Ricostruisci una foto, abbina le coppie e trova l’elemento fuori posto.</p></div><Gamepad2/></div>
       <DayPicker days={experience.days} activeDayId={day.id} onDay={(id) => { setActiveDayId(id); setGameAnswers({}); setGameFeedback({}); }} count={(entry) => Math.min(3, experience.challenges.filter((item) => ["word_game", "order_game"].includes(item.type) && item.dayId === entry.id).length)}/>
       <section className="gamesDayHead"><div><span>GIORNO {day.number} · {dateLabel(day.date)}</span><h3>{day.city}</h3></div><strong>{currentGameScore}<small>pt</small></strong></section>
       <div className="dailyGamesGrid easyGamesGrid">
@@ -427,21 +433,33 @@ export default function PlatformTripChallenges({ experience, userName, isAdmin, 
           busy={busy === `game-${puzzleGame.id}`}
           onComplete={() => void submitGame(puzzleGame, "puzzle")}
         />}
-        {cityGame && <article className={`dailyGameCard interactiveGame ${gameFeedback[cityGame.id]?.correct ? "solved" : ""}`}>
-          <header><span>2</span><div><small>INDOVINA LA CITTÀ</small><h3>Dove siamo oggi?</h3></div><b>10 pt</b></header>
-          <p>Scrivi il nome della città principale della giornata. Aiuto: inizia con <strong>{day.city.charAt(0).toUpperCase()}</strong> e ha {day.city.length} lettere.</p>
-          <div className="gameAnswerBox"><label htmlFor={`game-${cityGame.id}`}>La tua risposta</label><div><input id={`game-${cityGame.id}`} value={gameAnswers[cityGame.id] || ""} disabled={gameFeedback[cityGame.id]?.correct} placeholder="Nome della città" onChange={(event) => setGameAnswers((current) => ({ ...current, [cityGame.id]: event.target.value }))}/><button disabled={busy === `game-${cityGame.id}` || gameFeedback[cityGame.id]?.correct} onClick={() => void submitGame(cityGame, "city")}>{busy === `game-${cityGame.id}` ? <LoaderCircle className="spin"/> : <CheckCircle2/>} Verifica</button></div></div>
-          {gameFeedback[cityGame.id] && <p className={`gameFeedback ${gameFeedback[cityGame.id].correct ? "correct" : "wrong"}`}>{gameFeedback[cityGame.id].correct ? "Corretto: +10 punti!" : `Riprova. Soluzione: ${gameFeedback[cityGame.id].answer}`}</p>}
-        </article>}
-        {visitCountGame && <article className={`dailyGameCard interactiveGame ${gameFeedback[visitCountGame.id]?.correct ? "solved" : ""}`}>
-          <header><span>3</span><div><small>CONTA LE VISITE</small><h3>Occhio al programma</h3></div><b>10 pt</b></header>
-          <p>Quante visite a monumenti o luoghi d’interesse sono previste oggi? Conta soltanto le tappe indicate come “Visita”.</p>
-          <div className="gameVisitHint">Nel programma ci sono <strong>{day.items.length}</strong> tappe complessive.</div>
-          <div className="gameAnswerBox"><label htmlFor={`game-${visitCountGame.id}`}>Numero di visite</label><div><input id={`game-${visitCountGame.id}`} type="number" min="0" max="20" inputMode="numeric" value={gameAnswers[visitCountGame.id] || ""} disabled={gameFeedback[visitCountGame.id]?.correct} placeholder="0" onChange={(event) => setGameAnswers((current) => ({ ...current, [visitCountGame.id]: event.target.value }))}/><button disabled={busy === `game-${visitCountGame.id}` || gameFeedback[visitCountGame.id]?.correct} onClick={() => void submitGame(visitCountGame, "visitCount")}>{busy === `game-${visitCountGame.id}` ? <LoaderCircle className="spin"/> : <CheckCircle2/>} Verifica</button></div></div>
-          {gameFeedback[visitCountGame.id] && <p className={`gameFeedback ${gameFeedback[visitCountGame.id].correct ? "correct" : "wrong"}`}>{gameFeedback[visitCountGame.id].correct ? "Corretto: +10 punti!" : `Riprova. Le visite sono ${gameFeedback[visitCountGame.id].answer}.`}</p>}
+        {memoryGame && <MemoryGame
+          key={`memory-${day.id}-${memoryGame.id}`}
+          game={memoryGame}
+          dayNumber={day.number}
+          score={gameFeedback[memoryGame.id]?.score ?? challengeResults.find((result) => result.travelerName === userName && result.contentId === memoryGame.id && result.status === "approved")?.score ?? 0}
+          busy={busy === `game-${memoryGame.id}`}
+          onComplete={() => void submitGame(memoryGame, "memory")}
+        />}
+        {oddOneOutGame && <article className={`dailyGameCard interactiveGame oddOneOutCard ${gameFeedback[oddOneOutGame.id]?.correct ? "solved" : ""}`}>
+          <header><span>3</span><div><small>TROVA L’INTRUSO</small><h3>{oddOneOutGame.title}</h3></div><b>{gameFeedback[oddOneOutGame.id]?.score ?? challengeResults.find((result) => result.travelerName === userName && result.contentId === oddOneOutGame.id && result.status === "approved")?.score ?? 0}/10</b></header>
+          <p>{text(oddOneOutGame.content, "instructions") || "Tre elementi hanno qualcosa in comune. Tocca quello che non appartiene al gruppo."}</p>
+          <div className="oddOneOutOptions" role="group" aria-label="Scegli l'intruso">
+            {(Array.isArray(data(oddOneOutGame.content).options) ? data(oddOneOutGame.content).options as unknown[] : []).slice(0, 4).map((option, optionIndex) => {
+              const selected = gameAnswers[oddOneOutGame.id] === String(optionIndex);
+              const solved = gameFeedback[oddOneOutGame.id]?.correct;
+              return <button key={`${optionIndex}-${String(option)}`} type="button" className={selected ? "selected" : ""} disabled={busy === `game-${oddOneOutGame.id}` || solved} aria-pressed={selected} onClick={() => setGameAnswers((current) => ({ ...current, [oddOneOutGame.id]: String(optionIndex) }))}>
+                <span>{String.fromCharCode(65 + optionIndex)}</span><strong>{String(option)}</strong>
+              </button>;
+            })}
+          </div>
+          <button className="gameTapSubmit" type="button" disabled={gameAnswers[oddOneOutGame.id] == null || busy === `game-${oddOneOutGame.id}` || gameFeedback[oddOneOutGame.id]?.correct} onClick={() => void submitGame(oddOneOutGame, "oddOneOut", gameAnswers[oddOneOutGame.id])}>
+            {busy === `game-${oddOneOutGame.id}` ? <LoaderCircle className="spin"/> : <CheckCircle2/>} Conferma scelta
+          </button>
+          {gameFeedback[oddOneOutGame.id] && <p className={`gameFeedback ${gameFeedback[oddOneOutGame.id].correct ? "correct" : "wrong"}`}>{gameFeedback[oddOneOutGame.id].correct ? "Intruso trovato: +10 punti!" : "Non è quello: osserva di nuovo gli altri elementi."}</p>}
         </article>}
       </div>
-      {games.length < 3 && <p className="gamesNotice">I tre giochi saranno disponibili dopo il completamento dei contenuti della giornata.</p>}
+      {(!puzzleGame || !memoryGame || !oddOneOutGame) && <p className="gamesNotice">I nuovi giochi saranno disponibili dopo la prossima pubblicazione del viaggio.</p>}
     </section>}
 
     {tab === "valida" && isAdmin && <section className="reviewPanel"><div className="reviewHeading"><span><CheckCircle2/></span><div><small>AREA AMMINISTRATORE</small><h3>Valida le foto-prova</h3><p>Controlla le missioni e le caselle della tombola prima di assegnare i punti.</p></div></div>{challengeResults.filter((result) => result.status === "submitted" && ["mission", "bingo"].includes(result.type)).length === 0 ? <div className="reviewEmpty"><CheckCircle2/><h3>Nessuna foto da validare</h3><p>Tutte le prove ricevute sono state esaminate.</p></div> : <div className="reviewList">{challengeResults.filter((result) => result.status === "submitted" && ["mission", "bingo"].includes(result.type)).map((result) => { const challenge = experience.challenges.find((item) => item.id === result.contentId); const challengeDay = experience.days.find((entry) => entry.id === result.dayId); return <article key={result.id}><div className="reviewImage">{result.evidenceUrl ? <Image src={result.evidenceUrl} alt={`Foto-prova di ${result.travelerName}`} fill sizes="(max-width: 800px) 100vw, 380px" unoptimized/> : <Camera/>}</div><div className="reviewCopy"><small>{result.type === "mission" ? "MISSIONE" : "TOMBOLA"} · {challengeDay ? `GIORNO ${challengeDay.number}` : "VIAGGIO"}</small><h4>{challenge?.title || "Foto-prova"}</h4><p>{result.travelerName}</p><blockquote>{challenge ? text(challenge.content, "description", "instructions") : "Verifica che la foto rispetti la richiesta."}</blockquote><div><button className="reject" disabled={busy === `review-${result.id}`} onClick={() => void reviewEvidence(result.id, false)}><XCircle/> Rifiuta</button><button className="approve" disabled={busy === `review-${result.id}`} onClick={() => void reviewEvidence(result.id, true)}>{busy === `review-${result.id}` ? <LoaderCircle className="spin"/> : <Check/>} Valida</button></div></div></article>; })}</div>}</section>}
@@ -458,6 +476,75 @@ function DayPicker({ days, activeDayId, onDay, count: _count }: { days: Day[]; a
 
 function ChallengeEmpty({ icon, title, copy }: { icon: React.ReactNode; title: string; copy: string }) {
   return <div className="challengeEmpty" role="status"><span>{icon}</span><div><h3>{title}</h3><p>{copy}</p></div></div>;
+}
+
+type MemoryCard = { id: string; pair: number; label: string };
+
+function memoryCards(content: unknown, seed: number) {
+  const pairs = Array.isArray(data(content).pairs) ? data(content).pairs as unknown[] : [];
+  const cards = pairs.slice(0, 4).flatMap((pair, index) => {
+    const item = data(pair);
+    return [
+      { id: `${index}-a`, pair: index, label: String(item.first || "") },
+      { id: `${index}-b`, pair: index, label: String(item.second || "") },
+    ];
+  }).filter((card) => card.label) as MemoryCard[];
+  for (let index = cards.length - 1; index > 0; index -= 1) {
+    const swapIndex = (seed * 17 + index * 11 + index * index) % (index + 1);
+    [cards[index], cards[swapIndex]] = [cards[swapIndex], cards[index]];
+  }
+  return cards;
+}
+
+function MemoryGame({ game, dayNumber, score, busy, onComplete }: {
+  game: Challenge;
+  dayNumber: number;
+  score: number;
+  busy: boolean;
+  onComplete: () => void;
+}) {
+  const cards = useMemo(() => memoryCards(game.content, dayNumber), [game.content, dayNumber]);
+  const [open, setOpen] = useState<string[]>([]);
+  const [matched, setMatched] = useState(() => new Set<number>());
+  const [moves, setMoves] = useState(0);
+  const complete = cards.length === 8 && matched.size === 4;
+
+  function turn(card: MemoryCard) {
+    if (busy || complete || matched.has(card.pair) || open.includes(card.id) || open.length >= 2) return;
+    const next = [...open, card.id];
+    setOpen(next);
+    if (next.length < 2) return;
+    setMoves((current) => current + 1);
+    const first = cards.find((candidate) => candidate.id === next[0]);
+    if (first?.pair === card.pair) {
+      const nextMatched = new Set(matched).add(card.pair);
+      setMatched(nextMatched);
+      setOpen([]);
+      if (nextMatched.size === 4) onComplete();
+      return;
+    }
+    window.setTimeout(() => setOpen([]), 700);
+  }
+
+  function reset() {
+    setOpen([]);
+    setMatched(new Set());
+    setMoves(0);
+  }
+
+  return <article className={`dailyGameCard interactiveGame memoryGameCard ${complete ? "solved" : ""}`}>
+    <header><span><Images/></span><div><small>MEMORY DEL VIAGGIO</small><h3>{game.title}</h3></div><b>{score}/10</b></header>
+    <p>{text(game.content, "instructions") || "Abbina ogni luogo o dettaglio alla sua coppia."}</p>
+    <div className="memoryBoard" aria-label="Memory del viaggio">
+      {cards.map((card) => {
+        const revealed = open.includes(card.id) || matched.has(card.pair);
+        return <button key={card.id} type="button" className={revealed ? "revealed" : ""} aria-label={revealed ? card.label : "Carta coperta"} aria-pressed={revealed} onClick={() => turn(card)}>
+          <span className="memoryCardBack"><Sparkles/></span><strong>{card.label}</strong>
+        </button>;
+      })}
+    </div>
+    <div className="puzzleStatus"><span><b>{moves}</b> tentativi</span>{complete && <strong><Trophy/> Completato!</strong>}<button type="button" onClick={reset}><RotateCcw/> Ricomincia</button></div>
+  </article>;
 }
 
 function ContestPhotoDetails({ entry, title, isOwn, isClosed, wonOnTie }: {

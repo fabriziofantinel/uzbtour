@@ -1,12 +1,28 @@
 import { randomUUID } from "node:crypto";
 import { generateReferenceContent } from "../lib/platform/reference-enrichment";
 
+function assertPhotoValidation(items: Array<{ photoValidation?: { target: string; requiredFeatures: string[]; rejectIf: string[]; minimumConfidence: number } }>, label: string) {
+  if (items.some((item) => !item.photoValidation || !item.photoValidation.target || item.photoValidation.requiredFeatures.length === 0 || item.photoValidation.rejectIf.length === 0 || item.photoValidation.minimumConfidence < 0.65)) {
+    throw new Error(`Scheda fotografica dinamica non valida: ${label}`);
+  }
+}
+
+function assertGames(games: Array<{ type: string; pairs?: unknown[]; options?: unknown[]; correctIndex?: number }>, label: string) {
+  const types = games.map((game) => game.type);
+  if (types.join(",") !== "photo_puzzle,memory,odd_one_out") throw new Error(`Tipi di gioco non validi: ${label}`);
+  const memory = games.find((game) => game.type === "memory");
+  const oddOneOut = games.find((game) => game.type === "odd_one_out");
+  if (memory?.pairs?.length !== 4) throw new Error(`Coppie memory non valide: ${label}`);
+  if (oddOneOut?.options?.length !== 4 || oddOneOut.correctIndex == null) throw new Error(`Trova l'intruso non valido: ${label}`);
+}
+
 async function main() {
   const country = await generateReferenceContent(
     { entityType: "country", entityId: randomUUID(), name: "Belgio" },
     "Belgio, viaggio culturale tra Bruxelles e Bruges",
   );
   if (country.kind !== "country") throw new Error("Contenuto Paese non generato");
+  assertPhotoValidation(country.data.bingo, "bingo Paese");
   const languages = [...new Set(country.data.phrasebook.map((item) => item.language))];
   if (languages.some((language) => /belga/i.test(language))) throw new Error("'Belga' non è una lingua valida");
 
@@ -15,12 +31,18 @@ async function main() {
     "Bruxelles, Belgio",
   );
   if (city.kind !== "destination") throw new Error("Contenuto città non generato");
+  assertPhotoValidation(city.data.missions, "missioni città");
+  assertPhotoValidation(city.data.photoContests, "contest città");
+  assertGames(city.data.games, "giochi città");
 
   const site = await generateReferenceContent(
     { entityType: "site", entityId: randomUUID(), name: "Grand-Place di Bruxelles" },
     "Grand-Place di Bruxelles, Bruxelles, Belgio",
   );
   if (site.kind !== "destination") throw new Error("Contenuto sito non generato");
+  assertPhotoValidation(site.data.missions, "missioni sito");
+  assertPhotoValidation(site.data.photoContests, "contest sito");
+  assertGames(site.data.games, "giochi sito");
 
   console.log(JSON.stringify({
     status: "passed",
@@ -31,18 +53,21 @@ async function main() {
       languages,
       phrases: country.data.phrasebook.length,
       bingo: country.data.bingo.length,
+      photoValidationProfiles: country.data.bingo.length,
     },
     city: {
       quiz: city.data.quiz.length,
       missions: city.data.missions.length,
       games: city.data.games.length,
       photoContests: city.data.photoContests.length,
+      photoValidationProfiles: city.data.missions.length + city.data.photoContests.length,
     },
     site: {
       quiz: site.data.quiz.length,
       missions: site.data.missions.length,
       games: site.data.games.length,
       photoContests: site.data.photoContests.length,
+      photoValidationProfiles: site.data.missions.length + site.data.photoContests.length,
     },
   }, null, 2));
 }

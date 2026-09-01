@@ -1,0 +1,81 @@
+{
+  "dataset": "independence-square-v1",
+  "theme": "Piazza dell'Indipendenza, Tashkent",
+  "generated": true,
+  "photoValidation": {
+    "target": "Piazza dell'Indipendenza di Tashkent",
+    "subjectType": "place",
+    "visualDescription": "Grande piazza civica monumentale di Tashkent con fontane, giardini formali, architettura istituzionale chiara ed elementi celebrativi dell'indipendenza uzbeka.",
+    "requiredFeatures": [
+      "Almeno un elemento distintivo della piazza insieme al contesto civico, alle fontane o ai giardini formali"
+    ],
+    "optionalFeatures": [
+      "Monumento dell'Indipendenza",
+      "fontane monumentali",
+      "giardini geometrici",
+      "edifici istituzionali chiari"
+    ],
+    "acceptableVariations": [
+      "Vista panoramica o dettaglio riconoscibile",
+      "ripresa diurna, serale o notturna",
+      "presenza occasionale di visitatori"
+    ],
+    "rejectIf": [
+      "Statua equestre su alto piedistallo con montagne immediatamente sullo sfondo",
+      "complesso di madrase rivestite di maioliche",
+      "paesaggio marino",
+      "interno di ristorante o hotel"
+    ],
+    "confusableWith": [
+      "Piazza Ala-Too a Bishkek",
+      "Registan a Samarcanda",
+      "Piazza Amir Temur a Tashkent"
+    ],
+    "minimumConfidence": 0.8
+  },
+  "fixtures": [
+    {
+      "file": "01-valid-obvious-independence-square.png",
+      "expected": "eligible",
+      "difficulty": "easy",
+      "reason": "La piazza e il monumento sono il soggetto principale."
+    },
+    {
+      "file": "02-valid-partial-fountain-garden.png",
+      "expected": "eligible",
+      "difficulty": "hard",
+      "reason": "Inquadratura parziale compatibile con il luogo, senza la vista panoramica più riconoscibile."
+    },
+    {
+      "file": "03b-invalid-ala-too-square-bishkek.png",
+      "expected": "ineligible",
+      "difficulty": "hard",
+      "reason": "Piazza Ala-Too di Bishkek: piazza monumentale centroasiatica plausibile, ma luogo e Paese diversi."
+    },
+    {
+      "file": "04-invalid-registan-samarkand.png",
+      "expected": "ineligible",
+      "difficulty": "medium",
+      "reason": "Luogo uzbeko reale e riconoscibile, ma diverso dalla Piazza dell'Indipendenza di Tashkent."
+    },
+    {
+      "file": "05-invalid-mediterranean-sea.png",
+      "expected": "ineligible",
+      "difficulty": "easy",
+      "reason": "Paesaggio marino completamente estraneo al tema."
+    },
+    {
+      "file": "06-invalid-hotel-breakfast.png",
+      "expected": "ineligible",
+      "difficulty": "easy",
+      "reason": "Scena interna di colazione completamente estranea al tema."
+    }
+  ],
+  "acceptance": {
+    "minimum_classification_accuracy": 1,
+    "eligible_score_must_exceed_ineligible_score": true,
+    "ineligible_total_score": 0,
+    "repeat_runs": 3,
+    "order_invariance_required": true
+  }
+}

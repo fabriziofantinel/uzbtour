@@ -117,10 +117,10 @@ export async function POST(request: Request) {
     }
   }
   const gameAction = String(body?.action || "");
-  if (["game", "puzzle", "city", "visitCount"].includes(gameAction)) {
+  if (["game", "puzzle", "memory", "oddOneOut", "city", "visitCount"].includes(gameAction)) {
     const contentId = String(body?.contentId || "");
     const answer = String(body?.answer || "").trim();
-    if (!/^[0-9a-f-]{36}$/i.test(contentId) || (gameAction !== "puzzle" && !answer)) {
+    if (!/^[0-9a-f-]{36}$/i.test(contentId) || (!["puzzle", "memory"].includes(gameAction) && !answer)) {
       return NextResponse.json({ error: "Risposta non valida" }, { status: 400 });
     }
     const v3Items = await readV3ChallengeAnswerSpecs({
@@ -133,10 +133,12 @@ export async function POST(request: Request) {
     const answerSpec = v3Items[0]?.answer_spec && typeof v3Items[0].answer_spec === "object"
       && !Array.isArray(v3Items[0].answer_spec)
       ? v3Items[0].answer_spec as Record<string, unknown> : {};
-    const expected = String(answerSpec.answer || "").trim();
+    const expected = gameAction === "oddOneOut"
+      ? String(answerSpec.correctIndex ?? "")
+      : String(answerSpec.answer || "").trim();
     const correct = gameAction === "puzzle"
-      ? true
-      : Boolean(expected) && normalizedAnswer(answer) === normalizedAnswer(expected);
+      || (gameAction === "memory" && answer === "complete")
+      || (Boolean(expected) && normalizedAnswer(answer) === normalizedAnswer(expected));
     const score = correct ? 10 : 0;
     const saved = await saveV3ActivityItemResult({
       userId: user.id, agencyId, departureId, partyId, dayId, itemId: contentId,

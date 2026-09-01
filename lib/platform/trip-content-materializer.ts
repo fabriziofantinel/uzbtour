@@ -23,6 +23,7 @@ function arrayContent(value: unknown): Array<Record<string, unknown>> {
     : [];
 }
 function text(value: unknown) { return typeof value === "string" ? value.trim() : ""; }
+function record(value: unknown): Record<string, unknown> { return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
 async function applyUsefulInformationGovernance(agencyId:string,versionId:string){
   await getSql()`UPDATE travel.template_useful_information SET
     source_name=CASE WHEN COALESCE(url,'')<>'' THEN 'Fonte ufficiale indicata' ELSE NULL END,
@@ -92,7 +93,7 @@ export async function materializeTripExperience(jobId: string, templateId: strin
       const activity = ensureGroup(null, "bingo");
       for (const entry of entries) {
         if (activity.items.length >= 25) break;
-        activity.items.push({ ordinal: activity.items.length + 1, itemKind: "bingo_cell", prompt: text(entry.title), payload: { description: text(entry.description) }, answerSpec: { validation: "photo" }, points: 0 });
+        activity.items.push({ ordinal: activity.items.length + 1, itemKind: "bingo_cell", prompt: text(entry.title), payload: { description: text(entry.description), photoValidation: record(entry.photoValidation) }, answerSpec: { validation: "photo" }, points: 0 });
       }
       continue;
     }
@@ -125,7 +126,12 @@ export async function materializeTripExperience(jobId: string, templateId: strin
     });
     const [cityEntries, siteEntries] = sourceGroups;
     let selected: Array<Record<string, unknown>>;
-    if (contentType === "quiz" && cityEntries.length > 0 && siteEntries.length > 0) {
+    if (contentType === "game") {
+      const candidates = [...siteEntries, ...cityEntries];
+      selected = ["photo_puzzle", "memory", "odd_one_out"]
+        .map((type) => candidates.find((entry) => text(entry.type) === type))
+        .filter((entry): entry is Record<string, unknown> => Boolean(entry));
+    } else if (contentType === "quiz" && cityEntries.length > 0 && siteEntries.length > 0) {
       const prioritized = [
         ...cityEntries.slice(0, 1),
         ...siteEntries.slice(0, 4),
@@ -143,17 +149,43 @@ export async function materializeTripExperience(jobId: string, templateId: strin
       const activity = ensureGroup(dayId, type);
       for (const entry of selected) activity.items.push(type === "quiz"
         ? { ordinal: activity.items.length + 1, itemKind: "question", prompt: text(entry.question) || text(entry.title), payload: { options: Array.isArray(entry.options) ? entry.options : [], explanation: text(entry.explanation), sourceUrl: text(entry.sourceUrl) }, answerSpec: { correctIndex: entry.correctIndex }, points: 1 }
-        : { ordinal: activity.items.length + 1, itemKind: "mission", prompt: text(entry.title), payload: { description: text(entry.description) }, answerSpec: { validation: "photo" }, points: 10 });
+        : { ordinal: activity.items.length + 1, itemKind: "mission", prompt: text(entry.title), payload: { description: text(entry.description), photoValidation: record(entry.photoValidation) }, answerSpec: { validation: "photo" }, points: 10 });
       activity.maxScore = activity.items.reduce((total, item) => total + item.points, 0);
       continue;
     }
     selected.forEach((entry, index) => {
       if (contentType === "game") {
-        const isOrder = text(entry.type) === "order";
-        activities.push({ templateDayId: dayId, activityType: isOrder ? "order_game" : "word_game", contestCategory: null, title: text(entry.title) || "Gioco del giorno", instructions: text(entry.instructions), availabilityRule: "always", relativeDays: null, unlockLocalTime: null, maxScore: 10, maxEntries: null, sortOrder: activitySort++, items: [{ ordinal: 1, itemKind: isOrder ? "order_step" : "word", prompt: text(entry.title), payload: { type: text(entry.type), instructions: text(entry.instructions) }, answerSpec: { answer: text(entry.answer) }, points: 10 }] });
+        const gameType = text(entry.type);
+        const isOddOneOut = gameType === "odd_one_out";
+        activities.push({
+          templateDayId: dayId,
+          activityType: isOddOneOut ? "order_game" : "word_game",
+          contestCategory: null,
+          title: text(entry.title) || "Gioco del giorno",
+          instructions: text(entry.instructions),
+          availabilityRule: "always",
+          relativeDays: null,
+          unlockLocalTime: null,
+          maxScore: 10,
+          maxEntries: null,
+          sortOrder: activitySort++,
+          items: [{
+            ordinal: 1,
+            itemKind: isOddOneOut ? "order_step" : "word",
+            prompt: text(entry.title),
+            payload: {
+              type: gameType,
+              instructions: text(entry.instructions),
+              pairs: Array.isArray(entry.pairs) ? entry.pairs : [],
+              options: Array.isArray(entry.options) ? entry.options : [],
+            },
+            answerSpec: isOddOneOut ? { correctIndex: entry.correctIndex } : { answer: "complete" },
+            points: 10,
+          }],
+        });
       } else {
         const category = index === 0 ? "free" : "theme";
-        activities.push({ templateDayId: dayId, activityType: "photo_contest", contestCategory: category, title: text(entry.title) || (category === "free" ? "Tema libero" : "Tema del giorno"), instructions: text(entry.description), availabilityRule: "always", relativeDays: null, unlockLocalTime: null, maxScore: null, maxEntries: 2, sortOrder: activitySort++, items: [{ ordinal: 1, itemKind: "contest_rule", prompt: text(entry.title), payload: { description: text(entry.description) }, answerSpec: {}, points: 0 }] });
+        activities.push({ templateDayId: dayId, activityType: "photo_contest", contestCategory: category, title: text(entry.title) || (category === "free" ? "Tema libero" : "Tema del giorno"), instructions: text(entry.description), availabilityRule: "always", relativeDays: null, unlockLocalTime: null, maxScore: null, maxEntries: 2, sortOrder: activitySort++, items: [{ ordinal: 1, itemKind: "contest_rule", prompt: text(entry.title), payload: { description: text(entry.description), photoValidation: record(entry.photoValidation) }, answerSpec: {}, points: 0 }] });
       }
     });
   }

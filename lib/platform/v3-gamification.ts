@@ -126,7 +126,9 @@ export async function readV3Gamification(input: {
               ))
           ELSE jsonb_build_object(
             'type',COALESCE(item.payload->>'type',''),
-            'instructions',COALESCE(item.payload->>'instructions',activity.instructions))
+            'instructions',COALESCE(item.payload->>'instructions',activity.instructions),
+            'pairs',COALESCE(item.payload->'pairs','[]'::jsonb),
+            'options',COALESCE(item.payload->'options','[]'::jsonb))
         END AS content
       FROM content.activities activity
       JOIN content.activity_items item

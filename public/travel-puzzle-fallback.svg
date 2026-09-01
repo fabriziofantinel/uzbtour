@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900" role="img" aria-labelledby="title description">
+  <title id="title">Illustrazione di viaggio</title>
+  <desc id="description">Una bussola sopra una mappa stilizzata</desc>
+  <rect width="900" height="900" fill="#f7f1e6"/>
+  <path d="M0 650 190 520l180 88 190-180 340 150v322H0Z" fill="#dbe9e4"/>
+  <path d="M0 740 205 612l170 76 195-165 330 126" fill="none" stroke="#247a6b" stroke-width="24"/>
+  <circle cx="450" cy="360" r="210" fill="#fff" stroke="#142b35" stroke-width="24"/>
+  <circle cx="450" cy="360" r="24" fill="#b34d2d"/>
+  <path d="m526 232-50 154-102 102 50-154Z" fill="#b34d2d" stroke="#142b35" stroke-width="12" stroke-linejoin="round"/>
+  <path d="m374 488 50-154 102-102-50 154Z" fill="#247a6b" stroke="#142b35" stroke-width="12" stroke-linejoin="round"/>
+</svg>

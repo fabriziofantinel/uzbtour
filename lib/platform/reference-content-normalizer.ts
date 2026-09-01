@@ -109,6 +109,18 @@ export const countryBingoCategories = [
   "Scena urbana senza persone riconoscibili",
 ] as const;
 
+export const photoValidationSchema = z.object({
+  target: z.string().trim().min(2).max(240),
+  subjectType: z.enum(["place", "monument", "dish", "food", "drink", "object", "pattern", "transport", "text", "scene", "other"]),
+  visualDescription: z.string().trim().min(20).max(900),
+  requiredFeatures: z.array(z.string().trim().min(2).max(220)).min(1).max(6),
+  optionalFeatures: z.array(z.string().trim().min(2).max(220)).max(6),
+  acceptableVariations: z.array(z.string().trim().min(2).max(220)).max(6),
+  rejectIf: z.array(z.string().trim().min(2).max(220)).min(1).max(8),
+  confusableWith: z.array(z.string().trim().min(2).max(220)).max(6),
+  minimumConfidence: z.number().min(0.65).max(0.95),
+});
+
 const safeBingoFallback: Record<(typeof countryBingoCategories)[number], string> = {
   "Piatto tipico": "Specialità locale",
   "Bevanda locale": "Bevanda tradizionale",
@@ -128,11 +140,18 @@ const safeBingoFallback: Record<(typeof countryBingoCategories)[number], string>
 };
 const unsafeBingoPeople = /\b(donna|donne|uomo|uomini|persona|persone|bambino|bambina|bambini|ragazzo|ragazza|volto|volti|hijab|velo|fedeli|passanti)\b/i;
 const unsafeBingoAccess = /\b(interno|interni|entrare|museo|negozio|workshop|laboratorio|lezione|pernottamento|noleggio|guida|comprare|acquistare)\b/i;
+function bingoRequestsUnsafeSubject(copy: string) {
+  const withoutSafetyExclusions = copy
+    .replace(/\b(?:senza|escludi|evita)\s+(?:alcun[ao]?\s+)?(?:persona|persone|volto|volti|passante|passanti)(?:\s+(?:identificabile|identificabili|riconoscibile|riconoscibili))?/gi, "")
+    .replace(/\b(?:capo|abito)\s+tradizionale\s+esposto\s+senza\s+(?:persona|persone)\b/gi, "capo tradizionale esposto");
+  return unsafeBingoPeople.test(withoutSafetyExclusions) || unsafeBingoAccess.test(withoutSafetyExclusions);
+}
 
 const bingoSchema = z.array(z.object({
   category: z.enum(countryBingoCategories),
   title: z.string().min(1).max(120),
   description: z.string().min(1).max(500),
+  photoValidation: photoValidationSchema.optional(),
 })).length(15).superRefine((items, context) => {
   const titles = items.map((item) => item.title.trim().toLocaleLowerCase("it"));
   if (new Set(titles).size !== items.length) {
@@ -143,11 +162,8 @@ const bingoSchema = z.array(z.object({
     if (!item.description.trim().toLocaleLowerCase("it").startsWith("fotografa")) {
       context.addIssue({ code: "custom", path: [index, "description"], message: "La casella deve richiedere una prova fotografica" });
     }
-    if (unsafeBingoPeople.test(copy)) {
-      context.addIssue({ code: "custom", path: [index], message: "La casella non deve richiedere fotografie di persone identificabili" });
-    }
-    if (unsafeBingoAccess.test(copy)) {
-      context.addIssue({ code: "custom", path: [index], message: "La casella non deve richiedere accessi, prenotazioni o acquisti" });
+    if (bingoRequestsUnsafeSubject(copy)) {
+      context.addIssue({ code: "custom", path: [index], message: "La casella non deve richiedere fotografie di persone identificabili, accessi, prenotazioni o acquisti" });
     }
   });
   for (const category of countryBingoCategories) {
@@ -174,20 +190,32 @@ export const destinationReferenceSchema = z.object({
     explanation: z.string().min(10).max(1000),
     sourceUrl: z.string().url().max(500),
   })).min(7).max(15),
-  missions: z.array(z.object({ title: z.string(), description: z.string() })).min(5).max(10),
+  missions: z.array(z.object({ title: z.string(), description: z.string(), photoValidation: photoValidationSchema.optional() })).min(5).max(10),
   games: z.array(z.object({
-    type: z.enum(["rebus", "word", "order"]),
+    type: z.enum(["photo_puzzle", "memory", "odd_one_out"]),
     title: z.string().trim().min(1).max(240),
     instructions: z.string().trim().min(1).max(1000),
-    answer: z.string().trim().min(1).max(500),
+    pairs: z.array(z.object({
+      first: z.string().trim().min(1).max(120),
+      second: z.string().trim().min(1).max(120),
+    })).length(4).optional(),
+    options: z.array(z.string().trim().min(1).max(160)).length(4).optional(),
+    correctIndex: z.number().int().min(0).max(3).optional(),
+  }).superRefine((game, context) => {
+    if (game.type === "memory" && game.pairs?.length !== 4) {
+      context.addIssue({ code: "custom", message: "Il memory deve contenere esattamente quattro coppie" });
+    }
+    if (game.type === "odd_one_out" && (game.options?.length !== 4 || game.correctIndex == null)) {
+      context.addIssue({ code: "custom", message: "Trova l'intruso deve contenere quattro opzioni e correctIndex" });
+    }
   })).length(3).superRefine((games, context) => {
-    for (const type of ["rebus", "word", "order"] as const) {
+    for (const type of ["photo_puzzle", "memory", "odd_one_out"] as const) {
       if (games.filter((game) => game.type === type).length !== 1) {
         context.addIssue({ code: "custom", message: `Deve essere presente esattamente un gioco di tipo '${type}'` });
       }
     }
   }),
-  photoContests: z.array(z.object({ title: z.string(), description: z.string() })).min(2).max(2),
+  photoContests: z.array(z.object({ title: z.string(), description: z.string(), photoValidation: photoValidationSchema.optional() })).min(2).max(2),
 });
 
 const siteQuizForbiddenTopics = [
@@ -287,10 +315,10 @@ export function normalizeReferenceContent(input: unknown, kind: "country" | "des
       const category = cell?.category;
       if (!cell || typeof category !== "string" || !(countryBingoCategories as readonly string[]).includes(category)) return item;
       const copy = `${String(cell.title ?? "")} ${String(cell.description ?? "")}`;
-      if (!unsafeBingoPeople.test(copy) && !unsafeBingoAccess.test(copy)) return item;
+      if (!bingoRequestsUnsafeSubject(copy)) return item;
       const title = safeBingoFallback[category as keyof typeof safeBingoFallback];
       changes.push(`bingo[${index}]: soggetto non sicuro sostituito`);
-      return { ...cell, title, description: `Fotografa ${title.toLocaleLowerCase("it")} visibile da uno spazio pubblico o tra gli oggetti del viaggio.` };
+      return { ...cell, title, description: `Fotografa ${title.toLocaleLowerCase("it")} visibile da uno spazio pubblico o tra gli oggetti del viaggio.`, photoValidation: undefined };
     }) : bingo;
     return {
       value: {
@@ -326,14 +354,19 @@ export function normalizeReferenceContent(input: unknown, kind: "country" | "des
     return { ...question, options, correctIndex };
   }) : quiz;
   const rawGames = Array.isArray(source.games) ? source.games : [];
-  const normalizedGames = ["rebus", "word", "order"].map((type) => {
+  const normalizedGames = ["photo_puzzle", "memory", "odd_one_out"].map((type) => {
     const game = rawGames.map(recordValue).find((item) => item?.type === type);
     if (!game) return undefined;
-    const answer = typeof game.answer === "string" && game.answer.trim()
-      ? game.answer
-      : typeof game.title === "string" ? game.title : "";
-    if (answer !== game.answer) changes.push(`games.${type}.answer: risposta mancante ricostruita`);
-    return { ...game, answer };
+    if (type === "photo_puzzle") {
+      const { pairs: _pairs, options: _options, correctIndex: _correctIndex, ...puzzle } = game;
+      return puzzle;
+    }
+    if (type === "memory") {
+      const { options: _options, correctIndex: _correctIndex, ...memory } = game;
+      return memory;
+    }
+    const { pairs: _pairs, ...oddOneOut } = game;
+    return oddOneOut;
   }).filter((game) => Boolean(game)) as Array<Record<string, unknown>>;
   if (rawGames.length !== normalizedGames.length) changes.push(`games: ${rawGames.length}→${normalizedGames.length}`);
   const qualifyDestinationEntries = (value: unknown, field: string) => Array.isArray(value) ? value.map((item, index) => {

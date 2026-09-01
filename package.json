@@ -205,6 +205,7 @@
     "acceptance:bedrock:travel-import": "tsx --env-file=.env.production.local scripts/acceptance-bedrock-travel-import.ts",
     "acceptance:bedrock:reference-content": "tsx --env-file=.env.production.local scripts/acceptance-bedrock-reference-content.ts",
     "acceptance:bedrock:photo-contest-reliability": "tsx scripts/acceptance-photo-contest-ai-reliability.ts",
+    "acceptance:bedrock:photo-synthetic-dataset": "tsx --env-file=.env.production.local scripts/acceptance-photo-ai-synthetic-dataset.ts",
     "acceptance:v3:photo-evidence-attempts": "node --env-file=.env.local scripts/acceptance-v3-photo-evidence-attempts.mjs",
     "acceptance:bingo-scoring": "tsx scripts/acceptance-bingo-scoring.ts",
     "acceptance:travel-album": "tsx scripts/acceptance-travel-album-pdf.ts",
