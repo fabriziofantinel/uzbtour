@@ -120,10 +120,10 @@ async function verifiedCountryProfile(jobId: string, agencyId: string, target: R
   const saved = await sql`SELECT * FROM app.save_country_profile_candidate_v3(${jobId},${agencyId},${target.entityId},
     ${JSON.stringify(validation.profile)}::jsonb,${JSON.stringify(validation.profile.sources)}::jsonb,
     ${JSON.stringify(validation.errors)}::jsonb,${modelId},${dossier.modelId},NOW()+(30*INTERVAL '1 day'))`;
-  if (saved[0]?.status !== "verified") {
-    throw new Error(`Profilo Paese da verificare: ${validation.errors.join("; ")}`);
-  }
-  return validation.profile;
+  if (!saved[0]) throw new Error("Salvataggio del profilo Paese non riuscito");
+  throw new Error(validation.errors.length
+    ? `Il responsabile dell'agenzia deve validare le informazioni del Paese: ${validation.errors.join("; ")}`
+    : "Il responsabile dell'agenzia deve validare le informazioni del Paese prima di proseguire");
 }
 
 async function generatePhotoValidationProfiles(target: ReferenceTarget, context: string, candidates: PhotoValidationCandidate[]) {

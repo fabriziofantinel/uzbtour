@@ -128,7 +128,7 @@ new_cases = [
     ("UC-REF-001", "Primo popolamento automatico del profilo Paese", "Profilo verificato accettato dal test; generazione creativa bloccata in assenza del profilo."),
     ("UC-REF-002", "Riuso del profilo Paese tra viaggi e agenzie", "Persistenza centralizzata e separazione tenant verificate dal modello e dai test del repository."),
     ("UC-REF-003", "Blocco di dati Paese non verificati", "Numero di emergenza inventato respinto dal test automatico."),
-    ("UC-REF-004", "Revisione Superuser del profilo Paese", "Stato approvato e provenienza ufficiale coperti da regressione e schema."),
+    ("UC-REF-004", "Revisione del responsabile dell'agenzia", "Approvazione isolata per agenzia e versione; superuser e utenti non owner esclusi dal controllo."),
     ("UC-REF-005", "Scadenza e aggiornamento del profilo Paese", "Data di verifica, fonti e policy di aggiornamento validate dallo schema."),
     ("UC-REF-006", "Separazione tra contenuto fattuale e creativo", "Bedrock genera solo frasario e bingo; le 11 informazioni utili provengono dal profilo verificato."),
     ("UC-AI-IMP-01", "Estrazione completa del preventivo con evidenze", "Acceptance Bedrock reale superata con 85 evidenze sorgente."),

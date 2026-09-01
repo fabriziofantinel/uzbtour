@@ -12,9 +12,9 @@ Dato un profilo `verified` non scaduto, quando un altro viaggio dello stesso Pae
 
 Dato un candidato contenente un recapito non presente nel dossier o una fonte non citata, quando termina l'estrazione, il profilo passa a `review_required`, conserva gli errori e la pubblicazione delle informazioni utili si interrompe con un messaggio esplicito.
 
-## UC-REF-004 - Revisione Superuser
+## UC-REF-004 - Revisione del responsabile dell'agenzia
 
-Dato un profilo `review_required`, il Superuser può approvarlo o rifiutarlo. Un utente non Superuser riceve `42501`. Dopo l'approvazione il profilo è riutilizzabile; dopo il rifiuto resta escluso dalla pubblicazione.
+Dato un profilo `review_required`, soltanto il responsabile (`owner`) dell'agenzia che utilizza quel Paese può approvarlo o rifiutarlo. Superuser, agenti e responsabili di altre agenzie ricevono `42501`. L'approvazione è legata all'agenzia e alla versione del profilo; una nuova versione richiede una nuova validazione.
 
 ## UC-REF-005 - Scadenza e aggiornamento
 

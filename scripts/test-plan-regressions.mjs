@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
-const [loginPage, loginRoute, gamification, challengesRoute, programmeRoute, repository, proxy, invitationRoute, activationPage, travelerExperience, referenceRepository, superadminCss] = await Promise.all([
+const [loginPage, loginRoute, gamification, challengesRoute, programmeRoute, repository, proxy, invitationRoute, activationPage, travelerExperience, referenceRepository, superadminCss, superadminPage, agencyCountryReviewPage, agencyCountryReviewMigration] = await Promise.all([
   read("app/login/page.tsx"),
   read("app/api/auth/username/sign-in/route.ts"),
   read("lib/platform/v3-gamification.ts"),
@@ -15,6 +15,9 @@ const [loginPage, loginRoute, gamification, challengesRoute, programmeRoute, rep
   read("app/viaggio/travel-experience.tsx"),
   read("lib/platform/trip-content-materializer.ts"),
   read("app/admin/superadmin.css"),
+  read("app/admin/page.tsx"),
+  read("app/agenzia/informazioni-paese/page.tsx"),
+  read("database/migrations/128_v3_agency_country_profile_review.sql"),
 ]);
 
 assert.match(loginPage, /Username non valido/);
@@ -47,6 +50,11 @@ assert.match(referenceRepository, /review_status='approved'/);
 assert.match(referenceRepository, /profilo Paese verificato/);
 assert.match(referenceRepository, /disclaimer=/);
 assert.match(superadminCss, /\.impersonationList article>button\{min-width:48px;min-height:48px/);
+assert.doesNotMatch(superadminPage, /Profili Paese da verificare/);
+assert.match(agencyCountryReviewPage, /requireAgencyOwnerActor/);
+assert.match(agencyCountryReviewPage, /Approva informazioni/);
+assert.match(agencyCountryReviewMigration, /membership\.role='owner'/);
+assert.match(agencyCountryReviewMigration, /actor\.platform_role<>'superadmin'/);
 
 console.log(JSON.stringify({
   status: "passed",
@@ -60,4 +68,5 @@ console.log(JSON.stringify({
   travelerChangeAcknowledgement: true,
   sensitiveContentProvenance: true,
   superadminMobileTouchTargets: true,
+  agencyOwnerCountryReview: true,
 }));
