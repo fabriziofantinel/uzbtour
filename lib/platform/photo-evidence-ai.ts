@@ -5,6 +5,7 @@ import { getSql } from "@/lib/db";
 import { getObjectStorage } from "./object-storage";
 import { bedrockImage } from "./bedrock-image";
 import { photoValidationSchema } from "./reference-content-normalizer";
+import { captureBedrockGeneration } from "./ai-generation-telemetry";
 
 const verdictSchema = z.object({
   compatible: z.boolean(),
@@ -100,6 +101,13 @@ export async function processPhotoEvidenceValidation(input: {
         requestMetadata: { application: "smf-travel", operation: "photo-evidence-validation" },
       }),
     );
+    captureBedrockGeneration({
+      model: modelId,
+      operation: "photo-evidence-validation",
+      region: process.env.AWS_REGION || "",
+      prompt: { activityType: row.activity_type, prompt: row.prompt, profile, mediaId: input.mediaId },
+      usage: response.usage,
+    });
     const verdict = toolInput(response.output?.message?.content),
       approved = verdict.compatible && verdict.confidence >= (profile?.minimumConfidence ?? 0.65);
     await sql.transaction((txn) => [

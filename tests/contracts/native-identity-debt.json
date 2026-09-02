@@ -1,6 +1,7 @@
 {
   "targetParameter": "p_actor_user_id UUID",
   "maximumOccurrences": 32,
+  "maximumSqlLegacyFunctions": 88,
   "functions": {
     "resolve_legacy_user_id": 20,
     "register_legacy_memory_upload": 1,

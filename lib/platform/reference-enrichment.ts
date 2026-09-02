@@ -15,6 +15,8 @@ import {
   validateSiteReferenceContent,
 } from "./reference-content-normalizer";
 import { materializeTripExperience, materializeTripUsefulInformation } from "./trip-content-materializer";
+import { validateGroundingSources } from "./grounding-source-policy";
+import { captureBedrockGeneration } from "./ai-generation-telemetry";
 import {
   validateVerifiedCountryProfile,
   verifiedCountryProfileSchema,
@@ -31,7 +33,11 @@ function bedrockClient() {
 
 function bedrockGroundingClient() {
   if (!groundingClient)
-    groundingClient = new BedrockRuntimeClient({ region: "us-east-1", maxAttempts: 5, retryMode: "adaptive" });
+    groundingClient = new BedrockRuntimeClient({
+      region: process.env.AWS_BEDROCK_GROUNDING_REGION?.trim() || "us-east-1",
+      maxAttempts: 5,
+      retryMode: "adaptive",
+    });
   return groundingClient;
 }
 
@@ -73,6 +79,13 @@ async function groundedReferenceDossier(target: ReferenceTarget, context: string
           requestMetadata: { application: "smf-travel", operation: "reference-web-grounding" },
         }),
       );
+      captureBedrockGeneration({
+        model: modelId,
+        operation: "reference-web-grounding",
+        region: process.env.AWS_BEDROCK_GROUNDING_REGION?.trim() || "us-east-1",
+        prompt,
+        usage: response.usage,
+      });
       const text: string[] = [];
       const urls = new Set<string>();
       for (const block of response.output?.message?.content ?? []) {
@@ -86,7 +99,7 @@ async function groundedReferenceDossier(target: ReferenceTarget, context: string
       }
       if (text.length === 0 || urls.size === 0)
         throw new Error(`Grounding privo di contenuto o fonti per ${target.name}`);
-      return { text: text.join("\n"), urls: [...urls] };
+      return { text: text.join("\n"), urls: validateGroundingSources(urls) };
     }),
   );
   return {
@@ -151,6 +164,13 @@ async function verifiedCountryProfile(jobId: string, agencyId: string, target: R
       requestMetadata: { application: "smf-travel", operation: "verified-country-profile-extraction" },
     }),
   );
+  captureBedrockGeneration({
+    model: modelId,
+    operation: "verified-country-profile",
+    region: process.env.AWS_REGION || "",
+    prompt: dossier.text,
+    usage: response.usage,
+  });
   const validation = validateVerifiedCountryProfile(
     toolInput(response.output?.message?.content),
     dossier.urls,
@@ -214,6 +234,13 @@ async function generatePhotoValidationProfiles(
             requestMetadata: { application: "smf-travel", operation: "photo-validation-profile-generation" },
           }),
         );
+        captureBedrockGeneration({
+          model: modelId,
+          operation: "photo-validation-profile-generation",
+          region: process.env.AWS_REGION || "",
+          prompt: { target, context, batch },
+          usage: response.usage,
+        });
         profiles.push(...schema.parse(toolInput(response.output?.message?.content)).profiles);
         break;
       } catch (error) {
@@ -358,6 +385,13 @@ export async function generateReferenceContent(
         inferenceConfig: { maxTokens: 8000, temperature: attempt === 1 ? 0.2 : 0.1 },
       }),
     );
+    captureBedrockGeneration({
+      model: modelId,
+      operation: "reference-content-generation",
+      region: process.env.AWS_REGION || "",
+      prompt: { target, context, attempt },
+      usage: response.usage,
+    });
 
     try {
       const input = toolInput(response.output?.message?.content);

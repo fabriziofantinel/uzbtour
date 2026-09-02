@@ -5,6 +5,7 @@ import {
   type ConverseCommandInput,
 } from "@aws-sdk/client-bedrock-runtime";
 import type { DocumentType } from "@smithy/types";
+import { captureBedrockGeneration } from "./ai-generation-telemetry";
 import { z } from "zod";
 import {
   commercialDetailsSchema,
@@ -358,6 +359,13 @@ async function recoverAccommodations(input: {
       requestMetadata: { application: "smf-travel", operation: "travel-import-accommodation-extraction" },
     }),
   );
+  captureBedrockGeneration({
+    model: input.model,
+    operation: "travel-import-accommodation-extraction",
+    region: process.env.AWS_REGION || "",
+    prompt: input.documentParts,
+    usage: response.usage,
+  });
   return {
     result: accommodationRecoverySchema.parse(extractToolInput(response.output?.message?.content)),
     usage: response.usage ?? null,
@@ -408,6 +416,13 @@ async function recoverActivities(input: {
       requestMetadata: { application: "smf-travel", operation: "travel-import-activity-extraction" },
     }),
   );
+  captureBedrockGeneration({
+    model: input.model,
+    operation: "travel-import-activity-extraction",
+    region: process.env.AWS_REGION || "",
+    prompt: input.documentParts,
+    usage: response.usage,
+  });
   const recovered = activityRecoverySchema.parse(extractToolInput(response.output?.message?.content));
   return {
     result: {
@@ -505,6 +520,13 @@ async function extractCommercialDetails(input: {
       requestMetadata: { application: "smf-travel", operation: "travel-import-commercial-extraction" },
     }),
   );
+  captureBedrockGeneration({
+    model: input.model,
+    operation: "travel-import-commercial-extraction",
+    region: process.env.AWS_REGION || "",
+    prompt: input.documentParts,
+    usage: response.usage,
+  });
   return {
     result: commercialExtractionSchema.parse(
       normalizeCommercialToolInput(extractToolInput(response.output?.message?.content)),
@@ -564,6 +586,13 @@ async function reconcileExtraction(input: {
       requestMetadata: { application: "smf-travel", operation: "travel-import-reconciliation" },
     }),
   );
+  captureBedrockGeneration({
+    model: input.model,
+    operation: "travel-import-reconciliation",
+    region: process.env.AWS_REGION || "",
+    prompt: { documentParts: input.documentParts, draft: compact },
+    usage: response.usage,
+  });
   return {
     result: reconciliationSchema.parse(extractToolInput(response.output?.message?.content)),
     usage: response.usage ?? null,
@@ -632,6 +661,13 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
     let stopReason: string | undefined;
     try {
       const response = await client.send(new ConverseCommand(request));
+      captureBedrockGeneration({
+        model,
+        operation: "travel-import-main-extraction",
+        region,
+        prompt: request,
+        usage: response.usage,
+      });
       stopReason = response.stopReason;
       const normalized = normalizeTravelProgramme(extractToolInput(response.output?.message?.content), {
         fallbackTitle: safeDocumentName(filename),

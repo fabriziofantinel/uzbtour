@@ -6,6 +6,7 @@ import { processReferenceEnrichment } from "@/lib/platform/reference-enrichment"
 import { processAgencyDeletion } from "@/lib/platform/agency-deletion";
 import { processPhotoEvidenceValidation } from "@/lib/platform/photo-evidence-ai";
 import { processPhotoContestEvaluation } from "@/lib/platform/photo-contest-ai";
+import { withAiGenerationTelemetry } from "@/lib/platform/ai-generation-telemetry";
 
 const messageSchema = z.object({
   version: z.literal(1),
@@ -87,62 +88,65 @@ export async function handler(event: SqsEvent | ScheduledEvent): Promise<SqsBatc
         importId: message.payload.importId,
       });
       try {
-        const result =
-          message.type === "travel-programme.import"
-            ? await processTravelImport(z.string().uuid().parse(message.payload.importId), {
-                jobId: message.jobId,
-                agencyId: message.agencyId,
-              })
-            : message.type === "travel-reference.enrich"
-              ? await processReferenceEnrichment(
-                  message.jobId,
-                  message.agencyId,
-                  z.string().uuid().parse(message.payload.templateId),
-                  z
-                    .array(
-                      z.object({
-                        entityType: z.enum(["country", "city", "site"]),
-                        entityId: z.string().uuid(),
-                        name: z.string().max(240),
-                      }),
-                    )
-                    .parse(message.payload.targets),
-                  z
-                    .array(z.enum(["useful_info", "phrasebook", "bingo"]))
-                    .default([])
-                    .parse(message.payload.contentTypes),
-                  z
-                    .enum(["essential", "standard", "complete"])
-                    .default("complete")
-                    .parse(message.payload.experienceProfile),
-                )
-              : message.type === "photo-evidence.validate"
-                ? await processPhotoEvidenceValidation({
-                    jobId: message.jobId,
-                    agencyId: message.agencyId,
-                    userId: z.string().min(1).parse(message.payload.userId),
-                    departureId: z.string().uuid().parse(message.payload.departureId),
-                    partyId: z.string().uuid().parse(message.payload.partyId),
-                    dayId: z.string().uuid().parse(message.payload.dayId),
-                    itemId: z.string().uuid().parse(message.payload.itemId),
-                    mediaId: z.string().uuid().parse(message.payload.mediaId),
-                    resultId: z.string().uuid().parse(message.payload.resultId),
-                    attemptNumber: z.number().int().min(1).max(2).parse(message.payload.attemptNumber),
-                  })
-                : message.type === "photo-contest.evaluate"
-                  ? await processPhotoContestEvaluation({
+        const result = await withAiGenerationTelemetry(
+          { agencyId: message.agencyId, platformJobId: message.jobId },
+          async () =>
+            message.type === "travel-programme.import"
+              ? await processTravelImport(z.string().uuid().parse(message.payload.importId), {
+                  jobId: message.jobId,
+                  agencyId: message.agencyId,
+                })
+              : message.type === "travel-reference.enrich"
+                ? await processReferenceEnrichment(
+                    message.jobId,
+                    message.agencyId,
+                    z.string().uuid().parse(message.payload.templateId),
+                    z
+                      .array(
+                        z.object({
+                          entityType: z.enum(["country", "city", "site"]),
+                          entityId: z.string().uuid(),
+                          name: z.string().max(240),
+                        }),
+                      )
+                      .parse(message.payload.targets),
+                    z
+                      .array(z.enum(["useful_info", "phrasebook", "bingo"]))
+                      .default([])
+                      .parse(message.payload.contentTypes),
+                    z
+                      .enum(["essential", "standard", "complete"])
+                      .default("complete")
+                      .parse(message.payload.experienceProfile),
+                  )
+                : message.type === "photo-evidence.validate"
+                  ? await processPhotoEvidenceValidation({
                       jobId: message.jobId,
                       agencyId: message.agencyId,
+                      userId: z.string().min(1).parse(message.payload.userId),
                       departureId: z.string().uuid().parse(message.payload.departureId),
                       partyId: z.string().uuid().parse(message.payload.partyId),
+                      dayId: z.string().uuid().parse(message.payload.dayId),
                       itemId: z.string().uuid().parse(message.payload.itemId),
-                      entryIds: z.array(z.string().uuid()).length(2).parse(message.payload.entryIds),
+                      mediaId: z.string().uuid().parse(message.payload.mediaId),
+                      resultId: z.string().uuid().parse(message.payload.resultId),
+                      attemptNumber: z.number().int().min(1).max(2).parse(message.payload.attemptNumber),
                     })
-                  : await processAgencyDeletion(
-                      message.jobId,
-                      message.agencyId,
-                      z.string().uuid().parse(message.payload.deletionJobId),
-                    );
+                  : message.type === "photo-contest.evaluate"
+                    ? await processPhotoContestEvaluation({
+                        jobId: message.jobId,
+                        agencyId: message.agencyId,
+                        departureId: z.string().uuid().parse(message.payload.departureId),
+                        partyId: z.string().uuid().parse(message.payload.partyId),
+                        itemId: z.string().uuid().parse(message.payload.itemId),
+                        entryIds: z.array(z.string().uuid()).length(2).parse(message.payload.entryIds),
+                      })
+                    : await processAgencyDeletion(
+                        message.jobId,
+                        message.agencyId,
+                        z.string().uuid().parse(message.payload.deletionJobId),
+                      ),
+        );
         console.info("Import job completed", {
           messageId: record.messageId,
           jobId: message.jobId,

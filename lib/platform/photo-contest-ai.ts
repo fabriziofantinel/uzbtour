@@ -5,6 +5,7 @@ import { getSql } from "@/lib/db";
 import { getObjectStorage } from "./object-storage";
 import { bedrockImage } from "./bedrock-image";
 import { photoValidationSchema } from "./reference-content-normalizer";
+import { captureBedrockGeneration } from "./ai-generation-telemetry";
 
 const score = z.object({
   themeMatch: z.boolean(),
@@ -78,6 +79,13 @@ Valuta questa foto. Prima stabilisci themeMatch e matchConfidence. Il titolo non
           requestMetadata: { application: "smf-travel", operation: "photo-contest-evaluation" },
         }),
       );
+      captureBedrockGeneration({
+        model: modelId,
+        operation: "photo-contest-evaluation",
+        region: process.env.AWS_REGION || "",
+        prompt: { prompt, entryId: photo.entryId },
+        usage: response.usage,
+      });
       const item = toolInput(response.output?.message?.content).score;
       const threshold = profile?.minimumConfidence ?? 0.65,
         eligible = item.themeMatch && item.matchConfidence >= threshold,

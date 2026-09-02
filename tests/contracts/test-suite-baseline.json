@@ -1,6 +1,6 @@
 {
-  "unitFiles": 5,
-  "unitCases": 13,
+  "unitFiles": 6,
+  "unitCases": 16,
   "e2eCases": 5,
   "requiredAcceptanceScripts": [
     "scripts/acceptance-v3-api-rate-limits.mjs",

@@ -44,6 +44,13 @@ Parameters:
   BedrockTextModel:
     Type: String
     Default: eu.amazon.nova-2-lite-v1:0
+  BedrockGroundingRegion:
+    Type: String
+    Default: us-east-1
+    AllowedValues: [us-east-1, us-east-2, us-west-2]
+  BedrockGroundingModel:
+    Type: String
+    Default: us.amazon.nova-2-lite-v1:0
   BedrockFoundationModelId:
     Type: String
     Default: amazon.nova-2-lite-v1:0
@@ -748,6 +755,9 @@ Resources:
           PLATFORM_OBJECT_STORAGE_PROVIDER: r2
           PLATFORM_JOB_QUEUE_PROVIDER: sqs
           AWS_BEDROCK_TEXT_MODEL: !Ref BedrockTextModel
+          AWS_BEDROCK_REFERENCE_MODEL: !Ref BedrockTextModel
+          AWS_BEDROCK_GROUNDING_REGION: !Ref BedrockGroundingRegion
+          AWS_BEDROCK_GROUNDING_MODEL: !Ref BedrockGroundingModel
       Policies:
         - SQSPollerPolicy: { QueueName: !GetAtt EnrichmentQueue.QueueName }
         - Statement:
@@ -764,7 +774,11 @@ Resources:
               Action: bedrock:InvokeModel
               Resource:
                 - !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/${BedrockTextModel}"
+                - !Sub "arn:${AWS::Partition}:bedrock:${BedrockGroundingRegion}:${AWS::AccountId}:inference-profile/${BedrockGroundingModel}"
                 - !Sub "arn:${AWS::Partition}:bedrock:*::foundation-model/${BedrockFoundationModelId}"
+            - Effect: Allow
+              Action: bedrock:InvokeTool
+              Resource: !Sub "arn:${AWS::Partition}:bedrock::${AWS::AccountId}:system-tool/amazon.nova_grounding"
       Events:
         Queue:
           Type: SQS
@@ -905,7 +919,7 @@ Resources:
         }
     Properties:
       FunctionName: !Sub "${AWS::StackName}-contest-closure"
-      Description: Chiude i contest fotografici dovuti secondo il fuso della partenza
+      Description: Chiude i contest dovuti e applica la retention dei dati operativi scaduti
       CodeUri: ../../
       Handler: workers/contest-closure-handler.handler
       Runtime: nodejs22.x
@@ -934,7 +948,7 @@ Resources:
           Type: Schedule
           Properties:
             Schedule: cron(0/5 * * * ? *)
-            Description: Chiude i contest fotografici dopo le 06:00 locali
+            Description: Chiude i contest e rimuove i dati operativi scaduti
             Enabled: true
 
   EnrichmentWorkerLogGroup:
