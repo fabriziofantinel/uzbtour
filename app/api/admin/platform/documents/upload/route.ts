@@ -9,6 +9,7 @@ import {
   travelDocumentType,
 } from "@/lib/platform/travel-document";
 import { enforceApiRateLimit } from "@/lib/platform/api-rate-limit";
+import { assertTenantStorageCapacity } from "@/lib/platform/storage-quota";
 
 export const runtime = "nodejs";
 
@@ -42,6 +43,7 @@ export async function POST(request: Request) {
     if (limited) return limited;
     await assertTripBelongsToAgency(agencyId, templateId);
     await assertTripHasNoProgramme(agencyId, templateId);
+    await assertTenantStorageCapacity(agencyId, sizeBytes, "document");
     const documentType = travelDocumentType(originalName)!;
     const key = `agencies/${agencyId}/trips/${templateId}/documents/${crypto.randomUUID()}.${documentType.extension}`;
     const authorization = await getObjectStorage().createUploadAuthorization(

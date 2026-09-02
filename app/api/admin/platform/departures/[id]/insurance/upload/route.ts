@@ -4,6 +4,7 @@ import { enforceApiRateLimit } from "@/lib/platform/api-rate-limit";
 import { platformApiError } from "@/lib/platform/http";
 import { getJourneyManagement } from "@/lib/platform/journey-repository";
 import { getObjectStorage } from "@/lib/platform/object-storage";
+import { assertTenantStorageCapacity } from "@/lib/platform/storage-quota";
 
 export const runtime = "nodejs";
 const maximumSize = 25 * 1024 * 1024;
@@ -30,6 +31,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     )
       return NextResponse.json({ error: "Carica un PDF non superiore a 25 MB" }, { status: 400 });
     const journey = await getJourneyManagement(id, actor.id);
+    await assertTenantStorageCapacity(journey.journey.agencyId, sizeBytes, "document");
     const key = `agencies/${journey.journey.agencyId}/departures/${id}/insurance/${crypto.randomUUID()}.pdf`;
     return NextResponse.json(await getObjectStorage().createUploadAuthorization(key, "application/pdf", 10 * 60));
   } catch (error) {

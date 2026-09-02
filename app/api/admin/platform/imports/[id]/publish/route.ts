@@ -17,6 +17,7 @@ import {
   normalizedTravelDocumentName,
 } from "@/lib/platform/normalized-travel-document";
 import { enforceApiRateLimit } from "@/lib/platform/api-rate-limit";
+import { assertTenantStorageCapacity } from "@/lib/platform/storage-quota";
 
 export const runtime = "nodejs";
 
@@ -54,6 +55,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const documentContext = await getImportDocumentPublicationContext(id, agencyId);
     const normalizedName = normalizedTravelDocumentName(imported.draft.title);
     const normalizedBytes = await createNormalizedTravelDocument(imported.draft, documentContext.sourceName);
+    await assertTenantStorageCapacity(agencyId, normalizedBytes.byteLength, "document");
     const normalizedKey = `agencies/${agencyId}/trips/${documentContext.templateId}/published/${id}/${crypto.randomUUID()}/${normalizedName}`;
     const storage = getObjectStorage("r2");
     const normalizedObject = await storage.put(normalizedKey, normalizedBytes, NORMALIZED_TRAVEL_DOCUMENT_CONTENT_TYPE);

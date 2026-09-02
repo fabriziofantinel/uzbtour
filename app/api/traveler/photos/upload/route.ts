@@ -4,6 +4,8 @@ import { getObjectStorage } from "@/lib/platform/object-storage";
 import { assertTravelerPartyScope } from "@/lib/platform/traveler-experience";
 import { MAX_PHOTO_SIZE_BYTES, photoExtensionForUpload, safeOriginalName } from "@/lib/photos";
 import { enforceApiRateLimit } from "@/lib/platform/api-rate-limit";
+import { platformApiError } from "@/lib/platform/http";
+import { assertTenantStorageCapacity } from "@/lib/platform/storage-quota";
 
 export const runtime = "nodejs";
 
@@ -29,10 +31,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Foto non valida o superiore a 25 MB" }, { status: 400 });
     }
     const agencyId = await assertTravelerPartyScope({ userId: user.id, departureId, partyId, dayId });
+    await assertTenantStorageCapacity(agencyId, sizeBytes, "photo");
     const key = `agencies/${agencyId}/departures/${departureId}/parties/${partyId}/days/${dayId}/memories/${crypto.randomUUID()}.${extension}`;
     return NextResponse.json(await getObjectStorage().createUploadAuthorization(key, contentType, 10 * 60));
   } catch (error) {
-    console.error("Preparazione foto viaggio non riuscita", error);
-    return NextResponse.json({ error: "Archivio foto temporaneamente non disponibile" }, { status: 503 });
+    return platformApiError(error, "Archivio foto temporaneamente non disponibile");
   }
 }

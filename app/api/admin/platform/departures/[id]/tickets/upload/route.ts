@@ -5,6 +5,7 @@ import { getObjectStorage } from "@/lib/platform/object-storage";
 import { requireAgencyTicketItem } from "@/lib/platform/programme-documents";
 import { MAX_TICKET_SIZE_BYTES, ticketFileDetails } from "@/lib/platform/travel-documents";
 import { enforceApiRateLimit } from "@/lib/platform/api-rate-limit";
+import { assertTenantStorageCapacity } from "@/lib/platform/storage-quota";
 
 export const runtime = "nodejs";
 
@@ -26,6 +27,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       return NextResponse.json({ error: "Biglietto non valido o superiore a 25 MB" }, { status: 400 });
     }
     const { agencyId } = await requireAgencyTicketItem({ departureId, itemId, actorId: actor.id });
+    await assertTenantStorageCapacity(agencyId, sizeBytes, "document");
     const key = `agencies/${agencyId}/departures/${departureId}/tickets/${itemId}/${crypto.randomUUID()}.${file.extension}`;
     return NextResponse.json(await getObjectStorage().createUploadAuthorization(key, file.contentType, 10 * 60));
   } catch (error) {

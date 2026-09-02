@@ -25,6 +25,7 @@ import {
 } from "./travel-document";
 import { OcrRequiredError } from "./document-preprocessor";
 import { cleanupImportOcr, readImportOcr, startImportOcr } from "./textract-ocr";
+import { assertTenantStorageCapacity } from "./storage-quota";
 
 export async function processTravelImport(
   importId: string,
@@ -81,6 +82,7 @@ export async function processTravelImport(
     const normalizedName = normalizedTravelDocumentName(programmeDraft.title);
     const normalizedKey = `agencies/${source.agency_id}/trips/${source.template_id}/normalized/${importId}/${normalizedName}`;
     const normalizedBytes = await createNormalizedTravelDocument(programmeDraft, source.original_name);
+    await assertTenantStorageCapacity(source.agency_id, normalizedBytes.byteLength, "document");
     const checksumSha256 = createHash("sha256").update(normalizedBytes).digest("hex");
     const normalizedObject = await storage.put(normalizedKey, normalizedBytes, NORMALIZED_TRAVEL_DOCUMENT_CONTENT_TYPE);
     unregisteredNormalizedKey = normalizedKey;
