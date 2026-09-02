@@ -95,6 +95,8 @@ jobs:
           npm run db:rebuild:empty
           node scripts/prepare-neon-ci-runtime-role.mjs
           npm run acceptance:v3:api-rate-limits
+          npm run acceptance:v3:timezone-unlock
+          npm run acceptance:v3:tenant-budgets
       - uses: neondatabase/delete-branch-action@v3
         if: always() && steps.neon-config.outputs.enabled == 'true' && steps.create-neon-branch.outputs.branch_id != ''
         with:

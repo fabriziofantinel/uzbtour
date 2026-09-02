@@ -1,0 +1,11 @@
+{
+  "unitFiles": 5,
+  "unitCases": 13,
+  "e2eCases": 5,
+  "requiredAcceptanceScripts": [
+    "scripts/acceptance-v3-api-rate-limits.mjs",
+    "scripts/acceptance-v3-timezone-unlock.mjs",
+    "scripts/acceptance-v3-tenant-budgets.mjs",
+    "scripts/acceptance-offline-finance-sync.mjs"
+  ]
+}

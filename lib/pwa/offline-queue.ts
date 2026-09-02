@@ -14,6 +14,12 @@ export type OfflineMutation = {
 const DB_NAME = "smf-travel-offline";
 const STORE = "mutations";
 
+export function offlineResponseAction(status: number): "complete" | "drop" | "retry" {
+  if ((status >= 200 && status < 300) || status === 409) return "complete";
+  if (status === 408 || status === 429 || status >= 500) return "retry";
+  return "drop";
+}
+
 function database() {
   return new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, 1);
@@ -90,15 +96,11 @@ export async function flushOfflineQueue() {
         headers: { "Content-Type": "application/json", "X-Client-Operation-Id": mutation.id },
         body: JSON.stringify(mutation.body),
       });
-      if (response.ok || response.status === 409) {
+      const action = offlineResponseAction(response.status);
+      if (action === "complete") {
         await removeMutation(mutation.id);
         completed += 1;
-      } else if (
-        response.status >= 400 &&
-        response.status < 500 &&
-        response.status !== 408 &&
-        response.status !== 429
-      ) {
+      } else if (action === "drop") {
         await removeMutation(mutation.id);
         window.dispatchEvent(new CustomEvent("smf:sync-state", { detail: { state: "failed" } }));
       } else {
@@ -135,8 +137,15 @@ export async function resilientMutation(input: Omit<OfflineMutation, "id" | "cre
       headers: { "Content-Type": "application/json", "X-Client-Operation-Id": String(body.clientOperationId) },
       body: JSON.stringify(body),
     });
-    if (response.ok) return { queued: false, response };
-    if (response.status >= 500 || response.status === 408 || response.status === 429) {
+    const action = offlineResponseAction(response.status);
+    if (action === "complete") {
+      const successfulResponse =
+        response.status === 409
+          ? new Response(response.body, { status: 200, statusText: "Idempotent replay", headers: response.headers })
+          : response;
+      return { queued: false, response: successfulResponse };
+    }
+    if (action === "retry") {
       return { queued: true, mutation: await queueMutation({ ...input, body }) };
     }
     return { queued: false, response };

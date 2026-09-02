@@ -48,6 +48,7 @@ import type { TripMapDay } from "@/components/trip-overview-map";
 import type { TravelerExperience as Experience } from "@/lib/platform/traveler-experience";
 import { agencyLogoSource } from "@/lib/platform/branding-ui";
 import { resilientMutation, uuidV7 } from "@/lib/pwa/offline-queue";
+import { calculateExpenseBalances } from "@/lib/finance-calculations";
 import PwaCompanion from "@/components/pwa-companion";
 import OperationalChat from "@/components/operational-chat";
 import OperationalAlertForm from "@/components/operational-alert-form";
@@ -451,19 +452,7 @@ export default function TravelExperience({
     return total;
   }, [appliedEurRate, experience.expenses, localCurrency]);
   const expenseBalances = useMemo(
-    () =>
-      experience.journey.travelers.map((traveler) => {
-        let paid = 0,
-          owed = 0;
-        for (const expense of experience.expenses) {
-          const base = expense.baseAmount ?? (expense.currency === "EUR" ? expense.amount : 0);
-          if (expense.paidByTravelerId === traveler.id) paid += base;
-          const share = expense.shares.find((entry) => entry.travelerId === traveler.id);
-          if (share) owed += share.baseAmount;
-          else if (expense.shares.length === 0) owed += base / Math.max(experience.journey.travelers.length, 1);
-        }
-        return { id: traveler.id, name: traveler.name, balance: paid - owed };
-      }),
+    () => calculateExpenseBalances(experience.journey.travelers, experience.expenses),
     [experience.expenses, experience.journey.travelers],
   );
   const operationalPoints = useMemo<TripMapDay[]>(() => {
