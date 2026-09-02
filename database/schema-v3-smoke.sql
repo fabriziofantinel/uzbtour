@@ -167,7 +167,7 @@ INSERT INTO content.activity_items
   (agency_id, template_version_id, activity_id, ordinal, item_kind, prompt, answer_spec, points)
 SELECT '019d0000-0000-7000-8000-000000000101','019d0000-0000-7000-8000-000000000301',
        '019d0000-0000-7000-8000-000000000601',g,'question','Q' || g,
-       jsonb_build_object('correct','x'),1 FROM generate_series(1,15) g;
+       jsonb_build_object('correct','x'),1 FROM generate_series(1,10) g;
 INSERT INTO content.activity_items
   (agency_id, template_version_id, activity_id, ordinal, item_kind, prompt, points)
 SELECT '019d0000-0000-7000-8000-000000000101','019d0000-0000-7000-8000-000000000301',

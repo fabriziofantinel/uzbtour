@@ -172,6 +172,7 @@ export default function ImportReview({
   const [notice, setNotice] = useState("");
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [pendingAction, setPendingAction] = useState<"publish" | "delete" | null>(null);
+  const [experienceProfile, setExperienceProfile] = useState<"essential" | "standard" | "complete">("complete");
   const savedSignatureRef = useRef(JSON.stringify(initialImport.draft));
   const navigatingRef = useRef(false);
   const dialogRef = useRef<HTMLElement>(null);
@@ -378,7 +379,13 @@ export default function ImportReview({
           body: JSON.stringify({ draft }),
         }),
       );
-      await jsonResponse(await fetch(`/api/admin/platform/imports/${initialImport.id}/publish`, { method: "POST" }));
+      await jsonResponse(
+        await fetch(`/api/admin/platform/imports/${initialImport.id}/publish`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ experienceProfile }),
+        }),
+      );
       navigatingRef.current = true;
       window.location.href = "/agenzia";
     } catch (caught) {
@@ -1290,6 +1297,31 @@ export default function ImportReview({
           </section>
         </div>
 
+        <fieldset className="reviewExperienceProfile">
+          <legend>Profilo esperienza della partenza</legend>
+          <p>La pubblicazione genererà soltanto i contenuti previsti dal livello selezionato.</p>
+          <div>
+            {(
+              [
+                ["essential", "Essenziale", "Programma, mappa, documenti, informazioni utili, chat, SOS e spese."],
+                ["standard", "Standard", "Aggiunge quiz e ricordi."],
+                ["complete", "Completo", "Aggiunge missioni, bingo, giochi e contest."],
+              ] as const
+            ).map(([value, label, description]) => (
+              <label key={value} className={experienceProfile === value ? "selected" : ""}>
+                <input
+                  type="radio"
+                  name="experienceProfile"
+                  value={value}
+                  checked={experienceProfile === value}
+                  onChange={() => setExperienceProfile(value)}
+                />
+                <b>{label}</b>
+                <span>{description}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
         <footer className="reviewActions">
           <div>
             <BedDouble />

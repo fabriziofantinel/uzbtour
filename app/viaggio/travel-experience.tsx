@@ -68,7 +68,18 @@ const PlatformTripChallenges = dynamic(() => import("@/components/platform-trip-
   ),
 });
 
-type Tab = "mappa" | "programma" | "ricordi" | "documenti" | "spese" | "info" | "frasario" | "sfide" | "sos" | "chat";
+type Tab =
+  | "mappa"
+  | "programma"
+  | "ricordi"
+  | "documenti"
+  | "spese"
+  | "info"
+  | "frasario"
+  | "sfide"
+  | "sos"
+  | "chat"
+  | "assicurazione";
 type Day = Experience["days"][number];
 const colors = ["#D6663D", "#715C9D", "#C4902F", "#177A78", "#3D8B68", "#A35D55"];
 const wholeNumber = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0 });
@@ -567,9 +578,19 @@ export default function TravelExperience({
     const restoreTab = () => {
       const requestedTab = new URLSearchParams(window.location.search).get("tab");
       if (
-        ["programma", "documenti", "spese", "mappa", "sfide", "info", "frasario", "sos", "chat"].includes(
-          requestedTab || "",
-        )
+        [
+          "programma",
+          "documenti",
+          "spese",
+          "mappa",
+          "sfide",
+          "info",
+          "frasario",
+          "sos",
+          "chat",
+          "assicurazione",
+        ].includes(requestedTab || "") &&
+        !(requestedTab === "sfide" && experience.experienceProfile === "essential")
       ) {
         setTab(requestedTab as Tab);
       } else {
@@ -579,7 +600,7 @@ export default function TravelExperience({
     restoreTab();
     window.addEventListener("popstate", restoreTab);
     return () => window.removeEventListener("popstate", restoreTab);
-  }, []);
+  }, [experience.experienceProfile]);
 
   useEffect(() => {
     trackAnalytics("traveler_session", { entryTab: tab });
@@ -649,6 +670,7 @@ export default function TravelExperience({
     setActive(index);
   }
   function selectTab(nextTab: Tab) {
+    if (nextTab === "sfide" && experience.experienceProfile === "essential") nextTab = "programma";
     setTab(nextTab);
     const url = new URL(window.location.href);
     if (nextTab === "programma") url.searchParams.delete("tab");
@@ -1200,22 +1222,24 @@ export default function TravelExperience({
           <Wallet />
           <span>Spese</span>
         </button>
-        <button
-          type="button"
-          className={tab === "sfide" ? "active" : ""}
-          aria-current={tab === "sfide" ? "page" : undefined}
-          onClick={() => {
-            selectTab("sfide");
-            setMoreOpen(false);
-          }}
-        >
-          <Sparkles />
-          <span>Sfide</span>
-        </button>
+        {experience.experienceProfile !== "essential" && (
+          <button
+            type="button"
+            className={tab === "sfide" ? "active" : ""}
+            aria-current={tab === "sfide" ? "page" : undefined}
+            onClick={() => {
+              selectTab("sfide");
+              setMoreOpen(false);
+            }}
+          >
+            <Sparkles />
+            <span>Sfide</span>
+          </button>
+        )}
         <button
           ref={moreButtonRef}
           type="button"
-          className={moreOpen || ["ricordi", "info", "frasario"].includes(tab) ? "active" : ""}
+          className={moreOpen || ["ricordi", "info", "frasario", "assicurazione"].includes(tab) ? "active" : ""}
           aria-expanded={moreOpen}
           aria-haspopup="true"
           aria-controls="travel-more-menu"
@@ -1231,6 +1255,21 @@ export default function TravelExperience({
             <strong>Altro</strong>
             <small>Informazioni e frasi di viaggio</small>
           </div>
+          <button
+            type="button"
+            aria-current={tab === "assicurazione" ? "page" : undefined}
+            onClick={() => {
+              selectTab("assicurazione");
+              setMoreOpen(false);
+            }}
+          >
+            <ShieldAlert />
+            <span>
+              <strong>Assicurazione</strong>
+              <small>Polizza e centrale operativa</small>
+            </span>
+            <ChevronRight />
+          </button>
           <button
             type="button"
             aria-current={tab === "info" ? "page" : undefined}
@@ -2050,6 +2089,94 @@ export default function TravelExperience({
                 ))}
               </div>
             </section>
+          </section>
+        )}
+        {tab === "assicurazione" && (
+          <section className="insurancePage">
+            <header className="insuranceHero">
+              <ShieldAlert />
+              <span>
+                <small>ASSISTENZA IN VIAGGIO</small>
+                <h2>Polizza assicurativa</h2>
+                <p>I riferimenti ufficiali inseriti dall’agenzia per questa partenza.</p>
+              </span>
+            </header>
+            {experience.insurance ? (
+              <>
+                <article className="insuranceEmergency">
+                  <span>
+                    <small>CENTRALE OPERATIVA</small>
+                    <h3>{experience.insurance.providerName}</h3>
+                    {experience.insurance.productName && <p>{experience.insurance.productName}</p>}
+                  </span>
+                  <a className="insuranceCall" href={`tel:${experience.insurance.assistancePhone}`}>
+                    <Phone />
+                    <span>
+                      <small>Chiama</small>
+                      <strong>{experience.insurance.assistancePhone}</strong>
+                    </span>
+                  </a>
+                </article>
+                <div className="insuranceSummary">
+                  <article>
+                    <small>NUMERO POLIZZA</small>
+                    <strong>{experience.insurance.policyNumber}</strong>
+                  </article>
+                  <article>
+                    <small>VALIDITÀ</small>
+                    <strong>
+                      {new Intl.DateTimeFormat("it-IT").format(new Date(`${experience.insurance.validFrom}T12:00:00`))}{" "}
+                      – {new Intl.DateTimeFormat("it-IT").format(new Date(`${experience.insurance.validTo}T12:00:00`))}
+                    </strong>
+                  </article>
+                </div>
+                {experience.insurance.guarantees.length > 0 && (
+                  <section className="insuranceSection">
+                    <div className="insuranceSectionHead">
+                      <ShieldAlert />
+                      <div>
+                        <small>COPERTURE</small>
+                        <h3>Garanzie indicate</h3>
+                      </div>
+                    </div>
+                    <div className="insuranceChecklist">
+                      {experience.insurance.guarantees.map((entry, index) => {
+                        const guarantee = entry as { label?: string; status?: string; notes?: string };
+                        return (
+                          <article key={`${guarantee.label}-${index}`}>
+                            <strong>{guarantee.label}</strong>
+                            <span>
+                              {guarantee.status === "included"
+                                ? "Inclusa"
+                                : guarantee.status === "excluded"
+                                  ? "Esclusa"
+                                  : "Non indicata"}
+                            </span>
+                            {guarantee.notes && <small>{guarantee.notes}</small>}
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
+                {experience.insurance.documentId && (
+                  <a
+                    className="insuranceDocumentDownload"
+                    href={`/api/travel-documents/${experience.insurance.documentId}/content?download=1`}
+                  >
+                    <Download /> Scarica il documento della polizza
+                  </a>
+                )}
+              </>
+            ) : (
+              <div className="sosUnavailable">
+                <Info />
+                <span>
+                  <strong>Polizza non ancora disponibile</strong>
+                  <small>L’agenzia non ha pubblicato una polizza per questa partenza.</small>
+                </span>
+              </div>
+            )}
           </section>
         )}
         {tab === "frasario" && (

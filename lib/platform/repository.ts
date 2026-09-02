@@ -309,6 +309,29 @@ export async function getTripEnrichmentQueueRecord(templateId: string) {
   };
 }
 
+export async function getDepartureEnrichmentQueueRecord(departureId: string, actorId: string) {
+  const sql = getSql();
+  const scope =
+    await sql`SELECT agency_id::text FROM app.read_journey_management(${actorId},${departureId}::uuid) LIMIT 1`;
+  if (!scope[0]?.agency_id) throw new PlatformRequestError("Partenza non trovata");
+  const agencyId = String(scope[0].agency_id);
+  const [, rows] = await sql.transaction(
+    (txn) => [
+      txn`SELECT set_config('app.agency_id',${agencyId},true)`,
+      txn`
+        SELECT departure.template_id::text
+        FROM travel.departures departure
+        WHERE departure.id=${departureId}::uuid AND departure.agency_id=${agencyId}::uuid
+        LIMIT 1
+      `,
+    ],
+    { readOnly: true },
+  );
+  const templateId = String(rows[0]?.template_id || "");
+  if (!templateId) throw new PlatformRequestError("Viaggio della partenza non trovato");
+  return getTripEnrichmentQueueRecord(templateId);
+}
+
 export async function getTripDeletionTarget(templateId: string, actorId: string) {
   const sql = getSql();
   const trips = await sql`

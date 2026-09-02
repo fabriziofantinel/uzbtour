@@ -23,6 +23,10 @@ export const runtime = "nodejs";
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params;
+    const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+    const experienceProfile = ["essential", "standard", "complete"].includes(String(body.experienceProfile))
+      ? (String(body.experienceProfile) as "essential" | "standard" | "complete")
+      : "complete";
     const agencyId = await getImportAgency(id);
     const actor = await requireAgencyAdmin(agencyId);
     const limited = await enforceApiRateLimit(
@@ -71,7 +75,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       await storage.delete(normalizedKey).catch(() => undefined);
       throw error;
     }
-    const published = await publishImport({ importId: id, agencyId, actorId: actor.id, draft: imported.draft });
+    const published = await publishImport({
+      importId: id,
+      agencyId,
+      actorId: actor.id,
+      draft: imported.draft,
+      experienceProfile,
+    });
     const enrichmentJob = await getJobQueue().enqueue({
       actorId: actor.id,
       agencyId,
@@ -80,6 +90,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         importId: id,
         templateId: published.templateId,
         targets: published.referenceTargets,
+        experienceProfile,
       },
       // Ogni pubblicazione deve avviare la verifica dei contenuti. La chiave
       // include l'oggetto normalizzato, univoco per questo tentativo.

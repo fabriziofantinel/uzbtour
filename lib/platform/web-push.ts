@@ -1,2 +1,2 @@
 import "server-only";
-export { sendDeparturePush, sendPartyPush } from "@/lib/platform/web-push-core";
+export { sendDeparturePush, sendNoticePush, sendPartyPush } from "@/lib/platform/web-push-core";

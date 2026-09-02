@@ -16,6 +16,8 @@ import {
   LoaderCircle,
   Mail,
   MessageCircle,
+  Send,
+  Settings2,
   Plus,
   ShieldCheck,
   Trash2,
@@ -312,6 +314,12 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
           </Link>
           <Link href={`/agenzia/viaggi/${data.journey.id}/chat`}>
             <MessageCircle /> Chat
+          </Link>
+          <Link href={`/agenzia/viaggi/${data.journey.id}/comunicazioni`}>
+            <Send /> Comunicazioni
+          </Link>
+          <Link href={`/agenzia/viaggi/${data.journey.id}/impostazioni`}>
+            <Settings2 /> Configurazione
           </Link>
         </nav>
         <span className="journeyAgencyName">{data.journey.agencyName}</span>

@@ -23,6 +23,8 @@ import {
   Plane,
   Plus,
   Save,
+  Send,
+  Settings2,
   TrainFront,
   Trash2,
   Upload,
@@ -337,6 +339,12 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
           </Link>
           <Link href={`/agenzia/viaggi/${departure.id}/chat`}>
             <MessageCircle /> Chat
+          </Link>
+          <Link href={`/agenzia/viaggi/${departure.id}/comunicazioni`}>
+            <Send /> Comunicazioni
+          </Link>
+          <Link href={`/agenzia/viaggi/${departure.id}/impostazioni`}>
+            <Settings2 /> Configurazione
           </Link>
           {departure.quoteImportId && (
             <details className="programmeQuotes">

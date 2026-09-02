@@ -49,3 +49,41 @@ export async function sendTravelerInvitation(input: {
   );
   return true;
 }
+
+export async function sendCommunicationReminder(input: {
+  email: string;
+  name: string;
+  communicationTitle: string;
+  appUrl: string;
+}) {
+  const region = process.env.AWS_REGION?.trim();
+  const roleArn = process.env.AWS_AUTH_ROLE_ARN?.trim();
+  const sender = process.env.SES_INVITATION_SENDER?.trim();
+  if (!region || !roleArn || !sender || !input.email.trim()) return false;
+  client ??= new SESv2Client({ region, credentials: awsCredentialsProvider({ roleArn }) });
+  const name = escapeHtml(input.name);
+  const title = escapeHtml(input.communicationTitle);
+  const appUrl = escapeHtml(input.appUrl);
+  await client.send(
+    new SendEmailCommand({
+      FromEmailAddress: sender,
+      Destination: { ToAddresses: [input.email] },
+      Content: {
+        Simple: {
+          Subject: { Data: "Comunicazione del tuo viaggio da leggere", Charset: "UTF-8" },
+          Body: {
+            Text: {
+              Data: `Ciao ${input.name},\n\nla comunicazione "${input.communicationTitle}" è ancora da leggere. Apri l'app per consultarla e confermare la presa visione:\n${input.appUrl}`,
+              Charset: "UTF-8",
+            },
+            Html: {
+              Data: `<p>Ciao ${name},</p><p>la comunicazione <strong>${title}</strong> è ancora da leggere.</p><p><a href="${appUrl}">Apri l'app e conferma la presa visione</a></p>`,
+              Charset: "UTF-8",
+            },
+          },
+        },
+      },
+    }),
+  );
+  return true;
+}

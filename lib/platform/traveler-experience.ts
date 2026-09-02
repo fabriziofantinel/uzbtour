@@ -19,6 +19,7 @@ import {
   resolveV3TravelerContext,
 } from "./v3-traveler-scope";
 import { readTravelerChangeNotices } from "./traveler-change-notices";
+import { readDepartureExperienceProfile, readDepartureInsurance } from "./departure-operations";
 
 type Row = Record<string, unknown>;
 
@@ -69,6 +70,8 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
     v3Gamification,
     changeNotices,
     destinationProfile,
+    insurance,
+    experienceProfile,
   ] = await Promise.all([
     readV3ExpenseRows({ agencyId, departureId, partyId }),
     readV3JourneyJournalRows({ agencyId, departureId, partyId }),
@@ -77,6 +80,8 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
     readV3Gamification({ agencyId, departureId, templateVersionId: versionId, partyId, userId }),
     readTravelerChangeNotices({ agencyId, departureId, userId }),
     readV3TravelerDestinationProfile(userId, departureId),
+    readDepartureInsurance(userId, departureId),
+    readDepartureExperienceProfile(userId, departureId),
   ]);
   const activeNoteRows = v3Journal.notes;
   const activeRestaurantRows = v3Journal.restaurants;
@@ -280,6 +285,8 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
       disclaimer: stringValue(row.disclaimer),
     })),
     changeNotices,
+    insurance,
+    experienceProfile,
     phrases: activePhraseRows.map((row) => ({
       language: String(row.language_code),
       category: String(row.category),

@@ -1,0 +1,177 @@
+.departureSettingsPage {
+  min-height: 100vh;
+  background: #f7f5ef;
+  color: #102b35;
+}
+.settingsShell {
+  width: min(1180px, 94vw);
+  margin: 28px auto 70px;
+}
+.profileSettings,
+.insuranceSettings {
+  padding: 24px;
+  background: #fff;
+  border: 1px solid #d9d6cd;
+  border-radius: 20px;
+}
+.profileSettings h2,
+.insuranceSettings h2 {
+  font:
+    700 30px Georgia,
+    serif;
+  margin: 5px 0;
+}
+.profileCards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 20px;
+}
+.profileCards button {
+  position: relative;
+  min-height: 145px;
+  padding: 18px;
+  text-align: left;
+  border: 1px solid #d5d0c6;
+  border-radius: 14px;
+  background: #faf9f6;
+  color: #111;
+}
+.profileCards button.selected {
+  border: 3px solid var(--agency-ui);
+  background: color-mix(in srgb, var(--agency-ui) 18%, white);
+}
+.profileCards b,
+.profileCards span {
+  display: block;
+}
+.profileCards b {
+  font-size: 19px;
+  margin-bottom: 8px;
+}
+.profileCards svg {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+}
+.insuranceSettings {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+.sectionIntro,
+.insuranceSettings .wide {
+  grid-column: 1/-1;
+}
+.sectionIntro {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+.sectionIntro > svg {
+  width: 48px;
+  height: 48px;
+  padding: 11px;
+  border-radius: 12px;
+  background: var(--agency-ui);
+  color: #111;
+}
+.insuranceSettings label {
+  display: grid;
+  gap: 7px;
+  font-weight: 700;
+}
+.insuranceSettings input,
+.insuranceSettings select {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: 1px solid #ccc5b9;
+  border-radius: 10px;
+  font: inherit;
+}
+.guarantees {
+  padding: 16px;
+  background: #f5f7f5;
+  border-radius: 14px;
+}
+.guarantees > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+}
+.guarantees > header span {
+  display: grid;
+}
+.guarantees button,
+.saveInsurance,
+.uploadButton {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 16px;
+  border: 1px solid #17434a;
+  border-radius: 10px;
+  background: var(--agency-ui);
+  color: #111;
+  font-weight: 800;
+}
+.guarantees > div {
+  display: grid;
+  grid-template-columns: 1.2fr 0.7fr 1.5fr 48px;
+  gap: 8px;
+  margin-top: 10px;
+}
+.guarantees > div button {
+  padding: 0;
+}
+.insuranceDocument {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 15px;
+  border: 1px solid #d5d0c6;
+  border-radius: 14px;
+}
+.insuranceDocument > span {
+  display: grid;
+  margin-right: auto;
+}
+.uploadButton {
+  cursor: pointer;
+}
+.uploadButton input {
+  display: none;
+}
+.saveInsurance {
+  grid-column: 3;
+}
+.settingsShell .agencyMessage {
+  margin-bottom: 16px;
+}
+@media (max-width: 780px) {
+  .profileCards,
+  .insuranceSettings {
+    grid-template-columns: 1fr;
+  }
+  .sectionIntro,
+  .insuranceSettings .wide,
+  .saveInsurance {
+    grid-column: auto;
+  }
+  .guarantees > div {
+    grid-template-columns: 1fr;
+  }
+  .guarantees > header,
+  .insuranceDocument {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .insuranceDocument > span {
+    margin: 0;
+  }
+}

@@ -116,3 +116,55 @@ export async function sendPartyPush(input: {
   );
   return { sent, revoked };
 }
+
+export async function sendNoticePush(input: {
+  noticeId: string;
+  departureId: string;
+  travelerId?: string;
+  severity: "information" | "important" | "urgent";
+  title?: string;
+}) {
+  const subject = process.env.WEB_PUSH_SUBJECT;
+  const vapidPublic = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const vapidPrivate = process.env.VAPID_PRIVATE_KEY;
+  if (!subject || !vapidPublic || !vapidPrivate) return { sent: 0, revoked: 0 };
+  webpush.setVapidDetails(subject, vapidPublic, vapidPrivate);
+  const subscriptions = await getSql()`SELECT id::text,endpoint,p256dh,auth_secret,agency_logo_url
+    FROM app.list_notice_branded_web_push_subscriptions_v3(
+      ${input.noticeId}::uuid,${input.travelerId ?? null}::uuid
+    )`;
+  let sent = 0;
+  let revoked = 0;
+  await Promise.all(
+    subscriptions.map(async (subscription) => {
+      const message = {
+        title: input.severity === "urgent" ? "Comunicazione urgente sul viaggio" : input.title || "Nuova comunicazione",
+        body:
+          input.severity === "urgent"
+            ? "Apri l'app per consultare e confermare la comunicazione."
+            : "L'agenzia ha pubblicato una nuova comunicazione per la partenza.",
+        url: "/viaggio?tab=programma",
+        tag: `notice-${input.noticeId}`,
+        icon: notificationIcon(subscription.agency_logo_url),
+      };
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: String(subscription.endpoint),
+            keys: { p256dh: String(subscription.p256dh), auth: String(subscription.auth_secret) },
+          },
+          JSON.stringify(message),
+          { TTL: 86400, urgency: input.severity === "urgent" ? "high" : "normal" },
+        );
+        sent += 1;
+      } catch (error) {
+        const status = (error as { statusCode?: number }).statusCode;
+        if (status === 401 || status === 403 || status === 404 || status === 410) {
+          await getSql()`SELECT app.revoke_web_push_subscription_v3(${String(subscription.id)}::uuid)`;
+          revoked += 1;
+        } else throw error;
+      }
+    }),
+  );
+  return { sent, revoked };
+}

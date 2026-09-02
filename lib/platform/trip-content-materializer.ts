@@ -87,7 +87,12 @@ export async function materializeTripUsefulInformation(jobId: string, templateId
   return { versionId: String(result[0].template_version_id), generatedSections: Number(result[0].generated_sections) };
 }
 
-export async function materializeTripExperience(jobId: string, templateId: string, agencyId: string) {
+export async function materializeTripExperience(
+  jobId: string,
+  templateId: string,
+  agencyId: string,
+  experienceProfile: "essential" | "standard" | "complete" = "complete",
+) {
   const sql = getSql();
   const rows =
     (await sql`SELECT * FROM app.read_trip_reference_content_v3(${jobId},${agencyId},${templateId})`) as ReferenceRow[];
@@ -328,8 +333,14 @@ export async function materializeTripExperience(jobId: string, templateId: strin
     });
   }
 
+  const selectedActivities =
+    experienceProfile === "essential"
+      ? []
+      : experienceProfile === "standard"
+        ? activities.filter((activity) => activity.activityType === "quiz")
+        : activities;
   const result =
-    await sql`SELECT * FROM app.replace_trip_experience_v3(${jobId},${agencyId},${templateId},${JSON.stringify(usefulEntries)}::jsonb,${JSON.stringify(phraseEntries)}::jsonb,${JSON.stringify(activities)}::jsonb)`;
+    await sql`SELECT * FROM app.replace_trip_experience_v3(${jobId},${agencyId},${templateId},${JSON.stringify(usefulEntries)}::jsonb,${JSON.stringify(phraseEntries)}::jsonb,${JSON.stringify(selectedActivities)}::jsonb)`;
   if (!result[0]) throw new Error("Materializzazione dei contenuti non completata");
   await sql`SELECT app.apply_generated_useful_information_contacts_v3(${jobId},${agencyId},${templateId},${JSON.stringify(usefulEntries)}::jsonb)`;
   await applyUsefulInformationGovernance(jobId, agencyId, String(result[0].template_version_id));

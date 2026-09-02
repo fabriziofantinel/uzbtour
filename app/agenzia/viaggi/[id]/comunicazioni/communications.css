@@ -1,0 +1,271 @@
+.communicationsPage {
+  min-height: 100vh;
+  background: #f7f5ef;
+  color: #102b35;
+}
+.journeyOpsHeader {
+  min-height: 88px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 14px 3vw;
+  background: #fff;
+  border-bottom: 1px solid #ddd;
+}
+.journeyOpsHeader > a {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #163640;
+  text-decoration: none;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.journeyOpsHeader nav {
+  display: flex;
+  gap: 4px;
+  margin: auto;
+  padding: 5px;
+  background: #efede7;
+  border-radius: 14px;
+  overflow-x: auto;
+}
+.journeyOpsHeader nav a,
+.journeyOpsHeader nav span {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  border-radius: 10px;
+  color: #162f38;
+  text-decoration: none;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.journeyOpsHeader nav [aria-current="page"] {
+  background: var(--agency-ui);
+  color: #111;
+}
+.journeyOpsHeader svg {
+  width: 20px;
+}
+.communicationsHero {
+  padding: 42px max(4vw, 24px);
+  background: var(--agency-ui);
+  color: #111;
+}
+.communicationsHero small {
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+.communicationsHero h1 {
+  font:
+    700 clamp(34px, 5vw, 62px) / 1.05 Georgia,
+    serif;
+  margin: 8px 0;
+}
+.communicationsHero p {
+  max-width: 850px;
+  font-size: 17px;
+}
+.communicationsShell {
+  width: min(1180px, 94vw);
+  margin: 28px auto 70px;
+}
+.communicationComposer {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding: 24px;
+  background: #fff;
+  border: 1px solid #d9d6cd;
+  border-radius: 20px;
+}
+.communicationComposer h2,
+.communicationComposer .wide {
+  grid-column: 1/-1;
+}
+.communicationComposer label {
+  display: grid;
+  gap: 7px;
+  font-weight: 700;
+}
+.communicationComposer input,
+.communicationComposer select,
+.communicationComposer textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 11px;
+  border: 1px solid #ccc5b9;
+  border-radius: 10px;
+  font: inherit;
+}
+.communicationComposer textarea {
+  resize: vertical;
+}
+.communicationComposer .acknowledgement {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.communicationComposer .acknowledgement input,
+.communicationComposer fieldset input {
+  width: 20px;
+  min-height: 20px;
+}
+.communicationComposer fieldset {
+  padding: 14px;
+  border: 1px solid #ddd5c8;
+  border-radius: 12px;
+}
+.communicationComposer fieldset p {
+  margin: 0 0 8px;
+  color: #5b686b;
+}
+.communicationComposer fieldset div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.communicationComposer fieldset label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.communicationComposer > button,
+.communicationActions button,
+.recipientList button {
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1px solid #143e43;
+  border-radius: 10px;
+  background: var(--agency-ui);
+  color: #111;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.communicationList {
+  margin-top: 30px;
+}
+.communicationList > h2 {
+  font:
+    700 32px Georgia,
+    serif;
+}
+.communicationList > article {
+  margin: 14px 0;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid #d8d4ca;
+  border-left: 6px solid #789;
+  border-radius: 16px;
+}
+.communicationList > article.important {
+  border-left-color: #c77b17;
+}
+.communicationList > article.urgent {
+  border-left-color: #b63129;
+}
+.communicationList > article.overdue {
+  box-shadow: 0 0 0 2px #b63129;
+}
+.communicationList article > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+.communicationList h3 {
+  margin: 4px 0;
+  font-size: 21px;
+}
+.communicationList time {
+  white-space: nowrap;
+  color: #627073;
+}
+.communicationStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 15px 0;
+}
+.communicationStats span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 10px;
+  background: #f1f0eb;
+  border-radius: 8px;
+}
+.communicationStats .unread {
+  background: #fff0d6;
+}
+.communicationStats svg {
+  width: 18px;
+}
+.communicationActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+.recipientList {
+  margin-top: 16px;
+  border-top: 1px solid #ddd;
+}
+.recipientList > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 12px 0;
+  border-bottom: 1px solid #eee;
+}
+.recipientList span {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.recipientList span:first-child {
+  display: grid;
+  gap: 2px;
+}
+.recipientList button {
+  min-height: 40px;
+}
+.closedCase {
+  padding: 10px;
+  background: #e5f3ea;
+  border-radius: 8px;
+}
+.emptyCommunications {
+  padding: 30px;
+  text-align: center;
+  background: #fff;
+  border-radius: 16px;
+}
+@media (max-width: 760px) {
+  .journeyOpsHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .journeyOpsHeader nav {
+    width: 100%;
+    margin: 0;
+  }
+  .communicationComposer {
+    grid-template-columns: 1fr;
+  }
+  .communicationComposer h2,
+  .communicationComposer .wide {
+    grid-column: auto;
+  }
+  .communicationList article > header,
+  .recipientList > div {
+    flex-direction: column;
+  }
+  .communicationList time {
+    white-space: normal;
+  }
+}

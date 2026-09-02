@@ -111,6 +111,10 @@ export async function handler(event: SqsEvent | ScheduledEvent): Promise<SqsBatc
                     .array(z.enum(["useful_info", "phrasebook", "bingo"]))
                     .default([])
                     .parse(message.payload.contentTypes),
+                  z
+                    .enum(["essential", "standard", "complete"])
+                    .default("complete")
+                    .parse(message.payload.experienceProfile),
                 )
               : message.type === "photo-evidence.validate"
                 ? await processPhotoEvidenceValidation({

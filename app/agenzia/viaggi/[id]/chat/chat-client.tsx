@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, BookOpen, FolderOpen, MessageCircle, UsersRound } from "lucide-react";
+import { ArrowLeft, BookOpen, FolderOpen, MessageCircle, Send, Settings2, UsersRound } from "lucide-react";
 import OperationalChat from "@/components/operational-chat";
 import type { getJourneyManagement } from "@/lib/platform/journey-repository";
 type Data = Awaited<ReturnType<typeof getJourneyManagement>>;
@@ -27,6 +27,12 @@ export default function AgencyOperationalChat({ data }: { data: Data }) {
           <span aria-current="page">
             <MessageCircle /> Chat
           </span>
+          <Link href={`/agenzia/viaggi/${data.journey.id}/comunicazioni`}>
+            <Send /> Comunicazioni
+          </Link>
+          <Link href={`/agenzia/viaggi/${data.journey.id}/impostazioni`}>
+            <Settings2 /> Configurazione
+          </Link>
         </nav>
         <span className="journeyAgencyName">{data.journey.agencyName}</span>
       </header>

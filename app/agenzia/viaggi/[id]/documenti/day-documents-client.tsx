@@ -13,6 +13,8 @@ import {
   FolderOpen,
   LoaderCircle,
   MessageCircle,
+  Send,
+  Settings2,
   Trash2,
   Upload,
   UsersRound,
@@ -136,6 +138,12 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
           </span>
           <Link href={`/agenzia/viaggi/${departure.id}/chat`}>
             <MessageCircle /> Chat
+          </Link>
+          <Link href={`/agenzia/viaggi/${departure.id}/comunicazioni`}>
+            <Send /> Comunicazioni
+          </Link>
+          <Link href={`/agenzia/viaggi/${departure.id}/impostazioni`}>
+            <Settings2 /> Configurazione
           </Link>
         </nav>
         <span className="journeyAgencyName">{departure.programmeTitle}</span>
