@@ -41,13 +41,13 @@ INSERT INTO travel.trip_template_versions (id, agency_id, template_id, version_n
 INSERT INTO travel.template_days (id, agency_id, template_version_id, day_number, day_offset) VALUES
   ('019d0000-0000-7000-8000-000000000401','019d0000-0000-7000-8000-000000000101','019d0000-0000-7000-8000-000000000301',1,0);
 INSERT INTO travel.departures (id, agency_id, template_id, template_version_id, code, title, starts_on, ends_on, timezone) VALUES
-  ('019d0000-0000-7000-8000-000000000501','019d0000-0000-7000-8000-000000000101','019d0000-0000-7000-8000-000000000201','019d0000-0000-7000-8000-000000000301','DEP-A','Departure A','2026-09-01','2026-09-01','Europe/Rome');
+  ('019d0000-0000-7000-8000-000000000501','019d0000-0000-7000-8000-000000000101','019d0000-0000-7000-8000-000000000201','019d0000-0000-7000-8000-000000000301','DEP-A','Departure A',CURRENT_DATE + 1,CURRENT_DATE + 1,'Europe/Rome');
 INSERT INTO travel.departure_days
   (id, agency_id, departure_id, template_version_id, template_day_id, service_date)
 VALUES
   ('019d0000-0000-7000-8000-000000000411','019d0000-0000-7000-8000-000000000101',
    '019d0000-0000-7000-8000-000000000501','019d0000-0000-7000-8000-000000000301',
-   '019d0000-0000-7000-8000-000000000401','2026-09-01');
+   '019d0000-0000-7000-8000-000000000401',CURRENT_DATE + 1);
 INSERT INTO travel.traveler_profiles
   (id, agency_id, user_id, display_name, birth_date, preferred_locale)
 VALUES
