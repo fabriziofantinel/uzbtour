@@ -67,30 +67,30 @@ try {
     result.table_count >= 85
       ? [68]
       : result.table_count >= 82
-      ? [65]
-      : result.table_count >= 80
-        ? [62]
-        : result.table_count >= 79
-          ? [61, 62]
-          : result.table_count >= 75
-            ? [61]
-            : result.table_count >= 74
-              ? [60]
-              : result.table_count >= 71
-                ? [58]
-                : result.table_count >= 70
-                  ? [57]
-                  : result.table_count >= 69
-                    ? [56]
-                    : result.table_count >= 68
-                      ? [55]
-                      : result.table_count >= 67
-                        ? [54]
-                        : shadowOperationalInstalled
-                          ? [52]
-                          : shadowCoreInstalled
-                            ? [49]
-                            : [47];
+        ? [65]
+        : result.table_count >= 80
+          ? [62]
+          : result.table_count >= 79
+            ? [61, 62]
+            : result.table_count >= 75
+              ? [61]
+              : result.table_count >= 74
+                ? [60]
+                : result.table_count >= 71
+                  ? [58]
+                  : result.table_count >= 70
+                    ? [57]
+                    : result.table_count >= 69
+                      ? [56]
+                      : result.table_count >= 68
+                        ? [55]
+                        : result.table_count >= 67
+                          ? [54]
+                          : shadowOperationalInstalled
+                            ? [52]
+                            : shadowCoreInstalled
+                              ? [49]
+                              : [47];
   let shadowCore = null;
   if (shadowCoreInstalled) {
     shadowCore = (
