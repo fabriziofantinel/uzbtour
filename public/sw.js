@@ -42,7 +42,7 @@ self.addEventListener("fetch", (event) => {
   const request = event.request; if (request.method !== "GET") return; const url = new URL(request.url);
   const isTile = /(^|\.)tile\.openstreetmap\.org$/.test(url.hostname) || url.hostname.includes("openstreetmap");
   const isMedia = url.pathname.includes("/content") || url.pathname.includes("/photos/") || url.pathname.startsWith("/api/agency-logo/") || url.hostname.includes("r2.cloudflarestorage.com");
-  const isTripData = url.pathname === "/api/trip-data" || url.pathname.startsWith("/api/traveler/");
+  const isTripData = url.pathname.startsWith("/api/traveler/");
   // Le pagine HTML autenticate non sono app-shell: inserirle nella cache
   // condivisa del browser potrebbe mostrare dati del tenant precedente dopo
   // un cambio identita o un'impersonazione. La shell contiene solo asset

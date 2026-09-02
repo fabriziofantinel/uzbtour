@@ -27,7 +27,7 @@ export default function ExpenseDialog({
   localCurrency,
   travelers,
   onClose,
-  onSave
+  onSave,
 }: ExpenseDialogProps) {
   const [label, setLabel] = useState("");
   const [amount, setAmount] = useState("");
@@ -66,9 +66,11 @@ export default function ExpenseDialog({
         return;
       }
       if (event.key !== "Tab" || !dialogRef.current) return;
-      const focusable = [...dialogRef.current.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
-      )];
+      const focusable = [
+        ...dialogRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+        ),
+      ];
       if (focusable.length === 0) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -94,7 +96,10 @@ export default function ExpenseDialog({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitError("");
-    if (shareTravelerIds.length === 0) { setSubmitError("Seleziona almeno un viaggiatore."); return; }
+    if (shareTravelerIds.length === 0) {
+      setSubmitError("Seleziona almeno un viaggiatore.");
+      return;
+    }
     if (await onSave({ label: label.trim(), amount, currency, shareTravelerIds })) onClose();
     else setSubmitError("La spesa non è stata salvata. I valori inseriti sono rimasti disponibili: riprova.");
   }
@@ -116,13 +121,15 @@ export default function ExpenseDialog({
         onMouseDown={(event) => event.stopPropagation()}
       >
         <header>
-          <span><ReceiptText size={20}/></span>
+          <span>
+            <ReceiptText size={20} />
+          </span>
           <div>
             <small>{dayLabel ? `SPESA DELLA TAPPA · ${dayLabel}` : "NUOVA SPESA"}</small>
             <h2 id="expense-dialog-title">Aggiungi spesa</h2>
           </div>
           <button type="button" onClick={onClose} disabled={saving} aria-label="Chiudi">
-            <X size={20}/>
+            <X size={20} />
           </button>
         </header>
 
@@ -144,10 +151,22 @@ export default function ExpenseDialog({
           <fieldset className="expenseShareChoice">
             <legend>Dividi la spesa tra</legend>
             <p>L’importo viene ripartito in parti uguali. Puoi escludere chi non ha partecipato.</p>
-            <div>{travelers.map((traveler) => <label key={traveler.id}>
-              <input type="checkbox" checked={shareTravelerIds.includes(traveler.id)} onChange={(event) => setShareTravelerIds((current) => event.target.checked ? [...current, traveler.id] : current.filter((id) => id !== traveler.id))}/>
-              <span>{traveler.name}</span>
-            </label>)}</div>
+            <div>
+              {travelers.map((traveler) => (
+                <label key={traveler.id}>
+                  <input
+                    type="checkbox"
+                    checked={shareTravelerIds.includes(traveler.id)}
+                    onChange={(event) =>
+                      setShareTravelerIds((current) =>
+                        event.target.checked ? [...current, traveler.id] : current.filter((id) => id !== traveler.id),
+                      )
+                    }
+                  />
+                  <span>{traveler.name}</span>
+                </label>
+              ))}
+            </div>
           </fieldset>
 
           <fieldset className="currencyChoice">
@@ -160,22 +179,24 @@ export default function ExpenseDialog({
                 checked={currency === "EUR"}
                 onChange={() => setCurrency("EUR")}
               />
-              <span aria-hidden="true"/>
+              <span aria-hidden="true" />
               <b>Euro</b>
               <small>EUR · €</small>
             </label>
-            <label className={currency === localCurrency ? "selected" : ""}>
-              <input
-                type="radio"
-                name="expense-currency"
-                value={localCurrency}
-                checked={currency === localCurrency}
-                onChange={() => setCurrency(localCurrency)}
-              />
-              <span aria-hidden="true"/>
-              <b>Valuta locale</b>
-              <small>{localCurrency}</small>
-            </label>
+            {localCurrency !== "EUR" && (
+              <label className={currency === localCurrency ? "selected" : ""}>
+                <input
+                  type="radio"
+                  name="expense-currency"
+                  value={localCurrency}
+                  checked={currency === localCurrency}
+                  onChange={() => setCurrency(localCurrency)}
+                />
+                <span aria-hidden="true" />
+                <b>Valuta locale</b>
+                <small>{localCurrency}</small>
+              </label>
+            )}
           </fieldset>
 
           <label className="expenseField" htmlFor="expense-amount">
@@ -194,12 +215,23 @@ export default function ExpenseDialog({
             </div>
           </label>
 
-          {submitError && <p className="cashDialogError" role="alert">{submitError}</p>}
-          <button className="expenseSubmit" type="submit" disabled={saving || !label.trim() || !amount.trim() || shareTravelerIds.length === 0}>
-            {saving
-              ? <><LoaderCircle className="spin" size={18}/> Salvataggio…</>
-              : "Salva spesa"
-            }
+          {submitError && (
+            <p className="cashDialogError" role="alert">
+              {submitError}
+            </p>
+          )}
+          <button
+            className="expenseSubmit"
+            type="submit"
+            disabled={saving || !label.trim() || !amount.trim() || shareTravelerIds.length === 0}
+          >
+            {saving ? (
+              <>
+                <LoaderCircle className="spin" size={18} /> Salvataggio…
+              </>
+            ) : (
+              "Salva spesa"
+            )}
           </button>
           <span className="srStatus" role="status" aria-live="polite">
             {saving ? "Salvataggio della spesa in corso" : ""}

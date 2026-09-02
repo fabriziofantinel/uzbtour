@@ -6,6 +6,9 @@
     "node": ">=20.9.0"
   },
   "scripts": {
+    "db:migrate:v3:traveler-destination-profile:dry-run": "node --env-file=.env.local scripts/migrate-v3-traveler-destination-profile.mjs",
+    "db:migrate:v3:traveler-destination-profile": "node --env-file=.env.local scripts/migrate-v3-traveler-destination-profile.mjs --apply",
+    "acceptance:traveler-destination-localization": "node scripts/acceptance-traveler-destination-localization.mjs",
     "db:migrate:v3:api-rate-limits:dry-run": "node --env-file=.env.local scripts/migrate-v3-api-rate-limits.mjs",
     "db:migrate:v3:api-rate-limits": "node --env-file=.env.local scripts/migrate-v3-api-rate-limits.mjs --apply",
     "acceptance:v3:api-rate-limits": "node --env-file=.env.local scripts/acceptance-v3-api-rate-limits.mjs",

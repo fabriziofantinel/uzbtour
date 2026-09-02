@@ -10,10 +10,19 @@ export function v3TravelerScopeCutoverReadEnabled() {
 
 export async function readV3TravelerJourneys(userId: string) {
   const sql = getSql();
-  return await sql`
+  return (await sql`
     SELECT *
     FROM app.list_legacy_user_journeys(${userId})
-  ` as Row[];
+  `) as Row[];
+}
+
+export async function readV3TravelerDestinationProfile(userId: string, departureId: string) {
+  const sql = getSql();
+  const rows = await sql`
+    SELECT currency_code,time_zone,profile_version
+    FROM app.read_traveler_destination_profile_v3(${userId},${departureId}::uuid)
+  `;
+  return rows[0] as Row | undefined;
 }
 
 export async function resolveV3TravelerScope(input: {

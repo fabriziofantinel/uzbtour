@@ -3,15 +3,12 @@ import { PlatformRequestError } from "./errors";
 
 type Row = Record<string, unknown>;
 
-export async function readV3ExpenseRows(input: {
-  agencyId: string;
-  departureId: string;
-  partyId: string;
-}) {
+export async function readV3ExpenseRows(input: { agencyId: string; departureId: string; partyId: string }) {
   const sql = getSql();
-  const [, rows] = await sql.transaction((txn) => [
-    txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
-    txn`
+  const [, rows] = await sql.transaction(
+    (txn) => [
+      txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
+      txn`
       SELECT expense.id::text, day.template_day_id::text AS trip_day_id,
         template_day.day_number, expense.label,
         expense.amount_minor::numeric / power(10::numeric, currency.minor_unit) AS amount,
@@ -41,7 +38,9 @@ export async function readV3ExpenseRows(input: {
         AND expense.party_id = ${input.partyId}
       ORDER BY expense.created_at DESC
     `,
-  ], { readOnly: true });
+    ],
+    { readOnly: true },
+  );
   return rows as Row[];
 }
 
@@ -54,7 +53,7 @@ export async function addTravelerExpenseV3(input: {
   dayId?: string | null;
   label: string;
   amount: number;
-  currency: "EUR" | "USD" | "UZS" | "GBP" | "VND";
+  currency: string;
   clientOperationId: string;
   exchangeRateToBase?: number | null;
   shareTravelerIds?: string[];

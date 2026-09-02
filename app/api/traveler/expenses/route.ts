@@ -10,7 +10,11 @@ const expenseSchema = z.object({
   dayId: z.string().uuid().nullable().optional(),
   label: z.string().trim().min(1).max(240),
   amount: z.number().positive().max(100_000_000_000),
-  currency: z.enum(["EUR", "USD", "UZS", "GBP", "VND"]),
+  currency: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z]{3}$/),
   clientOperationId: z
     .string()
     .uuid()
