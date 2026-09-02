@@ -7,12 +7,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { PlatformRequestError } from "./errors";
-import type {
-  DownloadedObject,
-  ObjectStorage,
-  StoredObject,
-  UploadAuthorization,
-} from "./ports/object-storage";
+import type { DownloadedObject, ObjectStorage, StoredObject, UploadAuthorization } from "./ports/object-storage";
 
 const MIN_EXPIRY_SECONDS = 30;
 const MAX_EXPIRY_SECONDS = 60 * 60;
@@ -34,8 +29,12 @@ function r2Endpoint(accountId: string) {
 
 function validKey(key: string) {
   if (
-    !key || key.length > 700 || key.startsWith("/") || key.endsWith("/") ||
-    key.includes("\\") || key.split("/").some((part) => !part || part === "." || part === "..")
+    !key ||
+    key.length > 700 ||
+    key.startsWith("/") ||
+    key.endsWith("/") ||
+    key.includes("\\") ||
+    key.split("/").some((part) => !part || part === "." || part === "..")
   ) {
     throw new PlatformRequestError("Percorso del file non valido");
   }
@@ -72,7 +71,7 @@ export class R2ObjectStorage implements ObjectStorage {
   async createUploadAuthorization(
     key: string,
     contentType: string,
-    expiresInSeconds: number
+    expiresInSeconds: number,
   ): Promise<UploadAuthorization> {
     validKey(key);
     validExpiry(expiresInSeconds);
@@ -82,7 +81,7 @@ export class R2ObjectStorage implements ObjectStorage {
       {
         expiresIn: expiresInSeconds,
         signableHeaders: new Set(["content-type"]),
-      }
+      },
     );
     return {
       provider: this.provider,
@@ -126,12 +125,14 @@ export class R2ObjectStorage implements ObjectStorage {
     validKey(key);
     if (!bytes.byteLength) throw new PlatformRequestError("Il file da salvare è vuoto");
     if (!contentType.trim()) throw new PlatformRequestError("Content-Type del file mancante");
-    await this.client.send(new PutObjectCommand({
-      Bucket: this.bucket,
-      Key: key,
-      Body: bytes,
-      ContentType: contentType,
-    }));
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: bytes,
+        ContentType: contentType,
+      }),
+    );
     return {
       provider: this.provider,
       bucket: this.bucket,
@@ -144,7 +145,7 @@ export class R2ObjectStorage implements ObjectStorage {
   async createDownloadUrl(
     key: string,
     expiresInSeconds: number,
-    options?: { contentDisposition?: string; contentType?: string }
+    options?: { contentDisposition?: string; contentType?: string },
   ) {
     validKey(key);
     validExpiry(expiresInSeconds);
@@ -156,7 +157,7 @@ export class R2ObjectStorage implements ObjectStorage {
         ResponseContentDisposition: options?.contentDisposition,
         ResponseContentType: options?.contentType,
       }),
-      { expiresIn: expiresInSeconds }
+      { expiresIn: expiresInSeconds },
     );
   }
 

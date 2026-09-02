@@ -5,20 +5,12 @@ import { Client } from "@neondatabase/serverless";
 
 const name = "092_v3_shadow_user_reconciliation";
 const apply = process.argv.includes("--apply");
-const url = process.env.DATABASE_MIGRATION_URL ??
-  process.env.DATABASE_URL_UNPOOLED ??
-  process.env.DATABASE_URL;
+const url = process.env.DATABASE_MIGRATION_URL ?? process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
 
 if (!url) throw new Error("Connessione Neon non configurata");
 
-const source = await readFile(
-  new URL(`../database/migrations/${name}.sql`, import.meta.url),
-  "utf8",
-);
-const historicalCore = await readFile(
-  new URL("../database/backfill-v3-shadow-core.sql", import.meta.url),
-  "utf8",
-);
+const source = await readFile(new URL(`../database/migrations/${name}.sql`, import.meta.url), "utf8");
+const historicalCore = await readFile(new URL("../database/backfill-v3-shadow-core.sql", import.meta.url), "utf8");
 const historicalOperational = await readFile(
   new URL("../database/backfill-v3-shadow-operational.sql", import.meta.url),
   "utf8",
@@ -168,8 +160,13 @@ try {
        ON CONFLICT(version) DO UPDATE SET applied_at=clock_timestamp()`,
       [
         "3.62.0-shadow-user-reconciliation",
-        createHash("sha256").update(source).update("\0").update(refreshedCore)
-          .update("\0").update(refreshedOperational).digest("hex"),
+        createHash("sha256")
+          .update(source)
+          .update("\0")
+          .update(refreshedCore)
+          .update("\0")
+          .update(refreshedOperational)
+          .digest("hex"),
       ],
     );
     await client.query("COMMIT");

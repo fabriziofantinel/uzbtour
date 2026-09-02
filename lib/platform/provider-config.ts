@@ -1,9 +1,4 @@
-import type {
-  JobQueueProvider,
-  ObjectStorageProvider,
-  PlatformProviderConfig,
-  TravelAiProvider,
-} from "./types";
+import type { JobQueueProvider, ObjectStorageProvider, PlatformProviderConfig, TravelAiProvider } from "./types";
 
 function oneOf<T extends string>(value: string | undefined, fallback: T, allowed: readonly T[]): T {
   const candidate = value || fallback;
@@ -15,20 +10,11 @@ function oneOf<T extends string>(value: string | undefined, fallback: T, allowed
 
 export function getPlatformProviderConfig(): PlatformProviderConfig {
   return {
-    objectStorage: oneOf<ObjectStorageProvider>(
-      process.env.PLATFORM_OBJECT_STORAGE_PROVIDER,
+    objectStorage: oneOf<ObjectStorageProvider>(process.env.PLATFORM_OBJECT_STORAGE_PROVIDER, "r2", [
+      "vercel-blob",
       "r2",
-      ["vercel-blob", "r2"]
-    ),
-    jobQueue: oneOf<JobQueueProvider>(
-      process.env.PLATFORM_JOB_QUEUE_PROVIDER,
-      "sqs",
-      ["database", "sqs"]
-    ),
-    travelAi: oneOf<TravelAiProvider>(
-      process.env.PLATFORM_AI_PROVIDER,
-      "bedrock",
-      ["gemini", "bedrock"]
-    ),
+    ]),
+    jobQueue: oneOf<JobQueueProvider>(process.env.PLATFORM_JOB_QUEUE_PROVIDER, "sqs", ["database", "sqs"]),
+    travelAi: oneOf<TravelAiProvider>(process.env.PLATFORM_AI_PROVIDER, "bedrock", ["gemini", "bedrock"]),
   };
 }

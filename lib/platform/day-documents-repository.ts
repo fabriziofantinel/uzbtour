@@ -6,9 +6,10 @@ import { getJourneyManagement } from "./journey-repository";
 export async function getAgencyDayDocuments(departureId: string, actorId: string) {
   const programme = await getAgencyProgramme(departureId, actorId);
   const sql = getSql();
-  const [, rows] = await sql.transaction((txn) => [
-    txn`SELECT set_config('app.agency_id',${programme.departure.agencyId},true)`,
-    txn`SELECT document.id::text,document.departure_day_id::text AS day_id,
+  const [, rows] = await sql.transaction(
+    (txn) => [
+      txn`SELECT set_config('app.agency_id',${programme.departure.agencyId},true)`,
+      txn`SELECT document.id::text,document.departure_day_id::text AS day_id,
       document.party_id::text AS party_id,party.name AS party_name,
       document.title,document.description,asset.content_type,asset.size_bytes,document.created_at::text
       FROM ops.travel_documents document
@@ -19,18 +20,38 @@ export async function getAgencyDayDocuments(departureId: string, actorId: string
         AND document.party_id IS NOT NULL
         AND document.status='ready' AND asset.status='ready' AND asset.deleted_at IS NULL
       ORDER BY document.created_at DESC`,
-  ], { readOnly: true });
+    ],
+    { readOnly: true },
+  );
   const management = await getJourneyManagement(departureId, actorId);
-  return { departure: programme.departure, days: programme.days.map(({ id, number, offset, title, city }) => ({ id, number, offset, title, city })),
+  return {
+    departure: programme.departure,
+    days: programme.days.map(({ id, number, offset, title, city }) => ({ id, number, offset, title, city })),
     groups: management.families.map(({ id, name, code }) => ({ id, name, code })),
-    documents: rows.map((row) => ({ id: String(row.id), dayId: String(row.day_id), partyId: String(row.party_id), partyName: String(row.party_name), title: String(row.title),
-      description: String(row.description || ""), contentType: String(row.content_type), sizeBytes: Number(row.size_bytes || 0),
-      createdAt: String(row.created_at), downloadUrl: `/api/travel-documents/${String(row.id)}/content?download=1` })) };
+    documents: rows.map((row) => ({
+      id: String(row.id),
+      dayId: String(row.day_id),
+      partyId: String(row.party_id),
+      partyName: String(row.party_name),
+      title: String(row.title),
+      description: String(row.description || ""),
+      contentType: String(row.content_type),
+      sizeBytes: Number(row.size_bytes || 0),
+      createdAt: String(row.created_at),
+      downloadUrl: `/api/travel-documents/${String(row.id)}/content?download=1`,
+    })),
+  };
 }
 
 export type AgencyDayDocuments = Awaited<ReturnType<typeof getAgencyDayDocuments>>;
 
-export async function archiveAgencyDayDocument(input: { actorId: string; agencyId: string; departureId: string; documentId: string }) {
-  const rows = await getSql()`SELECT app.archive_day_document_v3(${input.actorId},${input.agencyId}::uuid,${input.departureId}::uuid,${input.documentId}::uuid) archived`;
+export async function archiveAgencyDayDocument(input: {
+  actorId: string;
+  agencyId: string;
+  departureId: string;
+  documentId: string;
+}) {
+  const rows =
+    await getSql()`SELECT app.archive_day_document_v3(${input.actorId},${input.agencyId}::uuid,${input.departureId}::uuid,${input.documentId}::uuid) archived`;
   if (!rows[0]?.archived) throw new Error("Documento non disponibile");
 }

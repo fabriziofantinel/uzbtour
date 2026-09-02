@@ -1,10 +1,5 @@
 import { randomUUID } from "node:crypto";
-import {
-  DeleteObjectCommand,
-  HeadObjectCommand,
-  PutObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 function required(name) {
@@ -36,7 +31,7 @@ try {
   const url = await getSignedUrl(
     client,
     new PutObjectCommand({ Bucket: bucket, Key: key, ContentType: "text/plain" }),
-    { expiresIn: 60, signableHeaders: new Set(["content-type"]) }
+    { expiresIn: 60, signableHeaders: new Set(["content-type"]) },
   );
   const response = await fetch(url, {
     method: "PUT",
@@ -50,7 +45,7 @@ try {
     const message = responseText.match(/<Message>([^<]+)<\/Message>/)?.[1] ?? "Nessun dettaglio";
     const signedParameterNames = [...new URL(url).searchParams.keys()].sort();
     throw new Error(
-      `PUT R2 non riuscito: HTTP ${response.status}, ${code}, ${message}; parametri: ${signedParameterNames.join(",")}`
+      `PUT R2 non riuscito: HTTP ${response.status}, ${code}, ${message}; parametri: ${signedParameterNames.join(",")}`,
     );
   }
 
@@ -64,13 +59,15 @@ try {
     throw new Error(`CORS R2 non valido: origine restituita ${allowOrigin ?? "assente"}`);
   }
 
-  console.log(JSON.stringify({
-    ok: true,
-    status: response.status,
-    allowOrigin,
-    etagExposed: response.headers.has("etag"),
-    sizeBytes: stored.ContentLength,
-  }));
+  console.log(
+    JSON.stringify({
+      ok: true,
+      status: response.status,
+      allowOrigin,
+      etagExposed: response.headers.has("etag"),
+      sizeBytes: stored.ContentLength,
+    }),
+  );
 } finally {
   await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key })).catch(() => undefined);
 }

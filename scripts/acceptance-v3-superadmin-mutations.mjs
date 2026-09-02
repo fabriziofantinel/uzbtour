@@ -1,10 +1,102 @@
-import { randomBytes, randomUUID } from "node:crypto";import { Client } from "@neondatabase/serverless";const url=process.env.DATABASE_URL??process.env.DATABASE_MIGRATION_URL??process.env.DATABASE_URL_UNPOOLED;if(!url)throw new Error("Connessione Neon non configurata");const client=new Client(url);let open=false;
-try{await client.connect();await client.query("BEGIN");open=true;const actor=(await client.query("SELECT id FROM public.platform_users WHERE platform_role='superadmin' AND status='active' ORDER BY created_at LIMIT 1")).rows[0];if(!actor)throw new Error("Superadmin attivo non disponibile");const suffix=randomUUID(),slug=`acceptance-${suffix}`,email=`agent-${suffix}@invalid.example`;
-const agencyId=(await client.query(`SELECT app.create_platform_agency($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)::text id`,[actor.id,slug,"Agenzia collaudo","","","","","","","","IT","","","","","","Referente collaudo",email,"+39000000000",JSON.stringify({primaryColor:"#247A6B",logoUrl:""})])).rows[0]?.id;
-const branding=(await client.query("SELECT app.update_platform_agency_branding($1,$2,$3,$4) updated",[actor.id,agencyId,"#135E59","https://example.invalid/logo.svg"])).rows[0]?.updated;
-const username=`agent_${suffix.replaceAll("-","").slice(0,20)}`;const tokenHash=randomBytes(32).toString("hex");
-const agentId=(await client.query("SELECT legacy_user_id id FROM app.provision_platform_agency_agent($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",[actor.id,agencyId,"Agente collaudo","AC",username,email,"+39000000000","admin",tokenHash,new Date(Date.now()+3600000).toISOString()])).rows[0]?.id;
-const registry=await client.query("SELECT * FROM app.read_superadmin_agency_registry($1) WHERE agency_id=$2",[actor.id,agencyId]);const row=registry.rows.find((item)=>item.agent_id===agentId);
-if(!agencyId||branding!==true||!agentId||!row||row.branding?.primaryColor!=="#135E59"||row.agent_status!=="invited")throw new Error(`Collaudo mutazioni incompleto: ${JSON.stringify({agencyId,branding,agentId,row})}`);
-await client.query("ROLLBACK");open=false;console.log(JSON.stringify({status:"passed",rolledBack:true,agencyCreated:true,brandingUpdated:true,agentProvisioned:true},null,2));
-}catch(error){if(open)await client.query("ROLLBACK").catch(()=>undefined);throw error;}finally{await client.end().catch(()=>undefined);}
+import { randomBytes, randomUUID } from "node:crypto";
+import { Client } from "@neondatabase/serverless";
+const url = process.env.DATABASE_URL ?? process.env.DATABASE_MIGRATION_URL ?? process.env.DATABASE_URL_UNPOOLED;
+if (!url) throw new Error("Connessione Neon non configurata");
+const client = new Client(url);
+let open = false;
+try {
+  await client.connect();
+  await client.query("BEGIN");
+  open = true;
+  const actor = (
+    await client.query(
+      "SELECT id FROM public.platform_users WHERE platform_role='superadmin' AND status='active' ORDER BY created_at LIMIT 1",
+    )
+  ).rows[0];
+  if (!actor) throw new Error("Superadmin attivo non disponibile");
+  const suffix = randomUUID(),
+    slug = `acceptance-${suffix}`,
+    email = `agent-${suffix}@invalid.example`;
+  const agencyId = (
+    await client.query(
+      `SELECT app.create_platform_agency($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)::text id`,
+      [
+        actor.id,
+        slug,
+        "Agenzia collaudo",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "IT",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "Referente collaudo",
+        email,
+        "+39000000000",
+        JSON.stringify({ primaryColor: "#247A6B", logoUrl: "" }),
+      ],
+    )
+  ).rows[0]?.id;
+  const branding = (
+    await client.query("SELECT app.update_platform_agency_branding($1,$2,$3,$4) updated", [
+      actor.id,
+      agencyId,
+      "#135E59",
+      "https://example.invalid/logo.svg",
+    ])
+  ).rows[0]?.updated;
+  const username = `agent_${suffix.replaceAll("-", "").slice(0, 20)}`;
+  const tokenHash = randomBytes(32).toString("hex");
+  const agentId = (
+    await client.query(
+      "SELECT legacy_user_id id FROM app.provision_platform_agency_agent($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+      [
+        actor.id,
+        agencyId,
+        "Agente collaudo",
+        "AC",
+        username,
+        email,
+        "+39000000000",
+        "admin",
+        tokenHash,
+        new Date(Date.now() + 3600000).toISOString(),
+      ],
+    )
+  ).rows[0]?.id;
+  const registry = await client.query("SELECT * FROM app.read_superadmin_agency_registry($1) WHERE agency_id=$2", [
+    actor.id,
+    agencyId,
+  ]);
+  const row = registry.rows.find((item) => item.agent_id === agentId);
+  if (
+    !agencyId ||
+    branding !== true ||
+    !agentId ||
+    !row ||
+    row.branding?.primaryColor !== "#135E59" ||
+    row.agent_status !== "invited"
+  )
+    throw new Error(`Collaudo mutazioni incompleto: ${JSON.stringify({ agencyId, branding, agentId, row })}`);
+  await client.query("ROLLBACK");
+  open = false;
+  console.log(
+    JSON.stringify(
+      { status: "passed", rolledBack: true, agencyCreated: true, brandingUpdated: true, agentProvisioned: true },
+      null,
+      2,
+    ),
+  );
+} catch (error) {
+  if (open) await client.query("ROLLBACK").catch(() => undefined);
+  throw error;
+} finally {
+  await client.end().catch(() => undefined);
+}

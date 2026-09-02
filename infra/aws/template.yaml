@@ -262,7 +262,12 @@ Resources:
 
   EnrichmentDeadLetterQueue:
     Type: AWS::SQS::Queue
-    Properties: { QueueName: !Sub "${AWS::StackName}-enrichment-dlq", MessageRetentionPeriod: 1209600, SqsManagedSseEnabled: true }
+    Properties:
+      {
+        QueueName: !Sub "${AWS::StackName}-enrichment-dlq",
+        MessageRetentionPeriod: 1209600,
+        SqsManagedSseEnabled: true,
+      }
   EnrichmentQueue:
     Type: AWS::SQS::Queue
     Metadata:
@@ -280,7 +285,8 @@ Resources:
 
   PhotoDeadLetterQueue:
     Type: AWS::SQS::Queue
-    Properties: { QueueName: !Sub "${AWS::StackName}-photo-dlq", MessageRetentionPeriod: 1209600, SqsManagedSseEnabled: true }
+    Properties:
+      { QueueName: !Sub "${AWS::StackName}-photo-dlq", MessageRetentionPeriod: 1209600, SqsManagedSseEnabled: true }
   PhotoQueue:
     Type: AWS::SQS::Queue
     Metadata:
@@ -298,7 +304,8 @@ Resources:
 
   DeletionDeadLetterQueue:
     Type: AWS::SQS::Queue
-    Properties: { QueueName: !Sub "${AWS::StackName}-deletion-dlq", MessageRetentionPeriod: 1209600, SqsManagedSseEnabled: true }
+    Properties:
+      { QueueName: !Sub "${AWS::StackName}-deletion-dlq", MessageRetentionPeriod: 1209600, SqsManagedSseEnabled: true }
   DeletionQueue:
     Type: AWS::SQS::Queue
     Metadata:
@@ -718,7 +725,8 @@ Resources:
         must: [consume only travel-reference.enrich jobs, concurrency remains bounded]
         mutable: change-with-constraints
       BuildMethod: esbuild
-      BuildProperties: { EntryPoints: [workers/import-handler.ts], Minify: true, Sourcemap: true, Target: es2022, Format: cjs }
+      BuildProperties:
+        { EntryPoints: [workers/import-handler.ts], Minify: true, Sourcemap: true, Target: es2022, Format: cjs }
     Properties:
       FunctionName: !Sub "${AWS::StackName}-enrichment-worker"
       Description: Genera e aggiorna i contenuti Paese con Bedrock
@@ -777,7 +785,8 @@ Resources:
         must: [consume only photo jobs, concurrency remains bounded]
         mutable: change-with-constraints
       BuildMethod: esbuild
-      BuildProperties: { EntryPoints: [workers/import-handler.ts], Minify: true, Sourcemap: true, Target: es2022, Format: cjs }
+      BuildProperties:
+        { EntryPoints: [workers/import-handler.ts], Minify: true, Sourcemap: true, Target: es2022, Format: cjs }
     Properties:
       FunctionName: !Sub "${AWS::StackName}-photo-worker"
       Description: Valida foto di missioni e contest con Bedrock
@@ -836,7 +845,8 @@ Resources:
         must: [consume only agency.delete jobs, batch size remains one, keep idempotent phase checkpoints]
         mutable: change-with-constraints
       BuildMethod: esbuild
-      BuildProperties: { EntryPoints: [workers/import-handler.ts], Minify: true, Sourcemap: true, Target: es2022, Format: cjs }
+      BuildProperties:
+        { EntryPoints: [workers/import-handler.ts], Minify: true, Sourcemap: true, Target: es2022, Format: cjs }
     Properties:
       FunctionName: !Sub "${AWS::StackName}-deletion-worker"
       Description: Esegue cancellazioni tenant asincrone e verificabili
@@ -889,7 +899,14 @@ Resources:
         must: [schedule remains idempotent, no Bedrock permission]
         mutable: change-with-constraints
       BuildMethod: esbuild
-      BuildProperties: { EntryPoints: [workers/contest-closure-handler.ts], Minify: true, Sourcemap: true, Target: es2022, Format: cjs }
+      BuildProperties:
+        {
+          EntryPoints: [workers/contest-closure-handler.ts],
+          Minify: true,
+          Sourcemap: true,
+          Target: es2022,
+          Format: cjs,
+        }
     Properties:
       FunctionName: !Sub "${AWS::StackName}-contest-closure"
       Description: Chiude i contest fotografici dovuti secondo il fuso della partenza
@@ -1310,7 +1327,8 @@ Resources:
     Metadata:
       com.aws.cloudformation.Context:
         why: single operational view for isolated workers, queue latency and trace correlation
-        must: [never use user or agency identifiers as metric dimensions, retain trace identifiers only in logs and Neon]
+        must:
+          [never use user or agency identifiers as metric dimensions, retain trace identifiers only in logs and Neon]
         mutable: free-to-tune
     Properties:
       DashboardName: !Sub "${AWS::StackName}-workloads"

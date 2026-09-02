@@ -14,23 +14,30 @@ import {
 } from "./import-schema";
 import { travelDocumentType } from "./travel-document";
 import { normalizeTravelProgramme } from "./travel-programme-normalizer";
-import { bedrockDocumentBlocks, extractTravelDocumentTextForValidation, prepareBedrockDocuments, type BedrockDocumentPart } from "./document-preprocessor";
+import {
+  bedrockDocumentBlocks,
+  extractTravelDocumentTextForValidation,
+  prepareBedrockDocuments,
+  type BedrockDocumentPart,
+} from "./document-preprocessor";
 import { mergeReconciliationIssues } from "./travel-import-quality";
 
 const bedrockClients = new Map<string, BedrockRuntimeClient>();
 
 const accommodationRecoverySchema = z.object({
-  accommodations: z.array(z.object({
-    dayNumber: z.number().int().positive(),
-    name: z.string().max(240),
-    city: z.string().max(240),
-    country: z.string().max(120),
-    notes: z.string().max(2000),
-    validation: z.object({
-      needsValidation: z.boolean(),
-      reason: z.string().max(1000),
+  accommodations: z.array(
+    z.object({
+      dayNumber: z.number().int().positive(),
+      name: z.string().max(240),
+      city: z.string().max(240),
+      country: z.string().max(120),
+      notes: z.string().max(2000),
+      validation: z.object({
+        needsValidation: z.boolean(),
+        reason: z.string().max(1000),
+      }),
     }),
-  })),
+  ),
   evidence: z.array(extractionEvidenceSchema).max(200).default([]),
 });
 
@@ -50,10 +57,14 @@ const recoveredActivitySchema = z.object({
 });
 
 const activityRecoverySchema = z.object({
-  days: z.array(z.object({
-    dayNumber: z.number().int().positive(),
-    activities: z.array(recoveredActivitySchema).max(40),
-  })).max(90),
+  days: z
+    .array(
+      z.object({
+        dayNumber: z.number().int().positive(),
+        activities: z.array(recoveredActivitySchema).max(40),
+      }),
+    )
+    .max(90),
   evidence: z.array(extractionEvidenceSchema).max(500).default([]),
 });
 
@@ -149,21 +160,39 @@ function clipped(value: unknown, maximum: number) {
 }
 
 function normalizeCommercialToolInput(input: unknown) {
-  const root = input && typeof input === "object" && !Array.isArray(input) ? input as Record<string, unknown> : {};
-  const details = root.commercialDetails && typeof root.commercialDetails === "object" && !Array.isArray(root.commercialDetails)
-    ? root.commercialDetails as Record<string, unknown> : {};
-  const rows = (value: unknown) => Array.isArray(value) ? value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item)) : [];
+  const root = input && typeof input === "object" && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
+  const details =
+    root.commercialDetails && typeof root.commercialDetails === "object" && !Array.isArray(root.commercialDetails)
+      ? (root.commercialDetails as Record<string, unknown>)
+      : {};
+  const rows = (value: unknown) =>
+    Array.isArray(value)
+      ? value.filter(
+          (item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item),
+        )
+      : [];
   const evidencePath = (value: unknown) => {
     const raw = clipped(value, 300);
-    const key = raw.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+    const key = raw
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_|_$/g, "");
     const aliases: Record<string, string> = {
-      agency_name: "commercialDetails.agencyName", agency_contact: "commercialDetails.agencyContact",
-      quote_code: "commercialDetails.quoteCode", quote_version: "commercialDetails.quoteVersion",
-      quote_date: "commercialDetails.quoteDate", client_name: "commercialDetails.clientName",
-      traveler_count: "commercialDetails.travelerCount", adults: "commercialDetails.adults", minors: "commercialDetails.minors",
-      guide_language: "commercialDetails.guideLanguage", currency: "commercialDetails.currency",
-      pricing_rows: "commercialDetails.pricingRows", included_services: "commercialDetails.includedServices",
-      conditions: "commercialDetails.conditions", contacts: "commercialDetails.contacts",
+      agency_name: "commercialDetails.agencyName",
+      agency_contact: "commercialDetails.agencyContact",
+      quote_code: "commercialDetails.quoteCode",
+      quote_version: "commercialDetails.quoteVersion",
+      quote_date: "commercialDetails.quoteDate",
+      client_name: "commercialDetails.clientName",
+      traveler_count: "commercialDetails.travelerCount",
+      adults: "commercialDetails.adults",
+      minors: "commercialDetails.minors",
+      guide_language: "commercialDetails.guideLanguage",
+      currency: "commercialDetails.currency",
+      pricing_rows: "commercialDetails.pricingRows",
+      included_services: "commercialDetails.includedServices",
+      conditions: "commercialDetails.conditions",
+      contacts: "commercialDetails.contacts",
     };
     return aliases[key] || raw;
   };
@@ -171,15 +200,48 @@ function normalizeCommercialToolInput(input: unknown) {
   return {
     commercialDetails: {
       ...details,
-      agencyName: clipped(details.agencyName, 240), agencyContact: clipped(details.agencyContact, 500),
-      quoteCode: clipped(details.quoteCode, 120), quoteVersion: clipped(details.quoteVersion, 40), quoteDate: /^\d{4}-\d{2}-\d{2}$/.test(quoteDate) ? quoteDate : "",
-      clientName: clipped(details.clientName, 240), guideLanguage: clipped(details.guideLanguage, 120), currency: clipped(details.currency, 20),
-      pricingRows: rows(details.pricingRows).filter((item) => clipped(item.amount, 120).length > 0).slice(0, 30).map((item) => ({ ...item, item: clipped(item.item, 240), amount: clipped(item.amount, 120), currency: clipped(item.currency, 20), notes: clipped(item.notes, 1000) })),
-      includedServices: rows(details.includedServices).slice(0, 50).map((item) => ({ ...item, service: clipped(item.service, 240), details: clipped(item.details, 2000) })),
-      conditions: rows(details.conditions).slice(0, 50).map((item) => ({ ...item, field: clipped(item.field, 240), value: clipped(item.value, 4000) })),
-      contacts: rows(details.contacts).slice(0, 30).map((item) => ({ ...item, role: clipped(item.role, 120), name: clipped(item.name, 240), phone: clipped(item.phone, 100), email: clipped(item.email, 240), availability: clipped(item.availability, 240) })),
+      agencyName: clipped(details.agencyName, 240),
+      agencyContact: clipped(details.agencyContact, 500),
+      quoteCode: clipped(details.quoteCode, 120),
+      quoteVersion: clipped(details.quoteVersion, 40),
+      quoteDate: /^\d{4}-\d{2}-\d{2}$/.test(quoteDate) ? quoteDate : "",
+      clientName: clipped(details.clientName, 240),
+      guideLanguage: clipped(details.guideLanguage, 120),
+      currency: clipped(details.currency, 20),
+      pricingRows: rows(details.pricingRows)
+        .filter((item) => clipped(item.amount, 120).length > 0)
+        .slice(0, 30)
+        .map((item) => ({
+          ...item,
+          item: clipped(item.item, 240),
+          amount: clipped(item.amount, 120),
+          currency: clipped(item.currency, 20),
+          notes: clipped(item.notes, 1000),
+        })),
+      includedServices: rows(details.includedServices)
+        .slice(0, 50)
+        .map((item) => ({ ...item, service: clipped(item.service, 240), details: clipped(item.details, 2000) })),
+      conditions: rows(details.conditions)
+        .slice(0, 50)
+        .map((item) => ({ ...item, field: clipped(item.field, 240), value: clipped(item.value, 4000) })),
+      contacts: rows(details.contacts)
+        .slice(0, 30)
+        .map((item) => ({
+          ...item,
+          role: clipped(item.role, 120),
+          name: clipped(item.name, 240),
+          phone: clipped(item.phone, 100),
+          email: clipped(item.email, 240),
+          availability: clipped(item.availability, 240),
+        })),
     },
-    evidence: rows(root.evidence).slice(0, 300).map((item) => ({ ...item, fieldPath: evidencePath(item.fieldPath), sourceText: clipped(item.sourceText, 1200) || "Evidenza non testuale restituita dal modello" })),
+    evidence: rows(root.evidence)
+      .slice(0, 300)
+      .map((item) => ({
+        ...item,
+        fieldPath: evidencePath(item.fieldPath),
+        sourceText: clipped(item.sourceText, 1200) || "Evidenza non testuale restituita dal modello",
+      })),
   };
 }
 
@@ -202,7 +264,13 @@ function normalizedLocation(value: string) {
 }
 
 function filterRecoveredActivities(
-  activities: Array<z.infer<typeof recoveredActivitySchema> & { startsAt: string; endsAt: string; placeValidation: { needsValidation: boolean; reason: string } }>,
+  activities: Array<
+    z.infer<typeof recoveredActivitySchema> & {
+      startsAt: string;
+      endsAt: string;
+      placeValidation: { needsValidation: boolean; reason: string };
+    }
+  >,
   hotelNames: string[],
 ) {
   const hotels = hotelNames.map(normalizedLocation).filter(Boolean);
@@ -211,7 +279,15 @@ function filterRecoveredActivities(
     const place = normalizedLocation(activity.placeName);
     if (/^(fine|termine) (dei |del )?(servizi|viaggio|programma)$/.test(title)) return false;
     if (activity.type !== "visit") return true;
-    return !hotels.some((hotel) => hotel === title || hotel === place || title.includes(hotel) || place.includes(hotel) || hotel.includes(title) || hotel.includes(place));
+    return !hotels.some(
+      (hotel) =>
+        hotel === title ||
+        hotel === place ||
+        title.includes(hotel) ||
+        place.includes(hotel) ||
+        hotel.includes(title) ||
+        hotel.includes(place),
+    );
   });
 }
 
@@ -228,9 +304,10 @@ function flagAccommodationCityConflicts(draft: z.infer<typeof travelProgrammeDra
           ...day.accommodation,
           validation: {
             needsValidation: true,
-            reason: day.accommodation.validation.needsValidation && day.accommodation.validation.reason.trim()
-              ? day.accommodation.validation.reason
-              : `Hotel indicato a ${day.accommodation.city}, mentre la giornata è associata a ${day.city}`,
+            reason:
+              day.accommodation.validation.needsValidation && day.accommodation.validation.reason.trim()
+                ? day.accommodation.validation.reason
+                : `Hotel indicato a ${day.accommodation.city}, mentre la giornata è associata a ${day.city}`,
           },
         },
       };
@@ -245,32 +322,42 @@ async function recoverAccommodations(input: {
   maxOutputTokens: number;
   days: Array<{ dayNumber: number; date: string; city: string; country: string }>;
 }) {
-  const response = await input.client.send(new ConverseCommand({
-    modelId: input.model,
-    system: [{ text: "Sei un esperto di documenti turistici. Estrai soltanto le sistemazioni e usa sempre lo strumento disponibile." }],
-    messages: [{
-      role: "user",
-      content: [
-        ...bedrockDocumentBlocks(input.documentParts),
+  const response = await input.client.send(
+    new ConverseCommand({
+      modelId: input.model,
+      system: [
         {
-          text: `Riesamina in modo indipendente l'intero documento, soprattutto tabelle o allegati esterni al programma giornaliero, e associa tutte le sistemazioni alle giornate elencate qui sotto:\n${JSON.stringify(input.days)}\n\nNon inventare strutture. Usa date, numero di notti e località per l'associazione. Se tabella alberghi e programma giornaliero sono incoerenti, conserva i dati espliciti della tabella e imposta needsValidation=true spiegando il conflitto. Imposta needsValidation=true anche quando la grafia del nome sembra incompleta, non canonica o potenzialmente errata. Restituisci solo giornate con una sistemazione esplicitamente ricavabile.`,
+          text: "Sei un esperto di documenti turistici. Estrai soltanto le sistemazioni e usa sempre lo strumento disponibile.",
         },
       ],
-    }],
-    toolConfig: {
-      tools: [{
-        toolSpec: {
-          name: "emit_accommodations",
-          description: "Restituisce le sistemazioni ricavate dalle tabelle e dalle altre sezioni del documento",
-          inputSchema: { json: novaToolSchema(accommodationRecoverySchema) },
+      messages: [
+        {
+          role: "user",
+          content: [
+            ...bedrockDocumentBlocks(input.documentParts),
+            {
+              text: `Riesamina in modo indipendente l'intero documento, soprattutto tabelle o allegati esterni al programma giornaliero, e associa tutte le sistemazioni alle giornate elencate qui sotto:\n${JSON.stringify(input.days)}\n\nNon inventare strutture. Usa date, numero di notti e località per l'associazione. Se tabella alberghi e programma giornaliero sono incoerenti, conserva i dati espliciti della tabella e imposta needsValidation=true spiegando il conflitto. Imposta needsValidation=true anche quando la grafia del nome sembra incompleta, non canonica o potenzialmente errata. Restituisci solo giornate con una sistemazione esplicitamente ricavabile.`,
+            },
+          ],
         },
-      }],
-      toolChoice: { tool: { name: "emit_accommodations" } },
-    },
-    inferenceConfig: { maxTokens: Math.min(input.maxOutputTokens, 4_000), temperature: 0 },
-    additionalModelRequestFields: { inferenceConfig: { topK: 1 } },
-    requestMetadata: { application: "smf-travel", operation: "travel-import-accommodation-extraction" },
-  }));
+      ],
+      toolConfig: {
+        tools: [
+          {
+            toolSpec: {
+              name: "emit_accommodations",
+              description: "Restituisce le sistemazioni ricavate dalle tabelle e dalle altre sezioni del documento",
+              inputSchema: { json: novaToolSchema(accommodationRecoverySchema) },
+            },
+          },
+        ],
+        toolChoice: { tool: { name: "emit_accommodations" } },
+      },
+      inferenceConfig: { maxTokens: Math.min(input.maxOutputTokens, 4_000), temperature: 0 },
+      additionalModelRequestFields: { inferenceConfig: { topK: 1 } },
+      requestMetadata: { application: "smf-travel", operation: "travel-import-accommodation-extraction" },
+    }),
+  );
   return {
     result: accommodationRecoverySchema.parse(extractToolInput(response.output?.message?.content)),
     usage: response.usage ?? null,
@@ -285,22 +372,42 @@ async function recoverActivities(input: {
   method: "bedrock_native" | "textract";
   days: Array<{ dayNumber: number; date: string; city: string; country: string }>;
 }) {
-  const response = await input.client.send(new ConverseCommand({
-    modelId: input.model,
-    system: [{ text: "Sei un estrattore specializzato di attività turistiche. Copia soltanto ciò che è presente nel documento e usa lo strumento richiesto." }],
-    messages: [{ role: "user", content: [
-      ...bedrockDocumentBlocks(input.documentParts),
-      { text: `Riesamina indipendentemente tutte le giornate ${JSON.stringify(input.days)} ed estrai la sequenza completa delle attività esplicite. Crea una visita distinta per ogni monumento, museo, quartiere, piazza, sito o attrazione, anche quando più luoghi sono nella stessa frase. Includi trasferimenti, treni, voli, incontri e soltanto pasti dichiarati inclusi; non creare il pernottamento come attività hotel perché viene gestito separatamente. Non duplicare attività. startsAt ed endsAt devono essere vuoti. Per ogni visita usa lo stesso nome in title e placeName e indica città e Paese. includedInQuote deve essere true per i pasti inclusi e null per le altre attività. Ogni attività deve avere un'evidenza con fieldPath days[N].activities[M], citazione letterale e method=${input.method}.` },
-    ] }],
-    toolConfig: { tools: [{ toolSpec: {
-      name: "emit_daily_activities",
-      description: "Sequenza completa e non duplicata delle attività giornaliere",
-      inputSchema: { json: novaToolSchema(activityRecoverySchema) },
-    } }], toolChoice: { tool: { name: "emit_daily_activities" } } },
-    inferenceConfig: { maxTokens: Math.min(input.maxOutputTokens, 4_500), temperature: 0 },
-    additionalModelRequestFields: { inferenceConfig: { topK: 1 } },
-    requestMetadata: { application: "smf-travel", operation: "travel-import-activity-extraction" },
-  }));
+  const response = await input.client.send(
+    new ConverseCommand({
+      modelId: input.model,
+      system: [
+        {
+          text: "Sei un estrattore specializzato di attività turistiche. Copia soltanto ciò che è presente nel documento e usa lo strumento richiesto.",
+        },
+      ],
+      messages: [
+        {
+          role: "user",
+          content: [
+            ...bedrockDocumentBlocks(input.documentParts),
+            {
+              text: `Riesamina indipendentemente tutte le giornate ${JSON.stringify(input.days)} ed estrai la sequenza completa delle attività esplicite. Crea una visita distinta per ogni monumento, museo, quartiere, piazza, sito o attrazione, anche quando più luoghi sono nella stessa frase. Includi trasferimenti, treni, voli, incontri e soltanto pasti dichiarati inclusi; non creare il pernottamento come attività hotel perché viene gestito separatamente. Non duplicare attività. startsAt ed endsAt devono essere vuoti. Per ogni visita usa lo stesso nome in title e placeName e indica città e Paese. includedInQuote deve essere true per i pasti inclusi e null per le altre attività. Ogni attività deve avere un'evidenza con fieldPath days[N].activities[M], citazione letterale e method=${input.method}.`,
+            },
+          ],
+        },
+      ],
+      toolConfig: {
+        tools: [
+          {
+            toolSpec: {
+              name: "emit_daily_activities",
+              description: "Sequenza completa e non duplicata delle attività giornaliere",
+              inputSchema: { json: novaToolSchema(activityRecoverySchema) },
+            },
+          },
+        ],
+        toolChoice: { tool: { name: "emit_daily_activities" } },
+      },
+      inferenceConfig: { maxTokens: Math.min(input.maxOutputTokens, 4_500), temperature: 0 },
+      additionalModelRequestFields: { inferenceConfig: { topK: 1 } },
+      requestMetadata: { application: "smf-travel", operation: "travel-import-activity-extraction" },
+    }),
+  );
   const recovered = activityRecoverySchema.parse(extractToolInput(response.output?.message?.content));
   return {
     result: {
@@ -312,8 +419,13 @@ async function recoverActivities(input: {
           startsAt: "",
           endsAt: "",
           placeValidation: {
-            needsValidation: activity.type === "visit" && (!activity.placeName.trim() || !activity.placeCity.trim() || !activity.placeCountry.trim()),
-            reason: activity.type === "visit" ? "Associazione geografica estratta dal documento" : "Località operativa estratta dal documento",
+            needsValidation:
+              activity.type === "visit" &&
+              (!activity.placeName.trim() || !activity.placeCity.trim() || !activity.placeCountry.trim()),
+            reason:
+              activity.type === "visit"
+                ? "Associazione geografica estratta dal documento"
+                : "Località operativa estratta dal documento",
           },
         })),
       })),
@@ -324,10 +436,10 @@ async function recoverActivities(input: {
 
 function mergeCommercialDetails(
   primary: z.infer<typeof commercialDetailsSchema>,
-  specialized: z.infer<typeof commercialDetailsSchema>
+  specialized: z.infer<typeof commercialDetailsSchema>,
 ) {
-  const preferText = (value: string, fallback: string) => value.trim() ? value : fallback;
-  const preferNullable = <T,>(value: T | null, fallback: T | null) => value ?? fallback;
+  const preferText = (value: string, fallback: string) => (value.trim() ? value : fallback);
+  const preferNullable = <T>(value: T | null, fallback: T | null) => value ?? fallback;
   const quoteDate = preferText(specialized.quoteDate, primary.quoteDate);
   return commercialDetailsSchema.parse({
     agencyName: preferText(specialized.agencyName, primary.agencyName),
@@ -341,31 +453,121 @@ function mergeCommercialDetails(
     minors: preferNullable(specialized.minors, primary.minors),
     guideLanguage: preferText(specialized.guideLanguage, primary.guideLanguage),
     currency: preferText(specialized.currency, primary.currency),
-    pricingRows: (specialized.pricingRows.length ? specialized.pricingRows : primary.pricingRows)
-      .filter((row) => row.amount.trim().length > 0),
+    pricingRows: (specialized.pricingRows.length ? specialized.pricingRows : primary.pricingRows).filter(
+      (row) => row.amount.trim().length > 0,
+    ),
     includedServices: specialized.includedServices.length ? specialized.includedServices : primary.includedServices,
     conditions: specialized.conditions.length ? specialized.conditions : primary.conditions,
     contacts: specialized.contacts.length ? specialized.contacts : primary.contacts,
   });
 }
 
-async function extractCommercialDetails(input:{client:BedrockRuntimeClient;documentParts:BedrockDocumentPart[];model:string;maxOutputTokens:number;method:"bedrock_native"|"textract"}){
-  const response=await input.client.send(new ConverseCommand({modelId:input.model,
-    system:[{text:"Estrai esclusivamente dati economici e contrattuali dal preventivo. Non inventare valori e usa lo strumento richiesto."}],
-    messages:[{role:"user",content:[...bedrockDocumentBlocks(input.documentParts),{text:`Rileggi tutte le sezioni esterne all'itinerario ed estrai testata, cliente, partecipanti, prezzi, valuta, servizi inclusi o esclusi, condizioni e contatti. Conserva ogni riga esplicita. Per ogni valore non vuoto aggiungi evidence con fieldPath JSON, citazione letterale breve, pagina se nota, confidence e method=${input.method}. Non inserire una riga se non è sostenuta dal documento.`}]}],
-    toolConfig:{tools:[{toolSpec:{name:"emit_commercial_details",description:"Dati commerciali con evidenze",inputSchema:{json:novaToolSchema(commercialExtractionSchema)}}}],toolChoice:{tool:{name:"emit_commercial_details"}}},
-    inferenceConfig:{maxTokens:Math.min(input.maxOutputTokens,4500),temperature:0},additionalModelRequestFields:{inferenceConfig:{topK:1}},requestMetadata:{application:"smf-travel",operation:"travel-import-commercial-extraction"}}));
-  return {result:commercialExtractionSchema.parse(normalizeCommercialToolInput(extractToolInput(response.output?.message?.content))),usage:response.usage??null};
+async function extractCommercialDetails(input: {
+  client: BedrockRuntimeClient;
+  documentParts: BedrockDocumentPart[];
+  model: string;
+  maxOutputTokens: number;
+  method: "bedrock_native" | "textract";
+}) {
+  const response = await input.client.send(
+    new ConverseCommand({
+      modelId: input.model,
+      system: [
+        {
+          text: "Estrai esclusivamente dati economici e contrattuali dal preventivo. Non inventare valori e usa lo strumento richiesto.",
+        },
+      ],
+      messages: [
+        {
+          role: "user",
+          content: [
+            ...bedrockDocumentBlocks(input.documentParts),
+            {
+              text: `Rileggi tutte le sezioni esterne all'itinerario ed estrai testata, cliente, partecipanti, prezzi, valuta, servizi inclusi o esclusi, condizioni e contatti. Conserva ogni riga esplicita. Per ogni valore non vuoto aggiungi evidence con fieldPath JSON, citazione letterale breve, pagina se nota, confidence e method=${input.method}. Non inserire una riga se non è sostenuta dal documento.`,
+            },
+          ],
+        },
+      ],
+      toolConfig: {
+        tools: [
+          {
+            toolSpec: {
+              name: "emit_commercial_details",
+              description: "Dati commerciali con evidenze",
+              inputSchema: { json: novaToolSchema(commercialExtractionSchema) },
+            },
+          },
+        ],
+        toolChoice: { tool: { name: "emit_commercial_details" } },
+      },
+      inferenceConfig: { maxTokens: Math.min(input.maxOutputTokens, 4500), temperature: 0 },
+      additionalModelRequestFields: { inferenceConfig: { topK: 1 } },
+      requestMetadata: { application: "smf-travel", operation: "travel-import-commercial-extraction" },
+    }),
+  );
+  return {
+    result: commercialExtractionSchema.parse(
+      normalizeCommercialToolInput(extractToolInput(response.output?.message?.content)),
+    ),
+    usage: response.usage ?? null,
+  };
 }
 
-async function reconcileExtraction(input:{client:BedrockRuntimeClient;documentParts:BedrockDocumentPart[];model:string;maxOutputTokens:number;draft:z.infer<typeof travelProgrammeDraftSchema>}){
-  const compact={title:input.draft.title,destinationCountry:input.draft.destinationCountry,startDate:input.draft.startDate,endDate:input.draft.endDate,commercialDetails:input.draft.commercialDetails,days:input.draft.days};
-  const response=await input.client.send(new ConverseCommand({modelId:input.model,
-    system:[{text:"Sei un revisore di preventivi. Segnala incoerenze senza modificare i dati e usa lo strumento richiesto."}],
-    messages:[{role:"user",content:[...bedrockDocumentBlocks(input.documentParts),{text:`Confronta il documento con questa estrazione: ${JSON.stringify(compact)}. Segnala solo contraddizioni concrete, omissioni importanti e associazioni dubbie relative a date, durata, città, visite, trasporti, pasti, hotel, pernottamenti, prezzi, valuta, partecipanti e servizi. fieldPath deve puntare al JSON. severity=blocking solo se la pubblicazione rischia di produrre dati materialmente errati. sourceText deve citare il frammento rilevante, oppure essere vuoto.`}]}],
-    toolConfig:{tools:[{toolSpec:{name:"emit_reconciliation_issues",description:"Anomalie della conversione",inputSchema:{json:novaToolSchema(reconciliationSchema)}}}],toolChoice:{tool:{name:"emit_reconciliation_issues"}}},
-    inferenceConfig:{maxTokens:Math.min(input.maxOutputTokens,3000),temperature:0},additionalModelRequestFields:{inferenceConfig:{topK:1}},requestMetadata:{application:"smf-travel",operation:"travel-import-reconciliation"}}));
-  return {result:reconciliationSchema.parse(extractToolInput(response.output?.message?.content)),usage:response.usage??null};
+async function reconcileExtraction(input: {
+  client: BedrockRuntimeClient;
+  documentParts: BedrockDocumentPart[];
+  model: string;
+  maxOutputTokens: number;
+  draft: z.infer<typeof travelProgrammeDraftSchema>;
+}) {
+  const compact = {
+    title: input.draft.title,
+    destinationCountry: input.draft.destinationCountry,
+    startDate: input.draft.startDate,
+    endDate: input.draft.endDate,
+    commercialDetails: input.draft.commercialDetails,
+    days: input.draft.days,
+  };
+  const response = await input.client.send(
+    new ConverseCommand({
+      modelId: input.model,
+      system: [
+        {
+          text: "Sei un revisore di preventivi. Segnala incoerenze senza modificare i dati e usa lo strumento richiesto.",
+        },
+      ],
+      messages: [
+        {
+          role: "user",
+          content: [
+            ...bedrockDocumentBlocks(input.documentParts),
+            {
+              text: `Confronta il documento con questa estrazione: ${JSON.stringify(compact)}. Segnala solo contraddizioni concrete, omissioni importanti e associazioni dubbie relative a date, durata, città, visite, trasporti, pasti, hotel, pernottamenti, prezzi, valuta, partecipanti e servizi. fieldPath deve puntare al JSON. severity=blocking solo se la pubblicazione rischia di produrre dati materialmente errati. sourceText deve citare il frammento rilevante, oppure essere vuoto.`,
+            },
+          ],
+        },
+      ],
+      toolConfig: {
+        tools: [
+          {
+            toolSpec: {
+              name: "emit_reconciliation_issues",
+              description: "Anomalie della conversione",
+              inputSchema: { json: novaToolSchema(reconciliationSchema) },
+            },
+          },
+        ],
+        toolChoice: { tool: { name: "emit_reconciliation_issues" } },
+      },
+      inferenceConfig: { maxTokens: Math.min(input.maxOutputTokens, 3000), temperature: 0 },
+      additionalModelRequestFields: { inferenceConfig: { topK: 1 } },
+      requestMetadata: { application: "smf-travel", operation: "travel-import-reconciliation" },
+    }),
+  );
+  return {
+    result: reconciliationSchema.parse(extractToolInput(response.output?.message?.content)),
+    usage: response.usage ?? null,
+  };
 }
 
 export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Array, filename: string) {
@@ -374,39 +576,50 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
   const maxBytes = Number(process.env.AWS_BEDROCK_MAX_DOCUMENT_BYTES || 4_500_000);
   const configuredMaxOutputTokens = Number(process.env.AWS_BEDROCK_MAX_OUTPUT_TOKENS || 9_000);
   if (!Number.isFinite(maxBytes) || maxBytes <= 0) throw new Error("AWS_BEDROCK_MAX_DOCUMENT_BYTES non valida");
-  if (!Number.isInteger(configuredMaxOutputTokens) || configuredMaxOutputTokens <= 0 || configuredMaxOutputTokens > 64_000) {
+  if (
+    !Number.isInteger(configuredMaxOutputTokens) ||
+    configuredMaxOutputTokens <= 0 ||
+    configuredMaxOutputTokens > 64_000
+  ) {
     throw new Error("AWS_BEDROCK_MAX_OUTPUT_TOKENS deve essere un intero tra 1 e 64000");
   }
   // Nova Lite rifiuta richieste pari o superiori a 10.000 token. Il cap rende
   // sicure anche configurazioni storiche impostate a 12.000 senza bloccare l'import.
   const maxOutputTokens = Math.min(configuredMaxOutputTokens, 9_999);
-  const documentType = filename.toLowerCase().endsWith(".ocr.txt") ? { bedrockFormat:"txt" } : travelDocumentType(filename);
+  const documentType = filename.toLowerCase().endsWith(".ocr.txt")
+    ? { bedrockFormat: "txt" }
+    : travelDocumentType(filename);
   if (!documentType) throw new Error("Formato del programma non supportato");
   const documentParts = await prepareBedrockDocuments(documentBytes, filename, maxBytes);
   const sourceTextForValidation = await extractTravelDocumentTextForValidation(documentBytes, filename);
-  const evidenceMethod = filename.toLowerCase().endsWith(".ocr.txt") ? "textract" as const : "bedrock_native" as const;
+  const evidenceMethod = filename.toLowerCase().endsWith(".ocr.txt")
+    ? ("textract" as const)
+    : ("bedrock_native" as const);
 
   const schema = novaToolSchema(travelProgrammeDraftSchema);
   const documentName = safeDocumentName(filename);
   const client = getBedrockClient(region);
   const request: ConverseCommandInput = {
     modelId: model,
-    system: [{ text: "Sei un esperto di programmi turistici. Rispondi in italiano e usa sempre lo strumento disponibile." }],
-    messages: [{
-      role: "user",
-      content: [
-        ...bedrockDocumentBlocks(documentParts),
-        { text: extractionPrompt },
-      ],
-    }],
+    system: [
+      { text: "Sei un esperto di programmi turistici. Rispondi in italiano e usa sempre lo strumento disponibile." },
+    ],
+    messages: [
+      {
+        role: "user",
+        content: [...bedrockDocumentBlocks(documentParts), { text: extractionPrompt }],
+      },
+    ],
     toolConfig: {
-      tools: [{
-        toolSpec: {
-          name: "emit_travel_programme",
-          description: "Restituisce il programma di viaggio strutturato per la revisione dell'agenzia",
-          inputSchema: { json: schema },
+      tools: [
+        {
+          toolSpec: {
+            name: "emit_travel_programme",
+            description: "Restituisce il programma di viaggio strutturato per la revisione dell'agenzia",
+            inputSchema: { json: schema },
+          },
         },
-      }],
+      ],
       toolChoice: { tool: { name: "emit_travel_programme" } },
     },
     inferenceConfig: { maxTokens: maxOutputTokens, temperature: 0 },
@@ -420,16 +633,16 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
     try {
       const response = await client.send(new ConverseCommand(request));
       stopReason = response.stopReason;
-      const normalized = normalizeTravelProgramme(
-        extractToolInput(response.output?.message?.content),
-        { fallbackTitle: safeDocumentName(filename), sourceText: sourceTextForValidation }
-      );
+      const normalized = normalizeTravelProgramme(extractToolInput(response.output?.message?.content), {
+        fallbackTitle: safeDocumentName(filename),
+        sourceText: sourceTextForValidation,
+      });
       if (normalized.changes.length > 0) {
         console.warn("Bedrock travel programme normalized", { attempt, changes: normalized.changes });
       }
       let draft = travelProgrammeDraftSchema.parse(normalized.value);
-      const [commercial,recovery,activityRecovery] = await Promise.all([
-        extractCommercialDetails({client,documentParts,model,maxOutputTokens,method:evidenceMethod}),
+      const [commercial, recovery, activityRecovery] = await Promise.all([
+        extractCommercialDetails({ client, documentParts, model, maxOutputTokens, method: evidenceMethod }),
         recoverAccommodations({
           client,
           documentParts,
@@ -443,39 +656,61 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
           })),
         }),
         recoverActivities({
-          client, documentParts, model, maxOutputTokens, method: evidenceMethod,
-          days: draft.days.map((day) => ({ dayNumber: day.dayNumber, date: day.date, city: day.city, country: day.country })),
+          client,
+          documentParts,
+          model,
+          maxOutputTokens,
+          method: evidenceMethod,
+          days: draft.days.map((day) => ({
+            dayNumber: day.dayNumber,
+            date: day.date,
+            city: day.city,
+            country: day.country,
+          })),
         }),
       ]);
       const recoveredByDay = new Map(
-          recovery.result.accommodations
-            .filter((item) => item.name.trim() && item.dayNumber <= draft.days.length)
-            .map((item) => [item.dayNumber, item] as const)
-        );
+        recovery.result.accommodations
+          .filter((item) => item.name.trim() && item.dayNumber <= draft.days.length)
+          .map((item) => [item.dayNumber, item] as const),
+      );
       draft = travelProgrammeDraftSchema.parse({
-          ...draft,commercialDetails:mergeCommercialDetails(draft.commercialDetails,commercial.result.commercialDetails),
-          extractionEvidence:[...draft.extractionEvidence,...commercial.result.evidence,...recovery.result.evidence,...activityRecovery.result.evidence],
-          days: draft.days.map((day) => {
-            const recovered = recoveredByDay.get(day.dayNumber);
-            const recoveredActivities = activityRecovery.result.days.find((item) => item.dayNumber === day.dayNumber)?.activities;
-            const filteredActivities = recoveredActivities?.length
-              ? filterRecoveredActivities(recoveredActivities, [day.accommodation.name, recovered?.name ?? ""])
-              : [];
-            const withActivities = filteredActivities.length ? { ...day, activities: filteredActivities } : day;
-            if(!recovered)return withActivities;
-            const currentHasHotel=Boolean(day.accommodation.name.trim());
-            return currentHasHotel?withActivities:{ ...withActivities, accommodation: recovered };
-          }),
-        });
+        ...draft,
+        commercialDetails: mergeCommercialDetails(draft.commercialDetails, commercial.result.commercialDetails),
+        extractionEvidence: [
+          ...draft.extractionEvidence,
+          ...commercial.result.evidence,
+          ...recovery.result.evidence,
+          ...activityRecovery.result.evidence,
+        ],
+        days: draft.days.map((day) => {
+          const recovered = recoveredByDay.get(day.dayNumber);
+          const recoveredActivities = activityRecovery.result.days.find(
+            (item) => item.dayNumber === day.dayNumber,
+          )?.activities;
+          const filteredActivities = recoveredActivities?.length
+            ? filterRecoveredActivities(recoveredActivities, [day.accommodation.name, recovered?.name ?? ""])
+            : [];
+          const withActivities = filteredActivities.length ? { ...day, activities: filteredActivities } : day;
+          if (!recovered) return withActivities;
+          const currentHasHotel = Boolean(day.accommodation.name.trim());
+          return currentHasHotel ? withActivities : { ...withActivities, accommodation: recovered };
+        }),
+      });
       draft = flagAccommodationCityConflicts(draft);
-      const reconciliation=await reconcileExtraction({client,documentParts,model,maxOutputTokens,draft});
-      draft=mergeReconciliationIssues(draft,reconciliation.result.issues);
+      const reconciliation = await reconcileExtraction({ client, documentParts, model, maxOutputTokens, draft });
+      draft = mergeReconciliationIssues(draft, reconciliation.result.issues);
       return {
         draft,
         model,
         provider: `amazon-bedrock-native-${"extension" in documentType ? documentType.extension : "ocr-text"}`,
-        usage: { extraction: response.usage ?? null, commercialExtraction:commercial.usage,
-          accommodationRecovery:recovery.usage,activityRecovery:activityRecovery.usage,reconciliation:reconciliation.usage },
+        usage: {
+          extraction: response.usage ?? null,
+          commercialExtraction: commercial.usage,
+          accommodationRecovery: recovery.usage,
+          activityRecovery: activityRecovery.usage,
+          reconciliation: reconciliation.usage,
+        },
       };
     } catch (error) {
       lastError = error;

@@ -2,7 +2,23 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
-const [loginPage, loginRoute, gamification, challengesRoute, programmeRoute, repository, proxy, invitationRoute, activationPage, travelerExperience, referenceRepository, superadminCss, superadminPage, agencyCountryReviewPage, agencyCountryReviewMigration] = await Promise.all([
+const [
+  loginPage,
+  loginRoute,
+  gamification,
+  challengesRoute,
+  programmeRoute,
+  repository,
+  proxy,
+  invitationRoute,
+  activationPage,
+  travelerExperience,
+  referenceRepository,
+  superadminCss,
+  superadminPage,
+  agencyCountryReviewPage,
+  agencyCountryReviewMigration,
+] = await Promise.all([
   read("app/login/page.tsx"),
   read("app/api/auth/username/sign-in/route.ts"),
   read("lib/platform/v3-gamification.ts"),
@@ -56,17 +72,19 @@ assert.match(agencyCountryReviewPage, /Approva informazioni/);
 assert.match(agencyCountryReviewMigration, /membership\.role='owner'/);
 assert.match(agencyCountryReviewMigration, /actor\.platform_role<>'superadmin'/);
 
-console.log(JSON.stringify({
-  status: "passed",
-  usernameValidation: true,
-  quizServerGate: true,
-  quizLimit: 10,
-  disruptionWorkflow: true,
-  genericEditPushRemoved: true,
-  apiRoutesBypassPageRedirect: true,
-  magicLinkOnboarding: true,
-  travelerChangeAcknowledgement: true,
-  sensitiveContentProvenance: true,
-  superadminMobileTouchTargets: true,
-  agencyOwnerCountryReview: true,
-}));
+console.log(
+  JSON.stringify({
+    status: "passed",
+    usernameValidation: true,
+    quizServerGate: true,
+    quizLimit: 10,
+    disruptionWorkflow: true,
+    genericEditPushRemoved: true,
+    apiRoutesBypassPageRedirect: true,
+    magicLinkOnboarding: true,
+    travelerChangeAcknowledgement: true,
+    sensitiveContentProvenance: true,
+    superadminMobileTouchTargets: true,
+    agencyOwnerCountryReview: true,
+  }),
+);

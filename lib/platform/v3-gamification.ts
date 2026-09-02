@@ -10,7 +10,10 @@ function sha256(value: string) {
 }
 
 async function ensureScheduledQuizGrants(input: {
-  agencyId: string; departureId: string; partyId: string; userId: string;
+  agencyId: string;
+  departureId: string;
+  partyId: string;
+  userId: string;
 }) {
   const sql = getSql();
   const [, candidates] = await sql.transaction((txn) => [
@@ -64,9 +67,10 @@ export async function readV3ChallengeAnswerSpecs(input: {
 }) {
   if (input.itemIds.length === 0) return [] as Row[];
   const sql = getSql();
-  const [, rows] = await sql.transaction((txn) => [
-    txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
-    txn`
+  const [, rows] = await sql.transaction(
+    (txn) => [
+      txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
+      txn`
       SELECT item.id::text, activity.activity_type, item.answer_spec
       FROM content.activity_items item
       JOIN content.activities activity
@@ -81,7 +85,9 @@ export async function readV3ChallengeAnswerSpecs(input: {
         AND activity.status='approved'
         AND item.id=ANY(${input.itemIds}::uuid[])
     `,
-  ], { readOnly: true });
+    ],
+    { readOnly: true },
+  );
   return rows as Row[];
 }
 
@@ -94,9 +100,11 @@ export async function readV3Gamification(input: {
 }) {
   await ensureScheduledQuizGrants(input);
   const sql = getSql();
-  const [, challenges, photos, results, contests, competitionGroups, competitionResults, competitionContests] = await sql.transaction((txn) => [
-    txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
-    txn`
+  const [, challenges, photos, results, contests, competitionGroups, competitionResults, competitionContests] =
+    await sql.transaction(
+      (txn) => [
+        txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
+        txn`
       SELECT item.id::text, activity.template_day_id::text AS trip_day_id,
         day.day_number,
         CASE activity.activity_type
@@ -156,7 +164,7 @@ export async function readV3Gamification(input: {
         )
       ORDER BY COALESCE(day.day_number,0),activity.sort_order,item.ordinal
     `,
-    txn`
+        txn`
       SELECT memory.id::text, day.template_day_id::text AS trip_day_id,
         template_day.day_number, asset.id::text AS media_id, asset.original_name,
         asset.content_type, asset.size_bytes,
@@ -177,7 +185,7 @@ export async function readV3Gamification(input: {
         AND memory.party_id=${input.partyId} AND asset.status='ready'
       ORDER BY memory.created_at DESC
     `,
-    txn`
+        txn`
       SELECT answer.value->>'__resultId' AS id, attempt.traveler_id::text,
         profile.display_name, day.template_day_id::text AS trip_day_id,
         answer.key AS generated_content_id,
@@ -214,7 +222,7 @@ export async function readV3Gamification(input: {
         AND attempt.party_id=${input.partyId}
       ORDER BY COALESCE(answer.value->>'__submittedAt',attempt.submitted_at::text) DESC
     `,
-    txn`
+        txn`
       SELECT entry.id::text, entry.traveler_id::text, profile.display_name,
         item.id::text AS generated_content_id, entry.media_asset_id::text,
         entry.participant_slot,
@@ -245,7 +253,7 @@ export async function readV3Gamification(input: {
           AND entry.status IN('draft','evaluating')))
       ORDER BY entry.submitted_at DESC
     `,
-    txn`
+        txn`
       SELECT party.id::text,party.name,
         party.id=${input.partyId}::uuid AS is_current
       FROM travel.travel_parties party
@@ -265,7 +273,7 @@ export async function readV3Gamification(input: {
             AND current_participant.status<>'removed' AND current_participant.participates_in_trip_games)
       ORDER BY party.name
     `,
-    txn`
+        txn`
       SELECT answer.value->>'__resultId' AS id,attempt.party_id::text,party.name AS party_name,
         attempt.traveler_id::text,profile.display_name,
         answer.key AS generated_content_id,
@@ -296,7 +304,7 @@ export async function readV3Gamification(input: {
             AND current_profile.user_id=app.resolve_legacy_user_id(${input.userId},${input.agencyId})
             AND current_participant.status<>'removed' AND current_participant.participates_in_trip_games)
     `,
-    txn`
+        txn`
       SELECT entry.id::text,entry.party_id::text,party.name AS party_name,
         entry.traveler_id::text,profile.display_name,item.id::text AS generated_content_id,
         judgement.score,entry.is_winner
@@ -328,7 +336,9 @@ export async function readV3Gamification(input: {
             AND current_profile.user_id=app.resolve_legacy_user_id(${input.userId},${input.agencyId})
             AND current_participant.status<>'removed' AND current_participant.participates_in_trip_games)
     `,
-  ], { readOnly: true });
+      ],
+      { readOnly: true },
+    );
 
   const quizCountByDay = new Map<string, number>();
   const boundedChallenges = (challenges as Row[]).filter((challenge) => {

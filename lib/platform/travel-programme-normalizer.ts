@@ -1,12 +1,17 @@
 function recordValue(input: unknown): Record<string, unknown> | null {
   return input !== null && typeof input === "object" && !Array.isArray(input)
-    ? input as Record<string, unknown>
+    ? (input as Record<string, unknown>)
     : null;
 }
 
 function normalizedName(value: unknown) {
   return typeof value === "string"
-    ? value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("it").replace(/[^a-z0-9]+/g, " ").trim()
+    ? value
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLocaleLowerCase("it")
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim()
     : "";
 }
 
@@ -43,9 +48,7 @@ function activity(value: unknown, path: string, changes: string[]) {
   if (!item) return value;
   const placeName = text(item.placeName, 240, `${path}.placeName`, changes);
   const originalTitle = text(item.title, 240, `${path}.title`, changes);
-  const title = item.type === "visit" && typeof placeName === "string" && placeName.trim()
-    ? placeName
-    : originalTitle;
+  const title = item.type === "visit" && typeof placeName === "string" && placeName.trim() ? placeName : originalTitle;
   if (item.type === "visit" && title !== item.title) changes.push(`${path}.title: uniformato al sito`);
   if (item.startsAt) changes.push(`${path}.startsAt: orario rimosso`);
   if (item.endsAt) changes.push(`${path}.endsAt: orario rimosso`);
@@ -94,7 +97,12 @@ function day(value: unknown, index: number, changes: string[]) {
   if (!item) return value;
   const path = `days[${index}]`;
   const activities = list(item.activities, 40, `${path}.activities`, changes);
-  const additionalAccommodations = list(item.additionalAccommodations ?? [], 10, `${path}.additionalAccommodations`, changes);
+  const additionalAccommodations = list(
+    item.additionalAccommodations ?? [],
+    10,
+    `${path}.additionalAccommodations`,
+    changes,
+  );
   const normalizedActivities = Array.isArray(activities)
     ? activities.map((entry, activityIndex) => activity(entry, `${path}.activities[${activityIndex}]`, changes))
     : activities;
@@ -113,9 +121,8 @@ function day(value: unknown, index: number, changes: string[]) {
     }
   }
   const rankedCities = [...visitsByCity.values()].sort((left, right) => right.count - left.count);
-  const dominantCity = rankedCities[0] && (!rankedCities[1] || rankedCities[0].count > rankedCities[1].count)
-    ? rankedCities[0]
-    : null;
+  const dominantCity =
+    rankedCities[0] && (!rankedCities[1] || rankedCities[0].count > rankedCities[1].count) ? rankedCities[0] : null;
   const city = dominantCity?.city || text(item.city, 240, `${path}.city`, changes);
   const country = dominantCity?.country || text(item.country, 120, `${path}.country`, changes);
   if (dominantCity && normalizedName(item.city) !== normalizedName(dominantCity.city)) {
@@ -129,34 +136,52 @@ function day(value: unknown, index: number, changes: string[]) {
     country,
     countryValidation: validation(item.countryValidation, `${path}.countryValidation`, changes),
     city,
-    cityValidation: dominantCity ? {
-      needsValidation: false,
-      reason: `Città predominante della giornata: ${dominantCity.count} visite`,
-    } : validation(item.cityValidation, `${path}.cityValidation`, changes),
+    cityValidation: dominantCity
+      ? {
+          needsValidation: false,
+          reason: `Città predominante della giornata: ${dominantCity.count} visite`,
+        }
+      : validation(item.cityValidation, `${path}.cityValidation`, changes),
     description: text(item.description, 6000, `${path}.description`, changes),
     activities: normalizedActivities,
     accommodation: accommodation(item.accommodation, `${path}.accommodation`, changes),
     additionalAccommodations: Array.isArray(additionalAccommodations)
-      ? additionalAccommodations.map((entry, accommodationIndex) => accommodation(entry, `${path}.additionalAccommodations[${accommodationIndex}]`, changes))
+      ? additionalAccommodations.map((entry, accommodationIndex) =>
+          accommodation(entry, `${path}.additionalAccommodations[${accommodationIndex}]`, changes),
+        )
       : [],
   };
 }
 
 const italianMonths = new Map([
-  ["gennaio", 1], ["febbraio", 2], ["marzo", 3], ["aprile", 4], ["maggio", 5], ["giugno", 6],
-  ["luglio", 7], ["agosto", 8], ["settembre", 9], ["ottobre", 10], ["novembre", 11], ["dicembre", 12],
+  ["gennaio", 1],
+  ["febbraio", 2],
+  ["marzo", 3],
+  ["aprile", 4],
+  ["maggio", 5],
+  ["giugno", 6],
+  ["luglio", 7],
+  ["agosto", 8],
+  ["settembre", 9],
+  ["ottobre", 10],
+  ["novembre", 11],
+  ["dicembre", 12],
 ]);
 
 function isoDate(year: number, month: number, dayOfMonth: number) {
   const candidate = new Date(Date.UTC(year, month - 1, dayOfMonth));
-  return candidate.getUTCFullYear() === year && candidate.getUTCMonth() === month - 1 && candidate.getUTCDate() === dayOfMonth
+  return candidate.getUTCFullYear() === year &&
+    candidate.getUTCMonth() === month - 1 &&
+    candidate.getUTCDate() === dayOfMonth
     ? `${year}-${String(month).padStart(2, "0")}-${String(dayOfMonth).padStart(2, "0")}`
     : "";
 }
 
 function explicitDayDates(sourceText: string) {
   const dates: string[] = [];
-  const headings = sourceText.matchAll(/\bgiorno\s+\d+\s*[-–:]\s*(\d{1,2})(?:\s*[/.-]\s*(\d{1,2})\s*[/.-]\s*(\d{4})|\s+([a-zà]+)\s+(\d{4}))/giu);
+  const headings = sourceText.matchAll(
+    /\bgiorno\s+\d+\s*[-–:]\s*(\d{1,2})(?:\s*[/.-]\s*(\d{1,2})\s*[/.-]\s*(\d{4})|\s+([a-zà]+)\s+(\d{4}))/giu,
+  );
   for (const match of headings) {
     const dayOfMonth = Number(match[1]);
     const month = match[2] ? Number(match[2]) : italianMonths.get(normalizedName(match[4]));
@@ -185,20 +210,31 @@ export function normalizeTravelProgramme(input: unknown, options?: { fallbackTit
   const changes: string[] = [];
   const days = list(source.days, 90, "days", changes);
   const countries = Array.isArray(days)
-    ? [...new Set(days.map((entry) => recordValue(entry)?.country).filter((value): value is string => typeof value === "string" && value.trim().length > 0))]
+    ? [
+        ...new Set(
+          days
+            .map((entry) => recordValue(entry)?.country)
+            .filter((value): value is string => typeof value === "string" && value.trim().length > 0),
+        ),
+      ]
     : [];
-  const title = source.title === undefined && options?.fallbackTitle
-    ? (changes.push("title: campo assente→nome documento"), options.fallbackTitle)
-    : source.title;
-  const destinationCountry = source.destinationCountry === undefined
-    ? (changes.push("destinationCountry: campo assente→paesi delle giornate"), countries.join(", "))
-    : source.destinationCountry;
-  const usefulInformation = source.usefulInformation === undefined
-    ? (changes.push("usefulInformation: campo assente→array vuoto"), [])
-    : list(source.usefulInformation, 80, "usefulInformation", changes);
+  const title =
+    source.title === undefined && options?.fallbackTitle
+      ? (changes.push("title: campo assente→nome documento"), options.fallbackTitle)
+      : source.title;
+  const destinationCountry =
+    source.destinationCountry === undefined
+      ? (changes.push("destinationCountry: campo assente→paesi delle giornate"), countries.join(", "))
+      : source.destinationCountry;
+  const usefulInformation =
+    source.usefulInformation === undefined
+      ? (changes.push("usefulInformation: campo assente→array vuoto"), [])
+      : list(source.usefulInformation, 80, "usefulInformation", changes);
   const normalizedDays = Array.isArray(days) ? days.map((entry, index) => day(entry, index, changes)) : days;
   const sourceDates = options?.sourceText ? explicitDayDates(options.sourceText) : [];
-  const sourceAccommodationNames = options?.sourceText ? explicitDayAccommodationNames(options.sourceText) : new Map<number, string>();
+  const sourceAccommodationNames = options?.sourceText
+    ? explicitDayAccommodationNames(options.sourceText)
+    : new Map<number, string>();
   if (Array.isArray(normalizedDays) && sourceDates.length === normalizedDays.length) {
     normalizedDays.forEach((entry, index) => {
       const item = recordValue(entry);
@@ -212,19 +248,30 @@ export function normalizeTravelProgramme(input: unknown, options?: { fallbackTit
       const item = recordValue(entry);
       const hotel = recordValue(item?.accommodation);
       const sourceName = sourceAccommodationNames.get(index + 1);
-      if (!hotel || !sourceName || typeof hotel.name !== "string" || !hotel.name.trim() || hotel.name === sourceName) return;
+      if (!hotel || !sourceName || typeof hotel.name !== "string" || !hotel.name.trim() || hotel.name === sourceName)
+        return;
       changes.push(`days[${index}].accommodation.name: ${hotel.name}→${sourceName} (nome esplicito nella fonte)`);
       hotel.name = sourceName;
     });
   }
   const normalizedDayDates = Array.isArray(normalizedDays)
-    ? normalizedDays.map((entry) => recordValue(entry)?.date).filter((value): value is string => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value))
+    ? normalizedDays
+        .map((entry) => recordValue(entry)?.date)
+        .filter((value): value is string => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value))
     : [];
   const completeDaySequence = Array.isArray(normalizedDays) && normalizedDayDates.length === normalizedDays.length;
-  const sourceStartDate = sourceDates.length > 0 ? sourceDates[0]
-    : (!source.startDate && completeDaySequence ? normalizedDayDates[0] : source.startDate);
-  const sourceEndDate = sourceDates.length > 0 ? sourceDates.at(-1)
-    : (!source.endDate && completeDaySequence ? normalizedDayDates.at(-1) : source.endDate);
+  const sourceStartDate =
+    sourceDates.length > 0
+      ? sourceDates[0]
+      : !source.startDate && completeDaySequence
+        ? normalizedDayDates[0]
+        : source.startDate;
+  const sourceEndDate =
+    sourceDates.length > 0
+      ? sourceDates.at(-1)
+      : !source.endDate && completeDaySequence
+        ? normalizedDayDates.at(-1)
+        : source.endDate;
 
   return {
     value: {
@@ -239,14 +286,16 @@ export function normalizeTravelProgramme(input: unknown, options?: { fallbackTit
         ? usefulInformation.map((entry, index) => {
             const item = recordValue(entry);
             const path = `usefulInformation[${index}]`;
-            return item ? {
-              ...item,
-              category: text(item.category, 80, `${path}.category`, changes),
-              title: text(item.title, 240, `${path}.title`, changes),
-              body: text(item.body, 6000, `${path}.body`, changes),
-              phone: text(item.phone, 100, `${path}.phone`, changes),
-              url: text(item.url, 500, `${path}.url`, changes),
-            } : entry;
+            return item
+              ? {
+                  ...item,
+                  category: text(item.category, 80, `${path}.category`, changes),
+                  title: text(item.title, 240, `${path}.title`, changes),
+                  body: text(item.body, 6000, `${path}.body`, changes),
+                  phone: text(item.phone, 100, `${path}.phone`, changes),
+                  url: text(item.url, 500, `${path}.url`, changes),
+                }
+              : entry;
           })
         : usefulInformation,
     },

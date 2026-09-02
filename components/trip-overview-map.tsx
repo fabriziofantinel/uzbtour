@@ -28,7 +28,10 @@ function markerOffsets(days: TripMapDay[]) {
   }
   const offsets = new Map<number, [number, number]>();
   for (const group of groups.values()) {
-    if (group.length === 1) { offsets.set(group[0].index, [0, 0]); continue; }
+    if (group.length === 1) {
+      offsets.set(group[0].index, [0, 0]);
+      continue;
+    }
     group.forEach((day, index) => {
       const angle = -Math.PI / 2 + (Math.PI * 2 * index) / group.length;
       const radius = group.length > 5 ? 38 : 30;
@@ -59,14 +62,14 @@ export default function TripOverviewMap({ days, onSelect }: TripOverviewMapProps
         scrollWheelZoom: false,
         zoomControl: false,
         touchZoom: true,
-        doubleClickZoom: true
+        doubleClickZoom: true,
       });
       mapRef.current = map;
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 18,
         crossOrigin: true,
-        attribution: "© OpenStreetMap"
+        attribution: "© OpenStreetMap",
       }).addTo(map);
 
       const route = days.map((day) => [day.lat, day.lon] as [number, number]);
@@ -74,7 +77,7 @@ export default function TripOverviewMap({ days, onSelect }: TripOverviewMapProps
         color: "#0b6462",
         opacity: 0.85,
         weight: 4,
-        dashArray: "8 7"
+        dashArray: "8 7",
       }).addTo(map);
 
       const offsets = markerOffsets(days);
@@ -84,17 +87,17 @@ export default function TripOverviewMap({ days, onSelect }: TripOverviewMapProps
           className: "tripMapMarker",
           html: `<span style="--marker-color:${day.color}"><b>${day.n}</b></span>`,
           iconAnchor: [18 - offsetX, 36 - offsetY],
-          iconSize: [36, 36]
+          iconSize: [36, 36],
         });
         const marker = L.marker([day.lat, day.lon], {
           icon,
           keyboard: true,
-          title: `Giorno ${day.n}: ${day.city}`
+          title: `Giorno ${day.n}: ${day.city}`,
         }).addTo(map);
-        marker.bindTooltip(
-          `<strong>Giorno ${day.n} · ${day.date}</strong><br>${day.city}`,
-          { direction: "top", offset: [0, -17] }
-        );
+        marker.bindTooltip(`<strong>Giorno ${day.n} · ${day.date}</strong><br>${day.city}`, {
+          direction: "top",
+          offset: [0, -17],
+        });
         marker.on("click", () => onSelectRef.current(day.index));
       });
 
@@ -128,16 +131,17 @@ export default function TripOverviewMap({ days, onSelect }: TripOverviewMapProps
 
   return (
     <div className="tripMapShell">
-      <div className="tripMapCanvas" ref={containerRef} role="region" aria-label="Mappa interattiva dell’itinerario"/>
+      <div className="tripMapCanvas" ref={containerRef} role="region" aria-label="Mappa interattiva dell’itinerario" />
       <div className="tripMapZoom" role="group" aria-label="Controlli zoom della mappa">
         <button type="button" onClick={() => mapRef.current?.zoomIn()} aria-label="Ingrandisci la mappa">
-          <Plus size={21}/>
+          <Plus size={21} />
         </button>
         <button type="button" onClick={() => mapRef.current?.zoomOut()} aria-label="Riduci la mappa">
-          <Minus size={21}/>
+          <Minus size={21} />
         </button>
         <button type="button" className="routeReset" onClick={showWholeRoute} aria-label="Mostra tutta la rotta">
-          <Scan size={17}/><span>Tutta la rotta</span>
+          <Scan size={17} />
+          <span>Tutta la rotta</span>
         </button>
       </div>
     </div>

@@ -16,12 +16,25 @@ const usefulInfo = countryUsefulInfoCategories.map((category) => ({
   category,
   title: category,
   body: `Informazione verificata per ${category}.`,
-  phone: category === "Numeri di emergenza" ? "112, 110, 113" : category === "Ambasciata italiana" ? "+47 23 08 49 00" : "",
-  url: category === "Ambasciata italiana" ? embassyUrl
-    : category === "Numeri di emergenza" ? authorityUrl
-      : category === "Documenti e sicurezza" || category === "Salute e assistenza" ? generalUrl : "",
+  phone:
+    category === "Numeri di emergenza" ? "112, 110, 113" : category === "Ambasciata italiana" ? "+47 23 08 49 00" : "",
+  url:
+    category === "Ambasciata italiana"
+      ? embassyUrl
+      : category === "Numeri di emergenza"
+        ? authorityUrl
+        : category === "Documenti e sicurezza" || category === "Salute e assistenza"
+          ? generalUrl
+          : "",
 }));
-const profile = { countryName: "Norvegia", iso2: "NO", timeZones: ["Europe/Oslo"], currencyCode: "NOK", usefulInfo, sources };
+const profile = {
+  countryName: "Norvegia",
+  iso2: "NO",
+  timeZones: ["Europe/Oslo"],
+  currencyCode: "NOK",
+  usefulInfo,
+  sources,
+};
 const cited = sources.map((source) => source.url);
 const dossier = "Numeri 112 110 113. Centralino Ambasciata +47 23 08 49 00. Valuta NOK.";
 const valid = validateVerifiedCountryProfile(profile, cited, dossier);
@@ -29,5 +42,6 @@ if (valid.errors.length) throw new Error(`Profilo valido rifiutato: ${valid.erro
 const fabricated = structuredClone(profile);
 fabricated.usefulInfo.find((entry) => entry.category === "Ambasciata italiana")!.phone = "+47 99 99 99 99";
 const invalid = validateVerifiedCountryProfile(fabricated, cited, dossier);
-if (!invalid.errors.some((error) => error.includes("Recapito non riscontrato"))) throw new Error("Recapito inventato non rilevato");
+if (!invalid.errors.some((error) => error.includes("Recapito non riscontrato")))
+  throw new Error("Recapito inventato non rilevato");
 console.log(JSON.stringify({ status: "passed", verifiedAccepted: true, fabricatedPhoneRejected: true }));

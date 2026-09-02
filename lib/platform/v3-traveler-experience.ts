@@ -13,9 +13,16 @@ function digest(rows: unknown[]) {
 }
 
 function ordered(rows: Row[], keys: string[]) {
-  return rows.map((row) => Object.fromEntries(keys.map((key) => [key,
-    row[key] == null ? null : typeof row[key] === "number" ? Number(row[key]) : String(row[key]),
-  ]))).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
+  return rows
+    .map((row) =>
+      Object.fromEntries(
+        keys.map((key) => [
+          key,
+          row[key] == null ? null : typeof row[key] === "number" ? Number(row[key]) : String(row[key]),
+        ]),
+      ),
+    )
+    .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
 }
 
 function report(domain: string, scope: Record<string, string>, legacy: unknown[], target: unknown[]) {
@@ -23,7 +30,11 @@ function report(domain: string, scope: Record<string, string>, legacy: unknown[]
   const targetDigest = digest(target);
   if (legacyDigest !== targetDigest) {
     console.error(`[v3-shadow] ${domain} mismatch`, {
-      ...scope, legacyCount: legacy.length, targetCount: target.length, legacyDigest, targetDigest,
+      ...scope,
+      legacyCount: legacy.length,
+      targetCount: target.length,
+      legacyDigest,
+      targetDigest,
     });
   }
 }
@@ -39,9 +50,10 @@ export async function compareV3TravelerExperienceShadow(input: {
   if (!v3TravelerExperienceShadowReadEnabled()) return;
   const sql = getSql();
   try {
-    const [, photos, results, contests] = await sql.transaction((txn) => [
-      txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
-      txn`
+    const [, photos, results, contests] = await sql.transaction(
+      (txn) => [
+        txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
+        txn`
         SELECT memory.id::text, day.template_day_id::text AS trip_day_id,
           memory.media_asset_id::text AS media_id
         FROM journey.memories memory
@@ -51,7 +63,7 @@ export async function compareV3TravelerExperienceShadow(input: {
           AND memory.party_id=${input.partyId}
         ORDER BY memory.id
       `,
-      txn`
+        txn`
         SELECT answer.key AS generated_content_id, attempt.traveler_id::text,
           day.template_day_id::text AS trip_day_id, activity.activity_type
         FROM journey.activity_attempts attempt
@@ -66,7 +78,7 @@ export async function compareV3TravelerExperienceShadow(input: {
           AND attempt.party_id=${input.partyId}
         ORDER BY answer.key
       `,
-      txn`
+        txn`
         SELECT entry.id::text, entry.traveler_id::text, item.id::text AS generated_content_id,
           entry.media_asset_id::text, entry.participant_slot, entry.status, entry.is_winner
         FROM journey.photo_contest_entries entry
@@ -76,21 +88,50 @@ export async function compareV3TravelerExperienceShadow(input: {
           AND entry.party_id=${input.partyId}
         ORDER BY entry.id
       `,
-    ], { readOnly: true });
+      ],
+      { readOnly: true },
+    );
 
     const scope = { agencyId: input.agencyId, departureId: input.departureId, partyId: input.partyId };
-    report("media memories", scope,
+    report(
+      "media memories",
+      scope,
       ordered(input.legacyPhotos, ["id", "trip_day_id", "media_id"]),
-      ordered(photos as Row[], ["id", "trip_day_id", "media_id"]));
-    report("gamification", scope,
+      ordered(photos as Row[], ["id", "trip_day_id", "media_id"]),
+    );
+    report(
+      "gamification",
+      scope,
       ordered(input.legacyResults, ["generated_content_id", "traveler_id", "trip_day_id", "activity_type"]),
-      ordered(results as Row[], ["generated_content_id", "traveler_id", "trip_day_id", "activity_type"]));
-    report("photo contests", scope,
-      ordered(input.legacyContestEntries, ["id", "traveler_id", "generated_content_id", "media_asset_id", "participant_slot", "status", "is_winner"]),
-      ordered(contests as Row[], ["id", "traveler_id", "generated_content_id", "media_asset_id", "participant_slot", "status", "is_winner"]));
+      ordered(results as Row[], ["generated_content_id", "traveler_id", "trip_day_id", "activity_type"]),
+    );
+    report(
+      "photo contests",
+      scope,
+      ordered(input.legacyContestEntries, [
+        "id",
+        "traveler_id",
+        "generated_content_id",
+        "media_asset_id",
+        "participant_slot",
+        "status",
+        "is_winner",
+      ]),
+      ordered(contests as Row[], [
+        "id",
+        "traveler_id",
+        "generated_content_id",
+        "media_asset_id",
+        "participant_slot",
+        "status",
+        "is_winner",
+      ]),
+    );
   } catch (error) {
     console.error("[v3-shadow] traveler experience comparison failed", {
-      agencyId: input.agencyId, departureId: input.departureId, partyId: input.partyId,
+      agencyId: input.agencyId,
+      departureId: input.departureId,
+      partyId: input.partyId,
       error: error instanceof Error ? error.message : "unknown error",
     });
   }

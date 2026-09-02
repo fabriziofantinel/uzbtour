@@ -21,17 +21,19 @@ export type ImportSourceRow = {
   status: string;
 };
 
-export async function markImportOcrPending(importId:string,textractJobId:string){
-  const sql=getSql();const rows=await sql`SELECT app.mark_import_ocr_pending_v3(${importId},${textractJobId}) AS ok`;
-  if(rows[0]?.ok!==true)throw new PlatformRequestError("Sospensione OCR non riuscita");
+export async function markImportOcrPending(importId: string, textractJobId: string) {
+  const sql = getSql();
+  const rows = await sql`SELECT app.mark_import_ocr_pending_v3(${importId},${textractJobId}) AS ok`;
+  if (rows[0]?.ok !== true) throw new PlatformRequestError("Sospensione OCR non riuscita");
 }
 
-export async function resumeImportOcr(importId:string,textractJobId:string){
-  const sql=getSql();const rows=await sql`
+export async function resumeImportOcr(importId: string, textractJobId: string) {
+  const sql = getSql();
+  const rows = await sql`
     SELECT id::text,agency_id::text,template_id::text,document_id::text,provider,bucket,
       object_key,original_name,content_type,size_bytes,uploaded_by_user_id::text,status
     FROM app.resume_import_ocr_v3(${importId},${textractJobId})`;
-  if(!rows[0])throw new PlatformRequestError("Ripresa OCR non riuscita");
+  if (!rows[0]) throw new PlatformRequestError("Ripresa OCR non riuscita");
   return rows[0] as ImportSourceRow;
 }
 
@@ -46,17 +48,21 @@ export async function getImportAgency(importId: string) {
 
 export async function getImportAgencyPrimaryColor(actorId: string, agencyId: string) {
   const sql = getSql();
-  const rows = await sql`SELECT branding FROM app.read_agency_branding_v3(${actorId}) WHERE agency_id=${agencyId} LIMIT 1`;
-  const branding = rows[0]?.branding && typeof rows[0].branding === "object" && !Array.isArray(rows[0].branding)
-    ? rows[0].branding as Record<string, unknown> : {};
+  const rows =
+    await sql`SELECT branding FROM app.read_agency_branding_v3(${actorId}) WHERE agency_id=${agencyId} LIMIT 1`;
+  const branding =
+    rows[0]?.branding && typeof rows[0].branding === "object" && !Array.isArray(rows[0].branding)
+      ? (rows[0].branding as Record<string, unknown>)
+      : {};
   return String(branding.primaryColor || "#247A6B");
 }
 
 export async function getImportQueueRecord(importId: string, agencyId: string) {
   const sql = getSql();
-  const [, rows] = await sql.transaction((txn) => [
-    txn`SELECT set_config('app.agency_id', ${agencyId}, true)`,
-    txn`
+  const [, rows] = await sql.transaction(
+    (txn) => [
+      txn`SELECT set_config('app.agency_id', ${agencyId}, true)`,
+      txn`
       SELECT pj.job_type, pj.payload, pj.idempotency_key
       FROM ops.platform_jobs pj
       JOIN ops.import_jobs ij
@@ -67,7 +73,9 @@ export async function getImportQueueRecord(importId: string, agencyId: string) {
       ORDER BY pj.created_at DESC
       LIMIT 1
     `,
-  ], { readOnly: true });
+    ],
+    { readOnly: true },
+  );
   if (!rows[0]) throw new PlatformRequestError("Lavoro di importazione non trovato");
   return {
     type: String(rows[0].job_type),
@@ -76,10 +84,7 @@ export async function getImportQueueRecord(importId: string, agencyId: string) {
   };
 }
 
-export async function claimImportJob(
-  importId: string,
-  expected?: { jobId?: string; agencyId?: string }
-) {
+export async function claimImportJob(importId: string, expected?: { jobId?: string; agencyId?: string }) {
   const sql = getSql();
   const rows = await sql`
     SELECT id::text,agency_id::text,template_id::text,document_id::text,provider,
@@ -120,10 +125,13 @@ export async function saveNormalizedImportDocument(input: {
 
 export async function getPlatformJobStatus(jobId: string, agencyId: string) {
   const sql = getSql();
-  const [, rows] = await sql.transaction((txn) => [
-    txn`SELECT set_config('app.agency_id', ${agencyId}, true)`,
-    txn`SELECT status FROM ops.platform_jobs WHERE id = ${jobId} AND agency_id = ${agencyId} LIMIT 1`,
-  ], { readOnly: true });
+  const [, rows] = await sql.transaction(
+    (txn) => [
+      txn`SELECT set_config('app.agency_id', ${agencyId}, true)`,
+      txn`SELECT status FROM ops.platform_jobs WHERE id = ${jobId} AND agency_id = ${agencyId} LIMIT 1`,
+    ],
+    { readOnly: true },
+  );
   return rows[0]?.status ? String(rows[0].status) : null;
 }
 
@@ -150,15 +158,13 @@ export async function failImport(importId: string, error: unknown) {
   await sql`SELECT app.fail_import_v3(${importId},${message})`;
 }
 
-export async function getImportForReview(
-  importId: string,
-  agencyId: string
-): Promise<PlatformImportReview> {
+export async function getImportForReview(importId: string, agencyId: string): Promise<PlatformImportReview> {
   await assertNormalizedImportSchema();
   const sql = getSql();
-  const [, rows] = await sql.transaction((txn) => [
-    txn`SELECT set_config('app.agency_id', ${agencyId}, true)`,
-    txn`
+  const [, rows] = await sql.transaction(
+    (txn) => [
+      txn`SELECT set_config('app.agency_id', ${agencyId}, true)`,
+      txn`
     SELECT
       ij.id::text, ij.agency_id::text, ij.template_id::text, ij.status,
       ij.result, ij.error_message, ij.result->>'legacyAiProvider' AS ai_provider,
@@ -178,7 +184,9 @@ export async function getImportForReview(
     WHERE ij.id = ${importId} AND ij.agency_id = ${agencyId}
     LIMIT 1
     `,
-  ], { readOnly: true });
+    ],
+    { readOnly: true },
+  );
   if (!rows[0]) throw new PlatformRequestError("Importazione non trovata");
   const row = rows[0];
   return {
@@ -199,9 +207,10 @@ export async function getImportForReview(
 export async function getNormalizedImportDocument(importId: string, agencyId: string) {
   await assertNormalizedImportSchema();
   const sql = getSql();
-  const [, rows] = await sql.transaction((txn) => [
-    txn`SELECT set_config('app.agency_id', ${agencyId}, true)`,
-    txn`
+  const [, rows] = await sql.transaction(
+    (txn) => [
+      txn`SELECT set_config('app.agency_id', ${agencyId}, true)`,
+      txn`
     SELECT ma.provider, ma.bucket, ma.object_key, ma.original_name, ma.content_type
     FROM ops.import_jobs ij
     JOIN ops.travel_documents td
@@ -211,11 +220,15 @@ export async function getNormalizedImportDocument(importId: string, agencyId: st
       AND td.status = 'ready' AND ma.status = 'ready'
     LIMIT 1
     `,
-  ], { readOnly: true });
+    ],
+    { readOnly: true },
+  );
   if (!rows[0]) throw new PlatformRequestError("Preventivo normalizzato non disponibile");
   return {
-    provider: String(rows[0].provider), bucket: String(rows[0].bucket),
-    objectKey: String(rows[0].object_key), originalName: String(rows[0].original_name),
+    provider: String(rows[0].provider),
+    bucket: String(rows[0].bucket),
+    objectKey: String(rows[0].object_key),
+    originalName: String(rows[0].original_name),
     contentType: String(rows[0].content_type),
   };
 }
@@ -223,9 +236,10 @@ export async function getNormalizedImportDocument(importId: string, agencyId: st
 export async function getOriginalImportDocument(importId: string, agencyId: string) {
   await assertNormalizedImportSchema();
   const sql = getSql();
-  const [, rows] = await sql.transaction((txn) => [
-    txn`SELECT set_config('app.agency_id', ${agencyId}, true)`,
-    txn`
+  const [, rows] = await sql.transaction(
+    (txn) => [
+      txn`SELECT set_config('app.agency_id', ${agencyId}, true)`,
+      txn`
     SELECT ma.provider, ma.bucket, ma.object_key, ma.original_name, ma.content_type
     FROM ops.import_jobs ij
     JOIN ops.travel_documents td
@@ -235,11 +249,15 @@ export async function getOriginalImportDocument(importId: string, agencyId: stri
       AND td.status = 'ready' AND ma.status = 'ready'
     LIMIT 1
     `,
-  ], { readOnly: true });
+    ],
+    { readOnly: true },
+  );
   if (!rows[0]) throw new PlatformRequestError("Preventivo originale non disponibile");
   return {
-    provider: String(rows[0].provider), bucket: String(rows[0].bucket),
-    objectKey: String(rows[0].object_key), originalName: String(rows[0].original_name),
+    provider: String(rows[0].provider),
+    bucket: String(rows[0].bucket),
+    objectKey: String(rows[0].object_key),
+    originalName: String(rows[0].original_name),
     contentType: String(rows[0].content_type),
   };
 }
@@ -247,9 +265,10 @@ export async function getOriginalImportDocument(importId: string, agencyId: stri
 export async function getImportDocumentPublicationContext(importId: string, agencyId: string) {
   await assertNormalizedImportSchema();
   const sql = getSql();
-  const [, rows] = await sql.transaction((txn) => [
-    txn`SELECT set_config('app.agency_id', ${agencyId}, true)`,
-    txn`
+  const [, rows] = await sql.transaction(
+    (txn) => [
+      txn`SELECT set_config('app.agency_id', ${agencyId}, true)`,
+      txn`
     SELECT ij.template_id::text, source.original_name AS source_name,
       source.uploaded_by_user_id::text
     FROM ops.import_jobs ij
@@ -260,7 +279,9 @@ export async function getImportDocumentPublicationContext(importId: string, agen
     WHERE ij.id = ${importId} AND ij.agency_id = ${agencyId}
     LIMIT 1
     `,
-  ], { readOnly: true });
+    ],
+    { readOnly: true },
+  );
   if (!rows[0]) throw new PlatformRequestError("Documenti del preventivo non disponibili");
   return {
     templateId: String(rows[0].template_id),
@@ -272,9 +293,10 @@ export async function getImportDocumentPublicationContext(importId: string, agen
 export async function getImportDeletionTarget(importId: string, agencyId: string) {
   await assertNormalizedImportSchema();
   const sql = getSql();
-  const [, rows] = await sql.transaction((txn) => [
-    txn`SELECT set_config('app.agency_id', ${agencyId}, true)`,
-    txn`
+  const [, rows] = await sql.transaction(
+    (txn) => [
+      txn`SELECT set_config('app.agency_id', ${agencyId}, true)`,
+      txn`
     SELECT ij.status, documents.document_id::text, documents.media_asset_id::text,
       documents.provider, documents.bucket, documents.object_key
     FROM ops.import_jobs ij
@@ -290,12 +312,17 @@ export async function getImportDeletionTarget(importId: string, agencyId: string
       AND ij.status IN ('ready_for_review', 'failed')
       AND documents.provider = 'r2'
     `,
-  ], { readOnly: true });
+    ],
+    { readOnly: true },
+  );
   if (!rows[0]) throw new PlatformRequestError("La bozza non può essere eliminata");
   return rows.map((row) => ({
-    status: String(row.status), documentId: String(row.document_id),
-    mediaAssetId: String(row.media_asset_id), provider: "r2" as const,
-    bucket: String(row.bucket), objectKey: String(row.object_key),
+    status: String(row.status),
+    documentId: String(row.document_id),
+    mediaAssetId: String(row.media_asset_id),
+    provider: "r2" as const,
+    bucket: String(row.bucket),
+    objectKey: String(row.object_key),
   }));
 }
 
@@ -338,13 +365,14 @@ export async function publishImport(input: {
   const validationIssues = catalogValidationIssues(draft);
   if (validationIssues.length > 0) {
     throw new PlatformRequestError(
-      `Completa la validazione delle anagrafiche: ${validationIssues.slice(0, 5).join("; ")}${validationIssues.length > 5 ? `; e altre ${validationIssues.length - 5}` : ""}`
+      `Completa la validazione delle anagrafiche: ${validationIssues.slice(0, 5).join("; ")}${validationIssues.length > 5 ? `; e altre ${validationIssues.length - 5}` : ""}`,
     );
   }
   const sql = getSql();
-  const [, versionRows] = await sql.transaction((txn) => [
-    txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
-    txn`
+  const [, versionRows] = await sql.transaction(
+    (txn) => [
+      txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
+      txn`
       SELECT ij.template_id::text
       FROM ops.import_jobs ij
       JOIN travel.trip_template_versions tv
@@ -354,23 +382,34 @@ export async function publishImport(input: {
       ORDER BY tv.version_number DESC
       LIMIT 1
     `,
-  ], { readOnly: true });
+    ],
+    { readOnly: true },
+  );
   if (!versionRows[0]) throw new PlatformRequestError("Importazione non pubblicabile");
   const templateId = String(versionRows[0].template_id);
   const startDate = validDate(draft.startDate) ?? draft.days.map((day) => validDate(day.date)).find(Boolean) ?? null;
-  const endDate = validDate(draft.endDate) ?? draft.days.map((day) => validDate(day.date)).filter(Boolean).at(-1) ?? null;
+  const endDate =
+    validDate(draft.endDate) ??
+    draft.days
+      .map((day) => validDate(day.date))
+      .filter(Boolean)
+      .at(-1) ??
+    null;
   if (!startDate || !endDate || endDate < startDate) {
     throw new PlatformRequestError("Controlla data iniziale e finale del viaggio prima di pubblicare");
   }
   const catalog = await prepareTravelCatalog(draft, { actorId: input.actorId, agencyId: input.agencyId });
-  const [, existingDepartures] = await sql.transaction((txn) => [
-    txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
-    txn`
+  const [, existingDepartures] = await sql.transaction(
+    (txn) => [
+      txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
+      txn`
       SELECT id::text, code FROM travel.departures
       WHERE agency_id = ${input.agencyId} AND template_id = ${templateId}
       ORDER BY created_at LIMIT 1
     `,
-  ], { readOnly: true });
+    ],
+    { readOnly: true },
+  );
   const departureId = existingDepartures[0]?.id ? String(existingDepartures[0].id) : crypto.randomUUID();
   const departureCode = existingDepartures[0]?.code
     ? String(existingDepartures[0].code)
@@ -390,5 +429,9 @@ export async function publishImport(input: {
     )
   `;
   if (!published[0]) throw new PlatformRequestError("Pubblicazione del programma non riuscita");
-  return { templateId: String(published[0].template_id), departureId: String(published[0].departure_id), referenceTargets: catalog.targets };
+  return {
+    templateId: String(published[0].template_id),
+    departureId: String(published[0].departure_id),
+    referenceTargets: catalog.targets,
+  };
 }

@@ -11,21 +11,38 @@ try {
   await client.connect();
   const role = "smf_app";
   const requiredTables = [
-    "travel.template_days", "travel.template_day_cities", "travel.template_day_sites",
-    "travel.template_day_hotels", "travel.departures", "travel.departure_days",
-    "travel.departure_itinerary_items", "travel.traveler_profiles",
-    "travel.party_memberships", "travel.template_useful_information",
-    "travel.template_phrasebook_entries", "ref.countries", "ref.cities",
-    "ref.visit_sites", "ref.hotels", "ops.travel_documents", "ops.media_assets",
+    "travel.template_days",
+    "travel.template_day_cities",
+    "travel.template_day_sites",
+    "travel.template_day_hotels",
+    "travel.departures",
+    "travel.departure_days",
+    "travel.departure_itinerary_items",
+    "travel.traveler_profiles",
+    "travel.party_memberships",
+    "travel.template_useful_information",
+    "travel.template_phrasebook_entries",
+    "ref.countries",
+    "ref.cities",
+    "ref.visit_sites",
+    "ref.hotels",
+    "ops.travel_documents",
+    "ops.media_assets",
   ];
-  const privileges = (await client.query(`
+  const privileges = (
+    await client.query(
+      `
     SELECT table_name, has_table_privilege('smf_app', table_name, 'SELECT') AS allowed
     FROM unnest($1::text[]) AS table_name
-  `, [requiredTables])).rows;
+  `,
+      [requiredTables],
+    )
+  ).rows;
   const missing = privileges.filter((row) => row.allowed !== true).map((row) => row.table_name);
   if (missing.length) throw new Error(`Ruolo runtime ${role} senza SELECT su: ${missing.join(", ")}`);
 
-  const scope = (await client.query(`
+  const scope = (
+    await client.query(`
     SELECT party.agency_id, party.departure_id, party.id AS party_id,
       departure.template_version_id
     FROM public.travel_parties party
@@ -37,14 +54,17 @@ try {
       WHERE day.agency_id=party.agency_id
         AND day.template_version_id=departure.template_version_id
     ) DESC,party.created_at,party.id LIMIT 1
-  `)).rows[0];
+  `)
+  ).rows[0];
   if (!scope) throw new Error("Nessuna famiglia disponibile per lo smoke test");
 
   await client.query("BEGIN");
   open = true;
   await client.query("SET LOCAL statement_timeout='30s'");
   await client.query("SELECT set_config('app.agency_id',$1,true)", [scope.agency_id]);
-  const reconciliations = (await client.query(`
+  const reconciliations = (
+    await client.query(
+      `
     SELECT domain,legacy_count,target_count FROM (
       SELECT 'days' domain,
         (SELECT count(*) FROM public.trip_days WHERE agency_id=$1 AND template_version_id=$4) legacy_count,
@@ -81,11 +101,16 @@ try {
           WHERE d.agency_id=$1 AND d.departure_id=$2 AND d.departure_item_id IS NOT NULL
             AND d.status='ready' AND a.status='ready')
     ) counts ORDER BY domain
-  `, [scope.agency_id, scope.departure_id, scope.party_id, scope.template_version_id])).rows;
+  `,
+      [scope.agency_id, scope.departure_id, scope.party_id, scope.template_version_id],
+    )
+  ).rows;
   const mismatches = reconciliations.filter((row) => Number(row.legacy_count) !== Number(row.target_count));
   if (mismatches.length) throw new Error(`Riconciliazione catalogo fallita: ${JSON.stringify(mismatches)}`);
 
-  const shape = (await client.query(`
+  const shape = (
+    await client.query(
+      `
     SELECT
       (SELECT count(*) FROM (
         SELECT COALESCE(item.source_template_item_id,item.id),day.template_day_id,
@@ -113,14 +138,19 @@ try {
           AND item.agency_id=document.agency_id AND item.departure_id=document.departure_id
         WHERE document.agency_id=$1 AND document.departure_id=$2
           AND document.status='ready' AND asset.status='ready') AS ticket_rows
-  `, [scope.agency_id, scope.departure_id, scope.template_version_id])).rows[0];
+  `,
+      [scope.agency_id, scope.departure_id, scope.template_version_id],
+    )
+  ).rows[0];
   if (Number(shape.programme_rows) !== Number(reconciliations.find((row) => row.domain === "items")?.target_count)) {
     throw new Error(`Contratto query programma non coerente: ${JSON.stringify(shape)}`);
   }
 
   await client.query("SET LOCAL ROLE smf_app");
   await client.query("SELECT set_config('app.agency_id',$1,true)", [randomUUID()]);
-  const crossTenantRows = Number((await client.query(`SELECT
+  const crossTenantRows = Number(
+    (
+      await client.query(`SELECT
     (SELECT count(*) FROM travel.template_days)+
     (SELECT count(*) FROM travel.template_day_cities)+
     (SELECT count(*) FROM travel.template_day_sites)+
@@ -131,13 +161,20 @@ try {
     (SELECT count(*) FROM travel.template_useful_information)+
     (SELECT count(*) FROM travel.template_phrasebook_entries)+
     (SELECT count(*) FROM ops.travel_documents)+
-    (SELECT count(*) FROM ops.media_assets) AS row_count`)).rows[0].row_count);
+    (SELECT count(*) FROM ops.media_assets) AS row_count`)
+    ).rows[0].row_count,
+  );
   if (crossTenantRows !== 0) throw new Error(`Isolamento tenant fallito: ${crossTenantRows} righe visibili`);
 
   await client.query("ROLLBACK");
   open = false;
-  console.log(JSON.stringify({ status: "passed", role,
-    reconciledDomains: reconciliations.length, queryShape: shape, crossTenantRows }, null, 2));
+  console.log(
+    JSON.stringify(
+      { status: "passed", role, reconciledDomains: reconciliations.length, queryShape: shape, crossTenantRows },
+      null,
+      2,
+    ),
+  );
 } catch (error) {
   if (open) await client.query("ROLLBACK").catch(() => undefined);
   throw error;

@@ -11,7 +11,7 @@
   padding: clamp(28px, 7vw, 48px);
   border-radius: 18px;
   background: #fffdfa;
-  box-shadow: 0 16px 45px rgba(20, 43, 53, .09);
+  box-shadow: 0 16px 45px rgba(20, 43, 53, 0.09);
   text-align: center;
 }
 .systemStatusMark {
@@ -24,20 +24,31 @@
   color: #fff;
   background: #153f43;
 }
-.systemStatusMark svg { width: 27px; height: 27px; }
-.systemStatusMark.isError { background: #a63d32; }
+.systemStatusMark svg {
+  width: 27px;
+  height: 27px;
+}
+.systemStatusMark.isError {
+  background: #a63d32;
+}
 .systemStatusPanel h1 {
   max-width: 13ch;
   margin: 0 auto 12px;
-  font: 700 clamp(2rem, 8vw, 3.25rem)/1.05 var(--font-serif), Georgia, serif;
-  letter-spacing: -.025em;
+  font:
+    700 clamp(2rem, 8vw, 3.25rem) / 1.05 var(--font-serif),
+    Georgia,
+    serif;
+  letter-spacing: -0.025em;
   text-wrap: balance;
 }
 .systemStatusPanel p {
   max-width: 48ch;
   margin: 0 auto;
   color: #667773;
-  font: 450 1rem/1.55 var(--font-sans), Arial, sans-serif;
+  font:
+    450 1rem/1.55 var(--font-sans),
+    Arial,
+    sans-serif;
 }
 .systemStatusActions {
   display: flex;
@@ -57,12 +68,25 @@
   border-radius: 10px;
   color: #142b35;
   background: #fffdfa;
-  font: 750 1rem/1.2 var(--font-sans), Arial, sans-serif;
+  font:
+    750 1rem/1.2 var(--font-sans),
+    Arial,
+    sans-serif;
   text-decoration: none;
 }
-.systemStatusActions .primary { border-color: #245eea; color: #fff; background: #245eea; }
-.systemStatusActions svg { width: 19px; height: 19px; }
-.systemStatusActions :is(a, button):focus-visible { outline: 3px solid #245eea; outline-offset: 3px; }
+.systemStatusActions .primary {
+  border-color: #245eea;
+  color: #fff;
+  background: #245eea;
+}
+.systemStatusActions svg {
+  width: 19px;
+  height: 19px;
+}
+.systemStatusActions :is(a, button):focus-visible {
+  outline: 3px solid #245eea;
+  outline-offset: 3px;
+}
 .systemLoadingTrack {
   width: min(260px, 78%);
   height: 4px;
@@ -78,13 +102,38 @@
   height: 100%;
   border-radius: inherit;
   background: #247a6b;
-  animation: system-loading 1.35s cubic-bezier(.2, .8, .2, 1) infinite alternate;
+  animation: system-loading 1.35s cubic-bezier(0.2, 0.8, 0.2, 1) infinite alternate;
 }
-@keyframes system-loading { from { transform: translateX(-8%); } to { transform: translateX(145%); } }
+@keyframes system-loading {
+  from {
+    transform: translateX(-8%);
+  }
+  to {
+    transform: translateX(145%);
+  }
+}
 @media (max-width: 520px) {
-  .systemStatusPage { align-items: end; padding: 0; }
-  .systemStatusPanel { padding: 34px 20px calc(34px + env(safe-area-inset-bottom)); border-radius: 18px 18px 0 0; }
-  .systemStatusActions { display: grid; }
+  .systemStatusPage {
+    align-items: end;
+    padding: 0;
+  }
+  .systemStatusPanel {
+    padding: 34px 20px calc(34px + env(safe-area-inset-bottom));
+    border-radius: 18px 18px 0 0;
+  }
+  .systemStatusActions {
+    display: grid;
+  }
 }
-@media (prefers-reduced-motion: reduce) { .systemLoadingTrack::after { width: 100%; animation: none; } }
-@media (forced-colors: active) { .systemStatusMark, .systemStatusActions .primary { border: 1px solid ButtonText; } }
+@media (prefers-reduced-motion: reduce) {
+  .systemLoadingTrack::after {
+    width: 100%;
+    animation: none;
+  }
+}
+@media (forced-colors: active) {
+  .systemStatusMark,
+  .systemStatusActions .primary {
+    border: 1px solid ButtonText;
+  }
+}

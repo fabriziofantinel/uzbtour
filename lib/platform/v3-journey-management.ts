@@ -21,8 +21,10 @@ export async function readV3JourneyManagement(departureId: string, actorId: stri
   const first = rows[0];
   if (!first) throw new PlatformRequestError("Viaggio non trovato");
   const brandingRow = brandingRows.find((row) => String(row.agency_id) === String(first.agency_id));
-  const branding = brandingRow?.branding && typeof brandingRow.branding === "object" && !Array.isArray(brandingRow.branding)
-    ? brandingRow.branding as Record<string, unknown> : {};
+  const branding =
+    brandingRow?.branding && typeof brandingRow.branding === "object" && !Array.isArray(brandingRow.branding)
+      ? (brandingRow.branding as Record<string, unknown>)
+      : {};
   const partyIds = [...new Set(rows.filter((row) => row.party_id).map((row) => String(row.party_id)))];
   return {
     journey: {
@@ -45,18 +47,20 @@ export async function readV3JourneyManagement(departureId: string, actorId: stri
         name: String(family.party_name),
         code: String(family.party_code),
         status: String(family.party_status),
-        travelers: familyRows.filter((row) => row.traveler_id).map((row) => ({
-          id: String(row.traveler_id),
-          name: String(row.traveler_name),
-          username: String(row.traveler_username || ""),
-          email: String(row.traveler_email || ""),
-          phone: String(row.traveler_phone || ""),
-          role: String(row.membership_role),
-          memberType: String(row.member_type || "adult"),
-          minorImageConsent: String(row.minor_image_consent || "missing"),
-          status: String(row.user_status || row.membership_status),
-          participatesInTripGames: Boolean(row.traveler_participates_in_trip_games),
-        })),
+        travelers: familyRows
+          .filter((row) => row.traveler_id)
+          .map((row) => ({
+            id: String(row.traveler_id),
+            name: String(row.traveler_name),
+            username: String(row.traveler_username || ""),
+            email: String(row.traveler_email || ""),
+            phone: String(row.traveler_phone || ""),
+            role: String(row.membership_role),
+            memberType: String(row.member_type || "adult"),
+            minorImageConsent: String(row.minor_image_consent || "missing"),
+            status: String(row.user_status || row.membership_status),
+            participatesInTripGames: Boolean(row.traveler_participates_in_trip_games),
+          })),
       };
     }),
   };

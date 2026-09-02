@@ -64,7 +64,7 @@ body {
   }
 
   :is(a, button):not([disabled]) {
-    text-decoration-thickness: max(1px, .08em);
+    text-decoration-thickness: max(1px, 0.08em);
   }
 
   :is(.status, .connectionStatus, .includedBadge, .expenseBadge) {

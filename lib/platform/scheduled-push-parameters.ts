@@ -26,16 +26,18 @@ function parameterValue(parameters: Map<string, string>, name: string) {
 async function load() {
   const databaseName = parameterName("DATABASE_PARAMETER_NAME");
   const webPushName = parameterName("WEB_PUSH_PARAMETER_NAME");
-  const result = await client.send(new GetParametersCommand({
-    Names: [databaseName, webPushName],
-    WithDecryption: true,
-  }));
+  const result = await client.send(
+    new GetParametersCommand({
+      Names: [databaseName, webPushName],
+      WithDecryption: true,
+    }),
+  );
   if (result.InvalidParameters?.length) throw new Error("Uno o più parametri protetti non esistono");
 
   const parameters = new Map(
     (result.Parameters ?? []).flatMap((parameter) =>
-      parameter.Name && parameter.Value ? [[parameter.Name, parameter.Value] as const] : []
-    )
+      parameter.Name && parameter.Value ? [[parameter.Name, parameter.Value] as const] : [],
+    ),
   );
   const databaseUrl = databaseUrlSchema.parse(parameterValue(parameters, databaseName));
   const webPush = webPushSchema.parse(JSON.parse(parameterValue(parameters, webPushName)) as unknown);

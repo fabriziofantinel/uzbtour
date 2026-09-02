@@ -7,7 +7,8 @@ const owner = new Client(ownerUrl);
 let transactionOpen = false;
 try {
   await owner.connect();
-  const fixture = (await owner.query(`
+  const fixture = (
+    await owner.query(`
     SELECT mapping.legacy_id actor_legacy_id
     FROM iam.agency_memberships membership
     JOIN iam.users actor ON actor.id=membership.user_id AND actor.status='active'
@@ -15,7 +16,8 @@ try {
       AND mapping.entity_type='user' AND mapping.target_id=actor.id
     WHERE membership.status='active' AND membership.role IN('owner','admin','editor')
     ORDER BY membership.created_at LIMIT 1
-  `)).rows[0];
+  `)
+  ).rows[0];
   if (!fixture) throw new Error("Utente agenzia V3 di collaudo non disponibile");
 
   await owner.query("BEGIN");
@@ -34,15 +36,15 @@ try {
   ];
   const counts = {};
   for (const [label, routine] of calls) {
-    const result = await owner.query(`SELECT * FROM ${routine}($1)`,[fixture.actor_legacy_id]);
+    const result = await owner.query(`SELECT * FROM ${routine}($1)`, [fixture.actor_legacy_id]);
     counts[label] = result.rowCount ?? result.rows.length;
   }
   if (counts.overview < 1) throw new Error("La dashboard V3 non restituisce l'agenzia del collaudo");
 
   await owner.query("ROLLBACK");
   transactionOpen = false;
-  console.log(JSON.stringify({status:"passed_with_rollback",runtimeRole:role,counts},null,2));
+  console.log(JSON.stringify({ status: "passed_with_rollback", runtimeRole: role, counts }, null, 2));
 } finally {
-  if (transactionOpen) await owner.query("ROLLBACK").catch(()=>{});
-  await owner.end().catch(()=>{});
+  if (transactionOpen) await owner.query("ROLLBACK").catch(() => {});
+  await owner.end().catch(() => {});
 }

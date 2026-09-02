@@ -2,7 +2,10 @@ import { getAuthenticatedActor, getCurrentUser } from "@/lib/current-user";
 import { resolveV3LegacyUserAccess } from "./v3-identity-access";
 
 export class PlatformAuthorizationError extends Error {
-  constructor(message: string, public readonly status: 401 | 403) {
+  constructor(
+    message: string,
+    public readonly status: 401 | 403,
+  ) {
     super(message);
   }
 }

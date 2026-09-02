@@ -1,15 +1,26 @@
 import { Client } from "@neondatabase/serverless";
 
-const databaseUrl =
-  process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_DIRECT_URL ?? process.env.DATABASE_URL;
+const databaseUrl = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_DIRECT_URL ?? process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error("Connessione runtime Neon non configurata");
 
 const tables = [
-  "generated_content", "useful_information", "phrasebook_entries", "media_assets",
-  "travel_documents", "import_jobs", "platform_jobs", "audit_events",
-  "party_expenses", "party_activity_results", "party_memories",
-  "party_photo_contest_entries", "party_day_notes", "party_restaurants",
-  "party_cash_movements", "itinerary_item_documents", "traveler_programme_feedback",
+  "generated_content",
+  "useful_information",
+  "phrasebook_entries",
+  "media_assets",
+  "travel_documents",
+  "import_jobs",
+  "platform_jobs",
+  "audit_events",
+  "party_expenses",
+  "party_activity_results",
+  "party_memories",
+  "party_photo_contest_entries",
+  "party_day_notes",
+  "party_restaurants",
+  "party_cash_movements",
+  "itinerary_item_documents",
+  "traveler_programme_feedback",
 ];
 
 const client = new Client(databaseUrl);
@@ -20,12 +31,15 @@ try {
   await client.query("SET LOCAL statement_timeout = '60s'");
 
   const columns = (
-    await client.query(`
+    await client.query(
+      `
       SELECT table_name, jsonb_agg(column_name ORDER BY ordinal_position) AS columns
       FROM information_schema.columns
       WHERE table_schema = 'public' AND table_name = ANY($1::text[])
       GROUP BY table_name ORDER BY table_name
-    `, [tables])
+    `,
+      [tables],
+    )
   ).rows;
 
   const generated = await client.query(`
@@ -160,19 +174,25 @@ try {
   ).rows[0];
 
   await client.query("ROLLBACK");
-  console.log(JSON.stringify({
-    status: "passed",
-    columns,
-    contentCounts,
-    generated: generated.rows,
-    generatedExamples: generatedExamples.rows,
-    generatedProfiles: generatedProfiles.rows,
-    gameSubtypes: gameSubtypes.rows,
-    contestInference: contestInference.rows,
-    operationalGroups: operationalGroups.rows,
-    journeyCounts,
-    blockers,
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        status: "passed",
+        columns,
+        contentCounts,
+        generated: generated.rows,
+        generatedExamples: generatedExamples.rows,
+        generatedProfiles: generatedProfiles.rows,
+        gameSubtypes: gameSubtypes.rows,
+        contestInference: contestInference.rows,
+        operationalGroups: operationalGroups.rows,
+        journeyCounts,
+        blockers,
+      },
+      null,
+      2,
+    ),
+  );
 } catch (error) {
   await client.query("ROLLBACK").catch(() => undefined);
   throw error;

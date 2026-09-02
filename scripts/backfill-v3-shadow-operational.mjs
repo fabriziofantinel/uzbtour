@@ -140,10 +140,9 @@ try {
 
   const executionMs = Math.round(performance.now() - startedAt);
   if (apply) {
-    const previous = await client.query(
-      "SELECT checksum_sha256 FROM ops.schema_migrations WHERE version = $1",
-      [modelVersion],
-    );
+    const previous = await client.query("SELECT checksum_sha256 FROM ops.schema_migrations WHERE version = $1", [
+      modelVersion,
+    ]);
     if (previous.rowCount > 0 && previous.rows[0].checksum_sha256 !== checksum) {
       throw new Error(`Checksum differente per ${modelVersion}: applicazione interrotta`);
     }
@@ -165,15 +164,21 @@ try {
   }
   transactionOpen = false;
 
-  console.log(JSON.stringify({
-    status: apply ? "applied" : "dry_run_passed",
-    migrationVersion,
-    modelVersion,
-    checksum,
-    executionMs,
-    role: role.role_name,
-    reconciliation,
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        status: apply ? "applied" : "dry_run_passed",
+        migrationVersion,
+        modelVersion,
+        checksum,
+        executionMs,
+        role: role.role_name,
+        reconciliation,
+      },
+      null,
+      2,
+    ),
+  );
 } catch (error) {
   if (transactionOpen) await client.query("ROLLBACK").catch(() => undefined);
   throw error;

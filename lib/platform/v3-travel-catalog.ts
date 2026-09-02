@@ -15,9 +15,10 @@ export async function readV3TravelCatalog(input: {
 }) {
   const sql = getSql();
   const [, days, items, cities, sites, hotels, travelers, usefulInfo, phrases, tickets, dayDocuments] =
-    await sql.transaction((txn) => [
-      txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
-      txn`
+    await sql.transaction(
+      (txn) => [
+        txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
+        txn`
         SELECT day.id::text, day.day_number, day.day_offset,
           COALESCE(day.metadata->>'legacyLabel', '') AS label,
           day.title, COALESCE(day.metadata->>'legacyCity', '') AS city,
@@ -27,7 +28,7 @@ export async function readV3TravelCatalog(input: {
           AND day.template_version_id = ${input.templateVersionId}
         ORDER BY day.day_number
       `,
-      txn`
+        txn`
         SELECT COALESCE(item.source_template_item_id, item.id)::text AS id,
           day.template_day_id::text AS trip_day_id, item.item_type, item.title,
           item.description,
@@ -65,7 +66,7 @@ export async function readV3TravelCatalog(input: {
           AND item.template_version_id = ${input.templateVersionId}
         ORDER BY day.service_date, item.sort_order
       `,
-      txn`
+        txn`
         SELECT link.template_day_id::text AS trip_day_id, city.id::text,
           city.name, city.google_url,
           CASE WHEN city.location IS NULL THEN NULL ELSE ST_Y(city.location::geometry) END AS latitude,
@@ -78,7 +79,7 @@ export async function readV3TravelCatalog(input: {
           AND link.template_version_id = ${input.templateVersionId}
         ORDER BY link.template_day_id, link.sort_order
       `,
-      txn`
+        txn`
         SELECT link.template_day_id::text AS trip_day_id, site.id::text,
           site.name, site.google_url, site.official_url,
           CASE WHEN site.location IS NULL THEN NULL ELSE ST_Y(site.location::geometry) END AS latitude,
@@ -91,7 +92,7 @@ export async function readV3TravelCatalog(input: {
           AND link.template_version_id = ${input.templateVersionId}
         ORDER BY link.template_day_id, link.sort_order
       `,
-      txn`
+        txn`
         SELECT link.template_day_id::text AS trip_day_id, hotel.id::text,
           hotel.name, hotel.google_url, hotel.website_url,
           CASE WHEN hotel.location IS NULL THEN NULL ELSE ST_Y(hotel.location::geometry) END AS latitude,
@@ -104,7 +105,7 @@ export async function readV3TravelCatalog(input: {
           AND link.template_version_id = ${input.templateVersionId}
         ORDER BY link.template_day_id, link.sort_order
       `,
-      txn`
+        txn`
         SELECT profile.id::text,profile.display_name,membership.role,membership.member_type,
           membership.participates_in_trip_games,
           profile.user_id=app.resolve_legacy_user_id(${input.userId},${input.agencyId}::uuid) AS is_current
@@ -117,7 +118,7 @@ export async function readV3TravelCatalog(input: {
           AND membership.status = 'active'
         ORDER BY membership.role, profile.display_name
       `,
-      txn`
+        txn`
         SELECT info.category, info.title, info.body, info.phone, info.url,info.source_name,info.source_url,
           info.verified_at,info.expires_at,info.review_status,info.disclaimer
         FROM travel.template_useful_information info
@@ -125,7 +126,7 @@ export async function readV3TravelCatalog(input: {
           AND info.template_version_id = ${input.templateVersionId}
         ORDER BY info.sort_order, info.title
       `,
-      txn`
+        txn`
         SELECT phrase.language_code, phrase.category, phrase.term,
           phrase.pronunciation, phrase.translation
         FROM travel.template_phrasebook_entries phrase
@@ -133,7 +134,7 @@ export async function readV3TravelCatalog(input: {
           AND phrase.template_version_id = ${input.templateVersionId}
         ORDER BY phrase.sort_order, phrase.language_code, phrase.term
       `,
-      txn`
+        txn`
         SELECT document.id::text,
           COALESCE(item.source_template_item_id, item.id)::text AS itinerary_item_id,
           document.title, asset.content_type, asset.size_bytes, document.created_at::text
@@ -150,7 +151,7 @@ export async function readV3TravelCatalog(input: {
           AND document.status = 'ready' AND asset.status = 'ready'
         ORDER BY document.created_at
       `,
-      txn`
+        txn`
         SELECT document.id::text,day.template_day_id::text AS day_id,
           document.title,document.description,asset.content_type,asset.size_bytes,
           document.created_at::text
@@ -167,7 +168,9 @@ export async function readV3TravelCatalog(input: {
           AND document.status='ready' AND asset.status='ready' AND asset.deleted_at IS NULL
         ORDER BY document.created_at
       `,
-    ], { readOnly: true });
+      ],
+      { readOnly: true },
+    );
 
   return {
     days: days as Row[],

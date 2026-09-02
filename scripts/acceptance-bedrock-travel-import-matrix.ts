@@ -123,13 +123,19 @@ async function docxBytes(text: string) {
 }
 
 function normalized(value: string) {
-  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 }
 
 function countryMatches(actual: string, expected: string) {
   const aliases: Record<string, string[]> = {
-    norvegia: ["norvegia", "norway"], cile: ["cile", "chile"],
-    italia: ["italia", "italy"], slovenia: ["slovenia"], croazia: ["croazia", "croatia"],
+    norvegia: ["norvegia", "norway"],
+    cile: ["cile", "chile"],
+    italia: ["italia", "italy"],
+    slovenia: ["slovenia"],
+    croazia: ["croazia", "croatia"],
   };
   const expectedKey = normalized(expected);
   return (aliases[expectedKey] ?? [expectedKey]).some((alias) => normalized(actual).includes(alias));
@@ -166,8 +172,10 @@ async function validateImport(expected: ExpectedImport) {
   if (normalized(draft.commercialDetails.currency) !== normalized(expected.currency)) {
     throw new Error(`${expected.scenario}: valuta inattesa ${draft.commercialDetails.currency}`);
   }
-  const hotels = draft.days.flatMap((day) => [day.accommodation, ...day.additionalAccommodations])
-    .map((hotel) => normalized(hotel.name)).filter(Boolean);
+  const hotels = draft.days
+    .flatMap((day) => [day.accommodation, ...day.additionalAccommodations])
+    .map((hotel) => normalized(hotel.name))
+    .filter(Boolean);
   for (const hotel of expected.hotelFragments) {
     if (!hotels.some((value) => value.includes(normalized(hotel)))) {
       throw new Error(`${expected.scenario}: hotel non estratto: ${hotel}`);
@@ -186,7 +194,8 @@ async function validateImport(expected: ExpectedImport) {
   }
   for (const day of draft.days) {
     const keys = day.activities.map((activity) => `${activity.type}:${normalized(activity.title)}`);
-    if (new Set(keys).size !== keys.length) throw new Error(`${expected.scenario}: attività duplicate nel giorno ${day.dayNumber}`);
+    if (new Set(keys).size !== keys.length)
+      throw new Error(`${expected.scenario}: attività duplicate nel giorno ${day.dayNumber}`);
   }
   return {
     scenario: expected.scenario,
@@ -246,7 +255,9 @@ async function main() {
     },
   ];
   const selectedScenario = process.argv[2]?.trim();
-  const selected = selectedScenario ? scenarios.filter((scenario) => scenario.scenario === selectedScenario) : scenarios;
+  const selected = selectedScenario
+    ? scenarios.filter((scenario) => scenario.scenario === selectedScenario)
+    : scenarios;
   if (selected.length === 0) throw new Error(`Scenario non trovato: ${selectedScenario}`);
   const results = [];
   for (const scenario of selected) results.push(await validateImport(scenario));

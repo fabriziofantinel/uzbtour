@@ -20,16 +20,12 @@ function imageContentType(file: File) {
 }
 
 async function responseJson<T>(response: Response): Promise<T> {
-  const result = await response.json().catch(() => ({})) as T & { error?: string };
+  const result = (await response.json().catch(() => ({}))) as T & { error?: string };
   if (!response.ok) throw new Error(result.error || "Preparazione del caricamento non riuscita");
   return result;
 }
 
-function putFile(
-  authorization: UploadAuthorization,
-  file: Blob,
-  onProgress?: (percentage: number) => void
-) {
+function putFile(authorization: UploadAuthorization, file: Blob, onProgress?: (percentage: number) => void) {
   return new Promise<void>((resolve, reject) => {
     const request = new XMLHttpRequest();
     request.open(authorization.method, authorization.url);
@@ -43,11 +39,13 @@ function putFile(
         onProgress?.(100);
         resolve();
       } else {
-        reject(new Error(
-          request.status === 403
-            ? "R2 ha rifiutato il file. Controlla CORS o riprova."
-            : "Caricamento del file su R2 non riuscito"
-        ));
+        reject(
+          new Error(
+            request.status === 403
+              ? "R2 ha rifiutato il file. Controlla CORS o riprova."
+              : "Caricamento del file su R2 non riuscito",
+          ),
+        );
       }
     };
     request.send(file);
@@ -65,11 +63,13 @@ async function optimizeAiPhoto(file: File) {
     const context = canvas.getContext("2d");
     if (!context) throw new Error("Ottimizzazione della foto non disponibile");
     context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(
-      (value) => value ? resolve(value) : reject(new Error("Compressione della foto non riuscita")),
-      "image/jpeg",
-      0.82,
-    ));
+    const blob = await new Promise<Blob>((resolve, reject) =>
+      canvas.toBlob(
+        (value) => (value ? resolve(value) : reject(new Error("Compressione della foto non riuscita"))),
+        "image/jpeg",
+        0.82,
+      ),
+    );
     return new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" });
   } finally {
     bitmap.close();
@@ -85,16 +85,18 @@ export async function uploadPrivateFile(input: {
 }) {
   const file = input.optimizeForAi ? await optimizeAiPhoto(input.file) : input.file;
   const contentType = imageContentType(file);
-  const authorization = await responseJson<UploadAuthorization>(await fetch(input.endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      ...input.payload,
-      originalName: file.name,
-      contentType,
-      sizeBytes: file.size,
+  const authorization = await responseJson<UploadAuthorization>(
+    await fetch(input.endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...input.payload,
+        originalName: file.name,
+        contentType,
+        sizeBytes: file.size,
+      }),
     }),
-  }));
+  );
   await putFile(authorization, file, input.onProgress);
   return { key: authorization.key, contentType };
 }

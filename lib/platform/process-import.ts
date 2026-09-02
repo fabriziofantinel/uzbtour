@@ -29,10 +29,12 @@ import { cleanupImportOcr, readImportOcr, startImportOcr } from "./textract-ocr"
 export async function processTravelImport(
   importId: string,
   expected?: { jobId?: string; agencyId?: string },
-  ocrCompletion?: { textractJobId:string }
+  ocrCompletion?: { textractJobId: string },
 ) {
   await assertNormalizedImportSchema();
-  const source = ocrCompletion ? await resumeImportOcr(importId,ocrCompletion.textractJobId) : await claimImportJob(importId, expected);
+  const source = ocrCompletion
+    ? await resumeImportOcr(importId, ocrCompletion.textractJobId)
+    : await claimImportJob(importId, expected);
   let unregisteredNormalizedKey: string | null = null;
   try {
     const storage = getObjectStorage(source.provider === "r2" ? "r2" : "vercel-blob");
@@ -55,12 +57,15 @@ export async function processTravelImport(
     await markImportGenerating(importId);
     let extraction;
     try {
-      extraction = await extractTravelProgramme(bytes,ocrCompletion ? `${source.original_name}.ocr.txt` : source.original_name);
-    } catch(error) {
-      if(!ocrCompletion && error instanceof OcrRequiredError && source.original_name.toLowerCase().endsWith(".pdf")){
-        const textractJobId=await startImportOcr(importId,object.bytes);
-        await markImportOcrPending(importId,textractJobId);
-        return {status:"ocr_pending",textractJobId};
+      extraction = await extractTravelProgramme(
+        bytes,
+        ocrCompletion ? `${source.original_name}.ocr.txt` : source.original_name,
+      );
+    } catch (error) {
+      if (!ocrCompletion && error instanceof OcrRequiredError && source.original_name.toLowerCase().endsWith(".pdf")) {
+        const textractJobId = await startImportOcr(importId, object.bytes);
+        await markImportOcrPending(importId, textractJobId);
+        return { status: "ocr_pending", textractJobId };
       }
       throw error;
     }
@@ -68,20 +73,16 @@ export async function processTravelImport(
       ...extraction.draft,
       days: extraction.draft.days.map((day) => ({
         ...day,
-        activities: day.activities.map((activity) => activity.type === "meal"
-          ? { ...activity, includedInQuote: true }
-          : activity),
+        activities: day.activities.map((activity) =>
+          activity.type === "meal" ? { ...activity, includedInQuote: true } : activity,
+        ),
       })),
     };
     const normalizedName = normalizedTravelDocumentName(programmeDraft.title);
     const normalizedKey = `agencies/${source.agency_id}/trips/${source.template_id}/normalized/${importId}/${normalizedName}`;
     const normalizedBytes = await createNormalizedTravelDocument(programmeDraft, source.original_name);
     const checksumSha256 = createHash("sha256").update(normalizedBytes).digest("hex");
-    const normalizedObject = await storage.put(
-      normalizedKey,
-      normalizedBytes,
-      NORMALIZED_TRAVEL_DOCUMENT_CONTENT_TYPE
-    );
+    const normalizedObject = await storage.put(normalizedKey, normalizedBytes, NORMALIZED_TRAVEL_DOCUMENT_CONTENT_TYPE);
     unregisteredNormalizedKey = normalizedKey;
     if (normalizedObject.provider !== "r2") {
       throw new Error("Il preventivo normalizzato deve essere salvato su Cloudflare R2");
@@ -108,7 +109,7 @@ export async function processTravelImport(
     }
     const importedDraft = await readNormalizedTravelDocument(savedNormalizedObject.bytes);
     await completeImport({ importId, ...extraction, draft: importedDraft });
-    if(ocrCompletion)await cleanupImportOcr(importId).catch(()=>{});
+    if (ocrCompletion) await cleanupImportOcr(importId).catch(() => {});
     return {
       status: "ready_for_review",
       model: extraction.model,
@@ -117,18 +118,22 @@ export async function processTravelImport(
     };
   } catch (error) {
     if (unregisteredNormalizedKey) {
-      await getObjectStorage("r2").delete(unregisteredNormalizedKey).catch((cleanupError) => {
-        console.error("Normalized import cleanup failed", {
-          importId,
-          objectKey: unregisteredNormalizedKey,
-          error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
+      await getObjectStorage("r2")
+        .delete(unregisteredNormalizedKey)
+        .catch((cleanupError) => {
+          console.error("Normalized import cleanup failed", {
+            importId,
+            objectKey: unregisteredNormalizedKey,
+            error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
+          });
         });
-      });
     }
-    await failImport(importId, error).catch((failure) => console.error("Import failure persistence failed", {
-      importId,
-      error: failure instanceof Error ? failure.message : String(failure),
-    }));
+    await failImport(importId, error).catch((failure) =>
+      console.error("Import failure persistence failed", {
+        importId,
+        error: failure instanceof Error ? failure.message : String(failure),
+      }),
+    );
     throw error;
   }
 }

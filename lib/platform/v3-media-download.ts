@@ -41,11 +41,7 @@ export async function resolveV3TravelDocumentDownload(userId: string, documentId
 
 export type LegacyMediaKind = "photo" | "contest" | "mission" | "bingo";
 
-export async function resolveV3LegacyMediaDownload(
-  userId: string,
-  mediaKind: LegacyMediaKind,
-  mediaId: string,
-) {
+export async function resolveV3LegacyMediaDownload(userId: string, mediaKind: LegacyMediaKind, mediaId: string) {
   const sql = getSql();
   const rows = await sql`
     SELECT object_key,original_name,content_type

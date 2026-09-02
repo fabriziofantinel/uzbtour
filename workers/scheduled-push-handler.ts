@@ -29,12 +29,14 @@ export async function handler() {
     }
   }
 
-  console.info(JSON.stringify({
-    level: "info",
-    message: "Scheduled push run completed",
-    claimed: runs.length,
-    results,
-    durationMs: Date.now() - startedAt,
-  }));
+  console.info(
+    JSON.stringify({
+      level: "info",
+      message: "Scheduled push run completed",
+      claimed: runs.length,
+      results,
+      durationMs: Date.now() - startedAt,
+    }),
+  );
   return { claimed: runs.length, results };
 }

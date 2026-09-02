@@ -1,19 +1,27 @@
 import { neon } from "@neondatabase/serverless";
 
-const databaseUrl =
-  process.env.DATABASE_DIRECT_URL ||
-  process.env.DATABASE_URL_UNPOOLED ||
-  process.env.DATABASE_URL;
+const databaseUrl = process.env.DATABASE_DIRECT_URL || process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
 if (!databaseUrl) {
-  throw new Error(
-    "DATABASE_DIRECT_URL, DATABASE_URL_UNPOOLED o DATABASE_URL non configurata",
-  );
+  throw new Error("DATABASE_DIRECT_URL, DATABASE_URL_UNPOOLED o DATABASE_URL non configurata");
 }
 
 const endpoint = new URL(databaseUrl);
 const sql = neon(databaseUrl);
 
-const [version, database, extensions, tables, indexes, foreignKeysWithoutLeadingIndex, settings, runtimeRole, runtimePrivileges, integrity, cache, migrations] = await Promise.all([
+const [
+  version,
+  database,
+  extensions,
+  tables,
+  indexes,
+  foreignKeysWithoutLeadingIndex,
+  settings,
+  runtimeRole,
+  runtimePrivileges,
+  integrity,
+  cache,
+  migrations,
+] = await Promise.all([
   sql`SELECT version() AS version`,
   sql`
     SELECT current_database() AS database_name,
@@ -125,23 +133,29 @@ const queryStats = extensions.some((extension) => extension.extname === "pg_stat
     `
   : [];
 
-console.log(JSON.stringify({
-  endpoint: {
-    host: endpoint.hostname,
-    pooledHost: endpoint.hostname.includes("-pooler"),
-    sslMode: endpoint.searchParams.get("sslmode"),
-  },
-  postgres: version[0],
-  database: database[0],
-  runtimeRole: runtimeRole[0],
-  runtimePrivileges: runtimePrivileges[0],
-  integrity: integrity[0],
-  cache: cache[0],
-  extensions,
-  settings,
-  migrations,
-  queryStats,
-  tables,
-  indexes,
-  foreignKeysWithoutLeadingIndex,
-}, null, 2));
+console.log(
+  JSON.stringify(
+    {
+      endpoint: {
+        host: endpoint.hostname,
+        pooledHost: endpoint.hostname.includes("-pooler"),
+        sslMode: endpoint.searchParams.get("sslmode"),
+      },
+      postgres: version[0],
+      database: database[0],
+      runtimeRole: runtimeRole[0],
+      runtimePrivileges: runtimePrivileges[0],
+      integrity: integrity[0],
+      cache: cache[0],
+      extensions,
+      settings,
+      migrations,
+      queryStats,
+      tables,
+      indexes,
+      foreignKeysWithoutLeadingIndex,
+    },
+    null,
+    2,
+  ),
+);

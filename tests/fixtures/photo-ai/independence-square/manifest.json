@@ -26,11 +26,7 @@
       "paesaggio marino",
       "interno di ristorante o hotel"
     ],
-    "confusableWith": [
-      "Piazza Ala-Too a Bishkek",
-      "Registan a Samarcanda",
-      "Piazza Amir Temur a Tashkent"
-    ],
+    "confusableWith": ["Piazza Ala-Too a Bishkek", "Registan a Samarcanda", "Piazza Amir Temur a Tashkent"],
     "minimumConfidence": 0.8
   },
   "fixtures": [

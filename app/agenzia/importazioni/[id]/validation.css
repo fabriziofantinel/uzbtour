@@ -93,7 +93,9 @@
   .removeAccommodation {
     grid-column: 1 / -1;
   }
-  .removeAccommodation { justify-self: end; }
+  .removeAccommodation {
+    justify-self: end;
+  }
 }
 @media (max-width: 430px) {
   .entityValidation {

@@ -65,9 +65,11 @@ export default function CashMovementDialog({
         return;
       }
       if (event.key !== "Tab" || !dialogRef.current) return;
-      const focusable = [...dialogRef.current.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
-      )];
+      const focusable = [
+        ...dialogRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ];
       if (focusable.length === 0) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -103,40 +105,99 @@ export default function CashMovementDialog({
     else setSubmitError("Il movimento non è stato salvato. I valori inseriti sono rimasti disponibili: riprova.");
   }
 
-  return <div className="expenseDialogBackdrop" role="presentation" onMouseDown={() => { if (!saving) onClose(); }}>
-    <section
-      className="expenseDialog cashMovementDialog"
-      ref={dialogRef}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="cash-dialog-title"
-      onMouseDown={(event) => event.stopPropagation()}
+  return (
+    <div
+      className="expenseDialogBackdrop"
+      role="presentation"
+      onMouseDown={() => {
+        if (!saving) onClose();
+      }}
     >
-      <header>
-        <span>{isWithdrawal ? <Banknote/> : <ArrowRightLeft/>}</span>
-        <div><small>GIORNO {dayLabel}</small><h2 id="cash-dialog-title">{title}</h2></div>
-        <button type="button" onClick={onClose} disabled={saving} aria-label={`Chiudi ${title.toLocaleLowerCase("it")}`}><X/></button>
-      </header>
-      <form onSubmit={submit} noValidate>
-        <p className="cashDialogIntro">{isWithdrawal
-          ? "Indica quanto hai ricevuto dal bancomat e quanto è stato addebitato sul conto."
-          : "Indica quanti contanti locali hai ricevuto e quanti euro hai consegnato."
-        }</p>
-        <label className="expenseField" htmlFor="cash-local-amount">
-          <span>{isWithdrawal ? "Importo prelevato" : "Importo ricevuto"}</span>
-          <div className="expenseAmount"><b>{localCurrency}</b><input id="cash-local-amount" autoFocus inputMode="decimal" autoComplete="off" value={localAmount} onChange={(event) => setLocalAmount(event.target.value)} placeholder="0" aria-describedby="cash-rate-preview" required/></div>
-        </label>
-        <label className="expenseField" htmlFor="cash-euro-amount">
-          <span>{isWithdrawal ? "Importo addebitato" : "Euro cambiati"}</span>
-          <div className="expenseAmount"><b>€</b><input id="cash-euro-amount" inputMode="decimal" autoComplete="off" value={euroAmount} onChange={(event) => setEuroAmount(event.target.value)} placeholder="0,00" aria-describedby="cash-rate-preview" required/></div>
-        </label>
-        <div id="cash-rate-preview" className={`cashRatePreview${rate ? " ready" : ""}`} aria-live="polite">
-          <ArrowRightLeft/>
-          <span><small>CAMBIO APPLICATO</small><strong>{rate ? `1 € = ${wholeNumber.format(rate)} ${localCurrency}` : "Inserisci i due importi"}</strong></span>
-        </div>
-        {submitError && <p className="cashDialogError" role="alert">{submitError}</p>}
-        <button className="expenseSubmit" type="submit" disabled={saving || !localValue || !euroValue}>{saving ? <><LoaderCircle className="spin"/> Salvataggio…</> : `Salva ${isWithdrawal ? "prelievo" : "cambio"}`}</button>
-      </form>
-    </section>
-  </div>;
+      <section
+        className="expenseDialog cashMovementDialog"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cash-dialog-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <header>
+          <span>{isWithdrawal ? <Banknote /> : <ArrowRightLeft />}</span>
+          <div>
+            <small>GIORNO {dayLabel}</small>
+            <h2 id="cash-dialog-title">{title}</h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            aria-label={`Chiudi ${title.toLocaleLowerCase("it")}`}
+          >
+            <X />
+          </button>
+        </header>
+        <form onSubmit={submit} noValidate>
+          <p className="cashDialogIntro">
+            {isWithdrawal
+              ? "Indica quanto hai ricevuto dal bancomat e quanto è stato addebitato sul conto."
+              : "Indica quanti contanti locali hai ricevuto e quanti euro hai consegnato."}
+          </p>
+          <label className="expenseField" htmlFor="cash-local-amount">
+            <span>{isWithdrawal ? "Importo prelevato" : "Importo ricevuto"}</span>
+            <div className="expenseAmount">
+              <b>{localCurrency}</b>
+              <input
+                id="cash-local-amount"
+                autoFocus
+                inputMode="decimal"
+                autoComplete="off"
+                value={localAmount}
+                onChange={(event) => setLocalAmount(event.target.value)}
+                placeholder="0"
+                aria-describedby="cash-rate-preview"
+                required
+              />
+            </div>
+          </label>
+          <label className="expenseField" htmlFor="cash-euro-amount">
+            <span>{isWithdrawal ? "Importo addebitato" : "Euro cambiati"}</span>
+            <div className="expenseAmount">
+              <b>€</b>
+              <input
+                id="cash-euro-amount"
+                inputMode="decimal"
+                autoComplete="off"
+                value={euroAmount}
+                onChange={(event) => setEuroAmount(event.target.value)}
+                placeholder="0,00"
+                aria-describedby="cash-rate-preview"
+                required
+              />
+            </div>
+          </label>
+          <div id="cash-rate-preview" className={`cashRatePreview${rate ? " ready" : ""}`} aria-live="polite">
+            <ArrowRightLeft />
+            <span>
+              <small>CAMBIO APPLICATO</small>
+              <strong>{rate ? `1 € = ${wholeNumber.format(rate)} ${localCurrency}` : "Inserisci i due importi"}</strong>
+            </span>
+          </div>
+          {submitError && (
+            <p className="cashDialogError" role="alert">
+              {submitError}
+            </p>
+          )}
+          <button className="expenseSubmit" type="submit" disabled={saving || !localValue || !euroValue}>
+            {saving ? (
+              <>
+                <LoaderCircle className="spin" /> Salvataggio…
+              </>
+            ) : (
+              `Salva ${isWithdrawal ? "prelievo" : "cambio"}`
+            )}
+          </button>
+        </form>
+      </section>
+    </div>
+  );
 }

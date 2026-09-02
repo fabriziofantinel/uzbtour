@@ -1,7 +1,39 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { Client } from "@neondatabase/serverless";
-const name="085_v3_destination_currency_and_photo_limit",model="3.55.0-destination-currency-photo-limit",apply=process.argv.includes("--apply");
-const url=process.env.DATABASE_MIGRATION_URL??process.env.DATABASE_URL_UNPOOLED??process.env.DATABASE_URL;if(!url)throw new Error("Connessione Neon non configurata");
-const source=await readFile(new URL(`../database/migrations/${name}.sql`,import.meta.url),"utf8"),checksum=createHash("sha256").update(source).digest("hex"),client=new Client(url);let open=false;
-try{await client.connect();await client.query("BEGIN");open=true;await client.query("SET LOCAL lock_timeout='5s'");await client.query(source);const gate=(await client.query(`SELECT EXISTS(SELECT 1 FROM ref.currencies WHERE code='VND') currency_ok,has_function_privilege('smf_app','app.add_photo_contest_entry_v3(text,uuid,uuid,uuid,uuid,uuid,uuid,uuid)','EXECUTE') photo_ok`)).rows[0];if(!gate?.currency_ok||!gate?.photo_ok)throw new Error("Gate runtime incompleti");if(apply){await client.query(`INSERT INTO ops.schema_migrations(version,checksum_sha256,execution_ms) VALUES($1,$2,0) ON CONFLICT(version) DO UPDATE SET applied_at=clock_timestamp()`,[model,checksum]);await client.query("COMMIT");}else await client.query("ROLLBACK");open=false;console.log(JSON.stringify({status:apply?"applied":"dry_run_passed",gate}));}catch(error){if(open)await client.query("ROLLBACK").catch(()=>{});throw error;}finally{await client.end().catch(()=>{});}
+const name = "085_v3_destination_currency_and_photo_limit",
+  model = "3.55.0-destination-currency-photo-limit",
+  apply = process.argv.includes("--apply");
+const url = process.env.DATABASE_MIGRATION_URL ?? process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
+if (!url) throw new Error("Connessione Neon non configurata");
+const source = await readFile(new URL(`../database/migrations/${name}.sql`, import.meta.url), "utf8"),
+  checksum = createHash("sha256").update(source).digest("hex"),
+  client = new Client(url);
+let open = false;
+try {
+  await client.connect();
+  await client.query("BEGIN");
+  open = true;
+  await client.query("SET LOCAL lock_timeout='5s'");
+  await client.query(source);
+  const gate = (
+    await client.query(
+      `SELECT EXISTS(SELECT 1 FROM ref.currencies WHERE code='VND') currency_ok,has_function_privilege('smf_app','app.add_photo_contest_entry_v3(text,uuid,uuid,uuid,uuid,uuid,uuid,uuid)','EXECUTE') photo_ok`,
+    )
+  ).rows[0];
+  if (!gate?.currency_ok || !gate?.photo_ok) throw new Error("Gate runtime incompleti");
+  if (apply) {
+    await client.query(
+      `INSERT INTO ops.schema_migrations(version,checksum_sha256,execution_ms) VALUES($1,$2,0) ON CONFLICT(version) DO UPDATE SET applied_at=clock_timestamp()`,
+      [model, checksum],
+    );
+    await client.query("COMMIT");
+  } else await client.query("ROLLBACK");
+  open = false;
+  console.log(JSON.stringify({ status: apply ? "applied" : "dry_run_passed", gate }));
+} catch (error) {
+  if (open) await client.query("ROLLBACK").catch(() => {});
+  throw error;
+} finally {
+  await client.end().catch(() => {});
+}

@@ -9,11 +9,15 @@ assert.equal(manifest.display, "standalone");
 assert.equal(manifest.orientation, "portrait");
 assert.match(manifest.theme_color, /^#[0-9a-f]{6}$/i);
 assert.match(manifest.background_color, /^#[0-9a-f]{6}$/i);
-assert.deepEqual(manifest.icons.map((icon) => icon.sizes), ["192x192", "512x512"]);
+assert.deepEqual(
+  manifest.icons.map((icon) => icon.sizes),
+  ["192x192", "512x512"],
+);
 assert.ok(manifest.icons.every((icon) => icon.purpose.includes("any") && icon.purpose.includes("maskable")));
-assert.deepEqual(manifest.shortcuts.map((shortcut) => shortcut.url), [
-  "/viaggio?tab=programma&day=oggi", "/viaggio?tab=spese", "/viaggio?tab=documenti",
-]);
+assert.deepEqual(
+  manifest.shortcuts.map((shortcut) => shortcut.url),
+  ["/viaggio?tab=programma&day=oggi", "/viaggio?tab=spese", "/viaggio?tab=documenti"],
+);
 
 const expectedImages = [
   ["public/icons/icon-192.png", 192, 192],
@@ -59,4 +63,15 @@ const traveler = await readFile("app/viaggio/travel-experience.tsx", "utf8");
 assert.match(traveler, /<title>\{experience\.journey\.agencyName\}<\/title>/);
 assert.match(traveler, /rel="apple-touch-icon"/);
 assert.match(traveler, /apple-touch-startup-image/g);
-console.log(JSON.stringify({ status: "passed", manifest: true, icons: expectedImages.length, shortcuts: manifest.shortcuts.length, androidPrompt: true, iosGuide: true, serviceWorkerRegistration: true, updateFlow: true }));
+console.log(
+  JSON.stringify({
+    status: "passed",
+    manifest: true,
+    icons: expectedImages.length,
+    shortcuts: manifest.shortcuts.length,
+    androidPrompt: true,
+    iosGuide: true,
+    serviceWorkerRegistration: true,
+    updateFlow: true,
+  }),
+);

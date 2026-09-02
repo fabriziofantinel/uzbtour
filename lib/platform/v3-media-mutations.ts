@@ -11,14 +11,16 @@ type StoredObject = {
   sizeBytes: number;
 };
 
-export async function registerV3MemoryUpload(input: StoredObject & {
-  userId: string;
-  departureId: string;
-  partyId: string;
-  dayId: string;
-  mediaId: string;
-  memoryId: string;
-}) {
+export async function registerV3MemoryUpload(
+  input: StoredObject & {
+    userId: string;
+    departureId: string;
+    partyId: string;
+    dayId: string;
+    mediaId: string;
+    memoryId: string;
+  },
+) {
   const sql = getSql();
   const rows = await sql`
     SELECT memory_id::text,created_at::text
@@ -32,13 +34,15 @@ export async function registerV3MemoryUpload(input: StoredObject & {
   return { id: String(rows[0].memory_id), createdAt: String(rows[0].created_at) };
 }
 
-export async function registerV3TicketUpload(input: StoredObject & {
-  userId: string;
-  departureId: string;
-  itemId: string;
-  mediaId: string;
-  documentId: string;
-}) {
+export async function registerV3TicketUpload(
+  input: StoredObject & {
+    userId: string;
+    departureId: string;
+    itemId: string;
+    mediaId: string;
+    documentId: string;
+  },
+) {
   const sql = getSql();
   const rows = await sql`
     SELECT document_id::text,title,created_at::text
@@ -56,10 +60,17 @@ export async function registerV3TicketUpload(input: StoredObject & {
   };
 }
 
-export async function registerV3DayDocument(input: StoredObject & {
-  userId: string; departureId: string; dayId: string; partyId: string; mediaId: string;
-  documentId: string; description: string;
-}) {
+export async function registerV3DayDocument(
+  input: StoredObject & {
+    userId: string;
+    departureId: string;
+    dayId: string;
+    partyId: string;
+    mediaId: string;
+    documentId: string;
+    description: string;
+  },
+) {
   const sql = getSql();
   const rows = await sql`
     SELECT document_id::text,title,description,created_at::text
@@ -69,8 +80,12 @@ export async function registerV3DayDocument(input: StoredObject & {
       ${input.objectKey},${input.originalName},${input.contentType},${input.sizeBytes}::bigint,
       ${input.description}
     )`;
-  return { id: String(rows[0].document_id), title: String(rows[0].title),
-    description: String(rows[0].description), createdAt: String(rows[0].created_at) };
+  return {
+    id: String(rows[0].document_id),
+    title: String(rows[0].title),
+    description: String(rows[0].description),
+    createdAt: String(rows[0].created_at),
+  };
 }
 
 export async function isMediaObjectRegistered(objectKey: string) {
@@ -84,11 +99,7 @@ export async function isMediaObjectRegistered(objectKey: string) {
   return Boolean(rows[0]?.registered);
 }
 
-export async function deleteV3LegacyDemoMedia(
-  userId: string,
-  kind: "photo" | "contest",
-  mediaId: string,
-) {
+export async function deleteV3LegacyDemoMedia(userId: string, kind: "photo" | "contest", mediaId: string) {
   const sql = getSql();
   const rows = await sql`
     SELECT deleted,object_key,reason

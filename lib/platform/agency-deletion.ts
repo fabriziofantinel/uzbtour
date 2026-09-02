@@ -10,7 +10,7 @@ export async function processAgencyDeletion(jobId: string, agencyId: string, del
     ${deletionJobId},${agencyId},${workerId},600)`;
   if (!claimed[0]) throw new Error("Cancellazione agenzia già elaborata o non disponibile");
   if (String(claimed[0].status) === "completed" || String(claimed[0].status) === "blocked") {
-    if(String(claimed[0].status)==="completed")
+    if (String(claimed[0].status) === "completed")
       await sql`SELECT app.finalize_agency_deletion_identities_v3(${deletionJobId})`;
     return { status: String(claimed[0].status), phase: String(claimed[0].phase) };
   }

@@ -5,13 +5,13 @@ import { processReferenceEnrichment } from "@/lib/platform/reference-enrichment"
 import type { ReferenceTarget } from "@/lib/platform/travel-catalog";
 
 async function main() {
-const tripOrDepartureId = process.argv[2];
-const refreshCountry = process.argv.includes("--refresh-country");
-const refreshDestinations = process.argv.includes("--refresh-destinations");
-if (!tripOrDepartureId || !/^[0-9a-f-]{36}$/i.test(tripOrDepartureId)) throw new Error("Viaggio non valido");
+  const tripOrDepartureId = process.argv[2];
+  const refreshCountry = process.argv.includes("--refresh-country");
+  const refreshDestinations = process.argv.includes("--refresh-destinations");
+  if (!tripOrDepartureId || !/^[0-9a-f-]{36}$/i.test(tripOrDepartureId)) throw new Error("Viaggio non valido");
 
-const sql = getSql();
-const scope = await sql`
+  const sql = getSql();
+  const scope = await sql`
   SELECT departure.agency_id::text,departure.template_id::text
   FROM travel.departures departure WHERE departure.id=${tripOrDepartureId}
   UNION ALL
@@ -19,11 +19,11 @@ const scope = await sql`
   FROM travel.trip_templates template WHERE template.id=${tripOrDepartureId}
   LIMIT 1
 `;
-const agencyId = String(scope[0]?.agency_id || "");
-const templateId = String(scope[0]?.template_id || "");
-if (!agencyId) throw new Error("Viaggio non trovato");
+  const agencyId = String(scope[0]?.agency_id || "");
+  const templateId = String(scope[0]?.template_id || "");
+  if (!agencyId) throw new Error("Viaggio non trovato");
 
-const targetRows = await sql`
+  const targetRows = await sql`
   WITH version AS(
     SELECT id FROM travel.trip_template_versions
     WHERE agency_id=${agencyId} AND template_id=${templateId} AND status='published'
@@ -42,25 +42,25 @@ const targetRows = await sql`
     JOIN ref.visit_sites site ON site.id=link.visit_site_id WHERE link.agency_id=${agencyId}
   ) SELECT * FROM targets ORDER BY entity_type,entity_id
 `;
-const targets = targetRows.map((row) => ({
-  entityType: String(row.entity_type) as ReferenceTarget["entityType"],
-  entityId: String(row.entity_id),
-  name: String(row.name),
-}));
-if (!targets.length) throw new Error("Anagrafiche del viaggio non disponibili");
+  const targets = targetRows.map((row) => ({
+    entityType: String(row.entity_type) as ReferenceTarget["entityType"],
+    entityId: String(row.entity_id),
+    name: String(row.name),
+  }));
+  if (!targets.length) throw new Error("Anagrafiche del viaggio non disponibili");
 
-if (refreshCountry) {
-  await sql`
+  if (refreshCountry) {
+    await sql`
     UPDATE ref.reference_contents content SET refresh_after=clock_timestamp()-interval '1 second'
     FROM travel.template_countries country
     WHERE country.agency_id=${agencyId} AND country.template_id=${templateId}
       AND content.country_id=country.country_id
       AND content.locale='it-IT' AND content.content_type IN('useful_info','phrasebook','bingo')
   `;
-}
+  }
 
-if (refreshDestinations) {
-  await sql`
+  if (refreshDestinations) {
+    await sql`
     UPDATE ref.reference_contents content SET refresh_after=clock_timestamp()-interval '1 second'
     WHERE content.locale='it-IT' AND content.content_type IN('quiz','mission','game','photo_contest')
       AND (content.city_id IN(SELECT link.city_id FROM travel.template_day_cities link
@@ -70,18 +70,18 @@ if (refreshDestinations) {
             JOIN travel.trip_template_versions version ON version.id=link.template_version_id
             WHERE link.agency_id=${agencyId} AND version.template_id=${templateId}))
   `;
-}
+  }
 
-const jobId = randomUUID();
-await sql`
+  const jobId = randomUUID();
+  await sql`
   INSERT INTO ops.platform_jobs(id,agency_id,job_type,provider,status,payload,idempotency_key)
   VALUES(${jobId},${agencyId},'travel-reference.enrich','database','queued',
     ${JSON.stringify({ templateId, referenceTargets: targets })}::jsonb,
     ${`maintenance:travel-reference.enrich:${templateId}:${jobId}`})
 `;
 
-const result = await processReferenceEnrichment(jobId, agencyId, templateId, targets);
-console.log(JSON.stringify({ status: "completed", jobId, agencyId, targets: targets.length, ...result }, null, 2));
+  const result = await processReferenceEnrichment(jobId, agencyId, templateId, targets);
+  console.log(JSON.stringify({ status: "completed", jobId, agencyId, targets: targets.length, ...result }, null, 2));
 }
 
 void main().catch((error) => {

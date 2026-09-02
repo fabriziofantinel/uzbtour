@@ -11,8 +11,13 @@ export const dynamic = "force-dynamic";
 export default async function AgencyImpersonationPage() {
   try {
     const actor = await requireAgencyAdminActor();
-    const [users, overview] = await Promise.all([readV3AgencyImpersonationTravelers(actor.id), getPlatformOverview(actor)]);
+    const [users, overview] = await Promise.all([
+      readV3AgencyImpersonationTravelers(actor.id),
+      getPlatformOverview(actor),
+    ]);
     const agency = overview.agencies[0];
     return <AgencyImpersonationClient users={users} primaryColor={agency?.primaryColor || "#247A6B"} />;
-  } catch { redirect("/"); }
+  } catch {
+    redirect("/");
+  }
 }

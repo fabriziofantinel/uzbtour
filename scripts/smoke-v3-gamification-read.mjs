@@ -2,35 +2,58 @@ import { randomUUID } from "node:crypto";
 
 import { Client } from "@neondatabase/serverless";
 
-const runtimeUrl=process.env.DATABASE_URL??process.env.DATABASE_MIGRATION_URL??process.env.DATABASE_URL_UNPOOLED;
-if(!runtimeUrl) throw new Error("Connessione Neon non configurata");
-const client=new Client(runtimeUrl); let open=false;
-try{
+const runtimeUrl = process.env.DATABASE_URL ?? process.env.DATABASE_MIGRATION_URL ?? process.env.DATABASE_URL_UNPOOLED;
+if (!runtimeUrl) throw new Error("Connessione Neon non configurata");
+const client = new Client(runtimeUrl);
+let open = false;
+try {
   await client.connect();
-  const usingOwnerFallback=!process.env.DATABASE_URL;
-  const role="smf_app";
-  const required=["content.activities","content.activity_items","ops.media_assets","journey.memories",
-    "journey.activity_attempts","journey.activity_evidence","journey.photo_contest_entries",
-    "journey.photo_contest_judgements"];
-  const missing=(await client.query(`SELECT table_name,has_table_privilege('smf_app',table_name,'SELECT') allowed
-    FROM unnest($1::text[]) table_name`,[required])).rows.filter((row)=>row.allowed!==true).map((row)=>row.table_name);
-  if(missing.length) throw new Error(`Ruolo runtime ${role} senza SELECT su: ${missing.join(", ")}`);
-  if((await client.query("SELECT has_table_privilege('smf_app','ops.legacy_generated_content_map','SELECT') allowed")).rows[0].allowed)
+  const usingOwnerFallback = !process.env.DATABASE_URL;
+  const role = "smf_app";
+  const required = [
+    "content.activities",
+    "content.activity_items",
+    "ops.media_assets",
+    "journey.memories",
+    "journey.activity_attempts",
+    "journey.activity_evidence",
+    "journey.photo_contest_entries",
+    "journey.photo_contest_judgements",
+  ];
+  const missing = (
+    await client.query(
+      `SELECT table_name,has_table_privilege('smf_app',table_name,'SELECT') allowed
+    FROM unnest($1::text[]) table_name`,
+      [required],
+    )
+  ).rows
+    .filter((row) => row.allowed !== true)
+    .map((row) => row.table_name);
+  if (missing.length) throw new Error(`Ruolo runtime ${role} senza SELECT su: ${missing.join(", ")}`);
+  if (
+    (await client.query("SELECT has_table_privilege('smf_app','ops.legacy_generated_content_map','SELECT') allowed"))
+      .rows[0].allowed
+  )
     throw new Error("La mappa tecnica dei contenuti è leggibile dal runtime");
 
-  const scope=(await client.query(`SELECT party.agency_id,party.departure_id,party.id party_id,
+  const scope = (
+    await client.query(`SELECT party.agency_id,party.departure_id,party.id party_id,
     departure.template_version_id FROM public.travel_parties party
     JOIN public.departures departure ON departure.id=party.departure_id AND departure.agency_id=party.agency_id
     ORDER BY (SELECT count(*) FROM public.generated_content content
       WHERE content.agency_id=party.agency_id AND content.template_version_id=departure.template_version_id) DESC
-    LIMIT 1`)).rows[0];
-  if(!scope) throw new Error("Nessuna famiglia disponibile per lo smoke test");
+    LIMIT 1`)
+  ).rows[0];
+  if (!scope) throw new Error("Nessuna famiglia disponibile per lo smoke test");
 
-  await client.query("BEGIN"); open=true;
-  if(usingOwnerFallback) await client.query("GRANT smf_app TO current_user");
+  await client.query("BEGIN");
+  open = true;
+  if (usingOwnerFallback) await client.query("GRANT smf_app TO current_user");
   await client.query("SET LOCAL statement_timeout='30s'");
-  await client.query("SELECT set_config('app.agency_id',$1,true)",[scope.agency_id]);
-  const reconciliation=(await client.query(`SELECT domain,legacy_count,target_count FROM (
+  await client.query("SELECT set_config('app.agency_id',$1,true)", [scope.agency_id]);
+  const reconciliation = (
+    await client.query(
+      `SELECT domain,legacy_count,target_count FROM (
     SELECT 'challenges' domain,
       (SELECT count(*) FROM public.generated_content WHERE agency_id=$1 AND template_version_id=$4 AND status='approved') legacy_count,
       (SELECT count(*) FROM content.activity_items item JOIN content.activities activity ON activity.id=item.activity_id
@@ -48,11 +71,16 @@ try{
     UNION ALL SELECT 'contests',
       (SELECT count(*) FROM public.party_photo_contest_entries WHERE agency_id=$1 AND party_id=$3),
       (SELECT count(*) FROM journey.photo_contest_entries WHERE agency_id=$1 AND departure_id=$2 AND party_id=$3)
-    ) counts ORDER BY domain`,[scope.agency_id,scope.departure_id,scope.party_id,scope.template_version_id])).rows;
-  const mismatches=reconciliation.filter((row)=>Number(row.legacy_count)!==Number(row.target_count));
-  if(mismatches.length) throw new Error(`Riconciliazione gamification fallita: ${JSON.stringify(mismatches)}`);
+    ) counts ORDER BY domain`,
+      [scope.agency_id, scope.departure_id, scope.party_id, scope.template_version_id],
+    )
+  ).rows;
+  const mismatches = reconciliation.filter((row) => Number(row.legacy_count) !== Number(row.target_count));
+  if (mismatches.length) throw new Error(`Riconciliazione gamification fallita: ${JSON.stringify(mismatches)}`);
 
-  const safety=(await client.query(`WITH public_projection AS (
+  const safety = (
+    await client.query(
+      `WITH public_projection AS (
     SELECT CASE activity.activity_type
       WHEN 'quiz' THEN jsonb_build_object('question',item.prompt,'options',coalesce(item.payload->'options','[]'::jsonb),
         'explanation',coalesce(item.payload->>'explanation',''))
@@ -67,18 +95,37 @@ try{
     (SELECT count(*) FROM content.activity_items item JOIN content.activities activity ON activity.id=item.activity_id
       WHERE activity.agency_id=$1 AND activity.template_version_id=$2 AND activity.activity_type='quiz'
         AND item.answer_spec ? 'correctIndex') quiz_keys_server_side
-    FROM public_projection`,[scope.agency_id,scope.template_version_id])).rows[0];
-  if(Number(safety.leak_count)!==0) throw new Error(`Soluzioni esposte nella proiezione pubblica: ${safety.leak_count}`);
+    FROM public_projection`,
+      [scope.agency_id, scope.template_version_id],
+    )
+  ).rows[0];
+  if (Number(safety.leak_count) !== 0)
+    throw new Error(`Soluzioni esposte nella proiezione pubblica: ${safety.leak_count}`);
 
   await client.query("SET LOCAL ROLE smf_app");
-  await client.query("SELECT set_config('app.agency_id',$1,true)",[randomUUID()]);
-  const crossTenantRows=Number((await client.query(`SELECT
+  await client.query("SELECT set_config('app.agency_id',$1,true)", [randomUUID()]);
+  const crossTenantRows = Number(
+    (
+      await client.query(`SELECT
     (SELECT count(*) FROM content.activities)+(SELECT count(*) FROM content.activity_items)+
     (SELECT count(*) FROM ops.media_assets)+(SELECT count(*) FROM journey.memories)+
     (SELECT count(*) FROM journey.activity_attempts)+(SELECT count(*) FROM journey.activity_evidence)+
-    (SELECT count(*) FROM journey.photo_contest_entries)+(SELECT count(*) FROM journey.photo_contest_judgements) row_count`)).rows[0].row_count);
-  if(crossTenantRows!==0) throw new Error(`Isolamento tenant fallito: ${crossTenantRows} righe visibili`);
-  await client.query("ROLLBACK"); open=false;
-  console.log(JSON.stringify({status:"passed",role,reconciledDomains:reconciliation.length,safety,crossTenantRows},null,2));
-}catch(error){if(open)await client.query("ROLLBACK").catch(()=>undefined);throw error;}
-finally{await client.end().catch(()=>undefined);}
+    (SELECT count(*) FROM journey.photo_contest_entries)+(SELECT count(*) FROM journey.photo_contest_judgements) row_count`)
+    ).rows[0].row_count,
+  );
+  if (crossTenantRows !== 0) throw new Error(`Isolamento tenant fallito: ${crossTenantRows} righe visibili`);
+  await client.query("ROLLBACK");
+  open = false;
+  console.log(
+    JSON.stringify(
+      { status: "passed", role, reconciledDomains: reconciliation.length, safety, crossTenantRows },
+      null,
+      2,
+    ),
+  );
+} catch (error) {
+  if (open) await client.query("ROLLBACK").catch(() => undefined);
+  throw error;
+} finally {
+  await client.end().catch(() => undefined);
+}

@@ -7,8 +7,9 @@ import "../../../../smf-2026.css";
 export const dynamic = "force-dynamic";
 export default async function DayDocumentsPage({ params }: { params: Promise<{ id: string }> }) {
   try {
-    const actor = await requirePlatformAdmin(); const { id } = await params;
-    return <DayDocumentsClient initialData={await getAgencyDayDocuments(id, actor.id)}/>;
+    const actor = await requirePlatformAdmin();
+    const { id } = await params;
+    return <DayDocumentsClient initialData={await getAgencyDayDocuments(id, actor.id)} />;
   } catch (error) {
     if (error instanceof PlatformAuthorizationError) redirect("/");
     throw error;

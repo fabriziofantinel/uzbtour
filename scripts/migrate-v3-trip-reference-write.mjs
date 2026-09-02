@@ -1,3 +1,59 @@
-import {createHash} from "node:crypto";import {readFile} from "node:fs/promises";import {performance} from "node:perf_hooks";import {Client} from "@neondatabase/serverless";
-const name="047_v3_trip_and_reference_write_cutover",model="3.19.0-trip-reference-write",apply=process.argv.includes("--apply"),url=process.env.DATABASE_MIGRATION_URL??process.env.DATABASE_URL_UNPOOLED;if(!url)throw new Error("Connessione diretta Neon owner non configurata");const source=await readFile(new URL(`../database/migrations/${name}.sql`,import.meta.url),"utf8"),checksum=createHash("sha256").update(source).digest("hex"),client=new Client(url);let open=false;
-try{await client.connect();const role=(await client.query("SELECT current_user role_name,current_user='smf_app' runtime")).rows[0];if(!role||role.runtime)throw new Error("Ruolo owner richiesto");const started=performance.now();await client.query("BEGIN");open=true;await client.query("SET LOCAL lock_timeout='5s'");await client.query("SET LOCAL statement_timeout='120s'");await client.query("SELECT pg_advisory_xact_lock(hashtextextended('smf-travel:v3-trip-reference-write',0))");await client.query(source);const gates=(await client.query(`SELECT has_function_privilege('smf_app','app.create_trip_template_v3(text,uuid,uuid,uuid,text,text,text)','EXECUTE') create_trip,has_function_privilege('smf_app','app.delete_trip_template_v3(text,uuid,uuid,uuid[])','EXECUTE') delete_trip,has_function_privilege('smf_app','app.upsert_reference_catalog_v3(text,uuid,text,uuid,text,text,text,text,double precision,double precision)','EXECUTE') catalog,has_function_privilege('smf_app','app.save_reference_content_v3(uuid,uuid,text,uuid,text,jsonb,text,timestamp with time zone)','EXECUTE') content`)).rows[0];if(!gates||Object.values(gates).some(v=>v!==true))throw new Error(`Gate incompleti: ${JSON.stringify(gates)}`);const executionMs=Math.round(performance.now()-started);if(apply){await client.query(`INSERT INTO ops.schema_migrations(version,checksum_sha256,execution_ms) VALUES($1,$2,$3) ON CONFLICT(version) DO UPDATE SET applied_at=clock_timestamp(),execution_ms=EXCLUDED.execution_ms`,[model,checksum,executionMs]);await client.query("COMMIT");}else await client.query("ROLLBACK");open=false;console.log(JSON.stringify({status:apply?"applied":"dry_run_passed",role:role.role_name,executionMs,gates,migration:{name,model,checksum}},null,2));}catch(error){if(open)await client.query("ROLLBACK").catch(()=>{});throw error;}finally{await client.end().catch(()=>{});}
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { performance } from "node:perf_hooks";
+import { Client } from "@neondatabase/serverless";
+const name = "047_v3_trip_and_reference_write_cutover",
+  model = "3.19.0-trip-reference-write",
+  apply = process.argv.includes("--apply"),
+  url = process.env.DATABASE_MIGRATION_URL ?? process.env.DATABASE_URL_UNPOOLED;
+if (!url) throw new Error("Connessione diretta Neon owner non configurata");
+const source = await readFile(new URL(`../database/migrations/${name}.sql`, import.meta.url), "utf8"),
+  checksum = createHash("sha256").update(source).digest("hex"),
+  client = new Client(url);
+let open = false;
+try {
+  await client.connect();
+  const role = (await client.query("SELECT current_user role_name,current_user='smf_app' runtime")).rows[0];
+  if (!role || role.runtime) throw new Error("Ruolo owner richiesto");
+  const started = performance.now();
+  await client.query("BEGIN");
+  open = true;
+  await client.query("SET LOCAL lock_timeout='5s'");
+  await client.query("SET LOCAL statement_timeout='120s'");
+  await client.query("SELECT pg_advisory_xact_lock(hashtextextended('smf-travel:v3-trip-reference-write',0))");
+  await client.query(source);
+  const gates = (
+    await client.query(
+      `SELECT has_function_privilege('smf_app','app.create_trip_template_v3(text,uuid,uuid,uuid,text,text,text)','EXECUTE') create_trip,has_function_privilege('smf_app','app.delete_trip_template_v3(text,uuid,uuid,uuid[])','EXECUTE') delete_trip,has_function_privilege('smf_app','app.upsert_reference_catalog_v3(text,uuid,text,uuid,text,text,text,text,double precision,double precision)','EXECUTE') catalog,has_function_privilege('smf_app','app.save_reference_content_v3(uuid,uuid,text,uuid,text,jsonb,text,timestamp with time zone)','EXECUTE') content`,
+    )
+  ).rows[0];
+  if (!gates || Object.values(gates).some((v) => v !== true))
+    throw new Error(`Gate incompleti: ${JSON.stringify(gates)}`);
+  const executionMs = Math.round(performance.now() - started);
+  if (apply) {
+    await client.query(
+      `INSERT INTO ops.schema_migrations(version,checksum_sha256,execution_ms) VALUES($1,$2,$3) ON CONFLICT(version) DO UPDATE SET applied_at=clock_timestamp(),execution_ms=EXCLUDED.execution_ms`,
+      [model, checksum, executionMs],
+    );
+    await client.query("COMMIT");
+  } else await client.query("ROLLBACK");
+  open = false;
+  console.log(
+    JSON.stringify(
+      {
+        status: apply ? "applied" : "dry_run_passed",
+        role: role.role_name,
+        executionMs,
+        gates,
+        migration: { name, model, checksum },
+      },
+      null,
+      2,
+    ),
+  );
+} catch (error) {
+  if (open) await client.query("ROLLBACK").catch(() => {});
+  throw error;
+} finally {
+  await client.end().catch(() => {});
+}

@@ -15,9 +15,10 @@ export async function getTravelerPwaBranding(): Promise<TravelerPwaBranding | nu
   const journeys = await readV3TravelerJourneys(user.id);
   const journey = journeys[0];
   if (!journey) return null;
-  const branding = journey.agency_branding && typeof journey.agency_branding === "object" && !Array.isArray(journey.agency_branding)
-    ? journey.agency_branding as Record<string, unknown>
-    : {};
+  const branding =
+    journey.agency_branding && typeof journey.agency_branding === "object" && !Array.isArray(journey.agency_branding)
+      ? (journey.agency_branding as Record<string, unknown>)
+      : {};
   return {
     agencyId: String(journey.agency_id),
     agencyName: String(journey.agency_name || "SMF Travel"),

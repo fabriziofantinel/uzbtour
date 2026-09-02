@@ -33,7 +33,7 @@ REGOLE DI SICUREZZA E QUALITÀ:
 
 export async function extractTravelProgrammeWithGemini(
   documentBytes: Uint8Array,
-  filename: string
+  filename: string,
 ): Promise<{ draft: TravelProgrammeDraft; model: string; provider: string; usage: unknown }> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY non configurata");
@@ -55,13 +55,15 @@ export async function extractTravelProgrammeWithGemini(
         thinkingConfig: { thinkingLevel: "low" },
       } satisfies GoogleLanguageModelOptions,
     },
-    messages: [{
-      role: "user",
-      content: [
-        { type: "file", data: documentBytes, mediaType: documentType.contentType, filename },
-        { type: "text", text: extractionPrompt },
-      ],
-    }],
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "file", data: documentBytes, mediaType: documentType.contentType, filename },
+          { type: "text", text: extractionPrompt },
+        ],
+      },
+    ],
   });
 
   return { draft: result.output, model, provider: `gemini-native-${documentType.extension}`, usage: result.usage };

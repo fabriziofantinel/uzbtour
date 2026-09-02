@@ -18,9 +18,10 @@ export async function getAgencyProgramme(departureId: string, actorId: string) {
   `;
   if (!scopeRows[0]) throw new PlatformRequestError("Partenza non trovata");
   const agencyId = String(scopeRows[0].agency_id);
-  const [, departures, brandingRows] = await sql.transaction((transaction) => [
-    transaction`SELECT set_config('app.agency_id', ${agencyId}, true)`,
-    transaction`
+  const [, departures, brandingRows] = await sql.transaction(
+    (transaction) => [
+      transaction`SELECT set_config('app.agency_id', ${agencyId}, true)`,
+      transaction`
     SELECT d.id::text, d.agency_id::text, d.template_id::text, d.template_version_id::text,
       d.title, d.code, d.starts_on::text, d.ends_on::text, d.status,
       tt.title AS programme_title, COALESCE(country.name, '') AS destination_country,
@@ -41,19 +42,23 @@ export async function getAgencyProgramme(departureId: string, actorId: string) {
     WHERE d.id = ${departureId} AND d.agency_id = ${agencyId}
     LIMIT 1
     `,
-    transaction`
+      transaction`
       SELECT branding
       FROM app.read_agency_branding_v3(${actorId})
       WHERE agency_id = ${agencyId}
       LIMIT 1
     `,
-  ], { readOnly: true });
+    ],
+    { readOnly: true },
+  );
   if (!departures[0]) throw new PlatformRequestError("Partenza non trovata");
   const departure = departures[0] as Row;
-  const agencyBranding = brandingRows[0]?.branding && typeof brandingRows[0].branding === "object"
-    && !Array.isArray(brandingRows[0].branding)
-    ? brandingRows[0].branding as Record<string, unknown>
-    : {};
+  const agencyBranding =
+    brandingRows[0]?.branding &&
+    typeof brandingRows[0].branding === "object" &&
+    !Array.isArray(brandingRows[0].branding)
+      ? (brandingRows[0].branding as Record<string, unknown>)
+      : {};
   const versionId = String(departure.template_version_id);
   const [, dayRows, itemRows, hotelRows, documentRows] = await sql.transaction((transaction) => [
     transaction`SELECT set_config('app.agency_id', ${agencyId}, true)`,
@@ -147,25 +152,41 @@ export async function getAgencyProgramme(departureId: string, actorId: string) {
       title: value(day.title),
       city: value(day.city),
       description: value(day.description),
-      items: items.filter((item) => String(item.trip_day_id) === String(day.id)).map((item) => ({
-        id: String(item.id), type: String(item.item_type), title: String(item.title),
-        description: value(item.description), startsAt: value(item.starts_at).slice(0, 5),
-        endsAt: value(item.ends_at).slice(0, 5), sortOrder: Number(item.sort_order),
-        operationalStatus: value(item.operational_status || "planned"),
-        statusReason: value(item.status_reason),
-        tickets: documents.filter((document) => String(document.itinerary_item_id) === String(item.id)).map((document) => ({
-          id: String(document.id), title: String(document.title), contentType: String(document.content_type),
-          sizeBytes: document.size_bytes == null ? null : Number(document.size_bytes),
-          createdAt: String(document.created_at),
-          downloadUrl: `/api/travel-documents/${String(document.id)}/content?download=1`,
+      items: items
+        .filter((item) => String(item.trip_day_id) === String(day.id))
+        .map((item) => ({
+          id: String(item.id),
+          type: String(item.item_type),
+          title: String(item.title),
+          description: value(item.description),
+          startsAt: value(item.starts_at).slice(0, 5),
+          endsAt: value(item.ends_at).slice(0, 5),
+          sortOrder: Number(item.sort_order),
+          operationalStatus: value(item.operational_status || "planned"),
+          statusReason: value(item.status_reason),
+          tickets: documents
+            .filter((document) => String(document.itinerary_item_id) === String(item.id))
+            .map((document) => ({
+              id: String(document.id),
+              title: String(document.title),
+              contentType: String(document.content_type),
+              sizeBytes: document.size_bytes == null ? null : Number(document.size_bytes),
+              createdAt: String(document.created_at),
+              downloadUrl: `/api/travel-documents/${String(document.id)}/content?download=1`,
+            })),
+          includedInQuote:
+            typeof (item.metadata as Record<string, unknown> | null)?.includedInQuote === "boolean"
+              ? Boolean((item.metadata as Record<string, unknown>).includedInQuote)
+              : null,
         })),
-        includedInQuote: typeof (item.metadata as Record<string, unknown> | null)?.includedInQuote === "boolean"
-          ? Boolean((item.metadata as Record<string, unknown>).includedInQuote) : null,
-      })),
-      hotels: hotels.filter((hotel) => String(hotel.trip_day_id) === String(day.id)).map((hotel) => ({
-        id: String(hotel.id), name: String(hotel.name), notes: value(hotel.notes),
-        sortOrder: Number(hotel.sort_order),
-      })),
+      hotels: hotels
+        .filter((hotel) => String(hotel.trip_day_id) === String(day.id))
+        .map((hotel) => ({
+          id: String(hotel.id),
+          name: String(hotel.name),
+          notes: value(hotel.notes),
+          sortOrder: Number(hotel.sort_order),
+        })),
     })),
   };
 }
@@ -205,11 +226,20 @@ export async function updateAgencyProgrammeDay(input: {
   title: string;
   city: string;
   description: string;
-  items: Array<{ id: string; type: string; title: string; description: string; startsAt: string; endsAt: string; sortOrder: number; includedInQuote: boolean | null }>;
+  items: Array<{
+    id: string;
+    type: string;
+    title: string;
+    description: string;
+    startsAt: string;
+    endsAt: string;
+    sortOrder: number;
+    includedInQuote: boolean | null;
+  }>;
   hotels: Array<{ id: string; name: string; notes: string; sortOrder: number }>;
 }) {
   const sql = getSql();
-  const previousRows=await sql`SELECT label,title,city,description FROM travel.departure_days
+  const previousRows = await sql`SELECT label,title,city,description FROM travel.departure_days
     WHERE departure_id=${input.departureId} AND id=${input.dayId} LIMIT 1`;
   const rows = await sql`SELECT app.update_departure_programme_day_v3(
     ${input.actorId},${input.departureId},${input.dayId},${input.label},${input.title},
@@ -217,18 +247,25 @@ export async function updateAgencyProgrammeDay(input: {
     ${JSON.stringify(input.hotels)}::jsonb
   ) AS updated`;
   if (!Boolean(rows[0]?.updated)) throw new PlatformRequestError("Giornata non disponibile");
-  const previous=previousRows[0]??{};
-  const current={label:input.label,title:input.title,city:input.city,description:input.description};
-  if(JSON.stringify(previous)!==JSON.stringify(current))await sql`SELECT app.publish_traveler_change_notice_v3(
+  const previous = previousRows[0] ?? {};
+  const current = { label: input.label, title: input.title, city: input.city, description: input.description };
+  if (JSON.stringify(previous) !== JSON.stringify(current))
+    await sql`SELECT app.publish_traveler_change_notice_v3(
     ${input.actorId},${input.departureId}::uuid,${input.dayId}::uuid,'programme','important',
-    ${`Programma aggiornato: ${input.title||input.label||"giornata"}`},
+    ${`Programma aggiornato: ${input.title || input.label || "giornata"}`},
     ${`L’agenzia ha aggiornato il programma della giornata. Apri la giornata per consultare i dettagli.`},
     ${JSON.stringify(previous)}::jsonb,${JSON.stringify(current)}::jsonb)`;
 }
 
 function departureCode(title: string) {
-  const base = title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase()
-    .replace(/[^A-Z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 28) || "PARTENZA";
+  const base =
+    title
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 28) || "PARTENZA";
   return `${base}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
 }
 
@@ -240,10 +277,10 @@ export async function createDepartureFromProgramme(input: {
   title: string;
 }) {
   const sql = getSql();
-  const departureId=crypto.randomUUID();
-  const title=input.title||"Nuova partenza";
-  const rows=await sql`SELECT app.create_departure_from_programme_v3(${input.actorId},
+  const departureId = crypto.randomUUID();
+  const title = input.title || "Nuova partenza";
+  const rows = await sql`SELECT app.create_departure_from_programme_v3(${input.actorId},
     ${input.templateId},${departureId},${departureCode(title)},${title},${input.startsOn},${input.endsOn})::text AS id`;
-  if(!rows[0]?.id) throw new PlatformRequestError("Pubblica il programma prima di creare una nuova partenza");
+  if (!rows[0]?.id) throw new PlatformRequestError("Pubblica il programma prima di creare una nuova partenza");
   return String(rows[0].id);
 }

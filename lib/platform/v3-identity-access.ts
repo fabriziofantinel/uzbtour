@@ -67,15 +67,23 @@ export async function readV3AgencyImpersonationTravelers(actorId: string) {
   const sql = getSql();
   const rows = await sql`SELECT * FROM app.read_agency_impersonation_travelers(${actorId})`;
   return rows.map((row) => ({
-    id: String(row.legacy_user_id), name: String(row.display_name), username: String(row.username),
-    email: String(row.email), status: String(row.user_status), agencyId: String(row.agency_id),
+    id: String(row.legacy_user_id),
+    name: String(row.display_name),
+    username: String(row.username),
+    email: String(row.email),
+    status: String(row.user_status),
+    agencyId: String(row.agency_id),
     agencyName: String(row.agency_name),
     departureTitles: Array.isArray(row.departure_titles) ? row.departure_titles.map(String) : [],
   }));
 }
 
 export async function startV3AgencyTravelerImpersonation(input: {
-  actorId: string; targetId: string; tokenHash: string; expiresAt: string; userAgent?: string;
+  actorId: string;
+  targetId: string;
+  tokenHash: string;
+  expiresAt: string;
+  userAgent?: string;
 }) {
   const sql = getSql();
   const rows = await sql`

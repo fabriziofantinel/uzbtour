@@ -29,8 +29,35 @@ for (const [name, config] of Object.entries(vercelValues)) {
   run(
     process.platform === "win32" ? powershell : "npx",
     process.platform === "win32"
-      ? ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", npxScript, "vercel", "env", "add", name, "production,preview,development", "--value", config.value, "--yes", "--force", config.sensitive ? "--sensitive" : "--no-sensitive"]
-      : ["vercel", "env", "add", name, "production,preview,development", "--value", config.value, "--yes", "--force", config.sensitive ? "--sensitive" : "--no-sensitive"],
+      ? [
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          npxScript,
+          "vercel",
+          "env",
+          "add",
+          name,
+          "production,preview,development",
+          "--value",
+          config.value,
+          "--yes",
+          "--force",
+          config.sensitive ? "--sensitive" : "--no-sensitive",
+        ]
+      : [
+          "vercel",
+          "env",
+          "add",
+          name,
+          "production,preview,development",
+          "--value",
+          config.value,
+          "--yes",
+          "--force",
+          config.sensitive ? "--sensitive" : "--no-sensitive",
+        ],
     `Aggiornamento Vercel ${name}`,
     [config.value],
   );
@@ -39,11 +66,15 @@ for (const [name, config] of Object.entries(vercelValues)) {
 run(
   process.platform === "win32" ? awsCli : "aws",
   [
-    "ssm", "put-parameter",
-    "--name", parameterName,
-    "--type", "SecureString",
+    "ssm",
+    "put-parameter",
+    "--name",
+    parameterName,
+    "--type",
+    "SecureString",
     "--overwrite",
-    "--value", JSON.stringify({ subject, publicKey: keys.publicKey, privateKey: keys.privateKey }),
+    "--value",
+    JSON.stringify({ subject, publicKey: keys.publicKey, privateKey: keys.privateKey }),
   ],
   "Aggiornamento del parametro AWS",
   [keys.publicKey, keys.privateKey],

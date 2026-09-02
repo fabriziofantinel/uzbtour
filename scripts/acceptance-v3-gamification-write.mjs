@@ -9,7 +9,8 @@ const runtimeClient = new Client(runtimeUrl);
 let open = false;
 try {
   await client.connect();
-  const fixtures = (await client.query(`
+  const fixtures = (
+    await client.query(`
     SELECT membership.agency_id, membership.departure_id, membership.party_id,
       day.template_day_id, item.id activity_item_id, mapping.legacy_id actor_legacy_id,
       activity.activity_type
@@ -33,7 +34,10 @@ try {
      AND item.activity_id=activity.id
     WHERE membership.status='active'
     ORDER BY activity.activity_type,day.service_date,item.ordinal
-  `)).rows.filter((row,index,rows)=>rows.findIndex(candidate=>candidate.activity_type===row.activity_type)===index);
+  `)
+  ).rows.filter(
+    (row, index, rows) => rows.findIndex((candidate) => candidate.activity_type === row.activity_type) === index,
+  );
   if (!fixtures.length) throw new Error("Fixture V3 gamification non disponibile");
   await runtimeClient.connect();
   await runtimeClient.query("BEGIN");
@@ -42,26 +46,35 @@ try {
     await runtimeClient.query("GRANT smf_app TO current_user");
     await runtimeClient.query("SET LOCAL ROLE smf_app");
   }
-  const runtimeRole=(await runtimeClient.query("SELECT current_user role_name")).rows[0]?.role_name;
-  if(runtimeRole!=="smf_app")throw new Error(`Ruolo runtime inatteso: ${runtimeRole}`);
-  const verified=[];
-  for(const fixture of fixtures){
-    await runtimeClient.query("SELECT set_config('app.agency_id',$1,true)",[fixture.agency_id]);
+  const runtimeRole = (await runtimeClient.query("SELECT current_user role_name")).rows[0]?.role_name;
+  if (runtimeRole !== "smf_app") throw new Error(`Ruolo runtime inatteso: ${runtimeRole}`);
+  const verified = [];
+  for (const fixture of fixtures) {
+    await runtimeClient.query("SELECT set_config('app.agency_id',$1,true)", [fixture.agency_id]);
     const resultId = randomUUID();
-    const saved = (await runtimeClient.query(`SELECT * FROM app.save_activity_item_result_v3(
-      $1,$2,$3,$4,$5,$6,$7,0,10,'submitted',$8::jsonb,NULL)`,[
-        fixture.actor_legacy_id,fixture.agency_id,fixture.departure_id,fixture.party_id,
-        fixture.template_day_id,fixture.activity_item_id,resultId,
-        JSON.stringify({ acceptance: true,activityType:fixture.activity_type }),
-      ])).rows[0];
+    const saved = (
+      await runtimeClient.query(
+        `SELECT * FROM app.save_activity_item_result_v3(
+      $1,$2,$3,$4,$5,$6,$7,0,10,'submitted',$8::jsonb,NULL)`,
+        [
+          fixture.actor_legacy_id,
+          fixture.agency_id,
+          fixture.departure_id,
+          fixture.party_id,
+          fixture.template_day_id,
+          fixture.activity_item_id,
+          resultId,
+          JSON.stringify({ acceptance: true, activityType: fixture.activity_type }),
+        ],
+      )
+    ).rows[0];
     if (!saved?.id || saved.status !== "submitted")
       throw new Error(`Salvataggio V3 non verificato per ${fixture.activity_type}`);
     verified.push(fixture.activity_type);
   }
   await runtimeClient.query("ROLLBACK");
   open = false;
-  console.log(JSON.stringify({ status: "passed", activityTypes: verified,
-    runtimeRole, rollback: true }, null, 2));
+  console.log(JSON.stringify({ status: "passed", activityTypes: verified, runtimeRole, rollback: true }, null, 2));
 } catch (error) {
   if (open) await runtimeClient.query("ROLLBACK").catch(() => {});
   throw error;

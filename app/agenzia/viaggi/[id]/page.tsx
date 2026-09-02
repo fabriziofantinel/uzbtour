@@ -8,7 +8,7 @@ export default async function JourneyPage({ params }: { params: Promise<{ id: st
   try {
     const actor = await requirePlatformAdmin();
     const { id } = await params;
-    return <JourneyTravelers initialData={await getJourneyManagement(id, actor.id)}/>;
+    return <JourneyTravelers initialData={await getJourneyManagement(id, actor.id)} />;
   } catch (error) {
     if (error instanceof PlatformAuthorizationError) redirect("/");
     throw error;

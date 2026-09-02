@@ -10,8 +10,10 @@ interface InstallPromptEvent extends Event {
 
 function isStandalone() {
   if (typeof window === "undefined") return false;
-  return window.matchMedia("(display-mode: standalone)").matches
-    || Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone);
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    Boolean((window.navigator as Navigator & { standalone?: boolean }).standalone)
+  );
 }
 
 export default function PwaInstaller() {
@@ -44,7 +46,8 @@ export default function PwaInstaller() {
     window.addEventListener("offline", handleOffline);
 
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js")
+      navigator.serviceWorker
+        .register("/sw.js")
         .then(() => navigator.serviceWorker.ready)
         .then(() => setOfflineReady(true))
         .catch(() => setOfflineReady(false));
@@ -71,25 +74,42 @@ export default function PwaInstaller() {
 
   return (
     <section className="pwaCard" aria-label="Installa l'app del viaggio">
-      <div className="pwaCardIcon">{installed ? <CheckCircle2 size={23}/> : <Smartphone size={23}/>}</div>
+      <div className="pwaCardIcon">{installed ? <CheckCircle2 size={23} /> : <Smartphone size={23} />}</div>
       <div className="pwaCardCopy">
         <small>APP DEL VIAGGIO</small>
         <h3>{installed ? "SMF Travel è installata" : "Porta SMF Travel sul telefono"}</h3>
-        <p>{installed ? "Si apre come un’app e conserva un promemoria offline con programma e contatti." : "Installala sulla schermata Home per aprirla a tutto schermo e avere le informazioni essenziali anche offline."}</p>
+        <p>
+          {installed
+            ? "Si apre come un’app e conserva un promemoria offline con programma e contatti."
+            : "Installala sulla schermata Home per aprirla a tutto schermo e avere le informazioni essenziali anche offline."}
+        </p>
         <div className="pwaStatus">
-          <span className={online ? "ready" : "offline"}>{online ? <Wifi size={13}/> : <WifiOff size={13}/>} {online ? "Online" : "Offline"}</span>
-          {offlineReady && <span className="ready"><CheckCircle2 size={13}/> Promemoria offline pronto</span>}
+          <span className={online ? "ready" : "offline"}>
+            {online ? <Wifi size={13} /> : <WifiOff size={13} />} {online ? "Online" : "Offline"}
+          </span>
+          {offlineReady && (
+            <span className="ready">
+              <CheckCircle2 size={13} /> Promemoria offline pronto
+            </span>
+          )}
         </div>
         {showHelp && !installed && (
           <p className="pwaHelp">
-            {isIos
-              ? <><Share2 size={14}/> In Safari tocca Condividi e poi “Aggiungi alla schermata Home”.</>
-              : <>Apri il menu del browser e scegli “Installa app” oppure “Aggiungi a schermata Home”.</>
-            }
+            {isIos ? (
+              <>
+                <Share2 size={14} /> In Safari tocca Condividi e poi “Aggiungi alla schermata Home”.
+              </>
+            ) : (
+              <>Apri il menu del browser e scegli “Installa app” oppure “Aggiungi a schermata Home”.</>
+            )}
           </p>
         )}
       </div>
-      {!installed && <button type="button" onClick={() => void install()}><Download size={17}/> Installa app</button>}
+      {!installed && (
+        <button type="button" onClick={() => void install()}>
+          <Download size={17} /> Installa app
+        </button>
+      )}
     </section>
   );
 }

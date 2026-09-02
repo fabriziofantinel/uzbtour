@@ -63,9 +63,7 @@ const expectedReferenceTypes = {
   site: new Set(["quiz", "mission", "game", "photo_contest"]),
 } as const;
 
-export async function getPlatformOverview(
-  actor: { id: string; name: string }
-): Promise<PlatformOverview> {
+export async function getPlatformOverview(actor: { id: string; name: string }): Promise<PlatformOverview> {
   const sql = getSql();
   const [overviewRows, importRows, referenceRows, enrichmentRows, brandingRows] = await Promise.all([
     sql`SELECT * FROM app.read_agency_overview_v3(${actor.id})`,
@@ -75,14 +73,21 @@ export async function getPlatformOverview(
     sql`SELECT * FROM app.read_agency_branding_v3(${actor.id})`,
   ]);
   const rows = overviewRows as OverviewRow[];
-  const brandingByAgency = new Map((brandingRows as AgencyBrandingRow[]).map((row) => {
-    const branding = row.branding && typeof row.branding === "object" && !Array.isArray(row.branding)
-      ? row.branding as Record<string, unknown> : {};
-    return [row.agency_id, {
-      primaryColor: typeof branding.primaryColor === "string" ? branding.primaryColor : "#247A6B",
-      logoUrl: typeof branding.logoUrl === "string" ? branding.logoUrl : "",
-    }];
-  }));
+  const brandingByAgency = new Map(
+    (brandingRows as AgencyBrandingRow[]).map((row) => {
+      const branding =
+        row.branding && typeof row.branding === "object" && !Array.isArray(row.branding)
+          ? (row.branding as Record<string, unknown>)
+          : {};
+      return [
+        row.agency_id,
+        {
+          primaryColor: typeof branding.primaryColor === "string" ? branding.primaryColor : "#247A6B",
+          logoUrl: typeof branding.logoUrl === "string" ? branding.logoUrl : "",
+        },
+      ];
+    }),
+  );
 
   const agencies = new Map<string, PlatformOverview["agencies"][number]>();
   for (const row of rows) {
@@ -117,8 +122,12 @@ export async function getPlatformOverview(
       agency.trips.push(trip);
     }
     if (
-      row.departure_id && row.departure_code && row.departure_title && row.starts_on &&
-      row.ends_on && row.departure_status
+      row.departure_id &&
+      row.departure_code &&
+      row.departure_title &&
+      row.starts_on &&
+      row.ends_on &&
+      row.departure_status
     ) {
       trip.departures.push({
         id: row.departure_id,
@@ -133,10 +142,13 @@ export async function getPlatformOverview(
     }
   }
 
-  const contentByTrip = new Map<string, {
-    entities: Map<string, { entityType: "country" | "city" | "site"; ready: Set<string> }>;
-    contestTitles: Set<string>;
-  }>();
+  const contentByTrip = new Map<
+    string,
+    {
+      entities: Map<string, { entityType: "country" | "city" | "site"; ready: Set<string> }>;
+      contestTitles: Set<string>;
+    }
+  >();
   for (const row of referenceRows as ReferenceContentRow[]) {
     let tripContent = contentByTrip.get(row.template_id);
     if (!tripContent) {
@@ -149,10 +161,7 @@ export async function getPlatformOverview(
       entity = { entityType: row.entity_type, ready: new Set() };
       tripContent.entities.set(entityKey, entity);
     }
-    if (
-      row.content_type && row.status === "ready" &&
-      expectedReferenceTypes[row.entity_type].has(row.content_type)
-    ) {
+    if (row.content_type && row.status === "ready" && expectedReferenceTypes[row.entity_type].has(row.content_type)) {
       entity.ready.add(row.content_type);
     }
     if (row.content_type === "photo_contest" && row.status === "ready" && Array.isArray(row.content)) {
@@ -164,9 +173,7 @@ export async function getPlatformOverview(
     }
   }
 
-  const jobsByTrip = new Map(
-    (enrichmentRows as EnrichmentJobRow[]).map((row) => [row.template_id, row])
-  );
+  const jobsByTrip = new Map((enrichmentRows as EnrichmentJobRow[]).map((row) => [row.template_id, row]));
   for (const agency of agencies.values()) {
     for (const trip of agency.trips) {
       const content = contentByTrip.get(trip.id);
@@ -175,10 +182,7 @@ export async function getPlatformOverview(
       const entities = [...(content?.entities.values() ?? [])];
       trip.contentGeneration = {
         status: job?.status ?? "not_started",
-        expectedSections: entities.reduce(
-          (total, entity) => total + expectedReferenceTypes[entity.entityType].size,
-          0
-        ),
+        expectedSections: entities.reduce((total, entity) => total + expectedReferenceTypes[entity.entityType].size, 0),
         readySections: entities.reduce((total, entity) => total + entity.ready.size, 0),
         contestTitles: [...(content?.contestTitles ?? [])],
         errorMessage: job?.error_message ?? null,
@@ -205,13 +209,14 @@ export async function getPlatformOverview(
 }
 
 function tripSlug(title: string) {
-  const base = title
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 56) || "viaggio";
+  const base =
+    title
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 56) || "viaggio";
   return `${base}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
@@ -237,26 +242,32 @@ export async function createTripTemplate(input: {
 
 export async function assertTripBelongsToAgency(agencyId: string, templateId: string) {
   const sql = getSql();
-  const [,rows]=await sql.transaction((txn)=>[
-    txn`SELECT set_config('app.agency_id',${agencyId},true)`,
-    txn`SELECT id::text,title FROM travel.trip_templates
+  const [, rows] = await sql.transaction(
+    (txn) => [
+      txn`SELECT set_config('app.agency_id',${agencyId},true)`,
+      txn`SELECT id::text,title FROM travel.trip_templates
       WHERE id=${templateId} AND agency_id=${agencyId} LIMIT 1`,
-  ],{readOnly:true});
+    ],
+    { readOnly: true },
+  );
   if (rows.length === 0) throw new PlatformRequestError("Viaggio non trovato");
   return rows[0] as { id: string; title: string };
 }
 
 export async function assertTripHasNoProgramme(agencyId: string, templateId: string) {
   const sql = getSql();
-  const [,rows] = await sql.transaction((txn)=>[
-    txn`SELECT set_config('app.agency_id',${agencyId},true)`,
-    txn`
+  const [, rows] = await sql.transaction(
+    (txn) => [
+      txn`SELECT set_config('app.agency_id',${agencyId},true)`,
+      txn`
     SELECT EXISTS (
       SELECT 1 FROM ops.travel_documents
       WHERE agency_id = ${agencyId} AND template_id = ${templateId}
     ) AS value
     `,
-  ],{readOnly:true});
+    ],
+    { readOnly: true },
+  );
   if (Boolean(rows[0]?.value)) {
     throw new PlatformRequestError("Il viaggio ha già un programma: eliminalo per caricare un nuovo preventivo");
   }
@@ -264,12 +275,13 @@ export async function assertTripHasNoProgramme(agencyId: string, templateId: str
 
 export async function getTripEnrichmentQueueRecord(templateId: string) {
   const sql = getSql();
-  const agencyRows=await sql`SELECT agency_id::text FROM app.resolve_template_agency_v3(${templateId})`;
-  if(!agencyRows[0]?.agency_id) throw new PlatformRequestError("Generazione dei contenuti non trovata");
-  const agencyId=String(agencyRows[0].agency_id);
-  const [,rows] = await sql.transaction((txn)=>[
-    txn`SELECT set_config('app.agency_id',${agencyId},true)`,
-    txn`
+  const agencyRows = await sql`SELECT agency_id::text FROM app.resolve_template_agency_v3(${templateId})`;
+  if (!agencyRows[0]?.agency_id) throw new PlatformRequestError("Generazione dei contenuti non trovata");
+  const agencyId = String(agencyRows[0].agency_id);
+  const [, rows] = await sql.transaction(
+    (txn) => [
+      txn`SELECT set_config('app.agency_id',${agencyId},true)`,
+      txn`
     SELECT
       pj.agency_id::text,
       pj.payload,
@@ -282,7 +294,9 @@ export async function getTripEnrichmentQueueRecord(templateId: string) {
     ORDER BY pj.created_at DESC
     LIMIT 1
     `,
-  ],{readOnly:true});
+    ],
+    { readOnly: true },
+  );
   if (!rows[0]) throw new PlatformRequestError("Generazione dei contenuti non trovata");
   const payload = rows[0].payload;
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
@@ -328,7 +342,7 @@ export async function deleteTripRecords(input: {
   mediaAssetIds: string[];
 }) {
   const sql = getSql();
-  const rows=await sql`SELECT app.delete_trip_template_v3(${input.actorId},${input.agencyId},
+  const rows = await sql`SELECT app.delete_trip_template_v3(${input.actorId},${input.agencyId},
     ${input.templateId},${input.mediaAssetIds}::uuid[]) AS deleted`;
   if (!Boolean(rows[0]?.deleted)) throw new PlatformRequestError("Eliminazione del viaggio non riuscita");
 }
@@ -345,8 +359,9 @@ export async function registerImportedDocument(input: {
   sizeBytes: number | null;
 }) {
   const sql = getSql();
-  if(input.provider!=="r2"||input.sizeBytes==null) throw new PlatformRequestError("Il documento deve essere archiviato su R2");
-  const rows=await sql`SELECT id::text,document_id::text,status,created_at::text
+  if (input.provider !== "r2" || input.sizeBytes == null)
+    throw new PlatformRequestError("Il documento deve essere archiviato su R2");
+  const rows = await sql`SELECT id::text,document_id::text,status,created_at::text
     FROM app.register_import_document_v3(${input.actorId},${input.agencyId},${input.templateId},
       ${input.provider},${input.bucket},${input.objectKey},${input.originalName},
       ${input.contentType},${input.sizeBytes})`;

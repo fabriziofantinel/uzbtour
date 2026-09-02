@@ -5,14 +5,26 @@ import { usePathname } from "next/navigation";
 import { Bell, Download, RefreshCw, Share, X } from "lucide-react";
 import { flushOfflineQueue } from "@/lib/pwa/offline-queue";
 
-type InstallPromptEvent = Event & { prompt(): Promise<void>; userChoice: Promise<{ outcome: "accepted" | "dismissed" }> };
+type InstallPromptEvent = Event & {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+};
 type SyncState = "idle" | "pending" | "complete" | "failed";
 
-function isIos() { return /iphone|ipad|ipod/i.test(navigator.userAgent); }
-function isAndroid() { return /android/i.test(navigator.userAgent); }
-function isStandalone() { return window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true; }
+function isIos() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+function isAndroid() {
+  return /android/i.test(navigator.userAgent);
+}
+function isStandalone() {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true
+  );
+}
 function decodeVapidKey(value: string) {
-  const padding = "=".repeat((4 - value.length % 4) % 4);
+  const padding = "=".repeat((4 - (value.length % 4)) % 4);
   const raw = atob((value + padding).replace(/-/g, "+").replace(/_/g, "/"));
   return Uint8Array.from([...raw].map((character) => character.charCodeAt(0)));
 }
@@ -45,7 +57,10 @@ export default function PwaCompanion() {
 
   useEffect(() => {
     if (!pathname.startsWith("/viaggio")) return;
-    const onPrompt = (event: Event) => { event.preventDefault(); setInstallPrompt(event as InstallPromptEvent); };
+    const onPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as InstallPromptEvent);
+    };
     const onSync = (event: Event) => setSyncState(((event as CustomEvent).detail?.state || "idle") as SyncState);
     const onOnline = () => void flushOfflineQueue();
     window.addEventListener("beforeinstallprompt", onPrompt);
@@ -56,13 +71,18 @@ export default function PwaCompanion() {
     const guideTimer = window.setTimeout(() => {
       if (isAndroid() && !standalone) setShowAndroidGuide(true);
     }, 1800);
-    const canUsePush = "Notification" in window && "PushManager" in window && Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY);
+    const canUsePush =
+      "Notification" in window && "PushManager" in window && Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY);
     setPushAvailable(canUsePush && Notification.permission !== "denied");
     void flushOfflineQueue();
     navigator.serviceWorker?.ready.then(async (registration) => {
       let existingSubscription = canUsePush ? await registration.pushManager.getSubscription() : null;
       const configuredKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      if (existingSubscription && configuredKey && !subscriptionUsesVapidKey(existingSubscription, decodeVapidKey(configuredKey))) {
+      if (
+        existingSubscription &&
+        configuredKey &&
+        !subscriptionUsesVapidKey(existingSubscription, decodeVapidKey(configuredKey))
+      ) {
         await existingSubscription.unsubscribe();
         existingSubscription = null;
         setPushAvailable(true);
@@ -76,7 +96,9 @@ export default function PwaCompanion() {
       if (registration.waiting) setUpdateReady(registration.waiting);
       registration.addEventListener("updatefound", () => {
         const worker = registration.installing;
-        worker?.addEventListener("statechange", () => { if (worker.state === "installed" && navigator.serviceWorker.controller) setUpdateReady(worker); });
+        worker?.addEventListener("statechange", () => {
+          if (worker.state === "installed" && navigator.serviceWorker.controller) setUpdateReady(worker);
+        });
       });
     });
     const onController = () => window.location.reload();
@@ -104,7 +126,7 @@ export default function PwaCompanion() {
     setPushError("");
     const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     if (!key || Notification.permission === "denied") return;
-    if (await Notification.requestPermission() !== "granted") return;
+    if ((await Notification.requestPermission()) !== "granted") return;
     const registration = await navigator.serviceWorker.ready;
     let subscription = await registration.pushManager.getSubscription();
     const decodedKey = decodeVapidKey(key);
@@ -112,7 +134,10 @@ export default function PwaCompanion() {
       await subscription.unsubscribe();
       subscription = null;
     }
-    subscription ||= await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: decodedKey });
+    subscription ||= await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: decodedKey,
+    });
     if (!(await persistPushSubscription(subscription))) {
       setPushError("Attivazione non riuscita. Verifica la connessione e riprova.");
       return;
@@ -120,14 +145,80 @@ export default function PwaCompanion() {
     setPushAvailable(false);
   }
 
-  return <>
-    {showInstallBanner && <aside className="pwaInstallBanner" aria-label="Installa l’app del viaggio">
-      <Download aria-hidden="true"/><div><strong>Porta il viaggio sempre con te</strong><span>{showIos ? <>Tocca <Share aria-label="Condividi"/> e poi “Aggiungi alla schermata Home”.</> : showAndroidGuide && !installPrompt ? <>In Chrome apri il menu <b>⋮</b> e scegli “Installa app” o “Aggiungi a schermata Home”.</> : "Installa l’app per usare programma e documenti anche offline."}</span></div>
-      {installPrompt && <button type="button" onClick={() => void install()}>Installa</button>}
-      <button type="button" className="pwaDismiss" aria-label="Chiudi suggerimento" onClick={() => { setShowIos(false); setShowAndroidGuide(false); setInstallPrompt(null); sessionStorage.setItem("smf-install-dismissed", "1"); }}><X/></button>
-    </aside>}
-    {updateReady && <aside className="pwaUpdateToast" role="status"><RefreshCw/><span><strong>Aggiornamento disponibile</strong><small>Ricarica per applicare la nuova versione.</small></span><button type="button" onClick={() => updateReady.postMessage({ type: "SKIP_WAITING" })}>Ricarica</button></aside>}
-    {syncState !== "idle" && !(showInstallBanner && syncState === "complete") && <div className={`pwaSyncToast ${syncState}`} role="status">{syncState === "pending" ? "Modifiche salvate: sincronizzazione in attesa" : syncState === "complete" ? "Sincronizzazione completata" : "Alcune modifiche richiedono un nuovo tentativo"}</div>}
-    {pushAvailable && <div className="pwaPushArea"><button className="pwaPushButton" type="button" onClick={() => void enablePush()}><Bell/> Attiva avvisi di viaggio</button>{pushError && <span className="pwaPushError" role="alert">{pushError}</span>}</div>}
-  </>;
+  return (
+    <>
+      {showInstallBanner && (
+        <aside className="pwaInstallBanner" aria-label="Installa l’app del viaggio">
+          <Download aria-hidden="true" />
+          <div>
+            <strong>Porta il viaggio sempre con te</strong>
+            <span>
+              {showIos ? (
+                <>
+                  Tocca <Share aria-label="Condividi" /> e poi “Aggiungi alla schermata Home”.
+                </>
+              ) : showAndroidGuide && !installPrompt ? (
+                <>
+                  In Chrome apri il menu <b>⋮</b> e scegli “Installa app” o “Aggiungi a schermata Home”.
+                </>
+              ) : (
+                "Installa l’app per usare programma e documenti anche offline."
+              )}
+            </span>
+          </div>
+          {installPrompt && (
+            <button type="button" onClick={() => void install()}>
+              Installa
+            </button>
+          )}
+          <button
+            type="button"
+            className="pwaDismiss"
+            aria-label="Chiudi suggerimento"
+            onClick={() => {
+              setShowIos(false);
+              setShowAndroidGuide(false);
+              setInstallPrompt(null);
+              sessionStorage.setItem("smf-install-dismissed", "1");
+            }}
+          >
+            <X />
+          </button>
+        </aside>
+      )}
+      {updateReady && (
+        <aside className="pwaUpdateToast" role="status">
+          <RefreshCw />
+          <span>
+            <strong>Aggiornamento disponibile</strong>
+            <small>Ricarica per applicare la nuova versione.</small>
+          </span>
+          <button type="button" onClick={() => updateReady.postMessage({ type: "SKIP_WAITING" })}>
+            Ricarica
+          </button>
+        </aside>
+      )}
+      {syncState !== "idle" && !(showInstallBanner && syncState === "complete") && (
+        <div className={`pwaSyncToast ${syncState}`} role="status">
+          {syncState === "pending"
+            ? "Modifiche salvate: sincronizzazione in attesa"
+            : syncState === "complete"
+              ? "Sincronizzazione completata"
+              : "Alcune modifiche richiedono un nuovo tentativo"}
+        </div>
+      )}
+      {pushAvailable && (
+        <div className="pwaPushArea">
+          <button className="pwaPushButton" type="button" onClick={() => void enablePush()}>
+            <Bell /> Attiva avvisi di viaggio
+          </button>
+          {pushError && (
+            <span className="pwaPushError" role="alert">
+              {pushError}
+            </span>
+          )}
+        </div>
+      )}
+    </>
+  );
 }

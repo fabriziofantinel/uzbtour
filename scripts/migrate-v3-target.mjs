@@ -30,24 +30,17 @@ try {
   `);
   const role = capability.rows[0];
   if (!role || role.is_runtime_role || !role.can_create_schema) {
-    throw new Error(
-      `Ruolo di migrazione non valido: ${role?.role_name ?? "sconosciuto"}`,
-    );
+    throw new Error(`Ruolo di migrazione non valido: ${role?.role_name ?? "sconosciuto"}`);
   }
 
-  const existing = await client.query(
-    `SELECT to_regclass('ops.schema_migrations') AS registry`,
-  );
+  const existing = await client.query(`SELECT to_regclass('ops.schema_migrations') AS registry`);
   if (existing.rows[0]?.registry) {
-    const marker = await client.query(
-      `SELECT checksum_sha256 FROM ops.schema_migrations WHERE version = $1`,
-      [modelVersion],
-    );
+    const marker = await client.query(`SELECT checksum_sha256 FROM ops.schema_migrations WHERE version = $1`, [
+      modelVersion,
+    ]);
     if (marker.rowCount > 0) {
       if (marker.rows[0].checksum_sha256 !== checksum) {
-        throw new Error(
-          `Checksum differente per il modello ${modelVersion}: migrazione interrotta`,
-        );
+        throw new Error(`Checksum differente per il modello ${modelVersion}: migrazione interrotta`);
       }
       console.log(
         JSON.stringify({
@@ -60,9 +53,7 @@ try {
       );
       process.exitCode = 0;
     } else {
-      throw new Error(
-        "Schema target già presente senza marker 3.2.0: richiesta verifica manuale",
-      );
+      throw new Error("Schema target già presente senza marker 3.2.0: richiesta verifica manuale");
     }
   } else {
     const startedAt = performance.now();
@@ -70,9 +61,7 @@ try {
     transactionOpen = true;
     await client.query("SET LOCAL lock_timeout = '5s'");
     await client.query("SET LOCAL statement_timeout = '15min'");
-    await client.query(
-      "SELECT pg_advisory_xact_lock(hashtextextended('smf-travel:v3-target', 0))",
-    );
+    await client.query("SELECT pg_advisory_xact_lock(hashtextextended('smf-travel:v3-target', 0))");
     await client.query(ddl);
     const executionMs = Math.round(performance.now() - startedAt);
     await client.query(

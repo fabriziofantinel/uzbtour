@@ -15,11 +15,7 @@ export async function inspectV3AccountInvitation(tokenHash: string) {
   return { name: String(row.display_name), username: String(row.username), email: String(row.email) };
 }
 
-export async function activateV3AccountInvitation(input: {
-  tokenHash: string;
-  subject: string;
-  username: string;
-}) {
+export async function activateV3AccountInvitation(input: { tokenHash: string; subject: string; username: string }) {
   const sql = getSql();
   const rows = await sql`
     SELECT legacy_user_id,display_name,username,email

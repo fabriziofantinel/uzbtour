@@ -14,26 +14,26 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "SMF Travel"
-  }
+    title: "SMF Travel",
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#153f43"
+  themeColor: "#153f43",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="it">
       <head>
-        <link rel="manifest" href="/api/pwa/manifest?v=3" crossOrigin="use-credentials"/>
+        <link rel="manifest" href="/api/pwa/manifest?v=3" crossOrigin="use-credentials" />
       </head>
       <body className={`${manrope.variable} ${playfair.variable}`}>
-        <ServiceWorkerRegister/>
-        <ImpersonationBanner/>
+        <ServiceWorkerRegister />
+        <ImpersonationBanner />
         {children}
       </body>
     </html>

@@ -5,35 +5,64 @@ export type AgencyAnalytics = {
   periodDays: number;
   generatedAt: string;
   summary: {
-    invitedTravelers: number; activatedTravelers: number; activeTravelers: number;
-    programmeViews: number; documentUsers: number; assistanceRequests: number;
-    engagementActions: number; averageFeedback: number | null; feedbackCount: number;
+    invitedTravelers: number;
+    activatedTravelers: number;
+    activeTravelers: number;
+    programmeViews: number;
+    documentUsers: number;
+    assistanceRequests: number;
+    engagementActions: number;
+    averageFeedback: number | null;
+    feedbackCount: number;
   };
   departures: Array<{
-    id: string; title: string; startsOn: string; travelers: number; activated: number;
-    active: number; programmeViews: number; documentUsers: number;
-    assistanceRequests: number; engagementActions: number; feedbackAverage: number | null;
+    id: string;
+    title: string;
+    startsOn: string;
+    travelers: number;
+    activated: number;
+    active: number;
+    programmeViews: number;
+    documentUsers: number;
+    assistanceRequests: number;
+    engagementActions: number;
+    feedbackAverage: number | null;
   }>;
   feedback: Array<{
-    itemId: string; dayNumber: number; dayTitle: string; itemTitle: string;
-    average: number; responses: number;
+    itemId: string;
+    dayNumber: number;
+    dayTitle: string;
+    itemTitle: string;
+    average: number;
+    responses: number;
   }>;
-  definitions: Array<{ code:string; label:string; formula:string; numerator:string; denominator:string; refreshMinutes:number; version:number }>;
+  definitions: Array<{
+    code: string;
+    label: string;
+    formula: string;
+    numerator: string;
+    denominator: string;
+    refreshMinutes: number;
+    version: number;
+  }>;
 };
 
 const numberValue = (value: unknown) => Number(value ?? 0);
-const nullableNumber = (value: unknown) => value == null ? null : Number(value);
+const nullableNumber = (value: unknown) => (value == null ? null : Number(value));
 
 export async function getAgencyAnalytics(input: {
-  agencyId: string; periodDays: number; departureId?: string;
+  agencyId: string;
+  periodDays: number;
+  departureId?: string;
 }): Promise<AgencyAnalytics> {
   const sql = getSql();
   const periodDays = [7, 30, 90].includes(input.periodDays) ? input.periodDays : 30;
   const departureId = input.departureId || null;
-  const [,,summaryRows,departureRows,feedbackRows,definitionRows] = await sql.transaction((txn) => [
-    txn`SELECT set_config('app.agency_id',${input.agencyId},true)`,
-    txn`SELECT set_config('app.analytics_days',${String(periodDays)},true)`,
-    txn`
+  const [, , summaryRows, departureRows, feedbackRows, definitionRows] = await sql.transaction(
+    (txn) => [
+      txn`SELECT set_config('app.agency_id',${input.agencyId},true)`,
+      txn`SELECT set_config('app.analytics_days',${String(periodDays)},true)`,
+      txn`
       WITH population AS (
         SELECT count(DISTINCT membership.traveler_id) AS invited,
           count(DISTINCT membership.traveler_id) FILTER (WHERE profile.user_id IS NOT NULL) AS activated
@@ -65,7 +94,7 @@ export async function getAgencyAnalytics(input: {
         WHERE agency_id=${input.agencyId} AND updated_at>=now()-make_interval(days=>${periodDays})
           AND (${departureId}::uuid IS NULL OR departure_id=${departureId}::uuid)
       ) SELECT * FROM population,events,assistance,engagement,feedback`,
-    txn`
+      txn`
       SELECT departure.id::text,departure.title,departure.starts_on::text,
         count(DISTINCT membership.traveler_id) FILTER (WHERE membership.status<>'removed') AS travelers,
         count(DISTINCT profile.id) FILTER (WHERE membership.status<>'removed' AND profile.user_id IS NOT NULL) AS activated,
@@ -90,7 +119,7 @@ export async function getAgencyAnalytics(input: {
       WHERE departure.agency_id=${input.agencyId} AND (${departureId}::uuid IS NULL OR departure.id=${departureId}::uuid)
       GROUP BY departure.agency_id,departure.id,departure.title,departure.starts_on
       ORDER BY departure.starts_on DESC,departure.title`,
-    txn`
+      txn`
       SELECT item.id::text AS item_id,template_day.day_number,COALESCE(NULLIF(template_day.title,''),'Giornata '||template_day.day_number) AS day_title,
         item.title AS item_title,avg(feedback.rating)::numeric(4,2) AS average,count(*) AS responses
       FROM journey.programme_feedback feedback
@@ -105,39 +134,69 @@ export async function getAgencyAnalytics(input: {
         AND (${departureId}::uuid IS NULL OR feedback.departure_id=${departureId}::uuid)
       GROUP BY item.id,template_day.day_number,template_day.title,item.title
       ORDER BY template_day.day_number,average ASC,item.title LIMIT 80`,
-    txn`SELECT code,label,formula,numerator_definition,denominator_definition,
+      txn`SELECT code,label,formula,numerator_definition,denominator_definition,
       GREATEST(1,extract(epoch FROM refresh_interval)/60)::int refresh_minutes,version
       FROM ops.analytics_kpi_definitions WHERE effective_to IS NULL ORDER BY code`,
-  ], { readOnly: true });
+    ],
+    { readOnly: true },
+  );
   const summary = summaryRows[0] ?? {};
   return {
-    periodDays, generatedAt: new Date().toISOString(),
+    periodDays,
+    generatedAt: new Date().toISOString(),
     summary: {
-      invitedTravelers: numberValue(summary.invited), activatedTravelers: numberValue(summary.activated),
-      activeTravelers: numberValue(summary.active), programmeViews: numberValue(summary.programme_views),
-      documentUsers: numberValue(summary.document_users), assistanceRequests: numberValue(summary.requests),
-      engagementActions: numberValue(summary.actions), averageFeedback: nullableNumber(summary.average),
+      invitedTravelers: numberValue(summary.invited),
+      activatedTravelers: numberValue(summary.activated),
+      activeTravelers: numberValue(summary.active),
+      programmeViews: numberValue(summary.programme_views),
+      documentUsers: numberValue(summary.document_users),
+      assistanceRequests: numberValue(summary.requests),
+      engagementActions: numberValue(summary.actions),
+      averageFeedback: nullableNumber(summary.average),
       feedbackCount: numberValue(summary.count),
     },
     departures: departureRows.map((row) => ({
-      id:String(row.id),title:String(row.title),startsOn:String(row.starts_on),travelers:numberValue(row.travelers),
-      activated:numberValue(row.activated),active:numberValue(row.active),programmeViews:numberValue(row.programme_views),
-      documentUsers:numberValue(row.document_users),assistanceRequests:numberValue(row.assistance_requests),
-      engagementActions:numberValue(row.engagement_actions),feedbackAverage:nullableNumber(row.feedback_average),
+      id: String(row.id),
+      title: String(row.title),
+      startsOn: String(row.starts_on),
+      travelers: numberValue(row.travelers),
+      activated: numberValue(row.activated),
+      active: numberValue(row.active),
+      programmeViews: numberValue(row.programme_views),
+      documentUsers: numberValue(row.document_users),
+      assistanceRequests: numberValue(row.assistance_requests),
+      engagementActions: numberValue(row.engagement_actions),
+      feedbackAverage: nullableNumber(row.feedback_average),
     })),
     feedback: feedbackRows.map((row) => ({
-      itemId:String(row.item_id),dayNumber:numberValue(row.day_number),dayTitle:String(row.day_title),
-      itemTitle:String(row.item_title),average:numberValue(row.average),responses:numberValue(row.responses),
+      itemId: String(row.item_id),
+      dayNumber: numberValue(row.day_number),
+      dayTitle: String(row.day_title),
+      itemTitle: String(row.item_title),
+      average: numberValue(row.average),
+      responses: numberValue(row.responses),
     })),
-    definitions: definitionRows.map((row)=>({code:String(row.code),label:String(row.label),formula:String(row.formula),
-      numerator:String(row.numerator_definition),denominator:String(row.denominator_definition||"Non applicabile"),
-      refreshMinutes:Number(row.refresh_minutes),version:Number(row.version)})),
+    definitions: definitionRows.map((row) => ({
+      code: String(row.code),
+      label: String(row.label),
+      formula: String(row.formula),
+      numerator: String(row.numerator_definition),
+      denominator: String(row.denominator_definition || "Non applicabile"),
+      refreshMinutes: Number(row.refresh_minutes),
+      version: Number(row.version),
+    })),
   };
 }
 
 export async function recordTravelerAnalytics(input: {
-  userId: string; departureId: string; partyId: string; dayId?: string | null;
-  eventName: string; sessionId: string; clientOperationId: string; properties?: Record<string, unknown>;
+  userId: string;
+  departureId: string;
+  partyId: string;
+  dayId?: string | null;
+  eventName: string;
+  sessionId: string;
+  clientOperationId: string;
+  properties?: Record<string, unknown>;
 }) {
   const rows = await getSql()`SELECT app.record_product_analytics_event_v3(
     ${input.userId},${input.departureId}::uuid,${input.partyId}::uuid,${input.dayId ?? null}::uuid,

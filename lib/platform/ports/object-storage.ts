@@ -23,18 +23,14 @@ export type DownloadedObject = StoredObject & {
 export interface ObjectStorage {
   readonly provider: StoredObject["provider"];
   readonly bucket: string;
-  createUploadAuthorization(
-    key: string,
-    contentType: string,
-    expiresInSeconds: number
-  ): Promise<UploadAuthorization>;
+  createUploadAuthorization(key: string, contentType: string, expiresInSeconds: number): Promise<UploadAuthorization>;
   head(key: string): Promise<StoredObject>;
   get(key: string): Promise<DownloadedObject>;
   put(key: string, bytes: Uint8Array, contentType: string): Promise<StoredObject>;
   createDownloadUrl(
     key: string,
     expiresInSeconds: number,
-    options?: { contentDisposition?: string; contentType?: string }
+    options?: { contentDisposition?: string; contentType?: string },
   ): Promise<string>;
   delete(key: string): Promise<void>;
 }

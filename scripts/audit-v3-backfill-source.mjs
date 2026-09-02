@@ -1,9 +1,6 @@
 import { Client } from "@neondatabase/serverless";
 
-const databaseUrl =
-  process.env.DATABASE_URL_UNPOOLED ??
-  process.env.DATABASE_DIRECT_URL ??
-  process.env.DATABASE_URL;
+const databaseUrl = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_DIRECT_URL ?? process.env.DATABASE_URL;
 
 if (!databaseUrl) {
   throw new Error("DATABASE_URL_UNPOOLED, DATABASE_DIRECT_URL o DATABASE_URL non configurata");
@@ -111,46 +108,80 @@ try {
 
   const integrity = {};
   const orphanChecks = [
-    ["agency_memberships_without_user", "agency_memberships", `SELECT count(*)::int AS count FROM public.agency_memberships m LEFT JOIN public.platform_users u ON u.id = m.user_id WHERE u.id IS NULL`],
-    ["templates_without_agency", "trip_templates", `SELECT count(*)::int AS count FROM public.trip_templates t LEFT JOIN public.agencies a ON a.id = t.agency_id WHERE a.id IS NULL`],
-    ["versions_without_template", "trip_template_versions", `SELECT count(*)::int AS count FROM public.trip_template_versions v LEFT JOIN public.trip_templates t ON t.id = v.template_id WHERE t.id IS NULL`],
-    ["days_without_version", "trip_days", `SELECT count(*)::int AS count FROM public.trip_days d LEFT JOIN public.trip_template_versions v ON v.id = d.template_version_id WHERE v.id IS NULL`],
-    ["items_without_day", "itinerary_items", `SELECT count(*)::int AS count FROM public.itinerary_items i LEFT JOIN public.trip_days d ON d.id = i.trip_day_id WHERE d.id IS NULL`],
-    ["departures_without_template", "departures", `SELECT count(*)::int AS count FROM public.departures d LEFT JOIN public.trip_templates t ON t.id = d.template_id WHERE t.id IS NULL`],
-    ["parties_without_departure", "travel_parties", `SELECT count(*)::int AS count FROM public.travel_parties p LEFT JOIN public.departures d ON d.id = p.departure_id WHERE d.id IS NULL`],
-    ["memberships_without_party_or_traveler", "party_memberships", `SELECT count(*)::int AS count FROM public.party_memberships m LEFT JOIN public.travel_parties p ON p.id = m.party_id LEFT JOIN public.traveler_profiles t ON t.id = m.traveler_id WHERE p.id IS NULL OR t.id IS NULL`],
+    [
+      "agency_memberships_without_user",
+      "agency_memberships",
+      `SELECT count(*)::int AS count FROM public.agency_memberships m LEFT JOIN public.platform_users u ON u.id = m.user_id WHERE u.id IS NULL`,
+    ],
+    [
+      "templates_without_agency",
+      "trip_templates",
+      `SELECT count(*)::int AS count FROM public.trip_templates t LEFT JOIN public.agencies a ON a.id = t.agency_id WHERE a.id IS NULL`,
+    ],
+    [
+      "versions_without_template",
+      "trip_template_versions",
+      `SELECT count(*)::int AS count FROM public.trip_template_versions v LEFT JOIN public.trip_templates t ON t.id = v.template_id WHERE t.id IS NULL`,
+    ],
+    [
+      "days_without_version",
+      "trip_days",
+      `SELECT count(*)::int AS count FROM public.trip_days d LEFT JOIN public.trip_template_versions v ON v.id = d.template_version_id WHERE v.id IS NULL`,
+    ],
+    [
+      "items_without_day",
+      "itinerary_items",
+      `SELECT count(*)::int AS count FROM public.itinerary_items i LEFT JOIN public.trip_days d ON d.id = i.trip_day_id WHERE d.id IS NULL`,
+    ],
+    [
+      "departures_without_template",
+      "departures",
+      `SELECT count(*)::int AS count FROM public.departures d LEFT JOIN public.trip_templates t ON t.id = d.template_id WHERE t.id IS NULL`,
+    ],
+    [
+      "parties_without_departure",
+      "travel_parties",
+      `SELECT count(*)::int AS count FROM public.travel_parties p LEFT JOIN public.departures d ON d.id = p.departure_id WHERE d.id IS NULL`,
+    ],
+    [
+      "memberships_without_party_or_traveler",
+      "party_memberships",
+      `SELECT count(*)::int AS count FROM public.party_memberships m LEFT JOIN public.travel_parties p ON p.id = m.party_id LEFT JOIN public.traveler_profiles t ON t.id = m.traveler_id WHERE p.id IS NULL OR t.id IS NULL`,
+    ],
   ];
 
   for (const [name, requiredTable, query] of orphanChecks) {
-    integrity[name] = available.has(requiredTable)
-      ? (await client.query(query)).rows[0].count
-      : null;
+    integrity[name] = available.has(requiredTable) ? (await client.query(query)).rows[0].count : null;
   }
 
   const migrationBlockers = {
     agencies_without_reference_name: available.has("agencies")
-      ? (
-          await client.query(`SELECT count(*)::int AS count FROM public.agencies WHERE btrim(reference_name) = ''`)
-        ).rows[0].count
+      ? (await client.query(`SELECT count(*)::int AS count FROM public.agencies WHERE btrim(reference_name) = ''`))
+          .rows[0].count
       : null,
     countries_without_valid_iso: available.has("countries")
       ? (
-          await client.query(`SELECT count(*)::int AS count FROM public.countries WHERE iso_code IS NULL OR iso_code !~ '^[A-Z]{2}$'`)
+          await client.query(
+            `SELECT count(*)::int AS count FROM public.countries WHERE iso_code IS NULL OR iso_code !~ '^[A-Z]{2}$'`,
+          )
         ).rows[0].count
       : null,
     version_publication_mismatch: available.has("trip_template_versions")
       ? (
-          await client.query(`SELECT count(*)::int AS count FROM public.trip_template_versions WHERE (status = 'draft' AND published_at IS NOT NULL) OR (status IN ('published','archived') AND published_at IS NULL)`)
+          await client.query(
+            `SELECT count(*)::int AS count FROM public.trip_template_versions WHERE (status = 'draft' AND published_at IS NOT NULL) OR (status IN ('published','archived') AND published_at IS NULL)`,
+          )
         ).rows[0].count
       : null,
     day_number_offset_mismatch: available.has("trip_days")
-      ? (
-          await client.query(`SELECT count(*)::int AS count FROM public.trip_days WHERE day_number <> day_offset + 1`)
-        ).rows[0].count
+      ? (await client.query(`SELECT count(*)::int AS count FROM public.trip_days WHERE day_number <> day_offset + 1`))
+          .rows[0].count
       : null,
     timed_non_transport_items: available.has("itinerary_items")
       ? (
-          await client.query(`SELECT count(*)::int AS count FROM public.itinerary_items WHERE (starts_at IS NOT NULL OR ends_at IS NOT NULL OR scheduled_start_at IS NOT NULL OR scheduled_end_at IS NOT NULL) AND item_type NOT IN ('transport','flight','train')`)
+          await client.query(
+            `SELECT count(*)::int AS count FROM public.itinerary_items WHERE (starts_at IS NOT NULL OR ends_at IS NOT NULL OR scheduled_start_at IS NOT NULL OR scheduled_end_at IS NOT NULL) AND item_type NOT IN ('transport','flight','train')`,
+          )
         ).rows[0].count
       : null,
     itinerary_place_links: available.has("itinerary_items")
@@ -181,12 +212,12 @@ try {
   const columns = includeColumns
     ? (
         await client.query(
-      `SELECT table_name, column_name, data_type, is_nullable
+          `SELECT table_name, column_name, data_type, is_nullable
          FROM information_schema.columns
         WHERE table_schema = 'public'
           AND table_name = ANY($1::text[])
         ORDER BY table_name, ordinal_position`,
-      [sourceTables],
+          [sourceTables],
         )
       ).rows.reduce((catalog, column) => {
         (catalog[column.table_name] ??= []).push({

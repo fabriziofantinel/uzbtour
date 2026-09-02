@@ -33,8 +33,13 @@ export async function saveV3ActivityItemResult(input: {
 }
 
 export async function submitV3PhotoEvidence(input: {
-  userId: string; agencyId: string; departureId: string; partyId: string;
-  dayId: string; itemId: string; mediaId: string;
+  userId: string;
+  agencyId: string;
+  departureId: string;
+  partyId: string;
+  dayId: string;
+  itemId: string;
+  mediaId: string;
 }) {
   const sql = getSql();
   const resultId = randomUUID();
@@ -68,14 +73,18 @@ export async function addV3PhotoContestEntry(input: {
 }
 
 export async function confirmV3PhotoContest(input: {
-  userId: string; agencyId: string; departureId: string; partyId: string; itemId: string;
+  userId: string;
+  agencyId: string;
+  departureId: string;
+  partyId: string;
+  itemId: string;
 }) {
-  const sql=getSql();
-  const [,rows]=await sql.transaction((txn)=>[
+  const sql = getSql();
+  const [, rows] = await sql.transaction((txn) => [
     txn`SELECT set_config('app.agency_id',${input.agencyId},true)`,
     txn`SELECT * FROM app.confirm_photo_contest_v3(${input.userId},${input.agencyId},${input.departureId},${input.partyId},${input.itemId})`,
   ]);
-  return rows[0] as Record<string,unknown>;
+  return rows[0] as Record<string, unknown>;
 }
 
 export async function reviewV3ActivityEvidence(input: {

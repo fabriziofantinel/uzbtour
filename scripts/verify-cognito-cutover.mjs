@@ -6,7 +6,8 @@ if (!url) throw new Error("Connessione Neon owner non configurata");
 const client = new Client(url);
 try {
   await client.connect();
-  const result = (await client.query(`
+  const result = (
+    await client.query(`
     SELECT
       count(*) FILTER (WHERE users.status = 'active')::int AS active_users,
       count(*) FILTER (WHERE users.status IN ('active', 'invited') AND users.platform_role <> 'superadmin')::int AS accessible_other_users,
@@ -20,14 +21,16 @@ try {
       AND map.source_system = 'public-v2' AND map.entity_type = 'user'
     LEFT JOIN public.platform_users legacy ON legacy.id = map.legacy_id
     LEFT JOIN iam.invitations invitation ON invitation.invited_user_id = users.id
-  `)).rows[0];
+  `)
+  ).rows[0];
 
-  const passed = result.active_users === 1
-    && result.accessible_other_users === 0
-    && result.active_superusers === 1
-    && result.cognito_identities === 1
-    && result.cognito_legacy_accounts === 1
-    && result.pending_invitations === 0;
+  const passed =
+    result.active_users === 1 &&
+    result.accessible_other_users === 0 &&
+    result.active_superusers === 1 &&
+    result.cognito_identities === 1 &&
+    result.cognito_legacy_accounts === 1 &&
+    result.pending_invitations === 0;
   if (!passed) throw new Error(`Cutover Cognito non consolidato: ${JSON.stringify(result)}`);
   console.log(JSON.stringify({ status: "passed", gates: result }, null, 2));
 } finally {

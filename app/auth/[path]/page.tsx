@@ -7,23 +7,30 @@ import UsernameRecovery from "../username-recovery";
 const RECOVERY_PATHS = new Set(["forgot-password", "reset-password"]);
 
 function getPageCopy(path: string) {
-  if (path === "forgot-password") return {
-    eyebrow: "RECUPERO ACCESSO",
-    title: "Riprendi il tuo viaggio.",
-    description: "Riceverai un collegamento sicuro all’indirizzo associato al tuo account.",
-    icon: <KeyRound aria-hidden="true" />
-  };
+  if (path === "forgot-password")
+    return {
+      eyebrow: "RECUPERO ACCESSO",
+      title: "Riprendi il tuo viaggio.",
+      description: "Riceverai un collegamento sicuro all’indirizzo associato al tuo account.",
+      icon: <KeyRound aria-hidden="true" />,
+    };
   return {
     eyebrow: "NUOVA PASSWORD",
     title: "Proteggi il tuo spazio.",
     description: "Inserisci il codice ricevuto e scegli una nuova password.",
-    icon: <KeyRound aria-hidden="true" />
+    icon: <KeyRound aria-hidden="true" />,
   };
 }
 
-export default async function AuthPage({ params,searchParams }: { params: Promise<{ path: string }>;searchParams:Promise<Record<string,string|string[]|undefined>> }) {
+export default async function AuthPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ path: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { path } = await params;
-  const query=await searchParams;
+  const query = await searchParams;
   if (path === "sign-in") redirect("/login");
   if (!RECOVERY_PATHS.has(path)) notFound();
   const copy = getPageCopy(path);
@@ -38,17 +45,23 @@ export default async function AuthPage({ params,searchParams }: { params: Promis
         <div className="authUtilityStoryCopy">
           <p>{copy.eyebrow}</p>
           <h1 id="auth-utility-title">{copy.title}</h1>
-          <span><Plane aria-hidden="true"/> Agenzie, gruppi e viaggiatori in un unico spazio.</span>
+          <span>
+            <Plane aria-hidden="true" /> Agenzie, gruppi e viaggiatori in un unico spazio.
+          </span>
         </div>
       </section>
       <section className="authUtilityPanel">
         <div className="authUtilityBox">
           <span className="authUtilityIcon">{copy.icon}</span>
           <p className="authUtilityIntro">{copy.description}</p>
-          <UsernameRecovery confirmInitially={path==="reset-password"}
-            initialUsername={typeof query.username==="string"?query.username:""}
-            initialCode={typeof query.code==="string"?query.code:""}/>
-          <Link className="authUtilityBack" href="/login"><ArrowLeft aria-hidden="true"/> Torna all’accesso</Link>
+          <UsernameRecovery
+            confirmInitially={path === "reset-password"}
+            initialUsername={typeof query.username === "string" ? query.username : ""}
+            initialCode={typeof query.code === "string" ? query.code : ""}
+          />
+          <Link className="authUtilityBack" href="/login">
+            <ArrowLeft aria-hidden="true" /> Torna all’accesso
+          </Link>
         </div>
       </section>
     </main>

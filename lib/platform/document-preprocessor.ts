@@ -10,12 +10,18 @@ export type BedrockDocumentPart = {
 };
 
 export class OcrRequiredError extends Error {
-  constructor(message: string) { super(message); this.name = "OcrRequiredError"; }
+  constructor(message: string) {
+    super(message);
+    this.name = "OcrRequiredError";
+  }
 }
 
 function safeName(filename: string, suffix = "") {
-  const stem = filename.replace(/\.(pdf|docx?)$/i, "")
-    .replace(/[^a-zA-Z0-9 _\-()[\]]/g, " ").trim() || "programma-viaggio";
+  const stem =
+    filename
+      .replace(/\.(pdf|docx?)$/i, "")
+      .replace(/[^a-zA-Z0-9 _\-()[\]]/g, " ")
+      .trim() || "programma-viaggio";
   return `${stem.slice(0, Math.max(1, 110 - suffix.length))}${suffix}`;
 }
 
@@ -59,9 +65,14 @@ function decodeXmlText(xml: string) {
     .replace(/<w:br\s*\/?>/g, "\n")
     .replace(/<\/w:p>/g, "\n")
     .replace(/<[^>]+>/g, "")
-    .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&")
-    .replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 export async function extractTravelDocumentTextForValidation(bytes: Uint8Array, filename: string) {
@@ -69,9 +80,11 @@ export async function extractTravelDocumentTextForValidation(bytes: Uint8Array, 
   if (!filename.toLowerCase().endsWith(".docx")) return "";
   const zip = await JSZip.loadAsync(bytes);
   const xmlFiles = Object.keys(zip.files).filter((path) =>
-    /^word\/(document|header\d*|footer\d*|footnotes|endnotes)\.xml$/i.test(path));
+    /^word\/(document|header\d*|footer\d*|footnotes|endnotes)\.xml$/i.test(path),
+  );
   return (await Promise.all(xmlFiles.map(async (path) => decodeXmlText(await zip.file(path)!.async("text")))))
-    .filter(Boolean).join("\n\n");
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 async function compactDocx(bytes: Uint8Array, maxBytes: number): Promise<BedrockDocumentPart[]> {
@@ -79,13 +92,19 @@ async function compactDocx(bytes: Uint8Array, maxBytes: number): Promise<Bedrock
   for (const path of Object.keys(zip.files)) {
     if (path.startsWith("word/media/") || path.startsWith("word/embeddings/")) zip.remove(path);
   }
-  const compact = await zip.generateAsync({ type: "uint8array", compression: "DEFLATE", compressionOptions: { level: 9 } });
+  const compact = await zip.generateAsync({
+    type: "uint8array",
+    compression: "DEFLATE",
+    compressionOptions: { level: 9 },
+  });
   if (compact.byteLength <= maxBytes) return [{ format: "docx", name: safeName("programma.docx"), bytes: compact }];
 
   const xmlFiles = Object.keys(zip.files).filter((path) =>
-    /^word\/(document|header\d*|footer\d*|footnotes|endnotes)\.xml$/i.test(path));
+    /^word\/(document|header\d*|footer\d*|footnotes|endnotes)\.xml$/i.test(path),
+  );
   const text = (await Promise.all(xmlFiles.map(async (path) => decodeXmlText(await zip.file(path)!.async("text")))))
-    .filter(Boolean).join("\n\n");
+    .filter(Boolean)
+    .join("\n\n");
   const textBytes = new TextEncoder().encode(text);
   if (!text.trim() || textBytes.byteLength > maxBytes) {
     throw new Error("Il DOCX non può essere compresso entro il limite Bedrock");
@@ -96,11 +115,11 @@ async function compactDocx(bytes: Uint8Array, maxBytes: number): Promise<Bedrock
 export async function prepareBedrockDocuments(
   bytes: Uint8Array,
   filename: string,
-  maxBytes: number
+  maxBytes: number,
 ): Promise<BedrockDocumentPart[]> {
-  if(filename.toLowerCase().endsWith(".ocr.txt")){
-    if(bytes.byteLength>maxBytes)throw new Error("Il testo OCR supera il limite Bedrock");
-    return [{format:"txt",name:safeName(filename),bytes}];
+  if (filename.toLowerCase().endsWith(".ocr.txt")) {
+    if (bytes.byteLength > maxBytes) throw new Error("Il testo OCR supera il limite Bedrock");
+    return [{ format: "txt", name: safeName(filename), bytes }];
   }
   const type = travelDocumentType(filename);
   if (!type) throw new Error("Formato del programma non supportato");
@@ -113,11 +132,14 @@ export async function prepareBedrockDocuments(
 }
 
 export function bedrockDocumentBlocks(parts: BedrockDocumentPart[]): ContentBlock[] {
-  return parts.map((part) => ({
-    document: {
-      format: part.format,
-      name: part.name,
-      source: { bytes: part.bytes },
-    },
-  } as ContentBlock));
+  return parts.map(
+    (part) =>
+      ({
+        document: {
+          format: part.format,
+          name: part.name,
+          source: { bytes: part.bytes },
+        },
+      }) as ContentBlock,
+  );
 }

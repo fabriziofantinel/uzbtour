@@ -2,13 +2,7 @@ import { getSql } from "./db";
 import { assertDatabaseTables } from "./platform/schema-readiness";
 
 export const MAX_PHOTO_SIZE_BYTES = 25 * 1024 * 1024;
-export const PHOTO_CONTENT_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/heic",
-  "image/heif"
-] as const;
+export const PHOTO_CONTENT_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"] as const;
 
 export async function ensurePhotosTable() {
   await assertDatabaseTables(["trip_photos"]);
@@ -30,10 +24,10 @@ export function photoExtensionForUpload(originalName: string, contentType: strin
     "image/png": "png",
     "image/webp": "webp",
     "image/heic": "heic",
-    "image/heif": "heif"
+    "image/heif": "heif",
   };
   const normalizedType = contentType.trim().toLowerCase();
-  if (!PHOTO_CONTENT_TYPES.includes(normalizedType as typeof PHOTO_CONTENT_TYPES[number])) {
+  if (!PHOTO_CONTENT_TYPES.includes(normalizedType as (typeof PHOTO_CONTENT_TYPES)[number])) {
     return null;
   }
   const extension = originalName.split(".").pop()?.toLowerCase();
@@ -43,10 +37,7 @@ export function photoExtensionForUpload(originalName: string, contentType: strin
 
 export function validPhotoPath(pathname: unknown, day: number) {
   if (typeof pathname !== "string") return false;
-  return new RegExp(
-    `^uzbekistan-2026/giorno-${day}/[0-9a-f-]{36}\\.(?:jpe?g|png|webp|heic|heif)$`,
-    "i"
-  ).test(pathname);
+  return new RegExp(`^uzbekistan-2026/giorno-${day}/[0-9a-f-]{36}\\.(?:jpe?g|png|webp|heic|heif)$`, "i").test(pathname);
 }
 
 export async function savePhotoMetadata(input: {

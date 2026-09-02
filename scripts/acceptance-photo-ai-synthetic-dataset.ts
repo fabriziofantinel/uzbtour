@@ -38,12 +38,9 @@ type Observation = {
 const fixtureDirectory = path.resolve("tests/fixtures/photo-ai/independence-square");
 
 async function main() {
-  const manifest = JSON.parse(
-    await readFile(path.join(fixtureDirectory, "manifest.json"), "utf8"),
-  ) as Manifest;
+  const manifest = JSON.parse(await readFile(path.join(fixtureDirectory, "manifest.json"), "utf8")) as Manifest;
   const requestedRuns = Number(
-    process.argv.find((value) => value.startsWith("--runs="))?.split("=")[1] ??
-      manifest.acceptance.repeat_runs,
+    process.argv.find((value) => value.startsWith("--runs="))?.split("=")[1] ?? manifest.acceptance.repeat_runs,
   );
   const fixtures = await Promise.all(
     manifest.fixtures.map(async (fixture) => ({
@@ -53,34 +50,48 @@ async function main() {
   );
   if (fixtures.length % 2 !== 0) throw new Error("Il dataset deve contenere un numero pari di immagini");
 
-  const observations = await withAiTestReplay<Observation[]>(`photo-independence-square-${requestedRuns}-runs-v1`, async () => {
-    const recorded: Observation[] = [];
-    for (let run = 1; run <= requestedRuns; run += 1) {
-      for (let index = 0; index < fixtures.length; index += 2) {
-        const pair = fixtures.slice(index, index + 2);
-        const ordered = run % 2 === 0 ? [...pair].reverse() : pair;
-        const evaluations = await judgePhotoContest({
-          title: manifest.theme,
-          instructions: `La fotografia deve raffigurare realmente ${manifest.theme}. Non sono sufficienti una piazza generica o un altro monumento dell'Uzbekistan.`,
-          category: "luogo specifico",
-          validationProfile: manifest.photoValidation,
-          photos: ordered.map((fixture) => ({ entryId: fixture.file, bytes: fixture.bytes, contentType: "image/png" })),
-        });
-        for (const fixture of ordered) {
-          const evaluation = evaluations.find((item) => item.entryId === fixture.file);
-          if (!evaluation) throw new Error(`Valutazione assente per ${fixture.file}`);
-          const actual: ExpectedVerdict = evaluation.eligible ? "eligible" : "ineligible";
-          recorded.push({
-            run, file: fixture.file, difficulty: fixture.difficulty, expected: fixture.expected, actual,
-            total: evaluation.total,
-            passed: actual === fixture.expected && (actual === "eligible" || evaluation.total === manifest.acceptance.ineligible_total_score),
-            themeReason: evaluation.themeReason, reason: evaluation.reason,
+  const observations = await withAiTestReplay<Observation[]>(
+    `photo-independence-square-${requestedRuns}-runs-v1`,
+    async () => {
+      const recorded: Observation[] = [];
+      for (let run = 1; run <= requestedRuns; run += 1) {
+        for (let index = 0; index < fixtures.length; index += 2) {
+          const pair = fixtures.slice(index, index + 2);
+          const ordered = run % 2 === 0 ? [...pair].reverse() : pair;
+          const evaluations = await judgePhotoContest({
+            title: manifest.theme,
+            instructions: `La fotografia deve raffigurare realmente ${manifest.theme}. Non sono sufficienti una piazza generica o un altro monumento dell'Uzbekistan.`,
+            category: "luogo specifico",
+            validationProfile: manifest.photoValidation,
+            photos: ordered.map((fixture) => ({
+              entryId: fixture.file,
+              bytes: fixture.bytes,
+              contentType: "image/png",
+            })),
           });
+          for (const fixture of ordered) {
+            const evaluation = evaluations.find((item) => item.entryId === fixture.file);
+            if (!evaluation) throw new Error(`Valutazione assente per ${fixture.file}`);
+            const actual: ExpectedVerdict = evaluation.eligible ? "eligible" : "ineligible";
+            recorded.push({
+              run,
+              file: fixture.file,
+              difficulty: fixture.difficulty,
+              expected: fixture.expected,
+              actual,
+              total: evaluation.total,
+              passed:
+                actual === fixture.expected &&
+                (actual === "eligible" || evaluation.total === manifest.acceptance.ineligible_total_score),
+              themeReason: evaluation.themeReason,
+              reason: evaluation.reason,
+            });
+          }
         }
       }
-    }
-    return recorded;
-  });
+      return recorded;
+    },
+  );
 
   const fixtureResults = fixtures.map((fixture) => {
     const samples = observations.filter((item) => item.file === fixture.file);
@@ -108,8 +119,7 @@ async function main() {
   const eligibleScores = observations.filter((item) => item.expected === "eligible").map((item) => item.total);
   const ineligibleScores = observations.filter((item) => item.expected === "ineligible").map((item) => item.total);
   const orderInvariant = fixtureResults.every((item) => item.stableVerdict);
-  const scoreSeparation =
-    Math.min(...eligibleScores) > Math.max(...ineligibleScores);
+  const scoreSeparation = Math.min(...eligibleScores) > Math.max(...ineligibleScores);
   const status =
     accuracy >= manifest.acceptance.minimum_classification_accuracy &&
     (!manifest.acceptance.order_invariance_required || orderInvariant) &&

@@ -1,11 +1,15 @@
 import { neon } from "@neondatabase/serverless";
 
-const databaseUrl = process.env.DATABASE_RUNTIME_URL ?? process.env.DATABASE_URL ??
-  process.env.DATABASE_MIGRATION_URL ?? process.env.DATABASE_URL_UNPOOLED;
+const databaseUrl =
+  process.env.DATABASE_RUNTIME_URL ??
+  process.env.DATABASE_URL ??
+  process.env.DATABASE_MIGRATION_URL ??
+  process.env.DATABASE_URL_UNPOOLED;
 if (!databaseUrl) throw new Error("DATABASE_RUNTIME_URL non configurata");
 
 const sql = neon(databaseUrl);
-const ownerUrl = process.env.DATABASE_MIGRATION_URL ?? process.env.DATABASE_OWNER_URL ?? process.env.DATABASE_URL_UNPOOLED;
+const ownerUrl =
+  process.env.DATABASE_MIGRATION_URL ?? process.env.DATABASE_OWNER_URL ?? process.env.DATABASE_URL_UNPOOLED;
 const ownerSql = ownerUrl ? neon(ownerUrl) : null;
 
 const [imports, programme, runtime, migrations] = await Promise.all([
@@ -89,9 +93,10 @@ if (ownerSql) {
       SELECT count(*)::int AS count
       FROM app.read_journey_management(${scope.actor_id}, ${scope.departure_id})
     `;
-    const [, scopedRows] = await sql.transaction((txn) => [
-      txn`SELECT set_config('app.agency_id', ${scope.agency_id}, true)`,
-      txn`
+    const [, scopedRows] = await sql.transaction(
+      (txn) => [
+        txn`SELECT set_config('app.agency_id', ${scope.agency_id}, true)`,
+        txn`
         SELECT
           (SELECT count(*)::int FROM travel.departure_days
             WHERE agency_id = ${scope.agency_id} AND departure_id = ${scope.departure_id}) AS days,
@@ -104,7 +109,9 @@ if (ownerSql) {
           (SELECT count(*)::int FROM content.activities
             WHERE agency_id = ${scope.agency_id}) AS activities
       `,
-    ], { readOnly: true });
+      ],
+      { readOnly: true },
+    );
     if (Number(authorization[0]?.count ?? 0) < 1) {
       throw new Error("Autorizzazione IAM del programma operativo non riuscita");
     }
@@ -118,9 +125,10 @@ if (ownerSql) {
   `;
   if (importScopes[0]) {
     const scope = importScopes[0];
-    const [, reviewRows] = await sql.transaction((txn) => [
-      txn`SELECT set_config('app.agency_id', ${scope.agency_id}, true)`,
-      txn`
+    const [, reviewRows] = await sql.transaction(
+      (txn) => [
+        txn`SELECT set_config('app.agency_id', ${scope.agency_id}, true)`,
+        txn`
         SELECT import_job.id::text, template.title,
           source_asset.original_name AS source_file_name,
           import_job.result->>'legacyAiProvider' AS ai_provider
@@ -138,17 +146,21 @@ if (ownerSql) {
           AND import_job.agency_id = ${scope.agency_id}
         LIMIT 1
       `,
-    ], { readOnly: true });
+      ],
+      { readOnly: true },
+    );
     if (!reviewRows[0]) throw new Error("Lettura V3 della revisione import non riuscita");
     scopedImportReview = true;
   }
 }
 
-console.log(JSON.stringify({
-  status: "passed",
-  imports: Number(imports[0]?.count ?? 0),
-  programmeDays: Number(programme[0]?.count ?? 0),
-  travelerRuntime: runtime[0] ?? {},
-  scopedRuntime,
-  scopedImportReview,
-}));
+console.log(
+  JSON.stringify({
+    status: "passed",
+    imports: Number(imports[0]?.count ?? 0),
+    programmeDays: Number(programme[0]?.count ?? 0),
+    travelerRuntime: runtime[0] ?? {},
+    scopedRuntime,
+    scopedImportReview,
+  }),
+);

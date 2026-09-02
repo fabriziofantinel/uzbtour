@@ -21,9 +21,9 @@ function LoginContent() {
       credentials: "same-origin",
       cache: "no-store",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: usernameValue, password: userPassword })
+      body: JSON.stringify({ username: usernameValue, password: userPassword }),
     });
-    const body = await response.json().catch(() => null) as { code?: string; error?: string } | null;
+    const body = (await response.json().catch(() => null)) as { code?: string; error?: string } | null;
     return { response, body };
   }
 
@@ -40,14 +40,17 @@ function LoginContent() {
     try {
       const { response: signInResponse, body } = await signIn(normalizedUsername, password);
       if (!signInResponse.ok && body?.code) {
-        const messages:Record<string,string>={
-          INVITATION_REQUIRED:"Account non censito: occorre richiedere un invito all’agenzia.",
-          INVITATION_PENDING:"Invito non ancora accettato: apri l’email ricevuta per attivare l’account.",
-          AGENCY_DISABLED:"Impossibile entrare: agenzia disabilitata.",
-          ACCOUNT_DISABLED:"Account disabilitato. Contatta l’assistenza.",
-          INVALID_CREDENTIALS:"Password errata.",
+        const messages: Record<string, string> = {
+          INVITATION_REQUIRED: "Account non censito: occorre richiedere un invito all’agenzia.",
+          INVITATION_PENDING: "Invito non ancora accettato: apri l’email ricevuta per attivare l’account.",
+          AGENCY_DISABLED: "Impossibile entrare: agenzia disabilitata.",
+          ACCOUNT_DISABLED: "Account disabilitato. Contatta l’assistenza.",
+          INVALID_CREDENTIALS: "Password errata.",
         };
-        if(messages[body.code]){setError(messages[body.code]);return;}
+        if (messages[body.code]) {
+          setError(messages[body.code]);
+          return;
+        }
       }
       if (!signInResponse.ok && body?.error) {
         setError(body.error);
@@ -62,15 +65,17 @@ function LoginContent() {
         return;
       }
       if (!signInResponse.ok) {
-        setError(signInResponse.status === 503
-          ? "Servizio di accesso temporaneamente non disponibile. Riprova tra poco."
-          : "Accesso non riuscito. Riprova oppure reimposta la password.");
+        setError(
+          signInResponse.status === 503
+            ? "Servizio di accesso temporaneamente non disponibile. Riprova tra poco."
+            : "Accesso non riuscito. Riprova oppure reimposta la password.",
+        );
         return;
       }
 
       const requestedDestination = searchParams.get("next");
       const meResponse = await fetch("/api/auth/me", { cache: "no-store" });
-      const me = await meResponse.json().catch(() => null) as {
+      const me = (await meResponse.json().catch(() => null)) as {
         user?: { isSuperAdmin?: boolean; isAgencyAdmin?: boolean };
       } | null;
       if (!meResponse.ok || !me?.user) {
@@ -78,11 +83,11 @@ function LoginContent() {
         setError("Account non abilitato a questa applicazione.");
         return;
       }
-      const destination = me.user.isAgencyAdmin && !me.user.isSuperAdmin
-        ? "/agenzia"
-        : requestedDestination ?? (me.user.isSuperAdmin ? "/admin" : "/viaggio");
-      const safeDestination = destination.startsWith("/") && !destination.startsWith("//")
-        ? destination : "/";
+      const destination =
+        me.user.isAgencyAdmin && !me.user.isSuperAdmin
+          ? "/agenzia"
+          : (requestedDestination ?? (me.user.isSuperAdmin ? "/admin" : "/viaggio"));
+      const safeDestination = destination.startsWith("/") && !destination.startsWith("//") ? destination : "/";
       window.location.href = safeDestination;
     } catch (caught) {
       console.error("Login request failed", caught instanceof Error ? caught.message : String(caught));
@@ -94,28 +99,42 @@ function LoginContent() {
 
   return (
     <main className="loginPage">
-      <a className="agidSkipLink" href="#login-form">Salta al modulo di accesso</a>
+      <a className="agidSkipLink" href="#login-form">
+        Salta al modulo di accesso
+      </a>
       <section className="loginStory">
         <div className="loginPattern" />
-        <div className="loginBrand"><span>SMF</span> SMF Travel</div>
+        <div className="loginBrand">
+          <span>SMF</span> SMF Travel
+        </div>
         <div className="loginStoryCopy">
           <p>LA PIATTAFORMA PER LE AGENZIE DI VIAGGIO</p>
-          <h1>Ogni viaggio,<br/><em>in un unico spazio.</em></h1>
-          <span><Plane size={17}/> Agenzie · gruppi · viaggiatori</span>
+          <h1>
+            Ogni viaggio,
+            <br />
+            <em>in un unico spazio.</em>
+          </h1>
+          <span>
+            <Plane size={17} /> Agenzie · gruppi · viaggiatori
+          </span>
         </div>
         <small>Programmi, documenti, ricordi e attività sempre con te.</small>
       </section>
 
       <section className="loginPanel">
         <div id="login-form" className="loginBox" tabIndex={-1}>
-          <span className="loginLock"><LockKeyhole size={24}/></span>
+          <span className="loginLock">
+            <LockKeyhole size={24} />
+          </span>
           <p className="loginEyebrow">AREA RISERVATA</p>
           <h2>Accedi al tuo spazio</h2>
-          <p className="loginIntro">Inserisci le credenziali ricevute dall’agenzia. Verrai indirizzato automaticamente al tuo ambiente.</p>
+          <p className="loginIntro">
+            Inserisci le credenziali ricevute dall’agenzia. Verrai indirizzato automaticamente al tuo ambiente.
+          </p>
           <form onSubmit={submit}>
             <label htmlFor="username">Username</label>
             <div className="codeInput">
-              <UserRound size={18}/>
+              <UserRound size={18} />
               <input
                 id="username"
                 value={username}
@@ -133,7 +152,7 @@ function LoginContent() {
             </div>
             <label htmlFor="password">Password</label>
             <div className="codeInput">
-              <LockKeyhole size={18}/>
+              <LockKeyhole size={18} />
               <input
                 id="password"
                 type={showPassword ? "text" : "password"}
@@ -145,20 +164,34 @@ function LoginContent() {
                 aria-invalid={Boolean(error)}
                 aria-describedby={error ? "login-error" : undefined}
               />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Nascondi password" : "Mostra password"}>
-                {showPassword ? <EyeOff size={17}/> : <Eye size={17}/>}
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Nascondi password" : "Mostra password"}
+              >
+                {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
               </button>
             </div>
             {searchParams.get("configuration") === "missing" && (
-              <p className="loginError" role="alert">Autenticazione in configurazione. Riprova tra poco.</p>
+              <p className="loginError" role="alert">
+                Autenticazione in configurazione. Riprova tra poco.
+              </p>
             )}
-            {error && <p id="login-error" className="loginError" role="alert">{error}</p>}
+            {error && (
+              <p id="login-error" className="loginError" role="alert">
+                {error}
+              </p>
+            )}
             <button className="loginSubmit" type="submit" disabled={loading || !username.trim() || !password}>
-              {loading ? <LoaderCircle className="spin" size={18}/> : <LockKeyhole size={17}/>}
+              {loading ? <LoaderCircle className="spin" size={18} /> : <LockKeyhole size={17} />}
               {loading ? "Accesso in corso…" : "Accedi"}
             </button>
           </form>
-          <p className="loginHelp"><CircleUserRound size={13}/> <a href="/auth/forgot-password">Password dimenticata?</a><span aria-hidden="true">·</span><a href="/accessibilita">Accessibilità e assistenza</a></p>
+          <p className="loginHelp">
+            <CircleUserRound size={13} /> <a href="/auth/forgot-password">Password dimenticata?</a>
+            <span aria-hidden="true">·</span>
+            <a href="/accessibilita">Accessibilità e assistenza</a>
+          </p>
         </div>
       </section>
     </main>
@@ -167,7 +200,14 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<main className="loginPage"><section className="loginStory"/><section className="loginPanel"/></main>}>
+    <Suspense
+      fallback={
+        <main className="loginPage">
+          <section className="loginStory" />
+          <section className="loginPanel" />
+        </main>
+      }
+    >
       <LoginContent />
     </Suspense>
   );

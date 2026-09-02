@@ -13,21 +13,34 @@ const client = new Client(url);
 let open = false;
 try {
   await client.connect();
-  await client.query("BEGIN"); open = true;
+  await client.query("BEGIN");
+  open = true;
   await client.query("SET LOCAL lock_timeout='5s'");
   await client.query(source);
-  const gates = (await client.query(`SELECT
+  const gates = (
+    await client.query(`SELECT
     has_function_privilege('smf_app','app.read_journey_management(text,uuid)','EXECUTE') read_ok,
     has_function_privilege('smf_app','app.update_journey_party_competition(text,uuid,uuid,uuid,boolean)','EXECUTE') competition_ok,
-    has_function_privilege('smf_app','app.set_journey_party_leader(text,uuid,uuid,uuid,uuid)','EXECUTE') leader_ok`)).rows[0];
-  if (!gates || Object.values(gates).some((value) => value !== true)) throw new Error(`Gate incompleti: ${JSON.stringify(gates)}`);
+    has_function_privilege('smf_app','app.set_journey_party_leader(text,uuid,uuid,uuid,uuid)','EXECUTE') leader_ok`)
+  ).rows[0];
+  if (!gates || Object.values(gates).some((value) => value !== true))
+    throw new Error(`Gate incompleti: ${JSON.stringify(gates)}`);
   if (apply) {
-    await client.query(`INSERT INTO ops.schema_migrations(version,checksum_sha256,execution_ms)
-      VALUES($1,$2,0) ON CONFLICT(version) DO UPDATE SET applied_at=clock_timestamp()`, [model, checksum]);
+    await client.query(
+      `INSERT INTO ops.schema_migrations(version,checksum_sha256,execution_ms)
+      VALUES($1,$2,0) ON CONFLICT(version) DO UPDATE SET applied_at=clock_timestamp()`,
+      [model, checksum],
+    );
     await client.query("COMMIT");
   } else await client.query("ROLLBACK");
   open = false;
-  console.log(JSON.stringify({ status: apply ? "applied" : "dry_run_passed", gates, migration: { name, model, checksum } }, null, 2));
+  console.log(
+    JSON.stringify(
+      { status: apply ? "applied" : "dry_run_passed", gates, migration: { name, model, checksum } },
+      null,
+      2,
+    ),
+  );
 } catch (error) {
   if (open) await client.query("ROLLBACK").catch(() => {});
   throw error;

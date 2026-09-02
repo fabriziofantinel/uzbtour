@@ -27,19 +27,25 @@ function database() {
 }
 
 function transact<T>(mode: IDBTransactionMode, operation: (store: IDBObjectStore) => IDBRequest<T>) {
-  return database().then((db) => new Promise<T>((resolve, reject) => {
-    const transaction = db.transaction(STORE, mode);
-    const request = operation(transaction.objectStore(STORE));
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-    transaction.oncomplete = () => db.close();
-  }));
+  return database().then(
+    (db) =>
+      new Promise<T>((resolve, reject) => {
+        const transaction = db.transaction(STORE, mode);
+        const request = operation(transaction.objectStore(STORE));
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+        transaction.oncomplete = () => db.close();
+      }),
+  );
 }
 
 export function uuidV7() {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
   let timestamp = Date.now();
-  for (let index = 5; index >= 0; index -= 1) { bytes[index] = timestamp % 256; timestamp = Math.floor(timestamp / 256); }
+  for (let index = 5; index >= 0; index -= 1) {
+    bytes[index] = timestamp % 256;
+    timestamp = Math.floor(timestamp / 256);
+  }
   bytes[6] = (bytes[6] & 0x0f) | 0x70;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
   const hex = [...bytes].map((value) => value.toString(16).padStart(2, "0")).join("");
@@ -87,7 +93,12 @@ export async function flushOfflineQueue() {
       if (response.ok || response.status === 409) {
         await removeMutation(mutation.id);
         completed += 1;
-      } else if (response.status >= 400 && response.status < 500 && response.status !== 408 && response.status !== 429) {
+      } else if (
+        response.status >= 400 &&
+        response.status < 500 &&
+        response.status !== 408 &&
+        response.status !== 429
+      ) {
         await removeMutation(mutation.id);
         window.dispatchEvent(new CustomEvent("smf:sync-state", { detail: { state: "failed" } }));
       } else {
@@ -99,14 +110,20 @@ export async function flushOfflineQueue() {
     }
   }
   const pending = (await pendingMutations()).length;
-  window.dispatchEvent(new CustomEvent("smf:sync-state", { detail: { state: pending ? "pending" : completed > 0 ? "complete" : "idle", completed } }));
+  window.dispatchEvent(
+    new CustomEvent("smf:sync-state", {
+      detail: { state: pending ? "pending" : completed > 0 ? "complete" : "idle", completed },
+    }),
+  );
   return { completed, pending };
 }
 
 async function registerBackgroundSync() {
   const registration = await navigator.serviceWorker?.ready.catch(() => null);
   if (!registration || !("sync" in registration)) return;
-  await (registration as ServiceWorkerRegistration & { sync: { register(tag: string): Promise<void> } }).sync.register("smf-offline-mutations").catch(() => undefined);
+  await (registration as ServiceWorkerRegistration & { sync: { register(tag: string): Promise<void> } }).sync
+    .register("smf-offline-mutations")
+    .catch(() => undefined);
 }
 
 export async function resilientMutation(input: Omit<OfflineMutation, "id" | "createdAt" | "attempts">) {

@@ -68,7 +68,8 @@ export function setCognitoCookies(response: NextResponse, result: Authentication
   if (!result.AccessToken || !result.IdToken) throw new Error("Token Cognito mancanti");
   response.cookies.set(COGNITO_ACCESS_COOKIE, result.AccessToken, cookieOptions(result.ExpiresIn ?? 3600));
   response.cookies.set(COGNITO_ID_COOKIE, result.IdToken, cookieOptions(result.ExpiresIn ?? 3600));
-  if (result.RefreshToken) response.cookies.set(COGNITO_REFRESH_COOKIE, result.RefreshToken, cookieOptions(30 * 24 * 60 * 60));
+  if (result.RefreshToken)
+    response.cookies.set(COGNITO_REFRESH_COOKIE, result.RefreshToken, cookieOptions(30 * 24 * 60 * 60));
 }
 
 export function clearCognitoCookies(response: NextResponse) {
@@ -79,11 +80,13 @@ export function clearCognitoCookies(response: NextResponse) {
 
 export async function signInWithUsername(username: string, password: string) {
   const { clientId } = config();
-  const result = await getPublicClient().send(new InitiateAuthCommand({
-    AuthFlow: "USER_PASSWORD_AUTH",
-    ClientId: clientId,
-    AuthParameters: { USERNAME: username, PASSWORD: password },
-  }));
+  const result = await getPublicClient().send(
+    new InitiateAuthCommand({
+      AuthFlow: "USER_PASSWORD_AUTH",
+      ClientId: clientId,
+      AuthParameters: { USERNAME: username, PASSWORD: password },
+    }),
+  );
   if (result.ChallengeName) throw new Error(`Cognito challenge non gestita: ${result.ChallengeName}`);
   if (!result.AuthenticationResult) throw new Error("Autenticazione Cognito incompleta");
   return result.AuthenticationResult;
@@ -91,11 +94,13 @@ export async function signInWithUsername(username: string, password: string) {
 
 export async function refreshCognitoTokens(refreshToken: string) {
   const { clientId } = config();
-  const result = await getPublicClient().send(new InitiateAuthCommand({
-    AuthFlow: "REFRESH_TOKEN_AUTH",
-    ClientId: clientId,
-    AuthParameters: { REFRESH_TOKEN: refreshToken },
-  }));
+  const result = await getPublicClient().send(
+    new InitiateAuthCommand({
+      AuthFlow: "REFRESH_TOKEN_AUTH",
+      ClientId: clientId,
+      AuthParameters: { REFRESH_TOKEN: refreshToken },
+    }),
+  );
   if (!result.AuthenticationResult) throw new Error("Rinnovo sessione Cognito incompleto");
   return result.AuthenticationResult;
 }
@@ -144,33 +149,39 @@ export async function createOrUpdateInvitedCognitoUser(input: {
     if (existingEmail !== input.email.toLocaleLowerCase("en-US")) throw new Error("Username già assegnato");
   } catch (error) {
     if (!(error instanceof Error) || error.name !== "UserNotFoundException") throw error;
-    const created = await client.send(new AdminCreateUserCommand({
+    const created = await client.send(
+      new AdminCreateUserCommand({
+        UserPoolId: userPoolId,
+        Username: input.username,
+        MessageAction: "SUPPRESS",
+        UserAttributes: [
+          { Name: "email", Value: input.email },
+          { Name: "email_verified", Value: "true" },
+          { Name: "name", Value: input.name },
+        ],
+      }),
+    );
+    user = { UserAttributes: created.User?.Attributes };
+  }
+  await client.send(
+    new AdminUpdateUserAttributesCommand({
       UserPoolId: userPoolId,
       Username: input.username,
-      MessageAction: "SUPPRESS",
       UserAttributes: [
         { Name: "email", Value: input.email },
         { Name: "email_verified", Value: "true" },
         { Name: "name", Value: input.name },
       ],
-    }));
-    user = { UserAttributes: created.User?.Attributes };
-  }
-  await client.send(new AdminUpdateUserAttributesCommand({
-    UserPoolId: userPoolId,
-    Username: input.username,
-    UserAttributes: [
-      { Name: "email", Value: input.email },
-      { Name: "email_verified", Value: "true" },
-      { Name: "name", Value: input.name },
-    ],
-  }));
-  await client.send(new AdminSetUserPasswordCommand({
-    UserPoolId: userPoolId,
-    Username: input.username,
-    Password: input.password,
-    Permanent: true,
-  }));
+    }),
+  );
+  await client.send(
+    new AdminSetUserPasswordCommand({
+      UserPoolId: userPoolId,
+      Username: input.username,
+      Password: input.password,
+      Permanent: true,
+    }),
+  );
   const subject = attribute(user.UserAttributes, "sub");
   if (!subject) {
     const fetched = await client.send(new AdminGetUserCommand({ UserPoolId: userPoolId, Username: input.username }));
@@ -188,10 +199,12 @@ export async function requestPasswordReset(username: string) {
 
 export async function confirmPasswordReset(username: string, code: string, password: string) {
   const { clientId } = config();
-  await getPublicClient().send(new ConfirmForgotPasswordCommand({
-    ClientId: clientId,
-    Username: username,
-    ConfirmationCode: code,
-    Password: password,
-  }));
+  await getPublicClient().send(
+    new ConfirmForgotPasswordCommand({
+      ClientId: clientId,
+      Username: username,
+      ConfirmationCode: code,
+      Password: password,
+    }),
+  );
 }

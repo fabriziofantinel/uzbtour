@@ -1,7 +1,20 @@
 import { getSql } from "@/lib/db";
 
-type ReferenceRow = { template_version_id: string; template_day_id: string | null; content_type: string; content: unknown; entity_order: number };
-type ActivityItem = { ordinal: number; itemKind: "question" | "mission" | "bingo_cell" | "word" | "order_step" | "contest_rule"; prompt: string; payload: Record<string, unknown>; answerSpec: Record<string, unknown>; points: number };
+type ReferenceRow = {
+  template_version_id: string;
+  template_day_id: string | null;
+  content_type: string;
+  content: unknown;
+  entity_order: number;
+};
+type ActivityItem = {
+  ordinal: number;
+  itemKind: "question" | "mission" | "bingo_cell" | "word" | "order_step" | "contest_rule";
+  prompt: string;
+  payload: Record<string, unknown>;
+  answerSpec: Record<string, unknown>;
+  points: number;
+};
 type MaterializedActivity = {
   templateDayId: string | null;
   activityType: "quiz" | "mission" | "bingo" | "word_game" | "order_game" | "photo_contest";
@@ -19,14 +32,20 @@ type MaterializedActivity = {
 
 function arrayContent(value: unknown): Array<Record<string, unknown>> {
   return Array.isArray(value)
-    ? value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item))
+    ? value.filter(
+        (item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item),
+      )
     : [];
 }
-function text(value: unknown) { return typeof value === "string" ? value.trim() : ""; }
-function record(value: unknown): Record<string, unknown> { return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
-async function applyUsefulInformationGovernance(jobId:string,agencyId:string,versionId:string){
-  const sql=getSql();
-  await sql.transaction((txn)=>[
+function text(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+async function applyUsefulInformationGovernance(jobId: string, agencyId: string, versionId: string) {
+  const sql = getSql();
+  await sql.transaction((txn) => [
     txn`SELECT set_config('app.materialization_job_id',${jobId},true)`,
     txn`UPDATE travel.template_useful_information SET
       source_name=CASE WHEN COALESCE(url,'')<>'' THEN 'Fonte ufficiale indicata' ELSE NULL END,
@@ -39,65 +58,134 @@ async function applyUsefulInformationGovernance(jobId:string,agencyId:string,ver
 
 export async function materializeTripUsefulInformation(jobId: string, templateId: string, agencyId: string) {
   const sql = getSql();
-  const rows = await sql`SELECT * FROM app.read_trip_reference_content_v3(${jobId},${agencyId},${templateId})` as ReferenceRow[];
-  const usefulEntries: Array<{ category: string; title: string; body: string; phone: string; url: string; sortOrder: number }> = [];
+  const rows =
+    (await sql`SELECT * FROM app.read_trip_reference_content_v3(${jobId},${agencyId},${templateId})`) as ReferenceRow[];
+  const usefulEntries: Array<{
+    category: string;
+    title: string;
+    body: string;
+    phone: string;
+    url: string;
+    sortOrder: number;
+  }> = [];
   for (const row of rows.filter((item) => item.content_type === "useful_info")) {
-    for (const entry of arrayContent(row.content)) usefulEntries.push({
-      category: text(entry.category) || "Generale", title: text(entry.title) || "Informazione utile",
-      body: text(entry.body), phone: text(entry.phone), url: text(entry.url), sortOrder: usefulEntries.length,
-    });
+    for (const entry of arrayContent(row.content))
+      usefulEntries.push({
+        category: text(entry.category) || "Generale",
+        title: text(entry.title) || "Informazione utile",
+        body: text(entry.body),
+        phone: text(entry.phone),
+        url: text(entry.url),
+        sortOrder: usefulEntries.length,
+      });
   }
   if (usefulEntries.length === 0) throw new Error("Informazioni utili di riferimento non disponibili");
-  const result = await sql`SELECT * FROM app.replace_trip_useful_information_v3(${jobId},${agencyId},${templateId},${JSON.stringify(usefulEntries)}::jsonb)`;
+  const result =
+    await sql`SELECT * FROM app.replace_trip_useful_information_v3(${jobId},${agencyId},${templateId},${JSON.stringify(usefulEntries)}::jsonb)`;
   if (!result[0]) throw new Error("Materializzazione delle informazioni utili non completata");
-  await applyUsefulInformationGovernance(jobId,agencyId,String(result[0].template_version_id));
+  await applyUsefulInformationGovernance(jobId, agencyId, String(result[0].template_version_id));
   return { versionId: String(result[0].template_version_id), generatedSections: Number(result[0].generated_sections) };
 }
 
 export async function materializeTripExperience(jobId: string, templateId: string, agencyId: string) {
   const sql = getSql();
-  const rows = await sql`SELECT * FROM app.read_trip_reference_content_v3(${jobId},${agencyId},${templateId})` as ReferenceRow[];
+  const rows =
+    (await sql`SELECT * FROM app.read_trip_reference_content_v3(${jobId},${agencyId},${templateId})`) as ReferenceRow[];
   if (!rows[0]) throw new Error("Contenuti di riferimento del viaggio non disponibili");
 
-  const usefulEntries: Array<{ category: string; title: string; body: string; phone: string; url: string; sortOrder: number }> = [];
-  const phraseEntries: Array<{ language: string; term: string; pronunciation: string; translation: string; sortOrder: number }> = [];
+  const usefulEntries: Array<{
+    category: string;
+    title: string;
+    body: string;
+    phone: string;
+    url: string;
+    sortOrder: number;
+  }> = [];
+  const phraseEntries: Array<{
+    language: string;
+    term: string;
+    pronunciation: string;
+    translation: string;
+    sortOrder: number;
+  }> = [];
   const activities: MaterializedActivity[] = [];
   const grouped = new Map<string, MaterializedActivity>();
-  const daySources = new Map<string, { dayId: string; contentType: string; sources: Array<{ entityOrder: number; entries: Array<Record<string, unknown>> }> }>();
+  const daySources = new Map<
+    string,
+    {
+      dayId: string;
+      contentType: string;
+      sources: Array<{ entityOrder: number; entries: Array<Record<string, unknown>> }>;
+    }
+  >();
   let activitySort = 0;
   const ensureGroup = (dayId: string | null, type: "quiz" | "mission" | "bingo") => {
     const key = `${dayId ?? "trip"}:${type}`;
     const existing = grouped.get(key);
     if (existing) return existing;
     const activity: MaterializedActivity = {
-      templateDayId: dayId, activityType: type, contestCategory: null,
+      templateDayId: dayId,
+      activityType: type,
+      contestCategory: null,
       title: type === "quiz" ? "Quiz del giorno" : type === "mission" ? "Missioni del giorno" : "Bingo del viaggio",
-      instructions: type === "quiz" ? "Rispondi alle domande sulle visite della giornata."
-        : type === "mission" ? "Completa le missioni e documentale con una foto."
-          : "Completa la cartella fotografica durante il viaggio.",
+      instructions:
+        type === "quiz"
+          ? "Rispondi alle domande sulle visite della giornata."
+          : type === "mission"
+            ? "Completa le missioni e documentale con una foto."
+            : "Completa la cartella fotografica durante il viaggio.",
       availabilityRule: type === "quiz" || type === "mission" ? "relative_day_time" : "always",
       relativeDays: type === "quiz" ? 0 : type === "mission" ? -2 : null,
       unlockLocalTime: type === "quiz" || type === "mission" ? "20:00" : null,
-      maxScore: null, maxEntries: null, sortOrder: activitySort++, items: [],
+      maxScore: null,
+      maxEntries: null,
+      sortOrder: activitySort++,
+      items: [],
     };
-    grouped.set(key, activity); activities.push(activity); return activity;
+    grouped.set(key, activity);
+    activities.push(activity);
+    return activity;
   };
 
   for (const row of rows) {
     const entries = arrayContent(row.content);
     if (row.content_type === "useful_info") {
-      entries.forEach((entry) => usefulEntries.push({ category: text(entry.category) || "Generale", title: text(entry.title) || "Informazione utile", body: text(entry.body), phone: text(entry.phone), url: text(entry.url), sortOrder: usefulEntries.length }));
+      entries.forEach((entry) =>
+        usefulEntries.push({
+          category: text(entry.category) || "Generale",
+          title: text(entry.title) || "Informazione utile",
+          body: text(entry.body),
+          phone: text(entry.phone),
+          url: text(entry.url),
+          sortOrder: usefulEntries.length,
+        }),
+      );
       continue;
     }
     if (row.content_type === "phrasebook") {
-      entries.forEach((entry) => phraseEntries.push({ language: text(entry.language) || "local", term: text(entry.term), pronunciation: text(entry.pronunciation), translation: text(entry.translation), sortOrder: phraseEntries.length }));
+      entries.forEach((entry) =>
+        phraseEntries.push({
+          language: text(entry.language) || "local",
+          term: text(entry.term),
+          pronunciation: text(entry.pronunciation),
+          translation: text(entry.translation),
+          sortOrder: phraseEntries.length,
+        }),
+      );
       continue;
     }
     if (row.content_type === "bingo") {
       const activity = ensureGroup(null, "bingo");
       for (const entry of entries) {
         if (activity.items.length >= 25) break;
-        activity.items.push({ ordinal: activity.items.length + 1, itemKind: "bingo_cell", prompt: text(entry.title), payload: { description: text(entry.description), photoValidation: record(entry.photoValidation) }, answerSpec: { validation: "photo" }, points: 0 });
+        activity.items.push({
+          ordinal: activity.items.length + 1,
+          itemKind: "bingo_cell",
+          prompt: text(entry.title),
+          payload: { description: text(entry.description), photoValidation: record(entry.photoValidation) },
+          answerSpec: { validation: "photo" },
+          points: 0,
+        });
       }
       continue;
     }
@@ -122,7 +210,8 @@ export async function materializeTripExperience(jobId: string, templateId: strin
         for (const source of group) {
           const entry = source.entries[itemIndex];
           if (!entry) continue;
-          flattened.push(entry); added = true;
+          flattened.push(entry);
+          added = true;
         }
         if (!added) break;
       }
@@ -151,9 +240,30 @@ export async function materializeTripExperience(jobId: string, templateId: strin
     if (contentType === "quiz" || contentType === "mission") {
       const type = contentType;
       const activity = ensureGroup(dayId, type);
-      for (const entry of selected) activity.items.push(type === "quiz"
-        ? { ordinal: activity.items.length + 1, itemKind: "question", prompt: text(entry.question) || text(entry.title), payload: { options: Array.isArray(entry.options) ? entry.options : [], explanation: text(entry.explanation), sourceUrl: text(entry.sourceUrl) }, answerSpec: { correctIndex: entry.correctIndex }, points: 1 }
-        : { ordinal: activity.items.length + 1, itemKind: "mission", prompt: text(entry.title), payload: { description: text(entry.description), photoValidation: record(entry.photoValidation) }, answerSpec: { validation: "photo" }, points: 10 });
+      for (const entry of selected)
+        activity.items.push(
+          type === "quiz"
+            ? {
+                ordinal: activity.items.length + 1,
+                itemKind: "question",
+                prompt: text(entry.question) || text(entry.title),
+                payload: {
+                  options: Array.isArray(entry.options) ? entry.options : [],
+                  explanation: text(entry.explanation),
+                  sourceUrl: text(entry.sourceUrl),
+                },
+                answerSpec: { correctIndex: entry.correctIndex },
+                points: 1,
+              }
+            : {
+                ordinal: activity.items.length + 1,
+                itemKind: "mission",
+                prompt: text(entry.title),
+                payload: { description: text(entry.description), photoValidation: record(entry.photoValidation) },
+                answerSpec: { validation: "photo" },
+                points: 10,
+              },
+        );
       activity.maxScore = activity.items.reduce((total, item) => total + item.points, 0);
       continue;
     }
@@ -173,30 +283,55 @@ export async function materializeTripExperience(jobId: string, templateId: strin
           maxScore: 10,
           maxEntries: null,
           sortOrder: activitySort++,
-          items: [{
-            ordinal: 1,
-            itemKind: isOddOneOut ? "order_step" : "word",
-            prompt: text(entry.title),
-            payload: {
-              type: gameType,
-              instructions: text(entry.instructions),
-              pairs: Array.isArray(entry.pairs) ? entry.pairs : [],
-              options: Array.isArray(entry.options) ? entry.options : [],
+          items: [
+            {
+              ordinal: 1,
+              itemKind: isOddOneOut ? "order_step" : "word",
+              prompt: text(entry.title),
+              payload: {
+                type: gameType,
+                instructions: text(entry.instructions),
+                pairs: Array.isArray(entry.pairs) ? entry.pairs : [],
+                options: Array.isArray(entry.options) ? entry.options : [],
+              },
+              answerSpec: isOddOneOut ? { correctIndex: entry.correctIndex } : { answer: "complete" },
+              points: 10,
             },
-            answerSpec: isOddOneOut ? { correctIndex: entry.correctIndex } : { answer: "complete" },
-            points: 10,
-          }],
+          ],
         });
       } else {
         const category = index === 0 ? "free" : "theme";
-        activities.push({ templateDayId: dayId, activityType: "photo_contest", contestCategory: category, title: text(entry.title) || (category === "free" ? "Tema libero" : "Tema del giorno"), instructions: text(entry.description), availabilityRule: "always", relativeDays: null, unlockLocalTime: null, maxScore: null, maxEntries: 2, sortOrder: activitySort++, items: [{ ordinal: 1, itemKind: "contest_rule", prompt: text(entry.title), payload: { description: text(entry.description), photoValidation: record(entry.photoValidation) }, answerSpec: {}, points: 0 }] });
+        activities.push({
+          templateDayId: dayId,
+          activityType: "photo_contest",
+          contestCategory: category,
+          title: text(entry.title) || (category === "free" ? "Tema libero" : "Tema del giorno"),
+          instructions: text(entry.description),
+          availabilityRule: "always",
+          relativeDays: null,
+          unlockLocalTime: null,
+          maxScore: null,
+          maxEntries: 2,
+          sortOrder: activitySort++,
+          items: [
+            {
+              ordinal: 1,
+              itemKind: "contest_rule",
+              prompt: text(entry.title),
+              payload: { description: text(entry.description), photoValidation: record(entry.photoValidation) },
+              answerSpec: {},
+              points: 0,
+            },
+          ],
+        });
       }
     });
   }
 
-  const result = await sql`SELECT * FROM app.replace_trip_experience_v3(${jobId},${agencyId},${templateId},${JSON.stringify(usefulEntries)}::jsonb,${JSON.stringify(phraseEntries)}::jsonb,${JSON.stringify(activities)}::jsonb)`;
+  const result =
+    await sql`SELECT * FROM app.replace_trip_experience_v3(${jobId},${agencyId},${templateId},${JSON.stringify(usefulEntries)}::jsonb,${JSON.stringify(phraseEntries)}::jsonb,${JSON.stringify(activities)}::jsonb)`;
   if (!result[0]) throw new Error("Materializzazione dei contenuti non completata");
   await sql`SELECT app.apply_generated_useful_information_contacts_v3(${jobId},${agencyId},${templateId},${JSON.stringify(usefulEntries)}::jsonb)`;
-  await applyUsefulInformationGovernance(jobId,agencyId,String(result[0].template_version_id));
+  await applyUsefulInformationGovernance(jobId, agencyId, String(result[0].template_version_id));
   return { versionId: String(result[0].template_version_id), generatedSections: Number(result[0].generated_sections) };
 }

@@ -168,28 +168,11 @@
               "target": "Frittata belga",
               "subjectType": "dish",
               "visualDescription": "Una frittata belga tipica dovrebbe mostrare una sezione trasversale con uova, patate e lardo ben visibili. Il colore dovrebbe essere dorato e la consistenza leggermente croccante all'esterno.",
-              "requiredFeatures": [
-                "uova",
-                "patate",
-                "lardo"
-              ],
-              "optionalFeatures": [
-                "piatti",
-                "utensili da cucina"
-              ],
-              "acceptableVariations": [
-                "dimensioni diverse",
-                "presentazione diversa"
-              ],
-              "rejectIf": [
-                "assenza di uova",
-                "assenza di patate",
-                "assenza di lardo"
-              ],
-              "confusableWith": [
-                "omelette",
-                "torta di patate"
-              ],
+              "requiredFeatures": ["uova", "patate", "lardo"],
+              "optionalFeatures": ["piatti", "utensili da cucina"],
+              "acceptableVariations": ["dimensioni diverse", "presentazione diversa"],
+              "rejectIf": ["assenza di uova", "assenza di patate", "assenza di lardo"],
+              "confusableWith": ["omelette", "torta di patate"],
               "minimumConfidence": 0.85
             }
           },
@@ -201,25 +184,11 @@
               "target": "Birra Trappista",
               "subjectType": "drink",
               "visualDescription": "Una bottiglia di birra Trappista belga dovrebbe mostrare un'etichetta chiaramente visibile con il nome del monastero e il tipo di birra. Il colore della birra dovrebbe essere tipico delle birre Trappiste, solitamente scuro.",
-              "requiredFeatures": [
-                "etichetta con il nome del monastero",
-                "tipo di birra"
-              ],
-              "optionalFeatures": [
-                "bicchiere",
-                "sfondo monastico"
-              ],
-              "acceptableVariations": [
-                "diverse dimensioni della bottiglia",
-                "diverse varianti di birra Trappista"
-              ],
-              "rejectIf": [
-                "assenza di etichetta",
-                "tipo di birra non corretto"
-              ],
-              "confusableWith": [
-                "altre birre artigianali"
-              ],
+              "requiredFeatures": ["etichetta con il nome del monastero", "tipo di birra"],
+              "optionalFeatures": ["bicchiere", "sfondo monastico"],
+              "acceptableVariations": ["diverse dimensioni della bottiglia", "diverse varianti di birra Trappista"],
+              "rejectIf": ["assenza di etichetta", "tipo di birra non corretto"],
+              "confusableWith": ["altre birre artigianali"],
               "minimumConfidence": 0.8
             }
           },
@@ -236,21 +205,10 @@
                 "superficie leggermente croccante",
                 "decorazione a base di spezie"
               ],
-              "optionalFeatures": [
-                "confezione originale",
-                "sfondo culinario"
-              ],
-              "acceptableVariations": [
-                "diverse dimensioni dei biscotti",
-                "diverse varianti di decorazione"
-              ],
-              "rejectIf": [
-                "assenza di decorazione a base di spezie",
-                "forma non corretta"
-              ],
-              "confusableWith": [
-                "biscotti con spezie simili"
-              ],
+              "optionalFeatures": ["confezione originale", "sfondo culinario"],
+              "acceptableVariations": ["diverse dimensioni dei biscotti", "diverse varianti di decorazione"],
+              "rejectIf": ["assenza di decorazione a base di spezie", "forma non corretta"],
+              "confusableWith": ["biscotti con spezie simili"],
               "minimumConfidence": 0.8
             }
           },
@@ -262,26 +220,11 @@
               "target": "Ciliegie fresche belghe",
               "subjectType": "food",
               "visualDescription": "Le ciliegie fresche belghe dovrebbero mostrare una forma rotonda o leggermente ovale con una buccia lucida e un colore rosso intenso. La polpa dovrebbe essere visibile attraverso la buccia.",
-              "requiredFeatures": [
-                "forma rotonda o leggermente ovale",
-                "buccia lucida",
-                "colore rosso intenso"
-              ],
-              "optionalFeatures": [
-                "sfondo agricolo",
-                "cesto di ciliegie"
-              ],
-              "acceptableVariations": [
-                "diverse dimensioni delle ciliegie",
-                "diverse tonalità di rosso"
-              ],
-              "rejectIf": [
-                "assenza di buccia lucida",
-                "colore non corretto"
-              ],
-              "confusableWith": [
-                "altri frutti rossi"
-              ],
+              "requiredFeatures": ["forma rotonda o leggermente ovale", "buccia lucida", "colore rosso intenso"],
+              "optionalFeatures": ["sfondo agricolo", "cesto di ciliegie"],
+              "acceptableVariations": ["diverse dimensioni delle ciliegie", "diverse tonalità di rosso"],
+              "rejectIf": ["assenza di buccia lucida", "colore non corretto"],
+              "confusableWith": ["altri frutti rossi"],
               "minimumConfidence": 0.8
             }
           },
@@ -293,26 +236,11 @@
               "target": "Ceramica di Bruges",
               "subjectType": "object",
               "visualDescription": "Un pezzo di ceramica di Bruges dovrebbe mostrare dettagli decorativi tipici come fiori, animali o scene bibliche. Il colore dovrebbe essere bianco con decorazioni blu o policrome.",
-              "requiredFeatures": [
-                "dettagli decorativi tipici",
-                "colore bianco",
-                "decorazioni blu o policrome"
-              ],
-              "optionalFeatures": [
-                "sfondo artigianale",
-                "mostra di ceramica"
-              ],
-              "acceptableVariations": [
-                "diverse dimensioni del pezzo",
-                "diverse varianti di decorazione"
-              ],
-              "rejectIf": [
-                "assenza di dettagli decorativi tipici",
-                "colore non corretto"
-              ],
-              "confusableWith": [
-                "altri tipi di ceramica"
-              ],
+              "requiredFeatures": ["dettagli decorativi tipici", "colore bianco", "decorazioni blu o policrome"],
+              "optionalFeatures": ["sfondo artigianale", "mostra di ceramica"],
+              "acceptableVariations": ["diverse dimensioni del pezzo", "diverse varianti di decorazione"],
+              "rejectIf": ["assenza di dettagli decorativi tipici", "colore non corretto"],
+              "confusableWith": ["altri tipi di ceramica"],
               "minimumConfidence": 0.9
             }
           },
@@ -324,26 +252,11 @@
               "target": "Motivo a scacchi",
               "subjectType": "pattern",
               "visualDescription": "La foto deve mostrare un motivo a scacchi, tipico del Belgio, che può essere presente su tessuti, pavimenti o altri oggetti. Il motivo deve essere chiaramente visibile e riconoscibile.",
-              "requiredFeatures": [
-                "motivo a scacchi chiaramente visibile",
-                "colori contrastanti tipici"
-              ],
-              "optionalFeatures": [
-                "tessuto o superficie con il motivo",
-                "ambientazione belga"
-              ],
-              "acceptableVariations": [
-                "dimensioni diverse del motivo",
-                "angoli di ripresa diversi"
-              ],
-              "rejectIf": [
-                "motivo non a scacchi",
-                "assenza di colori contrastanti"
-              ],
-              "confusableWith": [
-                "motivo a righe",
-                "motivo a pois"
-              ],
+              "requiredFeatures": ["motivo a scacchi chiaramente visibile", "colori contrastanti tipici"],
+              "optionalFeatures": ["tessuto o superficie con il motivo", "ambientazione belga"],
+              "acceptableVariations": ["dimensioni diverse del motivo", "angoli di ripresa diversi"],
+              "rejectIf": ["motivo non a scacchi", "assenza di colori contrastanti"],
+              "confusableWith": ["motivo a righe", "motivo a pois"],
               "minimumConfidence": 0.7
             }
           },
@@ -355,26 +268,11 @@
               "target": "Abito tradizionale esposto",
               "subjectType": "object",
               "visualDescription": "La foto deve mostrare un abito tradizionale belga esposto, come in un museo o in una vetrina. L'abito deve essere chiaramente visibile e riconoscibile come tradizionale belga.",
-              "requiredFeatures": [
-                "abito tradizionale belga chiaramente visibile",
-                "contesto di esposizione"
-              ],
-              "optionalFeatures": [
-                "dettaglio del tessuto o del design",
-                "ambientazione belga"
-              ],
-              "acceptableVariations": [
-                "angoli di ripresa diversi",
-                "illuminazione diversa"
-              ],
-              "rejectIf": [
-                "abito non tradizionale",
-                "assenza di contesto di esposizione"
-              ],
-              "confusableWith": [
-                "abito tradizionale di un altro paese",
-                "abito moderno"
-              ],
+              "requiredFeatures": ["abito tradizionale belga chiaramente visibile", "contesto di esposizione"],
+              "optionalFeatures": ["dettaglio del tessuto o del design", "ambientazione belga"],
+              "acceptableVariations": ["angoli di ripresa diversi", "illuminazione diversa"],
+              "rejectIf": ["abito non tradizionale", "assenza di contesto di esposizione"],
+              "confusableWith": ["abito tradizionale di un altro paese", "abito moderno"],
               "minimumConfidence": 0.8
             }
           },
@@ -390,22 +288,10 @@
                 "dettaglio architettonico esterno chiaramente visibile",
                 "elementi tipici del Belgio"
               ],
-              "optionalFeatures": [
-                "contesto urbano o rurale",
-                "ambientazione belga"
-              ],
-              "acceptableVariations": [
-                "angoli di ripresa diversi",
-                "illuminazione diversa"
-              ],
-              "rejectIf": [
-                "dettaglio non architettonico",
-                "assenza di elementi tipici del Belgio"
-              ],
-              "confusableWith": [
-                "dettaglio architettonico di un altro paese",
-                "elemento non architettonico"
-              ],
+              "optionalFeatures": ["contesto urbano o rurale", "ambientazione belga"],
+              "acceptableVariations": ["angoli di ripresa diversi", "illuminazione diversa"],
+              "rejectIf": ["dettaglio non architettonico", "assenza di elementi tipici del Belgio"],
+              "confusableWith": ["dettaglio architettonico di un altro paese", "elemento non architettonico"],
               "minimumConfidence": 0.85
             }
           },
@@ -417,26 +303,11 @@
               "target": "Decorazione o mosaico",
               "subjectType": "object",
               "visualDescription": "La foto deve mostrare una decorazione o un mosaico tipico del Belgio, come un murale, un pavimento o un elemento decorativo. La decorazione o il mosaico devono essere chiaramente visibili e riconoscibili come tipici del Belgio.",
-              "requiredFeatures": [
-                "decorazione o mosaico chiaramente visibile",
-                "elementi tipici del Belgio"
-              ],
-              "optionalFeatures": [
-                "contesto urbano o rurale",
-                "ambientazione belga"
-              ],
-              "acceptableVariations": [
-                "angoli di ripresa diversi",
-                "illuminazione diversa"
-              ],
-              "rejectIf": [
-                "decorazione o mosaico non tipico del Belgio",
-                "assenza di elementi tipici del Belgio"
-              ],
-              "confusableWith": [
-                "decorazione o mosaico di un altro paese",
-                "elemento non decorativo"
-              ],
+              "requiredFeatures": ["decorazione o mosaico chiaramente visibile", "elementi tipici del Belgio"],
+              "optionalFeatures": ["contesto urbano o rurale", "ambientazione belga"],
+              "acceptableVariations": ["angoli di ripresa diversi", "illuminazione diversa"],
+              "rejectIf": ["decorazione o mosaico non tipico del Belgio", "assenza di elementi tipici del Belgio"],
+              "confusableWith": ["decorazione o mosaico di un altro paese", "elemento non decorativo"],
               "minimumConfidence": 0.75
             }
           },
@@ -448,26 +319,11 @@
               "target": "Mezzo di trasporto locale",
               "subjectType": "transport",
               "visualDescription": "La foto deve mostrare un mezzo di trasporto locale tipico del Belgio, come un tram, un autobus o una bicicletta. Il mezzo di trasporto deve essere chiaramente visibile e riconoscibile come tipico del Belgio.",
-              "requiredFeatures": [
-                "mezzo di trasporto locale chiaramente visibile",
-                "elementi tipici del Belgio"
-              ],
-              "optionalFeatures": [
-                "contesto urbano o rurale",
-                "ambientazione belga"
-              ],
-              "acceptableVariations": [
-                "angoli di ripresa diversi",
-                "illuminazione diversa"
-              ],
-              "rejectIf": [
-                "mezzo di trasporto non locale",
-                "assenza di elementi tipici del Belgio"
-              ],
-              "confusableWith": [
-                "mezzo di trasporto di un altro paese",
-                "elemento non di trasporto"
-              ],
+              "requiredFeatures": ["mezzo di trasporto locale chiaramente visibile", "elementi tipici del Belgio"],
+              "optionalFeatures": ["contesto urbano o rurale", "ambientazione belga"],
+              "acceptableVariations": ["angoli di ripresa diversi", "illuminazione diversa"],
+              "rejectIf": ["mezzo di trasporto non locale", "assenza di elementi tipici del Belgio"],
+              "confusableWith": ["mezzo di trasporto di un altro paese", "elemento non di trasporto"],
               "minimumConfidence": 0.8
             }
           },
@@ -484,21 +340,10 @@
                 "Colore e design specifici del Belgio",
                 "Testo in lingua francese, olandese o tedesca"
               ],
-              "optionalFeatures": [
-                "Sfondo con elementi tipici belgi",
-                "Segno d'acqua o altri dettagli di sicurezza"
-              ],
-              "acceptableVariations": [
-                "Leggeri segni di usura",
-                "Lievi pieghe"
-              ],
-              "rejectIf": [
-                "Banconota di un altro paese",
-                "Elementi non correlati al Belgio"
-              ],
-              "confusableWith": [
-                "Banconota da 5 euro di un altro paese dell'UE"
-              ],
+              "optionalFeatures": ["Sfondo con elementi tipici belgi", "Segno d'acqua o altri dettagli di sicurezza"],
+              "acceptableVariations": ["Leggeri segni di usura", "Lievi pieghe"],
+              "rejectIf": ["Banconota di un altro paese", "Elementi non correlati al Belgio"],
+              "confusableWith": ["Banconota da 5 euro di un altro paese dell'UE"],
               "minimumConfidence": 0.9
             }
           },
@@ -514,21 +359,10 @@
                 "Testo in lingua francese, olandese o tedesca",
                 "Contesto che suggerisce l'uso in Belgio"
               ],
-              "optionalFeatures": [
-                "Stile grafico tipico del Belgio",
-                "Illuminazione naturale o artificiale"
-              ],
-              "acceptableVariations": [
-                "Leggeri errori di ortografia",
-                "Variazioni di colore dovute all'illuminazione"
-              ],
-              "rejectIf": [
-                "Testo in un'altra lingua",
-                "Contesto non correlato al Belgio"
-              ],
-              "confusableWith": [
-                "Scritta in una lingua simile ma di un altro paese"
-              ],
+              "optionalFeatures": ["Stile grafico tipico del Belgio", "Illuminazione naturale o artificiale"],
+              "acceptableVariations": ["Leggeri errori di ortografia", "Variazioni di colore dovute all'illuminazione"],
+              "rejectIf": ["Testo in un'altra lingua", "Contesto non correlato al Belgio"],
+              "confusableWith": ["Scritta in una lingua simile ma di un altro paese"],
               "minimumConfidence": 0.8
             }
           },
@@ -544,21 +378,10 @@
                 "Etichetta o confezione con indicazione dell'origine belga",
                 "Design o marchio tipico del prodotto"
               ],
-              "optionalFeatures": [
-                "Imballaggio originale",
-                "Prezzo o informazioni nutrizionali"
-              ],
-              "acceptableVariations": [
-                "Varietà di gusti o tipi di prodotto",
-                "Leggeri danni all'imballaggio"
-              ],
-              "rejectIf": [
-                "Prodotto di un altro paese",
-                "Etichetta non correlata al Belgio"
-              ],
-              "confusableWith": [
-                "Prodotto simile di un altro paese"
-              ],
+              "optionalFeatures": ["Imballaggio originale", "Prezzo o informazioni nutrizionali"],
+              "acceptableVariations": ["Varietà di gusti o tipi di prodotto", "Leggeri danni all'imballaggio"],
+              "rejectIf": ["Prodotto di un altro paese", "Etichetta non correlata al Belgio"],
+              "confusableWith": ["Prodotto simile di un altro paese"],
               "minimumConfidence": 0.85
             }
           },
@@ -570,25 +393,11 @@
               "target": "Oggetto della tavola tipico del Belgio",
               "subjectType": "object",
               "visualDescription": "Un oggetto della tavola tipico del Belgio, come una forchetta da dessert o un bicchiere da birra, con caratteristiche distintive belghe.",
-              "requiredFeatures": [
-                "Design o marchio tipico del Belgio",
-                "Materiale e colore appropriati"
-              ],
-              "optionalFeatures": [
-                "Uso in un contesto culinario belga",
-                "Decorazioni o simboli belgi"
-              ],
-              "acceptableVariations": [
-                "Varietà di stili o tipi di oggetto",
-                "Leggeri segni d'uso"
-              ],
-              "rejectIf": [
-                "Oggetto di un altro paese",
-                "Design non correlato al Belgio"
-              ],
-              "confusableWith": [
-                "Oggetto simile di un altro paese"
-              ],
+              "requiredFeatures": ["Design o marchio tipico del Belgio", "Materiale e colore appropriati"],
+              "optionalFeatures": ["Uso in un contesto culinario belga", "Decorazioni o simboli belgi"],
+              "acceptableVariations": ["Varietà di stili o tipi di oggetto", "Leggeri segni d'uso"],
+              "rejectIf": ["Oggetto di un altro paese", "Design non correlato al Belgio"],
+              "confusableWith": ["Oggetto simile di un altro paese"],
               "minimumConfidence": 0.8
             }
           },
@@ -600,25 +409,11 @@
               "target": "Scena urbana senza persone riconoscibili nel Belgio",
               "subjectType": "scene",
               "visualDescription": "Una scena urbana senza persone riconoscibili nel Belgio, con edifici, strade o altri elementi tipici del contesto urbano belga.",
-              "requiredFeatures": [
-                "Elementi urbani tipici del Belgio",
-                "Assenza di persone riconoscibili"
-              ],
-              "optionalFeatures": [
-                "Illuminazione naturale o artificiale",
-                "Sfondo urbano ben definito"
-              ],
-              "acceptableVariations": [
-                "Varietà di elementi urbani",
-                "Leggeri cambiamenti di luce o ombra"
-              ],
-              "rejectIf": [
-                "Scena di un altro paese",
-                "Presenza di persone riconoscibili"
-              ],
-              "confusableWith": [
-                "Scena urbana di un altro paese simile"
-              ],
+              "requiredFeatures": ["Elementi urbani tipici del Belgio", "Assenza di persone riconoscibili"],
+              "optionalFeatures": ["Illuminazione naturale o artificiale", "Sfondo urbano ben definito"],
+              "acceptableVariations": ["Varietà di elementi urbani", "Leggeri cambiamenti di luce o ombra"],
+              "rejectIf": ["Scena di un altro paese", "Presenza di persone riconoscibili"],
+              "confusableWith": ["Scena urbana di un altro paese simile"],
               "minimumConfidence": 0.75
             }
           }
@@ -632,72 +427,42 @@
         "quiz": [
           {
             "question": "In quale secolo Bruxelles iniziò a svilupparsi intorno a un castello sul Coudenberg?",
-            "options": [
-              "XI",
-              "XII",
-              "XIII",
-              "XIV"
-            ],
+            "options": ["XI", "XII", "XIII", "XIV"],
             "correctIndex": 0,
             "explanation": "Bruxelles iniziò a svilupparsi intorno a un castello sul Coudenberg nell'XI secolo.",
             "sourceUrl": "https://www.visit.brussels/en/visitors/plan-your-trip/practical-info/historic-brussels"
           },
           {
             "question": "Quale edificio di Bruxelles è noto per essere il primo esempio di architettura Art Nouveau?",
-            "options": [
-              "Hôtel Tassel",
-              "Hôtel de Ville",
-              "Maison du Roi",
-              "Galeries Royales Saint-Hubert"
-            ],
+            "options": ["Hôtel Tassel", "Hôtel de Ville", "Maison du Roi", "Galeries Royales Saint-Hubert"],
             "correctIndex": 0,
             "explanation": "L'Hôtel Tassel è considerato il primo edificio Art Nouveau.",
             "sourceUrl": "https://www.visit.brussels/en/visitors/what-to-do/achitecture"
           },
           {
             "question": "Quale monumento di Bruxelles è stato inserito nella Lista del Patrimonio Mondiale dell’UNESCO nel 1998?",
-            "options": [
-              "Grand-Place",
-              "Hôtel de Ville",
-              "Maison du Roi",
-              "Galeries Royales Saint-Hubert"
-            ],
+            "options": ["Grand-Place", "Hôtel de Ville", "Maison du Roi", "Galeries Royales Saint-Hubert"],
             "correctIndex": 0,
             "explanation": "La Grand-Place è stata inserita nella Lista del Patrimonio Mondiale dell’UNESCO nel 1998.",
             "sourceUrl": "https://www.brussels.be/unesco-world-heritage"
           },
           {
             "question": "Quale edificio di Bruxelles è un esempio di residenza borghese di lusso in stile Art Nouveau?",
-            "options": [
-              "Hôtel Solvay",
-              "Hôtel de Ville",
-              "Maison du Roi",
-              "Galeries Royales Saint-Hubert"
-            ],
+            "options": ["Hôtel Solvay", "Hôtel de Ville", "Maison du Roi", "Galeries Royales Saint-Hubert"],
             "correctIndex": 0,
             "explanation": "L'Hôtel Solvay è un esempio di residenza borghese di lusso in stile Art Nouveau.",
             "sourceUrl": "https://www.visit.brussels/en/visitors/what-to-do/achitecture"
           },
           {
             "question": "Quale monumento di Bruxelles è noto per la sua struttura a forma di atomo?",
-            "options": [
-              "Atomium",
-              "Hôtel de Ville",
-              "Maison du Roi",
-              "Galeries Royales Saint-Hubert"
-            ],
+            "options": ["Atomium", "Hôtel de Ville", "Maison du Roi", "Galeries Royales Saint-Hubert"],
             "correctIndex": 0,
             "explanation": "L'Atomium è noto per la sua struttura a forma di atomo.",
             "sourceUrl": "https://www.visit.brussels/en/visitors/what-to-do/attractions-and-monuments"
           },
           {
             "question": "Quale edificio di Bruxelles ospita il Museo della Città di Bruxelles?",
-            "options": [
-              "Maison du Roi",
-              "Hôtel de Ville",
-              "Hôtel Tassel",
-              "Galeries Royales Saint-Hubert"
-            ],
+            "options": ["Maison du Roi", "Hôtel de Ville", "Hôtel Tassel", "Galeries Royales Saint-Hubert"],
             "correctIndex": 0,
             "explanation": "La Maison du Roi ospita il Museo della Città di Bruxelles.",
             "sourceUrl": "https://www.visit.brussels/en/visitors/what-to-do/achitecture"
@@ -716,12 +481,7 @@
           },
           {
             "question": "Quale edificio di Bruxelles è noto per essere un esempio di architettura modernista del XX secolo?",
-            "options": [
-              "Palais de Justice",
-              "Hôtel de Ville",
-              "Maison du Roi",
-              "Galeries Royales Saint-Hubert"
-            ],
+            "options": ["Palais de Justice", "Hôtel de Ville", "Maison du Roi", "Galeries Royales Saint-Hubert"],
             "correctIndex": 0,
             "explanation": "Il Palais de Justice è noto per essere un esempio di architettura modernista del XX secolo.",
             "sourceUrl": "https://www.visit.brussels/en/visitors/what-to-do/achitecture"
@@ -740,12 +500,7 @@
           },
           {
             "question": "Quale edificio di Bruxelles è noto per essere un esempio di architettura barocca?",
-            "options": [
-              "Hôtel de Ville",
-              "Maison du Roi",
-              "Galeries Royales Saint-Hubert",
-              "Atomium"
-            ],
+            "options": ["Hôtel de Ville", "Maison du Roi", "Galeries Royales Saint-Hubert", "Atomium"],
             "correctIndex": 0,
             "explanation": "L'Hôtel de Ville è noto per essere un esempio di architettura barocca.",
             "sourceUrl": "https://www.visit.brussels/en/visitors/what-to-do/achitecture"
@@ -765,25 +520,14 @@
                 "tetti a punta",
                 "finestre ad arco"
               ],
-              "optionalFeatures": [
-                "persone o attività commerciali",
-                "veicoli parcheggiati",
-                "illuminazione notturna"
-              ],
+              "optionalFeatures": ["persone o attività commerciali", "veicoli parcheggiati", "illuminazione notturna"],
               "acceptableVariations": [
                 "diverse angolazioni della piazza",
                 "variazioni di luce e tempo",
                 "presenza di persone"
               ],
-              "rejectIf": [
-                "strutture moderne",
-                "architettura non storica",
-                "edifici in costruzione o in rovina"
-              ],
-              "confusableWith": [
-                "piazze storiche di altre città",
-                "piazze moderne con edifici simili"
-              ],
+              "rejectIf": ["strutture moderne", "architettura non storica", "edifici in costruzione o in rovina"],
+              "confusableWith": ["piazze storiche di altre città", "piazze moderne con edifici simili"],
               "minimumConfidence": 0.85
             }
           },
@@ -794,30 +538,15 @@
               "target": "Atomium di Bruxelles",
               "subjectType": "monument",
               "visualDescription": "L'Atomium di Bruxelles è un'icona moderna della città, costruito per l'Esposizione Universale del 1958. È costituito da sfere metalliche interconnesse che rappresentano atomi, con una struttura alta e distintiva.",
-              "requiredFeatures": [
-                "sfere metalliche interconnesse",
-                "struttura alta e distintiva",
-                "design atomico"
-              ],
-              "optionalFeatures": [
-                "persone intorno all'Atomium",
-                "veicoli parcheggiati",
-                "variazioni di luce"
-              ],
+              "requiredFeatures": ["sfere metalliche interconnesse", "struttura alta e distintiva", "design atomico"],
+              "optionalFeatures": ["persone intorno all'Atomium", "veicoli parcheggiati", "variazioni di luce"],
               "acceptableVariations": [
                 "diverse angolazioni dell'Atomium",
                 "variazioni di luce e tempo",
                 "presenza di persone"
               ],
-              "rejectIf": [
-                "edifici non moderni",
-                "strutture non atomiche",
-                "rovine o edifici in costruzione"
-              ],
-              "confusableWith": [
-                "altre strutture atomiche o futuristiche",
-                "edifici moderni simili"
-              ],
+              "rejectIf": ["edifici non moderni", "strutture non atomiche", "rovine o edifici in costruzione"],
+              "confusableWith": ["altre strutture atomiche o futuristiche", "edifici moderni simili"],
               "minimumConfidence": 0.8
             }
           },
@@ -834,25 +563,14 @@
                 "torri alte",
                 "dettagli architettonici complessi"
               ],
-              "optionalFeatures": [
-                "persone intorno alla cattedrale",
-                "veicoli parcheggiati",
-                "variazioni di luce"
-              ],
+              "optionalFeatures": ["persone intorno alla cattedrale", "veicoli parcheggiati", "variazioni di luce"],
               "acceptableVariations": [
                 "diverse angolazioni della cattedrale",
                 "variazioni di luce e tempo",
                 "presenza di persone"
               ],
-              "rejectIf": [
-                "strutture non gotiche",
-                "edifici moderni",
-                "rovine o edifici in costruzione"
-              ],
-              "confusableWith": [
-                "altre cattedrali gotiche",
-                "edifici storici simili"
-              ],
+              "rejectIf": ["strutture non gotiche", "edifici moderni", "rovine o edifici in costruzione"],
+              "confusableWith": ["altre cattedrali gotiche", "edifici storici simili"],
               "minimumConfidence": 0.85
             }
           },
@@ -863,30 +581,15 @@
               "target": "Manneken Pis di Bruxelles",
               "subjectType": "monument",
               "visualDescription": "Il Manneken Pis di Bruxelles è una statua del XVII secolo che rappresenta un ragazzo che urina, simbolo della città. La statua è spesso vestita con costumi per varie occasioni.",
-              "requiredFeatures": [
-                "statua di un ragazzo che urina",
-                "costumi variabili",
-                "ambientazione urbana"
-              ],
-              "optionalFeatures": [
-                "persone intorno alla statua",
-                "veicoli parcheggiati",
-                "variazioni di luce"
-              ],
+              "requiredFeatures": ["statua di un ragazzo che urina", "costumi variabili", "ambientazione urbana"],
+              "optionalFeatures": ["persone intorno alla statua", "veicoli parcheggiati", "variazioni di luce"],
               "acceptableVariations": [
                 "diverse angolazioni della statua",
                 "variazioni di luce e tempo",
                 "presenza di persone"
               ],
-              "rejectIf": [
-                "statue non simili",
-                "ambientazioni non urbane",
-                "edifici moderni"
-              ],
-              "confusableWith": [
-                "altre statue urbane",
-                "statue simili in altre città"
-              ],
+              "rejectIf": ["statue non simili", "ambientazioni non urbane", "edifici moderni"],
+              "confusableWith": ["altre statue urbane", "statue simili in altre città"],
               "minimumConfidence": 0.8
             }
           },
@@ -912,15 +615,8 @@
                 "variazioni di luce e tempo",
                 "presenza di persone"
               ],
-              "rejectIf": [
-                "strutture non coperti",
-                "edifici moderni",
-                "rovine o edifici in costruzione"
-              ],
-              "confusableWith": [
-                "altri passaggi coperti simili",
-                "strutture moderne simili"
-              ],
+              "rejectIf": ["strutture non coperti", "edifici moderni", "rovine o edifici in costruzione"],
+              "confusableWith": ["altri passaggi coperti simili", "strutture moderne simili"],
               "minimumConfidence": 0.75
             }
           }
@@ -960,12 +656,7 @@
             "type": "odd_one_out",
             "title": "Trova l'intruso di Bruxelles",
             "instructions": "Indovina quale opzione non appartiene allo stesso gruppo.",
-            "options": [
-              "Atomium",
-              "Hôtel de Ville",
-              "Maison du Roi",
-              "Statua di David"
-            ],
+            "options": ["Atomium", "Hôtel de Ville", "Maison du Roi", "Statua di David"],
             "correctIndex": 3,
             "commonRule": "Tutti gli elementi sono monumenti di Bruxelles.",
             "intruderReason": "Il monumento non è presente a Bruxelles."
@@ -984,25 +675,14 @@
                 "Elementi culturali o storici",
                 "Paesaggi urbani caratteristici"
               ],
-              "optionalFeatures": [
-                "Persone",
-                "Veicoli",
-                "Elementi naturali"
-              ],
-              "acceptableVariations": [
-                "Diverse angolazioni",
-                "Variazioni di luce",
-                "Stagionali"
-              ],
+              "optionalFeatures": ["Persone", "Veicoli", "Elementi naturali"],
+              "acceptableVariations": ["Diverse angolazioni", "Variazioni di luce", "Stagionali"],
               "rejectIf": [
                 "Immagini di luoghi non appartenenti a Bruxelles",
                 "Immagini di interni non pubblici",
                 "Immagini di eventi specifici non correlati alla città"
               ],
-              "confusableWith": [
-                "Altri contesti urbani",
-                "Altri luoghi storici"
-              ],
+              "confusableWith": ["Altri contesti urbani", "Altri luoghi storici"],
               "minimumConfidence": 0.75
             }
           },
@@ -1018,25 +698,14 @@
                 "Integrazione di luce naturale",
                 "Decorazioni floreali o geometriche"
               ],
-              "optionalFeatures": [
-                "Persone",
-                "Veicoli",
-                "Elementi naturali"
-              ],
-              "acceptableVariations": [
-                "Diverse angolazioni",
-                "Variazioni di luce",
-                "Stagionali"
-              ],
+              "optionalFeatures": ["Persone", "Veicoli", "Elementi naturali"],
+              "acceptableVariations": ["Diverse angolazioni", "Variazioni di luce", "Stagionali"],
               "rejectIf": [
                 "Immagini di edifici non Art Nouveau",
                 "Immagini di interni non pubblici",
                 "Immagini di eventi specifici non correlati alla città"
               ],
-              "confusableWith": [
-                "Altri stili architettonici",
-                "Elementi di altre città"
-              ],
+              "confusableWith": ["Altri stili architettonici", "Elementi di altre città"],
               "minimumConfidence": 0.85
             }
           }
@@ -1050,12 +719,7 @@
         "quiz": [
           {
             "question": "Quale edificio storico si trova sulla Grand-Place di Bruxelles e ospita oggi il Museo della Città?",
-            "options": [
-              "Hôtel de Ville",
-              "Maison du Roi",
-              "Maison des Brasseurs",
-              "Le Pigeon"
-            ],
+            "options": ["Hôtel de Ville", "Maison du Roi", "Maison des Brasseurs", "Le Pigeon"],
             "correctIndex": 1,
             "explanation": "La Maison du Roi, originariamente costruita come mercato del pane, fu ricostruita in stile neogotico e oggi ospita il Musée de la Ville.",
             "sourceUrl": "https://www.bruxelles.be/grand-place-de-bruxelles"
@@ -1074,60 +738,35 @@
           },
           {
             "question": "Quale stile architettonico caratterizza la maggior parte degli edifici sulla Grand-Place di Bruxelles?",
-            "options": [
-              "Gotico",
-              "Barocco",
-              "Neogotico",
-              "Moderno"
-            ],
+            "options": ["Gotico", "Barocco", "Neogotico", "Moderno"],
             "correctIndex": 1,
             "explanation": "La maggior parte degli edifici sulla Grand-Place di Bruxelles presenta uno stile architettonico barocco, adottato durante la ricostruzione post-bombardamento.",
             "sourceUrl": "https://www.scopribruxelles.com/grand-place"
           },
           {
             "question": "Quale evento annuale si svolge sulla Grand-Place di Bruxelles a metà agosto?",
-            "options": [
-              "Festa del Meyboom",
-              "Fiore di Benonia",
-              "Belgian Beer Weekend",
-              "Winter Wonders"
-            ],
+            "options": ["Festa del Meyboom", "Fiore di Benonia", "Belgian Beer Weekend", "Winter Wonders"],
             "correctIndex": 1,
             "explanation": "Ogni due anni, a metà agosto, sulla Grand-Place di Bruxelles viene realizzato un enorme tappeto di fiori chiamato Fiore di Benonia.",
             "sourceUrl": "https://www.bruxelles.be/grand-place-brussels"
           },
           {
             "question": "Quale figura storica soggiornò presso l'edificio Le Pigeon sulla Grand-Place di Bruxelles?",
-            "options": [
-              "Leonardo da Vinci",
-              "Victor Hugo",
-              "Napoleone Bonaparte",
-              "Albert Einstein"
-            ],
+            "options": ["Leonardo da Vinci", "Victor Hugo", "Napoleone Bonaparte", "Albert Einstein"],
             "correctIndex": 1,
             "explanation": "Victor Hugo soggiornò presso l'edificio Le Pigeon sulla Grand-Place di Bruxelles nel 1852 durante il suo esilio.",
             "sourceUrl": "https://www.bruxelles.be/grand-place-de-bruxelles"
           },
           {
             "question": "Quale monumento è presente sulla Grand-Place di Bruxelles e rappresenta un simbolo della città?",
-            "options": [
-              "Atomium",
-              "Manneken Pis",
-              "Galleria Royale Saint-Hubert",
-              "Parco del Cinquantenario"
-            ],
+            "options": ["Atomium", "Manneken Pis", "Galleria Royale Saint-Hubert", "Parco del Cinquantenario"],
             "correctIndex": 1,
             "explanation": "Il Manneken Pis è una statua che rappresenta un bambino che fa pipì, situata sulla Grand-Place di Bruxelles e considerata un simbolo della città.",
             "sourceUrl": "https://www.bruxelles.be/grand-place-brussels"
           },
           {
             "question": "Quale stile architettonico è rappresentato dall'Hôtel de Ville sulla Grand-Place di Bruxelles?",
-            "options": [
-              "Romanico",
-              "Gotico Fiammeggiante",
-              "Barocco",
-              "Neoclassico"
-            ],
+            "options": ["Romanico", "Gotico Fiammeggiante", "Barocco", "Neoclassico"],
             "correctIndex": 1,
             "explanation": "L'Hôtel de Ville sulla Grand-Place di Bruxelles è un esempio di stile gotico fiammeggiante.",
             "sourceUrl": "https://www.scopribruxelles.com/grand-place"
@@ -1146,23 +785,10 @@
                 "torre alta 96 metri",
                 "statua di San Michele"
               ],
-              "optionalFeatures": [
-                "visitatori o turisti",
-                "illuminazione notturna"
-              ],
-              "acceptableVariations": [
-                "diverse angolazioni",
-                "diverse condizioni di luce"
-              ],
-              "rejectIf": [
-                "edifici moderni",
-                "veicoli",
-                "pubblicità"
-              ],
-              "confusableWith": [
-                "Maison du Roi",
-                "altri edifici storici"
-              ],
+              "optionalFeatures": ["visitatori o turisti", "illuminazione notturna"],
+              "acceptableVariations": ["diverse angolazioni", "diverse condizioni di luce"],
+              "rejectIf": ["edifici moderni", "veicoli", "pubblicità"],
+              "confusableWith": ["Maison du Roi", "altri edifici storici"],
               "minimumConfidence": 0.85
             }
           },
@@ -1173,27 +799,11 @@
               "target": "Musée de la Ville",
               "subjectType": "monument",
               "visualDescription": "L'ingresso del Musée de la Ville, ospitato nella Maison du Roi, è riconoscibile per la sua facciata neogotica con dettagli ornamentali. L'edificio fu ricostruito tra il 1873 e il 1895 e ospita collezioni di arte e storia locale, tra cui il famoso Manneken Pis.",
-              "requiredFeatures": [
-                "facciata neogotica con dettagli ornamentali",
-                "ingresso principale"
-              ],
-              "optionalFeatures": [
-                "visitatori o turisti",
-                "illuminazione notturna"
-              ],
-              "acceptableVariations": [
-                "diverse angolazioni",
-                "diverse condizioni di luce"
-              ],
-              "rejectIf": [
-                "edifici moderni",
-                "veicoli",
-                "pubblicità"
-              ],
-              "confusableWith": [
-                "Maison des Brasseurs",
-                "altri edifici storici"
-              ],
+              "requiredFeatures": ["facciata neogotica con dettagli ornamentali", "ingresso principale"],
+              "optionalFeatures": ["visitatori o turisti", "illuminazione notturna"],
+              "acceptableVariations": ["diverse angolazioni", "diverse condizioni di luce"],
+              "rejectIf": ["edifici moderni", "veicoli", "pubblicità"],
+              "confusableWith": ["Maison des Brasseurs", "altri edifici storici"],
               "minimumConfidence": 0.8
             }
           },
@@ -1204,27 +814,11 @@
               "target": "Fiore di Benonia",
               "subjectType": "scene",
               "visualDescription": "Il tappeto di fiori realizzato sulla Grand-Place di Bruxelles, noto come Fiore di Benonia, è un'enorme composizione floreale che copre il centro della piazza. Ogni due anni, a metà agosto, viene creato con oltre 500.000 begonie.",
-              "requiredFeatures": [
-                "tappeto floreale",
-                "centro della Grand-Place"
-              ],
-              "optionalFeatures": [
-                "visitatori o turisti",
-                "illuminazione notturna"
-              ],
-              "acceptableVariations": [
-                "diverse angolazioni",
-                "diverse condizioni di luce"
-              ],
-              "rejectIf": [
-                "edifici moderni",
-                "veicoli",
-                "pubblicità"
-              ],
-              "confusableWith": [
-                "altri tappeti floreali",
-                "installazioni artistiche"
-              ],
+              "requiredFeatures": ["tappeto floreale", "centro della Grand-Place"],
+              "optionalFeatures": ["visitatori o turisti", "illuminazione notturna"],
+              "acceptableVariations": ["diverse angolazioni", "diverse condizioni di luce"],
+              "rejectIf": ["edifici moderni", "veicoli", "pubblicità"],
+              "confusableWith": ["altri tappeti floreali", "installazioni artistiche"],
               "minimumConfidence": 0.75
             }
           },
@@ -1235,27 +829,11 @@
               "target": "Musée des Brasseurs",
               "subjectType": "monument",
               "visualDescription": "L'ingresso del Musée des Brasseurs, situato nella Maison des Brasseurs, è riconoscibile per la sua facciata barocca con dettagli in pietra. Il museo è dedicato alla storia della birra belga.",
-              "requiredFeatures": [
-                "facciata barocca con dettagli in pietra",
-                "ingresso principale"
-              ],
-              "optionalFeatures": [
-                "visitatori o turisti",
-                "illuminazione notturna"
-              ],
-              "acceptableVariations": [
-                "diverse angolazioni",
-                "diverse condizioni di luce"
-              ],
-              "rejectIf": [
-                "edifici moderni",
-                "veicoli",
-                "pubblicità"
-              ],
-              "confusableWith": [
-                "Maison du Roi",
-                "altri edifici storici"
-              ],
+              "requiredFeatures": ["facciata barocca con dettagli in pietra", "ingresso principale"],
+              "optionalFeatures": ["visitatori o turisti", "illuminazione notturna"],
+              "acceptableVariations": ["diverse angolazioni", "diverse condizioni di luce"],
+              "rejectIf": ["edifici moderni", "veicoli", "pubblicità"],
+              "confusableWith": ["Maison du Roi", "altri edifici storici"],
               "minimumConfidence": 0.8
             }
           },
@@ -1266,27 +844,11 @@
               "target": "Le Pigeon",
               "subjectType": "monument",
               "visualDescription": "L'edificio Le Pigeon è un edificio storico sulla Grand-Place di Bruxelles, famoso per aver ospitato Victor Hugo durante il suo esilio nel 1852. Presenta una facciata barocca con dettagli in pietra.",
-              "requiredFeatures": [
-                "facciata barocca con dettagli in pietra",
-                "edificio storico"
-              ],
-              "optionalFeatures": [
-                "visitatori o turisti",
-                "illuminazione notturna"
-              ],
-              "acceptableVariations": [
-                "diverse angolazioni",
-                "diverse condizioni di luce"
-              ],
-              "rejectIf": [
-                "edifici moderni",
-                "veicoli",
-                "pubblicità"
-              ],
-              "confusableWith": [
-                "Maison du Roi",
-                "altri edifici storici"
-              ],
+              "requiredFeatures": ["facciata barocca con dettagli in pietra", "edificio storico"],
+              "optionalFeatures": ["visitatori o turisti", "illuminazione notturna"],
+              "acceptableVariations": ["diverse angolazioni", "diverse condizioni di luce"],
+              "rejectIf": ["edifici moderni", "veicoli", "pubblicità"],
+              "confusableWith": ["Maison du Roi", "altri edifici storici"],
               "minimumConfidence": 0.85
             }
           }
@@ -1326,12 +888,7 @@
             "type": "odd_one_out",
             "title": "Trova l'intruso della Grand-Place di Bruxelles",
             "instructions": "Individua l'opzione che non appartiene allo stesso gruppo.",
-            "options": [
-              "Hôtel de Ville",
-              "Maison du Roi",
-              "Maison des Brasseurs",
-              "Atomium"
-            ],
+            "options": ["Hôtel de Ville", "Maison du Roi", "Maison des Brasseurs", "Atomium"],
             "correctIndex": 3,
             "commonRule": "Le opzioni devono essere edifici o luoghi presenti sulla Grand-Place di Bruxelles.",
             "intruderReason": "L'Atomium non si trova sulla Grand-Place di Bruxelles."
@@ -1345,29 +902,11 @@
               "target": "Contest Fotografico della Grand-Place di Bruxelles",
               "subjectType": "scene",
               "visualDescription": "La foto deve mostrare la Grand-Place di Bruxelles con i suoi edifici storici e architettura barocca.",
-              "requiredFeatures": [
-                "architettura barocca",
-                "edifici storici",
-                "piazza centrale"
-              ],
-              "optionalFeatures": [
-                "persone",
-                "veicoli",
-                "eventi"
-              ],
-              "acceptableVariations": [
-                "diurna",
-                "notturna",
-                "con persone",
-                "senza persone"
-              ],
-              "rejectIf": [
-                "edifici moderni",
-                "scena non correlata"
-              ],
-              "confusableWith": [
-                "piazze simili in altre città"
-              ],
+              "requiredFeatures": ["architettura barocca", "edifici storici", "piazza centrale"],
+              "optionalFeatures": ["persone", "veicoli", "eventi"],
+              "acceptableVariations": ["diurna", "notturna", "con persone", "senza persone"],
+              "rejectIf": ["edifici moderni", "scena non correlata"],
+              "confusableWith": ["piazze simili in altre città"],
               "minimumConfidence": 0.85
             }
           },
@@ -1378,29 +917,11 @@
               "target": "Contest Fotografico Tematica della Grand-Place di Bruxelles",
               "subjectType": "monument",
               "visualDescription": "La foto deve mostrare un elemento storico o architettonico specifico della Grand-Place di Bruxelles.",
-              "requiredFeatures": [
-                "Hôtel de Ville",
-                "Maison du Roi",
-                "case delle corporazioni"
-              ],
-              "optionalFeatures": [
-                "dettaglio architettonico",
-                "persone",
-                "eventi"
-              ],
-              "acceptableVariations": [
-                "diurna",
-                "notturna",
-                "con persone",
-                "senza persone"
-              ],
-              "rejectIf": [
-                "edifici non storici",
-                "scena non correlata"
-              ],
-              "confusableWith": [
-                "altri monumenti storici"
-              ],
+              "requiredFeatures": ["Hôtel de Ville", "Maison du Roi", "case delle corporazioni"],
+              "optionalFeatures": ["dettaglio architettonico", "persone", "eventi"],
+              "acceptableVariations": ["diurna", "notturna", "con persone", "senza persone"],
+              "rejectIf": ["edifici non storici", "scena non correlata"],
+              "confusableWith": ["altri monumenti storici"],
               "minimumConfidence": 0.9
             }
           }

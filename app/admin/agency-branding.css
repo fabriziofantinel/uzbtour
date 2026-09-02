@@ -9,16 +9,69 @@
   border-radius: 14px;
   background: #fafbf9;
 }
-.agencyBrandPreview { width: 56px; height: 56px; display: grid; place-items: center; overflow: hidden; border-radius: 12px; color: white; }
-.agencyBrandPreview img { width: 100%; height: 100%; padding: 5px; object-fit: contain; background: white; }
-.agencyBrandingForm > span { align-self: center; }
+.agencyBrandPreview {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 12px;
+  color: white;
+}
+.agencyBrandPreview img {
+  width: 100%;
+  height: 100%;
+  padding: 5px;
+  object-fit: contain;
+  background: white;
+}
+.agencyBrandingForm > span {
+  align-self: center;
+}
 .agencyBrandingForm > span small,
-.agencyBrandingForm > span strong { display: block; }
-.agencyBrandingForm > span small { color: #687774; font-size: 10px; letter-spacing: .1em; }
-.agencyBrandingForm label { display: grid; gap: 5px; color: #687774; font-size: 11px; font-weight: 800; }
-.agencyBrandingForm input[type="url"] { min-height: 42px; padding: 8px 10px; border: 1px solid #d8dfdc; border-radius: 9px; background: white; }
-.agencyBrandingForm input[type="color"] { width: 100%; min-height: 42px; padding: 3px; border: 1px solid #d8dfdc; border-radius: 9px; background: white; }
-.agencyBrandingForm button { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; border: 0; border-radius: 9px; color: white; background: #173c3c; font-weight: 850; }
+.agencyBrandingForm > span strong {
+  display: block;
+}
+.agencyBrandingForm > span small {
+  color: #687774;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+.agencyBrandingForm label {
+  display: grid;
+  gap: 5px;
+  color: #687774;
+  font-size: 11px;
+  font-weight: 800;
+}
+.agencyBrandingForm input[type="url"] {
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid #d8dfdc;
+  border-radius: 9px;
+  background: white;
+}
+.agencyBrandingForm input[type="color"] {
+  width: 100%;
+  min-height: 42px;
+  padding: 3px;
+  border: 1px solid #d8dfdc;
+  border-radius: 9px;
+  background: white;
+}
+.agencyBrandingForm button {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 9px;
+  color: white;
+  background: #173c3c;
+  font-weight: 850;
+}
 .agencyEditBranding {
   width: 100%;
   min-width: 0;
@@ -33,15 +86,38 @@
   border-radius: 12px;
   background: #f4f8f6;
 }
-.agencyEditBranding > * { min-width: 0; }
+.agencyEditBranding > * {
+  min-width: 0;
+}
 .agencyEditBranding > span b,
-.agencyEditBranding > span small { display: block; }
-.agencyEditBranding > span b { color: #183d3b; font-size: 13px; }
-.agencyEditBranding > span small { margin-top: 3px; color: #60736f; font-size: 10px; line-height: 1.35; }
-.agencyEditBranding label { align-self: stretch; }
-.agencyEditBranding > label { grid-column: 1 / -1; }
-.agencyEditBranding input[type="color"] { width: 100%; height: 38px; padding: 3px; }
-.agencyEditBranding .logoFileField { position: relative; min-width: 0; }
+.agencyEditBranding > span small {
+  display: block;
+}
+.agencyEditBranding > span b {
+  color: #183d3b;
+  font-size: 13px;
+}
+.agencyEditBranding > span small {
+  margin-top: 3px;
+  color: #60736f;
+  font-size: 10px;
+  line-height: 1.35;
+}
+.agencyEditBranding label {
+  align-self: stretch;
+}
+.agencyEditBranding > label {
+  grid-column: 1 / -1;
+}
+.agencyEditBranding input[type="color"] {
+  width: 100%;
+  height: 38px;
+  padding: 3px;
+}
+.agencyEditBranding .logoFileField {
+  position: relative;
+  min-width: 0;
+}
 .agencyEditBranding .logoFileField > span {
   min-height: 38px;
   display: flex;
@@ -56,7 +132,9 @@
   font-size: 11px;
   cursor: pointer;
 }
-.agencyEditBranding .logoFileField > span svg { width: 16px; }
+.agencyEditBranding .logoFileField > span svg {
+  width: 16px;
+}
 .agencyEditBranding .logoFileField > input[type="file"] {
   position: absolute;
   width: 1px;
@@ -68,7 +146,10 @@
   outline: 3px solid #2f66f6;
   outline-offset: 3px;
 }
-.agencyEditBranding .logoFileField > small { color: #60736f; font-size: 9px; }
+.agencyEditBranding .logoFileField > small {
+  color: #60736f;
+  font-size: 9px;
+}
 .agencyEditBranding .removeLogo {
   grid-column: 2 / -1;
   display: flex;
@@ -77,11 +158,24 @@
   gap: 7px;
   color: #8d3c32;
 }
-.agencyEditBranding .removeLogo input { width: 16px; height: 16px; padding: 0; }
+.agencyEditBranding .removeLogo input {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+}
 @media (max-width: 900px) {
-  .agencyBrandingForm { grid-template-columns: 56px 1fr; align-items: center; }
+  .agencyBrandingForm {
+    grid-template-columns: 56px 1fr;
+    align-items: center;
+  }
   .agencyBrandingForm label,
-  .agencyBrandingForm button { grid-column: 1 / -1; }
-  .agencyEditBranding { grid-template-columns: 56px minmax(0, 1fr); }
-  .agencyEditBranding label { grid-column: 1 / -1; }
+  .agencyBrandingForm button {
+    grid-column: 1 / -1;
+  }
+  .agencyEditBranding {
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+  .agencyEditBranding label {
+    grid-column: 1 / -1;
+  }
 }

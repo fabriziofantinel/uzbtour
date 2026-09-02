@@ -20,11 +20,13 @@ let transactionOpen = false;
 
 try {
   await client.connect();
-  const capability = (await client.query(`
+  const capability = (
+    await client.query(`
     SELECT current_user AS role_name,
       has_database_privilege(current_user, current_database(), 'CREATE') AS can_create,
       current_user = 'smf_app' AS is_runtime_role
-  `)).rows[0];
+  `)
+  ).rows[0];
   if (!capability || capability.is_runtime_role || !capability.can_create) {
     throw new Error(`Ruolo non autorizzato: ${capability?.role_name ?? "sconosciuto"}`);
   }
@@ -37,7 +39,8 @@ try {
   await client.query("SELECT pg_advisory_xact_lock(hashtextextended('smf-travel:v3-runtime-programme-feedback', 0))");
   await client.query(migrationSql);
 
-  const grants = (await client.query(`
+  const grants = (
+    await client.query(`
     SELECT
       has_table_privilege('smf_app', 'journey.programme_feedback', 'SELECT,INSERT,UPDATE') AS feedback_dml,
       has_table_privilege('smf_app', 'travel.departure_itinerary_items', 'SELECT') AS departure_items_read,
@@ -46,17 +49,17 @@ try {
       NOT has_table_privilege('smf_app', 'ops.legacy_id_map', 'SELECT') AS map_private,
       (SELECT relrowsecurity AND relforcerowsecurity FROM pg_class
        WHERE oid = 'journey.programme_feedback'::regclass) AS feedback_rls_forced
-  `)).rows[0];
+  `)
+  ).rows[0];
   if (!grants || Object.values(grants).some((value) => value !== true)) {
     throw new Error(`Gate runtime incompleti: ${JSON.stringify(grants)}`);
   }
 
   const executionMs = Math.round(performance.now() - startedAt);
   if (apply) {
-    const previous = await client.query(
-      "SELECT checksum_sha256 FROM ops.schema_migrations WHERE version = $1",
-      [modelVersion],
-    );
+    const previous = await client.query("SELECT checksum_sha256 FROM ops.schema_migrations WHERE version = $1", [
+      modelVersion,
+    ]);
     if (previous.rowCount > 0 && previous.rows[0].checksum_sha256 !== checksum) {
       throw new Error(`Checksum differente per ${modelVersion}: applicazione interrotta`);
     }
@@ -73,15 +76,21 @@ try {
   }
   transactionOpen = false;
 
-  console.log(JSON.stringify({
-    status: apply ? "applied" : "dry_run_passed",
-    migrationVersion,
-    modelVersion,
-    checksum,
-    executionMs,
-    role: capability.role_name,
-    grants,
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        status: apply ? "applied" : "dry_run_passed",
+        migrationVersion,
+        modelVersion,
+        checksum,
+        executionMs,
+        role: capability.role_name,
+        grants,
+      },
+      null,
+      2,
+    ),
+  );
 } catch (error) {
   if (transactionOpen) await client.query("ROLLBACK").catch(() => undefined);
   throw error;

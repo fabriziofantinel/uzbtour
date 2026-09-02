@@ -3,12 +3,16 @@ import { getSql } from "@/lib/db";
 type Row = Record<string, unknown>;
 
 export async function readV3ProgrammeFeedbackRows(input: {
-  agencyId: string; departureId: string; partyId: string; userId: string;
+  agencyId: string;
+  departureId: string;
+  partyId: string;
+  userId: string;
 }) {
   const sql = getSql();
-  const [, rows] = await sql.transaction((txn) => [
-    txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
-    txn`
+  const [, rows] = await sql.transaction(
+    (txn) => [
+      txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
+      txn`
       SELECT day.template_day_id::text AS trip_day_id, feedback.target_type,
         item.source_template_item_id::text AS itinerary_item_id,
         feedback.hotel_id::text, feedback.rating
@@ -24,6 +28,8 @@ export async function readV3ProgrammeFeedbackRows(input: {
         AND feedback.party_id = ${input.partyId}
         AND traveler.user_id = app.resolve_legacy_user_id(${input.userId}, ${input.agencyId})
     `,
-  ], { readOnly: true });
+    ],
+    { readOnly: true },
+  );
   return rows as Row[];
 }

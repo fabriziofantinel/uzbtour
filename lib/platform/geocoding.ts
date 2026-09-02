@@ -16,7 +16,12 @@ export type CityCoordinates = { latitude: number; longitude: number };
 let countryCodesByName: Map<string, string> | null = null;
 
 function normalizedName(value: string) {
-  return value.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("it").replace(/\s+/g, " ");
+  return value
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("it")
+    .replace(/\s+/g, " ");
 }
 
 export function countryCodeForName(countryName: string) {
@@ -40,8 +45,16 @@ export function countryCodeForName(countryName: string) {
 }
 
 function validCoordinates(latitude: unknown, longitude: unknown): latitude is number {
-  return typeof latitude === "number" && Number.isFinite(latitude) && latitude >= -90 && latitude <= 90
-    && typeof longitude === "number" && Number.isFinite(longitude) && longitude >= -180 && longitude <= 180;
+  return (
+    typeof latitude === "number" &&
+    Number.isFinite(latitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    typeof longitude === "number" &&
+    Number.isFinite(longitude) &&
+    longitude >= -180 &&
+    longitude <= 180
+  );
 }
 
 function resultScore(result: GeocodingResult, cityName: string, countryName: string) {
@@ -67,7 +80,7 @@ async function search(query: string, countryCode = "", language = "it") {
     signal: AbortSignal.timeout(5_000),
   });
   if (!response.ok) throw new Error(`Geocoding non disponibile (${response.status})`);
-  return (await response.json() as GeocodingResponse).results || [];
+  return ((await response.json()) as GeocodingResponse).results || [];
 }
 
 export async function geocodeCity(cityName: string, countryName: string): Promise<CityCoordinates | null> {

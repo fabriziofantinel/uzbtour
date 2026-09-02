@@ -2,13 +2,12 @@ import { getSql } from "@/lib/db";
 
 type Row = Record<string, unknown>;
 
-export async function readV3JourneyJournalRows(input: {
-  agencyId: string; departureId: string; partyId: string;
-}) {
+export async function readV3JourneyJournalRows(input: { agencyId: string; departureId: string; partyId: string }) {
   const sql = getSql();
-  const [, cash, notes, restaurants] = await sql.transaction((txn) => [
-    txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
-    txn`
+  const [, cash, notes, restaurants] = await sql.transaction(
+    (txn) => [
+      txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
+      txn`
       SELECT movement.id::text, day.template_day_id::text AS trip_day_id,
         template_day.day_number, movement.kind,
         movement.source_amount_minor::numeric / power(10::numeric, source_currency.minor_unit) AS euro_amount,
@@ -30,7 +29,7 @@ export async function readV3JourneyJournalRows(input: {
         AND movement.party_id = ${input.partyId}
       ORDER BY movement.created_at DESC
     `,
-    txn`
+      txn`
       SELECT note.id::text, day.template_day_id::text AS trip_day_id,
         template_day.day_number, note.note_text AS text, traveler.display_name AS updated_by_name,
         note.updated_at::text
@@ -47,7 +46,7 @@ export async function readV3JourneyJournalRows(input: {
         AND note.party_id = ${input.partyId}
       ORDER BY template_day.day_number
     `,
-    txn`
+      txn`
       SELECT visit.id::text, day.template_day_id::text AS trip_day_id,
         template_day.day_number, visit.name, traveler.display_name AS added_by_name,
         visit.created_at::text
@@ -64,6 +63,8 @@ export async function readV3JourneyJournalRows(input: {
         AND visit.party_id = ${input.partyId}
       ORDER BY visit.created_at DESC
     `,
-  ], { readOnly: true });
+    ],
+    { readOnly: true },
+  );
   return { cash: cash as Row[], notes: notes as Row[], restaurants: restaurants as Row[] };
 }

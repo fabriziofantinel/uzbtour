@@ -14,6 +14,6 @@ export async function getTravelCompanions(userId: string): Promise<TravelCompani
   return rows.map((row) => ({
     id: String(row.id),
     name: String(row.display_name),
-    initials: String(row.initials)
+    initials: String(row.initials),
   }));
 }

@@ -7,22 +7,23 @@ function channels(hex: string) {
 }
 
 function luminance(hex: string) {
-  const values = channels(hex).map((value) => value / 255)
-    .map((value) => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4);
-  return .2126 * values[0] + .7152 * values[1] + .0722 * values[2];
+  const values = channels(hex)
+    .map((value) => value / 255)
+    .map((value) => (value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * values[0] + 0.7152 * values[1] + 0.0722 * values[2];
 }
 
 function contrast(first: string, second: string) {
   const light = Math.max(luminance(first), luminance(second));
   const dark = Math.min(luminance(first), luminance(second));
-  return (light + .05) / (dark + .05);
+  return (light + 0.05) / (dark + 0.05);
 }
 
 export function accessibleBrandColor(value?: string) {
   let candidate = validBrandColor(value);
   let rgb = channels(candidate);
   while (contrast(candidate, "#FAF7F0") < 4.5) {
-    rgb = rgb.map((channel) => Math.max(0, Math.round(channel * .82)));
+    rgb = rgb.map((channel) => Math.max(0, Math.round(channel * 0.82)));
     candidate = `#${rgb.map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
   }
   return candidate;
@@ -32,7 +33,7 @@ export function accessibleBrandBackground(value?: string) {
   let candidate = validBrandColor(value);
   let rgb = channels(candidate);
   while (contrast(candidate, "#102F3A") < 4.5) {
-    rgb = rgb.map((channel) => Math.min(255, Math.round(channel + (255 - channel) * .18)));
+    rgb = rgb.map((channel) => Math.min(255, Math.round(channel + (255 - channel) * 0.18)));
     candidate = `#${rgb.map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
   }
   return candidate;
@@ -42,9 +43,10 @@ export function agencyLogoSource(value: string | undefined, agencyId: string | u
   if (!value) return "";
   if (!value.startsWith("r2://")) return value;
   if (!agencyId) return "";
-  const prefix=`r2://agencies/${agencyId}/branding/`;
+  const prefix = `r2://agencies/${agencyId}/branding/`;
   if (!value.startsWith(prefix)) return "";
-  const fileName=value.slice(prefix.length);
+  const fileName = value.slice(prefix.length);
   return /^[0-9a-f-]{36}\.(png|jpe?g|webp)$/i.test(fileName)
-    ? `/api/agency-logo/${agencyId}/${encodeURIComponent(fileName)}` : "";
+    ? `/api/agency-logo/${agencyId}/${encodeURIComponent(fileName)}`
+    : "";
 }

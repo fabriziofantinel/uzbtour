@@ -14,9 +14,7 @@ const client = new SSMClient({
 
 let loadPromise: Promise<void> | null = null;
 
-function requiredParameterName(
-  name: "DATABASE_PARAMETER_NAME" | "R2_PARAMETER_NAME"
-) {
+function requiredParameterName(name: "DATABASE_PARAMETER_NAME" | "R2_PARAMETER_NAME") {
   const value = process.env[name]?.trim();
   if (!value?.startsWith("/")) throw new Error(`${name} non configurato`);
   return value;
@@ -31,23 +29,23 @@ function requiredValue(parameters: Map<string, string>, name: string) {
 async function load() {
   const databaseName = requiredParameterName("DATABASE_PARAMETER_NAME");
   const r2Name = requiredParameterName("R2_PARAMETER_NAME");
-  const result = await client.send(new GetParametersCommand({
-    Names: [databaseName, r2Name],
-    WithDecryption: true,
-  }));
+  const result = await client.send(
+    new GetParametersCommand({
+      Names: [databaseName, r2Name],
+      WithDecryption: true,
+    }),
+  );
   if (result.InvalidParameters?.length) {
     throw new Error("Uno o più parametri protetti non esistono");
   }
 
   const parameters = new Map(
     (result.Parameters ?? []).flatMap((parameter) =>
-      parameter.Name && parameter.Value ? [[parameter.Name, parameter.Value] as const] : []
-    )
+      parameter.Name && parameter.Value ? [[parameter.Name, parameter.Value] as const] : [],
+    ),
   );
   const databaseUrl = databaseUrlSchema.parse(requiredValue(parameters, databaseName));
-  const r2Credentials = r2CredentialsSchema.parse(
-    JSON.parse(requiredValue(parameters, r2Name)) as unknown
-  );
+  const r2Credentials = r2CredentialsSchema.parse(JSON.parse(requiredValue(parameters, r2Name)) as unknown);
 
   process.env.DATABASE_URL = databaseUrl;
   process.env.R2_ACCESS_KEY_ID = r2Credentials.R2_ACCESS_KEY_ID;

@@ -1,7 +1,13 @@
 import { getSql } from "@/lib/db";
 import { PlatformRequestError } from "./errors";
 import { readV3AgencyRegistry, readV3ImpersonationUsers, readV3SuperadminSummary } from "./v3-superadmin-read";
-import { createV3PlatformAgencyWithOwner, provisionV3PlatformAgencyAgent, replaceV3PlatformAgencyOwner, updateV3PlatformAgencyBranding, updateV3PlatformAgencyStatus } from "./v3-superadmin-mutations";
+import {
+  createV3PlatformAgencyWithOwner,
+  provisionV3PlatformAgencyAgent,
+  replaceV3PlatformAgencyOwner,
+  updateV3PlatformAgencyBranding,
+  updateV3PlatformAgencyStatus,
+} from "./v3-superadmin-mutations";
 import { getJobQueue } from "./job-queue";
 import { createHash, randomBytes } from "node:crypto";
 
@@ -67,13 +73,14 @@ export type ImpersonationUser = {
 };
 
 function agencySlug(name: string) {
-  const base = name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 48) || "agenzia";
+  const base =
+    name
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 48) || "agenzia";
   return `${base}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
@@ -118,10 +125,10 @@ export async function createAgency(input: {
     referenceUsername: input.referenceUsername.trim().toLocaleLowerCase("en-US"),
     referenceInitials: initialsFor(input.referenceName),
     slug: agencySlug(input.name),
-    tokenHash:createHash("sha256").update(token).digest("hex"),
-    expiresAt:new Date(Date.now()+14*24*60*60*1000).toISOString(),
+    tokenHash: createHash("sha256").update(token).digest("hex"),
+    expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
   });
-  return { id:result.agencyId,activationToken:result.activationRequired?token:null };
+  return { id: result.agencyId, activationToken: result.activationRequired ? token : null };
 }
 
 export async function updateAgencyBranding(input: {
@@ -133,50 +140,82 @@ export async function updateAgencyBranding(input: {
   await updateV3PlatformAgencyBranding(input);
 }
 
-export async function updateAgencyStatus(input:{actorId:string;agencyId:string;status:"trial"|"active"|"suspended"}){
+export async function updateAgencyStatus(input: {
+  actorId: string;
+  agencyId: string;
+  status: "trial" | "active" | "suspended";
+}) {
   await updateV3PlatformAgencyStatus(input);
 }
 
-export async function replaceAgencyOwner(input:{actorId:string;agencyId:string;name:string;username:string;email:string;phone:string}){
-  const token=randomBytes(32).toString("base64url");
-  const result=await replaceV3PlatformAgencyOwner({
-    ...input,username:input.username.trim().toLocaleLowerCase("en-US"),initials:initialsFor(input.name),
-    tokenHash:createHash("sha256").update(token).digest("hex"),
-    expiresAt:new Date(Date.now()+14*24*60*60*1000).toISOString(),
+export async function replaceAgencyOwner(input: {
+  actorId: string;
+  agencyId: string;
+  name: string;
+  username: string;
+  email: string;
+  phone: string;
+}) {
+  const token = randomBytes(32).toString("base64url");
+  const result = await replaceV3PlatformAgencyOwner({
+    ...input,
+    username: input.username.trim().toLocaleLowerCase("en-US"),
+    initials: initialsFor(input.name),
+    tokenHash: createHash("sha256").update(token).digest("hex"),
+    expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
   });
-  return {id:result.id,activationToken:result.activationRequired?token:null};
+  return { id: result.id, activationToken: result.activationRequired ? token : null };
 }
 
-export async function updateAgencyOwnerContact(input:{actorId:string;agencyId:string;email:string;phone:string}){
-  const {updateV3PlatformAgencyOwnerContact}=await import("./v3-superadmin-mutations");
+export async function updateAgencyOwnerContact(input: {
+  actorId: string;
+  agencyId: string;
+  email: string;
+  phone: string;
+}) {
+  const { updateV3PlatformAgencyOwnerContact } = await import("./v3-superadmin-mutations");
   await updateV3PlatformAgencyOwnerContact(input);
 }
 
-export async function updateAgencyDetails(input:{actorId:string;agencyId:string;data:Record<string,string>}){
-  const {updateV3PlatformAgencyDetails}=await import("./v3-superadmin-mutations");await updateV3PlatformAgencyDetails(input);
+export async function updateAgencyDetails(input: { actorId: string; agencyId: string; data: Record<string, string> }) {
+  const { updateV3PlatformAgencyDetails } = await import("./v3-superadmin-mutations");
+  await updateV3PlatformAgencyDetails(input);
 }
 
-export async function isUsernameAvailable(actorId:string,username:string){
-  const {readV3UsernameAvailability}=await import("./v3-superadmin-mutations");
-  return readV3UsernameAvailability(actorId,username.trim().toLocaleLowerCase("en-US"));
+export async function isUsernameAvailable(actorId: string, username: string) {
+  const { readV3UsernameAvailability } = await import("./v3-superadmin-mutations");
+  return readV3UsernameAvailability(actorId, username.trim().toLocaleLowerCase("en-US"));
 }
 
 export async function requestAgencyDeletion(input: { actorId: string; agencyId: string; reason: string }) {
   const sql = getSql();
-  const rows=await sql`SELECT job_id::text,agency_name,status,phase
+  const rows = await sql`SELECT job_id::text,agency_name,status,phase
     FROM app.request_agency_deletion_v3(${input.actorId},${input.agencyId},${input.reason})`;
-  if(!rows[0]) throw new PlatformRequestError("Richiesta di eliminazione non registrata");
-  const deletionJobId=String(rows[0].job_id);
-  const queueJob=await getJobQueue().enqueue({
-    actorId:input.actorId,agencyId:input.agencyId,type:"agency.delete",
-    payload:{deletionJobId},idempotencyKey:`agency-delete:${deletionJobId}`,
+  if (!rows[0]) throw new PlatformRequestError("Richiesta di eliminazione non registrata");
+  const deletionJobId = String(rows[0].job_id);
+  const queueJob = await getJobQueue().enqueue({
+    actorId: input.actorId,
+    agencyId: input.agencyId,
+    type: "agency.delete",
+    payload: { deletionJobId },
+    idempotencyKey: `agency-delete:${deletionJobId}`,
   });
-  return { deletionJobId,queueJobId:queueJob.id,agencyName:String(rows[0].agency_name),status:String(rows[0].status),phase:String(rows[0].phase) };
+  return {
+    deletionJobId,
+    queueJobId: queueJob.id,
+    agencyName: String(rows[0].agency_name),
+    status: String(rows[0].status),
+    phase: String(rows[0].phase),
+  };
 }
 
 function initialsFor(name: string) {
-  return name.trim().split(/\s+/).slice(0, 2)
-    .map((part) => part[0]?.toLocaleUpperCase("it") ?? "").join("");
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toLocaleUpperCase("it") ?? "")
+    .join("");
 }
 
 export async function createAgencyAgent(input: {
@@ -192,9 +231,12 @@ export async function createAgencyAgent(input: {
   const normalizedUsername = input.username.trim().toLocaleLowerCase("en-US");
   const token = randomBytes(32).toString("base64url");
   const result = await provisionV3PlatformAgencyAgent({
-    ...input,email:normalizedEmail,username:normalizedUsername,initials:initialsFor(input.name),
-    tokenHash:createHash("sha256").update(token).digest("hex"),
-    expiresAt:new Date(Date.now()+14*24*60*60*1000).toISOString(),
+    ...input,
+    email: normalizedEmail,
+    username: normalizedUsername,
+    initials: initialsFor(input.name),
+    tokenHash: createHash("sha256").update(token).digest("hex"),
+    expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
   });
-  return { id:result.id,activationToken:result.activationRequired?token:null };
+  return { id: result.id, activationToken: result.activationRequired ? token : null };
 }

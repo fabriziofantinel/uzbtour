@@ -11,6 +11,9 @@ export function bingoMilestone(completed: number): BingoMilestone | null {
 export function bingoScore(completedIds: Iterable<string>, orderedIds: readonly string[]) {
   const completed = new Set(completedIds);
   const rows = [orderedIds.slice(0, 5), orderedIds.slice(5, 10), orderedIds.slice(10, 15)];
-  const rowScore = rows.reduce((sum, row) => sum + (bingoMilestone(row.filter((id) => completed.has(id)).length)?.points ?? 0), 0);
+  const rowScore = rows.reduce(
+    (sum, row) => sum + (bingoMilestone(row.filter((id) => completed.has(id)).length)?.points ?? 0),
+    0,
+  );
   return rowScore + (orderedIds.length === 15 && orderedIds.every((id) => completed.has(id)) ? 50 : 0);
 }
