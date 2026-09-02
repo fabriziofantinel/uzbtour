@@ -6,6 +6,8 @@
     "node": ">=20.9.0"
   },
   "scripts": {
+    "db:migrate:v3:tour-leader-operations:dry-run": "node --env-file=.env.local scripts/migrate-v3-tour-leader-operational-control.mjs",
+    "db:migrate:v3:tour-leader-operations": "node --env-file=.env.local scripts/migrate-v3-tour-leader-operational-control.mjs --apply",
     "db:migrate:v3:job-trace-correlation:dry-run": "node --env-file=.env.local scripts/migrate-v3-job-trace-correlation.mjs",
     "db:migrate:v3:job-trace-correlation": "node --env-file=.env.local scripts/migrate-v3-job-trace-correlation.mjs --apply",
     "db:migrate:v3:tenant-workload-quotas:dry-run": "node --env-file=.env.local scripts/migrate-v3-tenant-workload-quotas.mjs",

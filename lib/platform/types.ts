@@ -1,4 +1,4 @@
-export type AgencyRole = "owner" | "admin" | "editor" | "viewer";
+export type AgencyRole = "owner" | "admin" | "editor" | "viewer" | "tour_leader";
 export type ObjectStorageProvider = "vercel-blob" | "r2";
 export type JobQueueProvider = "database" | "sqs";
 export type TravelAiProvider = "bedrock";

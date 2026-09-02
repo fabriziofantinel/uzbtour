@@ -2,7 +2,17 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { LoaderCircle, MessageCircle, RefreshCw, Send } from "lucide-react";
 type Message = { id: string; senderName: string; senderRole: string; body: string; createdAt: string; isMine: boolean };
-export default function OperationalChat({ departureId, partyId }: { departureId: string; partyId: string }) {
+export default function OperationalChat({
+  departureId,
+  partyId,
+  travelerId,
+  scope = "group",
+}: {
+  departureId: string;
+  partyId?: string;
+  travelerId?: string;
+  scope?: "trip" | "group" | "traveler";
+}) {
   const [messages, setMessages] = useState<Message[]>([]),
     [body, setBody] = useState(""),
     [busy, setBusy] = useState(false),
@@ -12,7 +22,10 @@ export default function OperationalChat({ departureId, partyId }: { departureId:
     async (silent = false) => {
       if (!silent) setBusy(true);
       try {
-        const response = await fetch(`/api/chat?departureId=${departureId}&partyId=${partyId}`, { cache: "no-store" }),
+        const parameters = new URLSearchParams({ departureId, scope });
+        if (partyId) parameters.set("partyId", partyId);
+        if (travelerId) parameters.set("travelerId", travelerId);
+        const response = await fetch(`/api/chat?${parameters}`, { cache: "no-store" }),
           result = (await response.json()) as { messages?: Message[]; error?: string };
         if (!response.ok) throw new Error(result.error || "Chat non disponibile");
         setMessages(result.messages || []);
@@ -23,7 +36,7 @@ export default function OperationalChat({ departureId, partyId }: { departureId:
         if (!silent) setBusy(false);
       }
     },
-    [departureId, partyId],
+    [departureId, partyId, scope, travelerId],
   );
   useEffect(() => {
     void load();
@@ -43,7 +56,14 @@ export default function OperationalChat({ departureId, partyId }: { departureId:
       const response = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ departureId, partyId, body: text, clientOperationId: crypto.randomUUID() }),
+          body: JSON.stringify({
+            departureId,
+            partyId,
+            travelerId,
+            scope,
+            body: text,
+            clientOperationId: crypto.randomUUID(),
+          }),
         }),
         result = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(result.error || "Invio non riuscito");
@@ -60,8 +80,16 @@ export default function OperationalChat({ departureId, partyId }: { departureId:
       <header>
         <MessageCircle />
         <div>
-          <h2 id="chat-title">Chat del viaggio</h2>
-          <p>Messaggi tra il tuo gruppo e l’agenzia.</p>
+          <h2 id="chat-title">
+            {scope === "trip" ? "Chat del viaggio" : scope === "group" ? "Chat del gruppo" : "Chat personale"}
+          </h2>
+          <p>
+            {scope === "trip"
+              ? "Conversazione condivisa con tutti i partecipanti."
+              : scope === "group"
+                ? "Messaggi riservati al tuo gruppo e allo staff operativo."
+                : "Conversazione privata con lo staff operativo."}
+          </p>
         </div>
         <button type="button" onClick={() => void load()} disabled={busy} aria-label="Aggiorna conversazione">
           <RefreshCw />

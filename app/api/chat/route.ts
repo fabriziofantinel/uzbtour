@@ -3,8 +3,13 @@ import { z } from "zod";
 import { getCurrentUser } from "@/lib/current-user";
 import { platformApiError } from "@/lib/platform/http";
 import { listOperationalMessages, sendOperationalMessage } from "@/lib/platform/operational-chat";
-import { sendPartyPush } from "@/lib/platform/web-push";
-const scope = z.object({ departureId: z.string().uuid(), partyId: z.string().uuid() });
+import { sendDeparturePush, sendPartyPush } from "@/lib/platform/web-push";
+const scope = z.object({
+  departureId: z.string().uuid(),
+  scope: z.enum(["trip", "group", "traveler"]).default("group"),
+  partyId: z.string().uuid().nullish(),
+  travelerId: z.string().uuid().nullish(),
+});
 const message = scope.extend({ body: z.string().trim().min(1).max(2000), clientOperationId: z.string().uuid() });
 export async function GET(request: Request) {
   try {
@@ -24,11 +29,19 @@ export async function POST(request: Request) {
     const parsed = message.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Messaggio non valido" }, { status: 400 });
     const id = await sendOperationalMessage({ userId: user.id, ...parsed.data });
-    if (user.isAgencyAdmin)
+    if (user.isAgencyAdmin && parsed.data.scope === "group" && parsed.data.partyId)
       after(() =>
         sendPartyPush({
           departureId: parsed.data.departureId,
-          partyId: parsed.data.partyId,
+          partyId: parsed.data.partyId!,
+          kind: "chat_message",
+          body: `${user.name}: ${parsed.data.body.slice(0, 180)}`,
+        }).catch((error) => console.error("Chat push failed", error)),
+      );
+    else if (user.isAgencyAdmin && parsed.data.scope === "trip")
+      after(() =>
+        sendDeparturePush({
+          departureId: parsed.data.departureId,
           kind: "chat_message",
           body: `${user.name}: ${parsed.data.body.slice(0, 180)}`,
         }).catch((error) => console.error("Chat push failed", error)),

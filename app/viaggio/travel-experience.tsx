@@ -50,6 +50,7 @@ import { agencyLogoSource } from "@/lib/platform/branding-ui";
 import { resilientMutation, uuidV7 } from "@/lib/pwa/offline-queue";
 import PwaCompanion from "@/components/pwa-companion";
 import OperationalChat from "@/components/operational-chat";
+import OperationalAlertForm from "@/components/operational-alert-form";
 import { downloadTripForOffline, type OfflinePackageState } from "@/lib/pwa/offline-package";
 
 const TripOverviewMap = dynamic(() => import("@/components/trip-overview-map"), {
@@ -290,6 +291,7 @@ export default function TravelExperience({
   const [offlineProgress, setOfflineProgress] = useState({ done: 0, total: 0 });
   const [largeText, setLargeText] = useState(false);
   const [simpleMode, setSimpleMode] = useState(false);
+  const [chatScope, setChatScope] = useState<"trip" | "group" | "traveler">("group");
   const contentRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const moreButtonRef = useRef<HTMLButtonElement>(null);
@@ -2259,6 +2261,10 @@ export default function TravelExperience({
                 <li>Avvisa il capogruppo o l’agenzia appena possibile.</li>
               </ol>
             </div>
+            <OperationalAlertForm
+              departureId={experience.journey.departureId}
+              travelers={experience.journey.travelers}
+            />
           </section>
         )}
         {tab === "spese" && experience.expenses.length > 0 && (
@@ -2282,7 +2288,31 @@ export default function TravelExperience({
           </section>
         )}
         {tab === "chat" && (
-          <OperationalChat departureId={experience.journey.departureId} partyId={experience.journey.partyId} />
+          <section className="travelerChatScopes">
+            <div role="tablist" aria-label="Conversazioni">
+              {(["trip", "group", "traveler"] as const).map((scope) => (
+                <button
+                  key={scope}
+                  type="button"
+                  role="tab"
+                  aria-selected={chatScope === scope}
+                  onClick={() => setChatScope(scope)}
+                >
+                  {scope === "trip" ? "Viaggio" : scope === "group" ? "Gruppo" : "Personale"}
+                </button>
+              ))}
+            </div>
+            <OperationalChat
+              departureId={experience.journey.departureId}
+              partyId={chatScope === "trip" ? undefined : experience.journey.partyId}
+              travelerId={
+                chatScope === "traveler"
+                  ? experience.journey.travelers.find((traveler) => traveler.isCurrent)?.id
+                  : undefined
+              }
+              scope={chatScope}
+            />
+          </section>
         )}
         {tab === "sfide" && (
           <PlatformTripChallenges

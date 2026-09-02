@@ -18,6 +18,7 @@ import {
   MessageCircle,
   Send,
   Settings2,
+  ClipboardCheck,
   Plus,
   ShieldCheck,
   Trash2,
@@ -317,6 +318,9 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
           </Link>
           <Link href={`/agenzia/viaggi/${data.journey.id}/comunicazioni`}>
             <Send /> Comunicazioni
+          </Link>
+          <Link href={`/agenzia/viaggi/${data.journey.id}/operativita`}>
+            <ClipboardCheck /> Operatività
           </Link>
           <Link href={`/agenzia/viaggi/${data.journey.id}/impostazioni`}>
             <Settings2 /> Configurazione
