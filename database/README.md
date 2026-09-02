@@ -9,7 +9,7 @@ The rebuild order is fixed and verified by `scripts/rebuild-database-from-empty.
 3. hardening migrations `012-015`;
 4. normalized v3 target baseline from `database/schema-v3-review.sql`;
 5. historical core and operational shadow backfills `017-018`;
-6. incremental migrations `019-130` in numeric order;
+6. incremental migrations `019-132` in numeric order;
 7. structural, RLS, constraint, index and tenant-isolation validation.
 
 Numbers `016-018` are deliberately reserved for the v3 target baseline and its historical shadow backfills. They are not missing incremental migrations.

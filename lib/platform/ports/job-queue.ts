@@ -5,6 +5,7 @@ export type EnqueueJobInput = {
   payload: Record<string, unknown>;
   idempotencyKey: string;
   availableAt?: Date;
+  traceId?: string;
 };
 
 export type EnqueuedJob = {

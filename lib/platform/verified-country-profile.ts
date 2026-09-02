@@ -7,13 +7,27 @@ const sourceSchema = z.object({
   url: z.string().url(),
 });
 
+const criticalitySchema = z.enum(["high", "medium", "low"]);
+const governanceSchema = z.object({
+  fields: z.array(
+    z.object({ field: z.string().min(1), criticality: criticalitySchema, requiresOfficialSource: z.boolean() }),
+  ),
+});
+
 export const verifiedCountryProfileSchema = z.object({
   countryName: z.string().trim().min(2),
-  iso2: z.string().trim().regex(/^[A-Z]{2}$/),
+  iso2: z
+    .string()
+    .trim()
+    .regex(/^[A-Z]{2}$/),
   timeZones: z.array(z.string().trim().min(3)).min(1),
-  currencyCode: z.string().trim().regex(/^[A-Z]{3}$/),
+  currencyCode: z
+    .string()
+    .trim()
+    .regex(/^[A-Z]{3}$/),
   usefulInfo: countryUsefulInfoSchema,
   sources: z.array(sourceSchema).min(4),
+  governance: governanceSchema.optional(),
 });
 
 export type VerifiedCountryProfile = z.infer<typeof verifiedCountryProfileSchema>;
@@ -24,6 +38,20 @@ const sensitiveCategories = new Set([
   "Salute e assistenza",
   "Documenti e sicurezza",
 ]);
+
+export function countryProfileGovernance() {
+  return {
+    fields: countryUsefulInfoCategories.map((field) => ({
+      field,
+      criticality: sensitiveCategories.has(field)
+        ? ("high" as const)
+        : ["Fuso orario", "Valuta e cambio", "Come muoversi"].includes(field)
+          ? ("medium" as const)
+          : ("low" as const),
+      requiresOfficialSource: sensitiveCategories.has(field),
+    })),
+  };
+}
 
 function normalizedUrl(value: string) {
   const url = new URL(value);
@@ -37,11 +65,7 @@ function phoneTokens(value: string) {
     .filter((token) => token.length >= 3);
 }
 
-export function validateVerifiedCountryProfile(
-  input: unknown,
-  citedUrls: string[],
-  groundedText: string,
-) {
+export function validateVerifiedCountryProfile(input: unknown, citedUrls: string[], groundedText: string) {
   const profile = verifiedCountryProfileSchema.parse(input);
   const errors: string[] = [];
   const cited = new Set(citedUrls.map(normalizedUrl));
@@ -51,11 +75,15 @@ export function validateVerifiedCountryProfile(
     errors.push("Le categorie delle informazioni utili non sono univoche");
   }
   for (const zone of profile.timeZones) {
-    try { new Intl.DateTimeFormat("it-IT", { timeZone: zone }).format(); }
-    catch { errors.push(`Fuso IANA non valido: ${zone}`); }
+    try {
+      new Intl.DateTimeFormat("it-IT", { timeZone: zone }).format();
+    } catch {
+      errors.push(`Fuso IANA non valido: ${zone}`);
+    }
   }
   for (const source of profile.sources) {
-    if (!cited.has(normalizedUrl(source.url))) errors.push(`Fonte non presente nelle citazioni Grounding: ${source.url}`);
+    if (!cited.has(normalizedUrl(source.url)))
+      errors.push(`Fonte non presente nelle citazioni Grounding: ${source.url}`);
     const host = new URL(source.url).hostname.toLowerCase();
     if (/(^|\.)(wikipedia\.org|facebook\.com|instagram\.com|reddit\.com|tripadvisor\.[a-z.]+)$/.test(host)) {
       errors.push(`Fonte non istituzionale: ${source.url}`);
@@ -64,8 +92,9 @@ export function validateVerifiedCountryProfile(
   for (const section of profile.usefulInfo) {
     if (!sensitiveCategories.has(section.category)) continue;
     const matchingSource = section.url
-      ? profile.sources.find((source) => normalizedUrl(source.url) === normalizedUrl(section.url)
-        && source.category === section.category)
+      ? profile.sources.find(
+          (source) => normalizedUrl(source.url) === normalizedUrl(section.url) && source.category === section.category,
+        )
       : undefined;
     if (!section.url || !sourceUrls.has(normalizedUrl(section.url)) || matchingSource?.category !== section.category) {
       errors.push(`Fonte verificabile assente per ${section.category}`);
@@ -83,5 +112,5 @@ export function validateVerifiedCountryProfile(
   if (!groundedText.toUpperCase().includes(profile.currencyCode)) {
     errors.push("Il codice valuta non è riscontrato nel dossier");
   }
-  return { profile, errors: [...new Set(errors)] };
+  return { profile: { ...profile, governance: countryProfileGovernance() }, errors: [...new Set(errors)] };
 }

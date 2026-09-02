@@ -3,8 +3,9 @@
 Questa configurazione crea l'elaborazione asincrona di produzione di SMF Travel:
 
 1. Vercel registra il job su Neon e invia a SQS solo `jobId`, `agencyId` e `importId`.
-2. SQS Standard applica Fair Queues tramite `MessageGroupId = agency_id` e attiva
-   una Lambda ARM64 con concorrenza massima configurabile, pari a 10 in produzione.
+2. Il router invia il job alla coda dedicata a import/OCR, arricchimento Paese,
+   valutazione foto o cancellazione agenzia. Ogni coda Standard applica Fair Queues
+   tramite `MessageGroupId = agency_id` e ha worker, concorrenza e DLQ indipendenti.
 3. Lambda legge il documento PDF, DOC o DOCX dal bucket R2 privato.
 4. Amazon Bedrock genera una bozza strutturata con Amazon Nova 2 Lite.
 5. Lambda valida la risposta e salva risultato, consumi e stato su Neon.
@@ -89,6 +90,9 @@ PLATFORM_AI_PROVIDER=bedrock
 AWS_REGION=eu-central-1
 AWS_ROLE_ARN=<output VercelQueuePublisherRoleArn>
 AWS_SQS_IMPORT_QUEUE_URL=<output ImportQueueUrl>
+AWS_SQS_ENRICHMENT_QUEUE_URL=<output EnrichmentQueueUrl>
+AWS_SQS_PHOTO_QUEUE_URL=<output PhotoQueueUrl>
+AWS_SQS_DELETION_QUEUE_URL=<output DeletionQueueUrl>
 AWS_BEDROCK_TEXT_MODEL=<modello scelto>
 ```
 
@@ -97,7 +101,8 @@ per l'applicazione web.
 
 ## Limiti di costo iniziali
 
-- concorrenza massima del consumer SQS: 10, limitata anche come reserved concurrency;
+- concorrenza massima separata: import 10, arricchimento 4, foto 6 e cancellazione 1;
+- quote per agenzia sui job attivi impediscono a un tenant di saturare ogni workload;
 - batch SQS: 1;
 - retry SQS: 4;
 - documento caricato: massimo 20 MB; i singoli blocchi Bedrock restano entro 4,5 MB.

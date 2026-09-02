@@ -6,10 +6,10 @@ Metadata:
   AWSToolsMetrics:
     AWSAgentToolkit: aws-cloudformation@2
   com.aws.cloudformation.Context:
-    arch: Vercel OIDC -> SQS -> Lambda -> SSM + R2 + Bedrock + Neon; Cognito username auth; DLQ + CloudWatch alarms
+    arch: Vercel OIDC -> workload-specific SQS -> isolated Lambda workers -> SSM + R2 + Bedrock + Neon; Cognito username auth; per-workload DLQ + CloudWatch alarms
     must:
       - SQS visibility >= 6x Lambda timeout
-      - Vercel role may only send to this stack import queue
+      - Vercel role may only send to this stack workload queues
       - Standard SQS messages always carry agency_id as MessageGroupId for tenant fair sharing
       - worker concurrency remains bounded to protect Neon and AI spend
       - Cognito username is login identity; email is non-unique contact and recovery data
@@ -55,6 +55,16 @@ Parameters:
   ImportWorkerMaximumConcurrency:
     Type: Number
     Default: 10
+    MinValue: 2
+    MaxValue: 20
+  EnrichmentWorkerMaximumConcurrency:
+    Type: Number
+    Default: 4
+    MinValue: 2
+    MaxValue: 10
+  PhotoWorkerMaximumConcurrency:
+    Type: Number
+    Default: 6
     MinValue: 2
     MaxValue: 20
   InvitationSenderEmail:
@@ -250,28 +260,88 @@ Resources:
         deadLetterTargetArn: !GetAtt ImportDeadLetterQueue.Arn
         maxReceiveCount: 4
 
+  EnrichmentDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties: { QueueName: !Sub "${AWS::StackName}-enrichment-dlq", MessageRetentionPeriod: 1209600, SqsManagedSseEnabled: true }
+  EnrichmentQueue:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: isolates Bedrock country enrichment from document imports and operational jobs
+        must: [visibility remains at least six times worker timeout, producer sets MessageGroupId to agency_id]
+        mutable: change-with-constraints
+    Properties:
+      QueueName: !Sub "${AWS::StackName}-enrichment"
+      VisibilityTimeout: 1800
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 20
+      SqsManagedSseEnabled: true
+      RedrivePolicy: { deadLetterTargetArn: !GetAtt EnrichmentDeadLetterQueue.Arn, maxReceiveCount: 4 }
+
+  PhotoDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties: { QueueName: !Sub "${AWS::StackName}-photo-dlq", MessageRetentionPeriod: 1209600, SqsManagedSseEnabled: true }
+  PhotoQueue:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: isolates interactive mission and contest image evaluation from long document processing
+        must: [visibility remains at least six times worker timeout, concurrency remains bounded]
+        mutable: change-with-constraints
+    Properties:
+      QueueName: !Sub "${AWS::StackName}-photo"
+      VisibilityTimeout: 900
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 20
+      SqsManagedSseEnabled: true
+      RedrivePolicy: { deadLetterTargetArn: !GetAtt PhotoDeadLetterQueue.Arn, maxReceiveCount: 4 }
+
+  DeletionDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties: { QueueName: !Sub "${AWS::StackName}-deletion-dlq", MessageRetentionPeriod: 1209600, SqsManagedSseEnabled: true }
+  DeletionQueue:
+    Type: AWS::SQS::Queue
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: isolates destructive tenant cleanup from AI workloads and preserves an independent recovery queue
+        must: [batch size remains one, deletion remains idempotent, concurrency remains one]
+        mutable: change-with-constraints
+    Properties:
+      QueueName: !Sub "${AWS::StackName}-deletion"
+      VisibilityTimeout: 1800
+      MessageRetentionPeriod: 1209600
+      ReceiveMessageWaitTimeSeconds: 20
+      SqsManagedSseEnabled: true
+      RedrivePolicy: { deadLetterTargetArn: !GetAtt DeletionDeadLetterQueue.Arn, maxReceiveCount: 4 }
+
   ImportQueueTlsPolicy:
     Type: AWS::SQS::QueuePolicy
     Properties:
       Queues:
         - !Ref ImportQueue
         - !Ref ImportDeadLetterQueue
+        - !Ref EnrichmentQueue
+        - !Ref EnrichmentDeadLetterQueue
+        - !Ref PhotoQueue
+        - !Ref PhotoDeadLetterQueue
+        - !Ref DeletionQueue
+        - !Ref DeletionDeadLetterQueue
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
-          - Sid: DenyInsecureTransportImportQueue
+          - Sid: DenyInsecureTransportWorkloadQueues
             Effect: Deny
             Principal: "*"
             Action: sqs:*
-            Resource: !GetAtt ImportQueue.Arn
-            Condition:
-              Bool:
-                aws:SecureTransport: "false"
-          - Sid: DenyInsecureTransportDeadLetterQueue
-            Effect: Deny
-            Principal: "*"
-            Action: sqs:*
-            Resource: !GetAtt ImportDeadLetterQueue.Arn
+            Resource:
+              - !GetAtt ImportQueue.Arn
+              - !GetAtt ImportDeadLetterQueue.Arn
+              - !GetAtt EnrichmentQueue.Arn
+              - !GetAtt EnrichmentDeadLetterQueue.Arn
+              - !GetAtt PhotoQueue.Arn
+              - !GetAtt PhotoDeadLetterQueue.Arn
+              - !GetAtt DeletionQueue.Arn
+              - !GetAtt DeletionDeadLetterQueue.Arn
             Condition:
               Bool:
                 aws:SecureTransport: "false"
@@ -300,13 +370,17 @@ Resources:
                 oidc.vercel.com/smf6:aud: https://vercel.com/smf6
                 oidc.vercel.com/smf6:sub: owner:smf6:project:smf-travel:environment:production
       Policies:
-        - PolicyName: SendImportJobs
+        - PolicyName: SendWorkloadJobs
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action: sqs:SendMessage
-                Resource: !GetAtt ImportQueue.Arn
+                Resource:
+                  - !GetAtt ImportQueue.Arn
+                  - !GetAtt EnrichmentQueue.Arn
+                  - !GetAtt PhotoQueue.Arn
+                  - !GetAtt DeletionQueue.Arn
 
   VercelAuthBrokerRole:
     Type: AWS::IAM::Role
@@ -484,7 +558,7 @@ Resources:
     DependsOn: ImportWorkerLogGroup
     Properties:
       FunctionName: !Sub "${AWS::StackName}-import-worker"
-      Description: Elabora importazioni, contenuti e cancellazioni tenant asincrone su Neon e R2
+      Description: Elabora esclusivamente importazioni e completamenti OCR su Neon e R2
       CodeUri: ../../
       Handler: workers/import-handler.handler
       Runtime: nodejs22.x
@@ -570,12 +644,6 @@ Resources:
             ScalingConfig:
               MaximumConcurrency: 5
             FunctionResponseTypes: [ReportBatchItemFailures]
-        ContestClosureSchedule:
-          Type: Schedule
-          Properties:
-            Schedule: cron(0/5 * * * ? *)
-            Description: Chiude i contest fotografici dopo le 06:00 locali
-            Enabled: true
     Metadata:
       com.aws.cloudformation.Context:
         why: bounded elastic consumer for imports, tenant deletion and AI enrichment; concurrency ten removes the two-worker head-of-line bottleneck while protecting Neon
@@ -592,6 +660,239 @@ Resources:
         Sourcemap: true
         Target: es2022
         Format: cjs
+
+  EnrichmentWorker:
+    Type: AWS::Serverless::Function
+    DependsOn: EnrichmentWorkerLogGroup
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: independently scales grounded country enrichment without delaying imports
+        must: [consume only travel-reference.enrich jobs, concurrency remains bounded]
+        mutable: change-with-constraints
+      BuildMethod: esbuild
+      BuildProperties: { EntryPoints: [workers/import-handler.ts], Minify: true, Sourcemap: true, Target: es2022, Format: cjs }
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-enrichment-worker"
+      Description: Genera e aggiorna i contenuti Paese con Bedrock
+      CodeUri: ../../
+      Handler: workers/import-handler.handler
+      Runtime: nodejs22.x
+      Architectures: [arm64]
+      MemorySize: 1536
+      Timeout: 300
+      Tracing: Active
+      LoggingConfig: { LogFormat: JSON, ApplicationLogLevel: INFO, SystemLogLevel: WARN }
+      Environment:
+        Variables:
+          WORKLOAD: enrichment
+          DATABASE_PARAMETER_NAME: !Ref DatabaseParameterName
+          R2_PARAMETER_NAME: !Ref R2ParameterName
+          R2_ACCOUNT_ID: !Ref R2AccountId
+          R2_JURISDICTION: !If [UseDefaultR2Endpoint, "", !Ref R2Jurisdiction]
+          R2_BUCKET: !Ref R2Bucket
+          PLATFORM_OBJECT_STORAGE_PROVIDER: r2
+          PLATFORM_JOB_QUEUE_PROVIDER: sqs
+          PLATFORM_AI_PROVIDER: bedrock
+          AWS_BEDROCK_TEXT_MODEL: !Ref BedrockTextModel
+      Policies:
+        - SQSPollerPolicy: { QueueName: !GetAtt EnrichmentQueue.QueueName }
+        - Statement:
+            - Effect: Allow
+              Action: ssm:GetParameters
+              Resource:
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${DatabaseParameterName}"
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${R2ParameterName}"
+            - Effect: Allow
+              Action: kms:Decrypt
+              Resource: "*"
+              Condition: { StringEquals: { kms:ViaService: !Sub "ssm.${AWS::Region}.${AWS::URLSuffix}" } }
+            - Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource:
+                - !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/${BedrockTextModel}"
+                - !Sub "arn:${AWS::Partition}:bedrock:*::foundation-model/${BedrockFoundationModelId}"
+      Events:
+        Queue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt EnrichmentQueue.Arn
+            BatchSize: 1
+            ScalingConfig: { MaximumConcurrency: !Ref EnrichmentWorkerMaximumConcurrency }
+            FunctionResponseTypes: [ReportBatchItemFailures]
+
+  PhotoWorker:
+    Type: AWS::Serverless::Function
+    DependsOn: PhotoWorkerLogGroup
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: gives interactive photo validation a dedicated latency and spend envelope
+        must: [consume only photo jobs, concurrency remains bounded]
+        mutable: change-with-constraints
+      BuildMethod: esbuild
+      BuildProperties: { EntryPoints: [workers/import-handler.ts], Minify: true, Sourcemap: true, Target: es2022, Format: cjs }
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-photo-worker"
+      Description: Valida foto di missioni e contest con Bedrock
+      CodeUri: ../../
+      Handler: workers/import-handler.handler
+      Runtime: nodejs22.x
+      Architectures: [arm64]
+      MemorySize: 1536
+      Timeout: 120
+      Tracing: Active
+      LoggingConfig: { LogFormat: JSON, ApplicationLogLevel: INFO, SystemLogLevel: WARN }
+      Environment:
+        Variables:
+          WORKLOAD: photo
+          DATABASE_PARAMETER_NAME: !Ref DatabaseParameterName
+          R2_PARAMETER_NAME: !Ref R2ParameterName
+          R2_ACCOUNT_ID: !Ref R2AccountId
+          R2_JURISDICTION: !If [UseDefaultR2Endpoint, "", !Ref R2Jurisdiction]
+          R2_BUCKET: !Ref R2Bucket
+          PLATFORM_OBJECT_STORAGE_PROVIDER: r2
+          PLATFORM_JOB_QUEUE_PROVIDER: sqs
+          PLATFORM_AI_PROVIDER: bedrock
+          AWS_BEDROCK_TEXT_MODEL: !Ref BedrockTextModel
+      Policies:
+        - SQSPollerPolicy: { QueueName: !GetAtt PhotoQueue.QueueName }
+        - Statement:
+            - Effect: Allow
+              Action: ssm:GetParameters
+              Resource:
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${DatabaseParameterName}"
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${R2ParameterName}"
+            - Effect: Allow
+              Action: kms:Decrypt
+              Resource: "*"
+              Condition: { StringEquals: { kms:ViaService: !Sub "ssm.${AWS::Region}.${AWS::URLSuffix}" } }
+            - Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource:
+                - !Sub "arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/${BedrockTextModel}"
+                - !Sub "arn:${AWS::Partition}:bedrock:*::foundation-model/${BedrockFoundationModelId}"
+      Events:
+        Queue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt PhotoQueue.Arn
+            BatchSize: 1
+            ScalingConfig: { MaximumConcurrency: !Ref PhotoWorkerMaximumConcurrency }
+            FunctionResponseTypes: [ReportBatchItemFailures]
+
+  DeletionWorker:
+    Type: AWS::Serverless::Function
+    DependsOn: DeletionWorkerLogGroup
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: serializes destructive tenant cleanup outside AI workloads
+        must: [consume only agency.delete jobs, batch size remains one, keep idempotent phase checkpoints]
+        mutable: change-with-constraints
+      BuildMethod: esbuild
+      BuildProperties: { EntryPoints: [workers/import-handler.ts], Minify: true, Sourcemap: true, Target: es2022, Format: cjs }
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-deletion-worker"
+      Description: Esegue cancellazioni tenant asincrone e verificabili
+      CodeUri: ../../
+      Handler: workers/import-handler.handler
+      Runtime: nodejs22.x
+      Architectures: [arm64]
+      MemorySize: 512
+      Timeout: 300
+      Tracing: Active
+      ReservedConcurrentExecutions: 1
+      LoggingConfig: { LogFormat: JSON, ApplicationLogLevel: INFO, SystemLogLevel: WARN }
+      Environment:
+        Variables:
+          WORKLOAD: deletion
+          DATABASE_PARAMETER_NAME: !Ref DatabaseParameterName
+          R2_PARAMETER_NAME: !Ref R2ParameterName
+          R2_ACCOUNT_ID: !Ref R2AccountId
+          R2_JURISDICTION: !If [UseDefaultR2Endpoint, "", !Ref R2Jurisdiction]
+          R2_BUCKET: !Ref R2Bucket
+          PLATFORM_OBJECT_STORAGE_PROVIDER: r2
+          PLATFORM_JOB_QUEUE_PROVIDER: sqs
+          PLATFORM_AI_PROVIDER: bedrock
+      Policies:
+        - SQSPollerPolicy: { QueueName: !GetAtt DeletionQueue.QueueName }
+        - Statement:
+            - Effect: Allow
+              Action: ssm:GetParameters
+              Resource:
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${DatabaseParameterName}"
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${R2ParameterName}"
+            - Effect: Allow
+              Action: kms:Decrypt
+              Resource: "*"
+              Condition: { StringEquals: { kms:ViaService: !Sub "ssm.${AWS::Region}.${AWS::URLSuffix}" } }
+      Events:
+        Queue:
+          Type: SQS
+          Properties: { Queue: !GetAtt DeletionQueue.Arn, BatchSize: 1, FunctionResponseTypes: [ReportBatchItemFailures] }
+
+  ContestClosureFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: ContestClosureLogGroup
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: closes due contests independently from ingestion queues
+        must: [schedule remains idempotent, no Bedrock permission]
+        mutable: change-with-constraints
+      BuildMethod: esbuild
+      BuildProperties: { EntryPoints: [workers/contest-closure-handler.ts], Minify: true, Sourcemap: true, Target: es2022, Format: cjs }
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-contest-closure"
+      Description: Chiude i contest fotografici dovuti secondo il fuso della partenza
+      CodeUri: ../../
+      Handler: workers/contest-closure-handler.handler
+      Runtime: nodejs22.x
+      Architectures: [arm64]
+      MemorySize: 256
+      Timeout: 60
+      Tracing: Active
+      LoggingConfig: { LogFormat: JSON, ApplicationLogLevel: INFO, SystemLogLevel: WARN }
+      Environment:
+        Variables:
+          DATABASE_PARAMETER_NAME: !Ref DatabaseParameterName
+          R2_PARAMETER_NAME: !Ref R2ParameterName
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: ssm:GetParameters
+              Resource:
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${DatabaseParameterName}"
+                - !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${R2ParameterName}"
+            - Effect: Allow
+              Action: kms:Decrypt
+              Resource: "*"
+              Condition: { StringEquals: { kms:ViaService: !Sub "ssm.${AWS::Region}.${AWS::URLSuffix}" } }
+      Events:
+        Schedule:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0/5 * * * ? *)
+            Description: Chiude i contest fotografici dopo le 06:00 locali
+            Enabled: true
+
+  EnrichmentWorkerLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties: { LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-enrichment-worker", RetentionInDays: 14 }
+  PhotoWorkerLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties: { LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-photo-worker", RetentionInDays: 14 }
+  DeletionWorkerLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties: { LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-deletion-worker", RetentionInDays: 14 }
+  ContestClosureLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties: { LogGroupName: !Sub "/aws/lambda/${AWS::StackName}-contest-closure", RetentionInDays: 14 }
 
   ImportWorkerLogGroup:
     Type: AWS::Logs::LogGroup
@@ -628,6 +929,7 @@ Resources:
       Environment:
         Variables:
           DATABASE_PARAMETER_NAME: !Ref DatabaseParameterName
+          WORKLOAD: import
           WEB_PUSH_PARAMETER_NAME: !Ref WebPushParameterName
       Policies:
         - Statement:
@@ -855,6 +1157,24 @@ Resources:
       AlarmActions:
         - !Ref AlarmTopic
 
+  WorkloadDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Metadata:
+      com.aws.cloudformation.Context:
+        why: single operational view for isolated workers, queue latency and trace correlation
+        must: [never use user or agency identifiers as metric dimensions, retain trace identifiers only in logs and Neon]
+        mutable: free-to-tune
+    Properties:
+      DashboardName: !Sub "${AWS::StackName}-workloads"
+      DashboardBody: !Sub |
+        {"start":"-PT8H","periodOverride":"inherit","widgets":[
+          {"type":"text","x":0,"y":0,"width":24,"height":2,"properties":{"markdown":"# SMF Travel workload health\nUse `traceId` to correlate Vercel, SQS, Lambda and Neon jobs."}},
+          {"type":"metric","x":0,"y":2,"width":12,"height":6,"properties":{"region":"${AWS::Region}","title":"Invocations by isolated worker","view":"timeSeries","metrics":[["AWS/Lambda","Invocations","FunctionName","${ImportWorker}"],[".",".",".","${EnrichmentWorker}"],[".",".",".","${PhotoWorker}"],[".",".",".","${DeletionWorker}"],[".",".",".","${ContestClosureFunction}"]]}},
+          {"type":"metric","x":12,"y":2,"width":12,"height":6,"properties":{"region":"${AWS::Region}","title":"Worker errors","view":"timeSeries","metrics":[["AWS/Lambda","Errors","FunctionName","${ImportWorker}"],[".",".",".","${EnrichmentWorker}"],[".",".",".","${PhotoWorker}"],[".",".",".","${DeletionWorker}"],[".",".",".","${ContestClosureFunction}"]]}},
+          {"type":"metric","x":0,"y":8,"width":24,"height":6,"properties":{"region":"${AWS::Region}","title":"Oldest message by workload","view":"timeSeries","metrics":[["AWS/SQS","ApproximateAgeOfOldestMessage","QueueName","${ImportQueue.QueueName}"],[".",".",".","${EnrichmentQueue.QueueName}"],[".",".",".","${PhotoQueue.QueueName}"],[".",".",".","${DeletionQueue.QueueName}"]]}},
+          {"type":"log","x":0,"y":14,"width":24,"height":8,"properties":{"region":"${AWS::Region}","title":"Recent correlated workload events","view":"table","query":"SOURCE logGroups(namePrefix: ['/aws/lambda/${AWS::StackName}-']) | fields @timestamp, traceId, jobId, agencyId, @message | sort @timestamp desc | limit 100"}}
+        ]}
+
 Outputs:
   CognitoUserPoolId:
     Description: Identificatore del pool Cognito da configurare su Vercel
@@ -872,6 +1192,15 @@ Outputs:
   ImportQueueUrl:
     Description: Valore AWS_SQS_IMPORT_QUEUE_URL da configurare su Vercel
     Value: !Ref ImportQueue
+  EnrichmentQueueUrl:
+    Description: Valore AWS_SQS_ENRICHMENT_QUEUE_URL da configurare su Vercel
+    Value: !Ref EnrichmentQueue
+  PhotoQueueUrl:
+    Description: Valore AWS_SQS_PHOTO_QUEUE_URL da configurare su Vercel
+    Value: !Ref PhotoQueue
+  DeletionQueueUrl:
+    Description: Valore AWS_SQS_DELETION_QUEUE_URL da configurare su Vercel
+    Value: !Ref DeletionQueue
   ImportQueueArn:
     Description: ARN della coda import usato per policy e diagnostica
     Value: !GetAtt ImportQueue.Arn

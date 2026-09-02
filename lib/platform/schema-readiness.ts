@@ -3,7 +3,7 @@ import { getSql } from "@/lib/db";
 const checks = new Map<string, Promise<void>>();
 
 const SIMPLE_IDENTIFIER = /^[a-z][a-z0-9_]*$/;
-export const CURRENT_SCHEMA_VERSION = "130_v3_traveler_destination_profile";
+export const CURRENT_SCHEMA_VERSION = "132_v3_job_trace_correlation";
 
 export function assertDatabaseTables(requiredTables: string[]) {
   const tables = [...new Set(requiredTables)].sort();

@@ -1961,3 +1961,4 @@
     line-height: 1.5;
   }
 }
+.countryCriticality{display:inline-flex;padding:.25rem .55rem;border-radius:999px;font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#102a2e;background:#e8efed}.countryCriticality.criticality-high{background:#ffe2dd;color:#76251b}.countryCriticality.criticality-medium{background:#fff0c9;color:#604500}.countryCriticality.criticality-low{background:#e1f3e8;color:#174d2c}
