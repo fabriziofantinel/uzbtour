@@ -80,7 +80,7 @@ try {
   const inventory = await client.query(`
     SELECT count(*)::int AS table_count
       FROM information_schema.tables
-     WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
+     WHERE table_schema IN ('public','app','iam','ref','travel','content','ops','journey','privacy')
   `);
   if (inventory.rows[0]?.table_count !== 0) {
     throw new Error(`Bootstrap rifiutato: il database contiene ${inventory.rows[0]?.table_count} tabelle`);
