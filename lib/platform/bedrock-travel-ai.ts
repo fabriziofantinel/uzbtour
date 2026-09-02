@@ -14,7 +14,7 @@ import {
 } from "./import-schema";
 import { travelDocumentType } from "./travel-document";
 import { normalizeTravelProgramme } from "./travel-programme-normalizer";
-import { bedrockDocumentBlocks, prepareBedrockDocuments, type BedrockDocumentPart } from "./document-preprocessor";
+import { bedrockDocumentBlocks, extractTravelDocumentTextForValidation, prepareBedrockDocuments, type BedrockDocumentPart } from "./document-preprocessor";
 import { mergeReconciliationIssues } from "./travel-import-quality";
 
 const bedrockClients = new Map<string, BedrockRuntimeClient>();
@@ -37,6 +37,24 @@ const accommodationRecoverySchema = z.object({
 const commercialExtractionSchema = z.object({
   commercialDetails: commercialDetailsSchema,
   evidence: z.array(extractionEvidenceSchema).max(300).default([]),
+});
+
+const recoveredActivitySchema = z.object({
+  type: z.enum(["visit", "transport", "flight", "train", "meal", "free_time", "meeting", "other"]),
+  title: z.string().min(1).max(240),
+  description: z.string().max(3000),
+  includedInQuote: z.boolean().nullable(),
+  placeName: z.string().max(240),
+  placeCity: z.string().max(240),
+  placeCountry: z.string().max(120),
+});
+
+const activityRecoverySchema = z.object({
+  days: z.array(z.object({
+    dayNumber: z.number().int().positive(),
+    activities: z.array(recoveredActivitySchema).max(40),
+  })).max(90),
+  evidence: z.array(extractionEvidenceSchema).max(500).default([]),
 });
 
 const reconciliationSchema = z.object({
@@ -119,6 +137,13 @@ function extractToolInput(content: ContentBlock[] | undefined) {
   return toolUse.input;
 }
 
+function retryableModelOutputError(error: unknown) {
+  if (error instanceof z.ZodError) return true;
+  const name = error instanceof Error ? error.name : "";
+  const message = error instanceof Error ? error.message : String(error);
+  return name === "ModelErrorException" || /non ha restituito|invalid sequence as part of ToolUse/i.test(message);
+}
+
 function clipped(value: unknown, maximum: number) {
   return typeof value === "string" ? value.trim().slice(0, maximum) : "";
 }
@@ -128,18 +153,33 @@ function normalizeCommercialToolInput(input: unknown) {
   const details = root.commercialDetails && typeof root.commercialDetails === "object" && !Array.isArray(root.commercialDetails)
     ? root.commercialDetails as Record<string, unknown> : {};
   const rows = (value: unknown) => Array.isArray(value) ? value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item)) : [];
+  const evidencePath = (value: unknown) => {
+    const raw = clipped(value, 300);
+    const key = raw.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+    const aliases: Record<string, string> = {
+      agency_name: "commercialDetails.agencyName", agency_contact: "commercialDetails.agencyContact",
+      quote_code: "commercialDetails.quoteCode", quote_version: "commercialDetails.quoteVersion",
+      quote_date: "commercialDetails.quoteDate", client_name: "commercialDetails.clientName",
+      traveler_count: "commercialDetails.travelerCount", adults: "commercialDetails.adults", minors: "commercialDetails.minors",
+      guide_language: "commercialDetails.guideLanguage", currency: "commercialDetails.currency",
+      pricing_rows: "commercialDetails.pricingRows", included_services: "commercialDetails.includedServices",
+      conditions: "commercialDetails.conditions", contacts: "commercialDetails.contacts",
+    };
+    return aliases[key] || raw;
+  };
+  const quoteDate = clipped(details.quoteDate, 10);
   return {
     commercialDetails: {
       ...details,
       agencyName: clipped(details.agencyName, 240), agencyContact: clipped(details.agencyContact, 500),
-      quoteCode: clipped(details.quoteCode, 120), quoteVersion: clipped(details.quoteVersion, 40), quoteDate: clipped(details.quoteDate, 10),
+      quoteCode: clipped(details.quoteCode, 120), quoteVersion: clipped(details.quoteVersion, 40), quoteDate: /^\d{4}-\d{2}-\d{2}$/.test(quoteDate) ? quoteDate : "",
       clientName: clipped(details.clientName, 240), guideLanguage: clipped(details.guideLanguage, 120), currency: clipped(details.currency, 20),
-      pricingRows: rows(details.pricingRows).slice(0, 30).map((item) => ({ ...item, item: clipped(item.item, 240), amount: clipped(item.amount, 120), currency: clipped(item.currency, 20), notes: clipped(item.notes, 1000) })),
+      pricingRows: rows(details.pricingRows).filter((item) => clipped(item.amount, 120).length > 0).slice(0, 30).map((item) => ({ ...item, item: clipped(item.item, 240), amount: clipped(item.amount, 120), currency: clipped(item.currency, 20), notes: clipped(item.notes, 1000) })),
       includedServices: rows(details.includedServices).slice(0, 50).map((item) => ({ ...item, service: clipped(item.service, 240), details: clipped(item.details, 2000) })),
       conditions: rows(details.conditions).slice(0, 50).map((item) => ({ ...item, field: clipped(item.field, 240), value: clipped(item.value, 4000) })),
       contacts: rows(details.contacts).slice(0, 30).map((item) => ({ ...item, role: clipped(item.role, 120), name: clipped(item.name, 240), phone: clipped(item.phone, 100), email: clipped(item.email, 240), availability: clipped(item.availability, 240) })),
     },
-    evidence: rows(root.evidence).slice(0, 300).map((item) => ({ ...item, fieldPath: clipped(item.fieldPath, 300), sourceText: clipped(item.sourceText, 1200) || "Evidenza non testuale restituita dal modello" })),
+    evidence: rows(root.evidence).slice(0, 300).map((item) => ({ ...item, fieldPath: evidencePath(item.fieldPath), sourceText: clipped(item.sourceText, 1200) || "Evidenza non testuale restituita dal modello" })),
   };
 }
 
@@ -159,6 +199,20 @@ function normalizedLocation(value: string) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+}
+
+function filterRecoveredActivities(
+  activities: Array<z.infer<typeof recoveredActivitySchema> & { startsAt: string; endsAt: string; placeValidation: { needsValidation: boolean; reason: string } }>,
+  hotelNames: string[],
+) {
+  const hotels = hotelNames.map(normalizedLocation).filter(Boolean);
+  return activities.filter((activity) => {
+    const title = normalizedLocation(activity.title);
+    const place = normalizedLocation(activity.placeName);
+    if (/^(fine|termine) (dei |del )?(servizi|viaggio|programma)$/.test(title)) return false;
+    if (activity.type !== "visit") return true;
+    return !hotels.some((hotel) => hotel === title || hotel === place || title.includes(hotel) || place.includes(hotel) || hotel.includes(title) || hotel.includes(place));
+  });
 }
 
 function flagAccommodationCityConflicts(draft: z.infer<typeof travelProgrammeDraftSchema>) {
@@ -223,25 +277,72 @@ async function recoverAccommodations(input: {
   };
 }
 
+async function recoverActivities(input: {
+  client: BedrockRuntimeClient;
+  documentParts: BedrockDocumentPart[];
+  model: string;
+  maxOutputTokens: number;
+  method: "bedrock_native" | "textract";
+  days: Array<{ dayNumber: number; date: string; city: string; country: string }>;
+}) {
+  const response = await input.client.send(new ConverseCommand({
+    modelId: input.model,
+    system: [{ text: "Sei un estrattore specializzato di attività turistiche. Copia soltanto ciò che è presente nel documento e usa lo strumento richiesto." }],
+    messages: [{ role: "user", content: [
+      ...bedrockDocumentBlocks(input.documentParts),
+      { text: `Riesamina indipendentemente tutte le giornate ${JSON.stringify(input.days)} ed estrai la sequenza completa delle attività esplicite. Crea una visita distinta per ogni monumento, museo, quartiere, piazza, sito o attrazione, anche quando più luoghi sono nella stessa frase. Includi trasferimenti, treni, voli, incontri e soltanto pasti dichiarati inclusi; non creare il pernottamento come attività hotel perché viene gestito separatamente. Non duplicare attività. startsAt ed endsAt devono essere vuoti. Per ogni visita usa lo stesso nome in title e placeName e indica città e Paese. includedInQuote deve essere true per i pasti inclusi e null per le altre attività. Ogni attività deve avere un'evidenza con fieldPath days[N].activities[M], citazione letterale e method=${input.method}.` },
+    ] }],
+    toolConfig: { tools: [{ toolSpec: {
+      name: "emit_daily_activities",
+      description: "Sequenza completa e non duplicata delle attività giornaliere",
+      inputSchema: { json: novaToolSchema(activityRecoverySchema) },
+    } }], toolChoice: { tool: { name: "emit_daily_activities" } } },
+    inferenceConfig: { maxTokens: Math.min(input.maxOutputTokens, 4_500), temperature: 0 },
+    additionalModelRequestFields: { inferenceConfig: { topK: 1 } },
+    requestMetadata: { application: "smf-travel", operation: "travel-import-activity-extraction" },
+  }));
+  const recovered = activityRecoverySchema.parse(extractToolInput(response.output?.message?.content));
+  return {
+    result: {
+      ...recovered,
+      days: recovered.days.map((day) => ({
+        ...day,
+        activities: day.activities.map((activity) => ({
+          ...activity,
+          startsAt: "",
+          endsAt: "",
+          placeValidation: {
+            needsValidation: activity.type === "visit" && (!activity.placeName.trim() || !activity.placeCity.trim() || !activity.placeCountry.trim()),
+            reason: activity.type === "visit" ? "Associazione geografica estratta dal documento" : "Località operativa estratta dal documento",
+          },
+        })),
+      })),
+    },
+    usage: response.usage ?? null,
+  };
+}
+
 function mergeCommercialDetails(
   primary: z.infer<typeof commercialDetailsSchema>,
   specialized: z.infer<typeof commercialDetailsSchema>
 ) {
   const preferText = (value: string, fallback: string) => value.trim() ? value : fallback;
   const preferNullable = <T,>(value: T | null, fallback: T | null) => value ?? fallback;
+  const quoteDate = preferText(specialized.quoteDate, primary.quoteDate);
   return commercialDetailsSchema.parse({
     agencyName: preferText(specialized.agencyName, primary.agencyName),
     agencyContact: preferText(specialized.agencyContact, primary.agencyContact),
     quoteCode: preferText(specialized.quoteCode, primary.quoteCode),
     quoteVersion: preferText(specialized.quoteVersion, primary.quoteVersion),
-    quoteDate: preferText(specialized.quoteDate, primary.quoteDate),
+    quoteDate: /^\d{4}-\d{2}-\d{2}$/.test(quoteDate) ? quoteDate : "",
     clientName: preferText(specialized.clientName, primary.clientName),
     travelerCount: preferNullable(specialized.travelerCount, primary.travelerCount),
     adults: preferNullable(specialized.adults, primary.adults),
     minors: preferNullable(specialized.minors, primary.minors),
     guideLanguage: preferText(specialized.guideLanguage, primary.guideLanguage),
     currency: preferText(specialized.currency, primary.currency),
-    pricingRows: specialized.pricingRows.length ? specialized.pricingRows : primary.pricingRows,
+    pricingRows: (specialized.pricingRows.length ? specialized.pricingRows : primary.pricingRows)
+      .filter((row) => row.amount.trim().length > 0),
     includedServices: specialized.includedServices.length ? specialized.includedServices : primary.includedServices,
     conditions: specialized.conditions.length ? specialized.conditions : primary.conditions,
     contacts: specialized.contacts.length ? specialized.contacts : primary.contacts,
@@ -282,6 +383,7 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
   const documentType = filename.toLowerCase().endsWith(".ocr.txt") ? { bedrockFormat:"txt" } : travelDocumentType(filename);
   if (!documentType) throw new Error("Formato del programma non supportato");
   const documentParts = await prepareBedrockDocuments(documentBytes, filename, maxBytes);
+  const sourceTextForValidation = await extractTravelDocumentTextForValidation(documentBytes, filename);
   const evidenceMethod = filename.toLowerCase().endsWith(".ocr.txt") ? "textract" as const : "bedrock_native" as const;
 
   const schema = novaToolSchema(travelProgrammeDraftSchema);
@@ -314,17 +416,19 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
 
   let lastError: unknown;
   for (let attempt = 1; attempt <= 2; attempt += 1) {
-    const response = await client.send(new ConverseCommand(request));
+    let stopReason: string | undefined;
     try {
+      const response = await client.send(new ConverseCommand(request));
+      stopReason = response.stopReason;
       const normalized = normalizeTravelProgramme(
         extractToolInput(response.output?.message?.content),
-        { fallbackTitle: safeDocumentName(filename) }
+        { fallbackTitle: safeDocumentName(filename), sourceText: sourceTextForValidation }
       );
       if (normalized.changes.length > 0) {
         console.warn("Bedrock travel programme normalized", { attempt, changes: normalized.changes });
       }
       let draft = travelProgrammeDraftSchema.parse(normalized.value);
-      const [commercial,recovery] = await Promise.all([
+      const [commercial,recovery,activityRecovery] = await Promise.all([
         extractCommercialDetails({client,documentParts,model,maxOutputTokens,method:evidenceMethod}),
         recoverAccommodations({
           client,
@@ -338,6 +442,10 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
             country: day.country,
           })),
         }),
+        recoverActivities({
+          client, documentParts, model, maxOutputTokens, method: evidenceMethod,
+          days: draft.days.map((day) => ({ dayNumber: day.dayNumber, date: day.date, city: day.city, country: day.country })),
+        }),
       ]);
       const recoveredByDay = new Map(
           recovery.result.accommodations
@@ -346,12 +454,17 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
         );
       draft = travelProgrammeDraftSchema.parse({
           ...draft,commercialDetails:mergeCommercialDetails(draft.commercialDetails,commercial.result.commercialDetails),
-          extractionEvidence:[...draft.extractionEvidence,...commercial.result.evidence,...recovery.result.evidence],
+          extractionEvidence:[...draft.extractionEvidence,...commercial.result.evidence,...recovery.result.evidence,...activityRecovery.result.evidence],
           days: draft.days.map((day) => {
             const recovered = recoveredByDay.get(day.dayNumber);
-            if(!recovered)return day;
+            const recoveredActivities = activityRecovery.result.days.find((item) => item.dayNumber === day.dayNumber)?.activities;
+            const filteredActivities = recoveredActivities?.length
+              ? filterRecoveredActivities(recoveredActivities, [day.accommodation.name, recovered?.name ?? ""])
+              : [];
+            const withActivities = filteredActivities.length ? { ...day, activities: filteredActivities } : day;
+            if(!recovered)return withActivities;
             const currentHasHotel=Boolean(day.accommodation.name.trim());
-            return currentHasHotel?day:{ ...day, accommodation: recovered };
+            return currentHasHotel?withActivities:{ ...withActivities, accommodation: recovered };
           }),
         });
       draft = flagAccommodationCityConflicts(draft);
@@ -362,14 +475,14 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
         model,
         provider: `amazon-bedrock-native-${"extension" in documentType ? documentType.extension : "ocr-text"}`,
         usage: { extraction: response.usage ?? null, commercialExtraction:commercial.usage,
-          accommodationRecovery:recovery.usage,reconciliation:reconciliation.usage },
+          accommodationRecovery:recovery.usage,activityRecovery:activityRecovery.usage,reconciliation:reconciliation.usage },
       };
     } catch (error) {
       lastError = error;
-      if (attempt === 2) throw error;
+      if (attempt === 2 || !retryableModelOutputError(error)) throw error;
       console.warn("Bedrock travel extraction response rejected, retrying", {
         attempt,
-        stopReason: response.stopReason,
+        stopReason,
         error: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500),
       });
     }

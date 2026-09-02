@@ -281,6 +281,7 @@
     "db:migrate:v3:agency-country-profile-review:dry-run": "node --env-file=.env.local scripts/migrate-v3-agency-country-profile-review.mjs",
     "db:migrate:v3:agency-country-profile-review": "node --env-file=.env.local scripts/migrate-v3-agency-country-profile-review.mjs --apply",
     "acceptance:country-profiles": "tsx scripts/acceptance-verified-country-profile.ts",
+    "acceptance:bedrock:import-matrix": "tsx scripts/acceptance-bedrock-travel-import-matrix.ts",
     "acceptance:v3:agency-country-profile-review": "node --env-file=.env.local scripts/acceptance-v3-agency-country-profile-review.mjs",
     "acceptance:travel-import-quality": "tsx scripts/acceptance-travel-import-quality.ts",
     "check:v3:runtime-boundaries": "node scripts/check-v3-runtime-boundaries.mjs",

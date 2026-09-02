@@ -1,0 +1,581 @@
+{
+  "version": 1,
+  "scenario": "travel-import-multipaese-ocr-v1",
+  "recordedAt": "2026-09-02T16:59:57.437Z",
+  "value": {
+    "draft": {
+      "title": "TOUR ADRIATICO - ITALIA, SLOVENIA E CROAZIA",
+      "destinationCountry": "Italia, Slovenia, Croazia",
+      "startDate": "2027-09-02",
+      "endDate": "2027-09-05",
+      "summary": "Tour Adriatico: visita a Trieste, Lubiana, Postumia, Rovigno e Pola. Include tre pernottamenti, visite e cena.",
+      "commercialDetails": {
+        "agencyName": "Gruppo Confini",
+        "agencyContact": "",
+        "quoteCode": "MC-2027-12",
+        "quoteVersion": "",
+        "quoteDate": "",
+        "clientName": "Gruppo Confini",
+        "travelerCount": 10,
+        "adults": 10,
+        "minors": 0,
+        "guideLanguage": "",
+        "currency": "EUR",
+        "pricingRows": [],
+        "includedServices": [
+          {
+            "service": "Trasferimenti",
+            "included": true,
+            "details": ""
+          },
+          {
+            "service": "Tre pernottamenti",
+            "included": true,
+            "details": ""
+          },
+          {
+            "service": "Visite indicate",
+            "included": true,
+            "details": ""
+          },
+          {
+            "service": "Cena del secondo giorno",
+            "included": true,
+            "details": ""
+          }
+        ],
+        "conditions": [],
+        "contacts": []
+      },
+      "days": [
+        {
+          "dayNumber": 1,
+          "date": "2027-09-02",
+          "label": "Trieste - Piazza Unita d'Italia e Castello di Miramare",
+          "title": "Visita di Piazza Unita d'Italia e del Castello di Miramare",
+          "country": "Italia",
+          "countryValidation": {
+            "needsValidation": true,
+            "reason": "Il nome del paese è generico e non specificato nel documento."
+          },
+          "city": "Trieste",
+          "cityValidation": {
+            "needsValidation": false,
+            "reason": "Città predominante della giornata: 2 visite"
+          },
+          "description": "Visita di Piazza Unita d'Italia e del Castello di Miramare.",
+          "activities": [
+            {
+              "type": "visit",
+              "title": "Visita di Piazza Unita d'Italia",
+              "description": "Visita di Piazza Unita d'Italia",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": true,
+              "placeName": "Piazza Unita d'Italia",
+              "placeCity": "Trieste",
+              "placeCountry": "Italia",
+              "placeValidation": {
+                "needsValidation": false,
+                "reason": "Associazione geografica estratta dal documento"
+              }
+            },
+            {
+              "type": "visit",
+              "title": "Visita del Castello di Miramare",
+              "description": "Visita del Castello di Miramare",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": true,
+              "placeName": "Castello di Miramare",
+              "placeCity": "Trieste",
+              "placeCountry": "Italia",
+              "placeValidation": {
+                "needsValidation": false,
+                "reason": "Associazione geografica estratta dal documento"
+              }
+            }
+          ],
+          "accommodation": {
+            "name": "Savoia Excelsior Palace",
+            "city": "Trieste",
+            "country": "Italia",
+            "notes": "",
+            "validation": {
+              "needsValidation": true,
+              "reason": "Il nome dell'hotel è generico e non specificato nel documento."
+            }
+          },
+          "additionalAccommodations": []
+        },
+        {
+          "dayNumber": 2,
+          "date": "2027-09-03",
+          "label": "Lubiana - Ponte Triplo e Castello di Lubiana",
+          "title": "Trasferimento a Lubiana e visita del Ponte Triplo e del Castello di Lubiana",
+          "country": "Slovenia",
+          "countryValidation": {
+            "needsValidation": true,
+            "reason": "Il nome del paese è generico e non specificato nel documento."
+          },
+          "city": "Lubiana",
+          "cityValidation": {
+            "needsValidation": false,
+            "reason": "Città predominante della giornata: 2 visite"
+          },
+          "description": "Trasferimento a Lubiana. Visita del Ponte Triplo e del Castello di Lubiana. Cena inclusa in ristorante locale.",
+          "activities": [
+            {
+              "type": "transport",
+              "title": "Trasferimento a Lubiana",
+              "description": "Trasferimento a Lubiana.",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": true,
+              "placeName": "",
+              "placeCity": "Lubiana",
+              "placeCountry": "Slovenia",
+              "placeValidation": {
+                "needsValidation": true,
+                "reason": "Il nome del luogo è generico e non specificato nel documento."
+              }
+            },
+            {
+              "type": "visit",
+              "title": "Ponte Triplo",
+              "description": "Visita del Ponte Triplo.",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": true,
+              "placeName": "Ponte Triplo",
+              "placeCity": "Lubiana",
+              "placeCountry": "Slovenia",
+              "placeValidation": {
+                "needsValidation": true,
+                "reason": "Il nome del luogo è generico e non specificato nel documento."
+              }
+            },
+            {
+              "type": "visit",
+              "title": "Castello di Lubiana",
+              "description": "Visita del Castello di Lubiana.",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": true,
+              "placeName": "Castello di Lubiana",
+              "placeCity": "Lubiana",
+              "placeCountry": "Slovenia",
+              "placeValidation": {
+                "needsValidation": true,
+                "reason": "Il nome del luogo è generico e non specificato nel documento."
+              }
+            },
+            {
+              "type": "meal",
+              "title": "Cena",
+              "description": "Cena inclusa in ristorante locale.",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": true,
+              "placeName": "Ristorante locale",
+              "placeCity": "Lubiana",
+              "placeCountry": "Slovenia",
+              "placeValidation": {
+                "needsValidation": true,
+                "reason": "Il nome del luogo è generico e non specificato nel documento."
+              }
+            }
+          ],
+          "accommodation": {
+            "name": "Grand Plaza Hotel Ljubljana",
+            "city": "Lubiana",
+            "country": "Slovenia",
+            "notes": "",
+            "validation": {
+              "needsValidation": true,
+              "reason": "Il nome dell'hotel è generico e non specificato nel documento."
+            }
+          },
+          "additionalAccommodations": []
+        },
+        {
+          "dayNumber": 3,
+          "date": "2027-09-04",
+          "label": "Postumia e Rovigno - Grotte di Postumia e centro storico di Rovigno",
+          "title": "Visita delle Grotte di Postumia e proseguimento per Rovigno",
+          "country": "Slovenia, Croazia",
+          "countryValidation": {
+            "needsValidation": true,
+            "reason": "Il nome del paese è generico e non specificato nel documento."
+          },
+          "city": "Rovigno",
+          "cityValidation": {
+            "needsValidation": true,
+            "reason": "Il nome della città è generico e non specificato nel documento."
+          },
+          "description": "Visita delle Grotte di Postumia in Slovenia e proseguimento per Rovigno in Croazia. Passeggiata nel centro storico di Rovigno.",
+          "activities": [
+            {
+              "type": "visit",
+              "title": "Grotte di Postumia",
+              "description": "Visita delle Grotte di Postumia.",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": true,
+              "placeName": "Grotte di Postumia",
+              "placeCity": "Postumia",
+              "placeCountry": "Slovenia",
+              "placeValidation": {
+                "needsValidation": true,
+                "reason": "Il nome del luogo è generico e non specificato nel documento."
+              }
+            },
+            {
+              "type": "transport",
+              "title": "Trasferimento a Rovigno",
+              "description": "Proseguemento per Rovigno in Croazia.",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": true,
+              "placeName": "",
+              "placeCity": "Rovigno",
+              "placeCountry": "Croazia",
+              "placeValidation": {
+                "needsValidation": true,
+                "reason": "Il nome del luogo è generico e non specificato nel documento."
+              }
+            },
+            {
+              "type": "visit",
+              "title": "Centro storico di Rovigno",
+              "description": "Passeggiata nel centro storico di Rovigno.",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": true,
+              "placeName": "Centro storico di Rovigno",
+              "placeCity": "Rovigno",
+              "placeCountry": "Croazia",
+              "placeValidation": {
+                "needsValidation": true,
+                "reason": "Il nome del luogo è generico e non specificato nel documento."
+              }
+            }
+          ],
+          "accommodation": {
+            "name": "Grand Park Hotel Rovinj",
+            "city": "Rovigno",
+            "country": "Croazia",
+            "notes": "",
+            "validation": {
+              "needsValidation": true,
+              "reason": "Il nome dell'hotel è generico e non specificato nel documento."
+            }
+          },
+          "additionalAccommodations": []
+        },
+        {
+          "dayNumber": 4,
+          "date": "2027-09-05",
+          "label": "Pola - Arena di Pola",
+          "title": "Visita dell'Arena di Pola e rientro a Trieste",
+          "country": "Croazia",
+          "countryValidation": {
+            "needsValidation": true,
+            "reason": "Il nome del paese è generico e non specificato nel documento."
+          },
+          "city": "Pola",
+          "cityValidation": {
+            "needsValidation": false,
+            "reason": "Città predominante della giornata: 1 visite"
+          },
+          "description": "Visita dell'Arena di Pola e rientro a Trieste.",
+          "activities": [
+            {
+              "type": "visit",
+              "title": "Arena di Pola",
+              "description": "Visita dell'Arena di Pola.",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": true,
+              "placeName": "Arena di Pola",
+              "placeCity": "Pola",
+              "placeCountry": "Croazia",
+              "placeValidation": {
+                "needsValidation": true,
+                "reason": "Il nome del luogo è generico e non specificato nel documento."
+              }
+            },
+            {
+              "type": "transport",
+              "title": "Rientro a Trieste",
+              "description": "Rientro a Trieste.",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": true,
+              "placeName": "",
+              "placeCity": "Trieste",
+              "placeCountry": "Italia",
+              "placeValidation": {
+                "needsValidation": true,
+                "reason": "Il nome del luogo è generico e non specificato nel documento."
+              }
+            }
+          ],
+          "accommodation": {
+            "name": "",
+            "city": "",
+            "country": "",
+            "notes": "",
+            "validation": {
+              "needsValidation": false,
+              "reason": "Nessun pernottamento indicato nella fonte"
+            }
+          },
+          "additionalAccommodations": []
+        }
+      ],
+      "usefulInformation": [],
+      "extractionEvidence": [
+        {
+          "fieldPath": "tour_title",
+          "sourcePage": 1,
+          "sourceText": "TOUR ADRIATICO - ITALIA, SLOVENIA E CROAZIA",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "commercialDetails.quoteCode",
+          "sourcePage": 1,
+          "sourceText": "Codice: MC-2027-12",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "commercialDetails.clientName",
+          "sourcePage": 1,
+          "sourceText": "Cliente: Gruppo Confini",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "commercialDetails.travelerCount",
+          "sourcePage": 1,
+          "sourceText": "10 viaggiatori",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "commercialDetails.currency",
+          "sourcePage": 1,
+          "sourceText": "Valuta: EUR",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "commercialDetails.includedServices",
+          "sourcePage": 1,
+          "sourceText": "Trasferimenti, tre pernottamenti, visite indicate e cena del secondo giorno.",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].activities[0]",
+          "sourcePage": 1,
+          "sourceText": "Visita di Piazza Unita d'Italia e del Castello di Miramare.",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].activities[1]",
+          "sourcePage": 1,
+          "sourceText": "Visita di Piazza Unita d'Italia e del Castello di Miramare.",
+          "confidence": 1,
+          "method": "textract"
+        }
+      ],
+      "reconciliationIssues": [
+        {
+          "code": "EVIDENCE_MISSING",
+          "severity": "warning",
+          "fieldPath": "title",
+          "message": "Origine non disponibile per title.",
+          "sourceText": "",
+          "resolved": false
+        },
+        {
+          "code": "EVIDENCE_MISSING",
+          "severity": "warning",
+          "fieldPath": "destinationCountry",
+          "message": "Origine non disponibile per destinationCountry.",
+          "sourceText": "",
+          "resolved": false
+        },
+        {
+          "code": "EVIDENCE_MISSING",
+          "severity": "warning",
+          "fieldPath": "startDate",
+          "message": "Origine non disponibile per startDate.",
+          "sourceText": "",
+          "resolved": false
+        },
+        {
+          "code": "EVIDENCE_MISSING",
+          "severity": "warning",
+          "fieldPath": "endDate",
+          "message": "Origine non disponibile per endDate.",
+          "sourceText": "",
+          "resolved": false
+        },
+        {
+          "code": "TITLE_MISMATCH",
+          "severity": "blocking",
+          "fieldPath": ".title",
+          "message": "Il titolo del preventivo non corrisponde al titolo estratto dal documento JSON.",
+          "sourceText": "TOUR ADRIATICO - ITALIA, SLOVENIA E CROAZIA",
+          "resolved": false
+        },
+        {
+          "code": "DESTINATION_MISMATCH",
+          "severity": "blocking",
+          "fieldPath": ".destinationCountry",
+          "message": "Il preventivo indica 'ITALIA, SLOVENIA E CROAZIA' come destinazione, mentre il documento JSON indica 'Italia, Slovenia, Croazia'.",
+          "sourceText": "ITALIA, SLOVENIA E CROAZIA",
+          "resolved": false
+        },
+        {
+          "code": "DATE_FORMAT_MISMATCH",
+          "severity": "warning",
+          "fieldPath": ".startDate",
+          "message": "Il preventivo indica '2-5 settembre 2027' come periodo, mentre il documento JSON indica '2027-09-02' come data di inizio.",
+          "sourceText": "2-5 settembre 2027",
+          "resolved": false
+        },
+        {
+          "code": "DATE_FORMAT_MISMATCH",
+          "severity": "warning",
+          "fieldPath": ".endDate",
+          "message": "Il preventivo indica '5 settembre 2027' come data di fine, mentre il documento JSON indica '2027-09-05' come data di fine.",
+          "sourceText": "5 settembre 2027",
+          "resolved": false
+        },
+        {
+          "code": "HOTEL_NAME_GENERIC",
+          "severity": "warning",
+          "fieldPath": ".accommodation[0].name",
+          "message": "Il nome dell'hotel 'Savoia Excelsior Palace' è generico e non specificato nel documento JSON.",
+          "sourceText": "Savoia Excelsior Palace, Trieste, Italia",
+          "resolved": false
+        },
+        {
+          "code": "HOTEL_NAME_GENERIC",
+          "severity": "warning",
+          "fieldPath": ".accommodation[1].name",
+          "message": "Il nome dell'hotel 'Grand Plaza Hotel Ljubljana' è generico e non specificato nel documento JSON.",
+          "sourceText": "Grand Plaza Hotel Ljubljana, Lubiana, Slovenia",
+          "resolved": false
+        },
+        {
+          "code": "HOTEL_NAME_GENERIC",
+          "severity": "warning",
+          "fieldPath": ".accommodation[2].name",
+          "message": "Il nome dell'hotel 'Grand Park Hotel Rovinj' è generico e non specificato nel documento JSON.",
+          "sourceText": "Grand Park Hotel Rovinj, Rovigno, Croazia",
+          "resolved": false
+        },
+        {
+          "code": "PLACE_NAME_GENERIC",
+          "severity": "warning",
+          "fieldPath": ".activities[0].placeName",
+          "message": "Il nome del luogo 'Piazza Unita d'Italia' è generico e non specificato nel documento JSON.",
+          "sourceText": "Piazza Unita d'Italia",
+          "resolved": false
+        },
+        {
+          "code": "PLACE_NAME_GENERIC",
+          "severity": "warning",
+          "fieldPath": ".activities[1].placeName",
+          "message": "Il nome del luogo 'Castello di Miramare' è generico e non specificato nel documento JSON.",
+          "sourceText": "Castello di Miramare",
+          "resolved": false
+        },
+        {
+          "code": "PLACE_NAME_GENERIC",
+          "severity": "warning",
+          "fieldPath": ".activities[3].placeName",
+          "message": "Il nome del luogo 'Ponte Triplo' è generico e non specificato nel documento JSON.",
+          "sourceText": "Ponte Triplo",
+          "resolved": false
+        },
+        {
+          "code": "PLACE_NAME_GENERIC",
+          "severity": "warning",
+          "fieldPath": ".activities[4].placeName",
+          "message": "Il nome del luogo 'Castello di Lubiana' è generico e non specificato nel documento JSON.",
+          "sourceText": "Castello di Lubiana",
+          "resolved": false
+        },
+        {
+          "code": "PLACE_NAME_GENERIC",
+          "severity": "warning",
+          "fieldPath": ".activities[6].placeName",
+          "message": "Il nome del luogo 'Grotte di Postumia' è generico e non specificato nel documento JSON.",
+          "sourceText": "Grotte di Postumia",
+          "resolved": false
+        },
+        {
+          "code": "PLACE_NAME_GENERIC",
+          "severity": "warning",
+          "fieldPath": ".activities[8].placeName",
+          "message": "Il nome del luogo 'Centro storico di Rovigno' è generico e non specificato nel documento JSON.",
+          "sourceText": "Centro storico di Rovigno",
+          "resolved": false
+        },
+        {
+          "code": "PLACE_NAME_GENERIC",
+          "severity": "warning",
+          "fieldPath": ".activities[10].placeName",
+          "message": "Il nome del luogo 'Arena di Pola' è generico e non specificato nel documento JSON.",
+          "sourceText": "Arena di Pola",
+          "resolved": false
+        },
+        {
+          "code": "PLACE_NAME_GENERIC",
+          "severity": "warning",
+          "fieldPath": ".activities[11].placeName",
+          "message": "Il nome del luogo 'Rientro a Trieste' è generico e non specificato nel documento JSON.",
+          "sourceText": "Rientro a Trieste",
+          "resolved": false
+        }
+      ]
+    },
+    "model": "eu.amazon.nova-lite-v1:0",
+    "provider": "amazon-bedrock-native-ocr-text",
+    "usage": {
+      "extraction": {
+        "inputTokens": 5120,
+        "outputTokens": 2329,
+        "totalTokens": 7449
+      },
+      "commercialExtraction": {
+        "inputTokens": 1989,
+        "outputTokens": 599,
+        "totalTokens": 2588
+      },
+      "accommodationRecovery": {
+        "inputTokens": 1444,
+        "outputTokens": 216,
+        "totalTokens": 1660
+      },
+      "activityRecovery": {
+        "inputTokens": 1555,
+        "outputTokens": 310,
+        "totalTokens": 1865
+      },
+      "reconciliation": {
+        "inputTokens": 2894,
+        "outputTokens": 1204,
+        "totalTokens": 4098
+      }
+    }
+  }
+}

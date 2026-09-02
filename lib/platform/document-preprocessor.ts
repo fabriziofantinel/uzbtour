@@ -64,6 +64,16 @@ function decodeXmlText(xml: string) {
     .replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
+export async function extractTravelDocumentTextForValidation(bytes: Uint8Array, filename: string) {
+  if (filename.toLowerCase().endsWith(".ocr.txt")) return new TextDecoder().decode(bytes);
+  if (!filename.toLowerCase().endsWith(".docx")) return "";
+  const zip = await JSZip.loadAsync(bytes);
+  const xmlFiles = Object.keys(zip.files).filter((path) =>
+    /^word\/(document|header\d*|footer\d*|footnotes|endnotes)\.xml$/i.test(path));
+  return (await Promise.all(xmlFiles.map(async (path) => decodeXmlText(await zip.file(path)!.async("text")))))
+    .filter(Boolean).join("\n\n");
+}
+
 async function compactDocx(bytes: Uint8Array, maxBytes: number): Promise<BedrockDocumentPart[]> {
   const zip = await JSZip.loadAsync(bytes);
   for (const path of Object.keys(zip.files)) {

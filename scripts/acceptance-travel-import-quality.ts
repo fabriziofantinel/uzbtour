@@ -1,6 +1,7 @@
 import { strict as assert } from "node:assert";
 import { travelProgrammeDraftSchema } from "../lib/platform/import-schema";
 import { deterministicImportIssues, mergeReconciliationIssues } from "../lib/platform/travel-import-quality";
+import { normalizeTravelProgramme } from "../lib/platform/travel-programme-normalizer";
 
 const draft = travelProgrammeDraftSchema.parse({
   title: "Cile essenziale",
@@ -46,4 +47,26 @@ const merged = mergeReconciliationIssues(draft, [{
 assert.equal(merged.reconciliationIssues.filter((item) => item.code === "DATE_RANGE_INVALID").length, 1);
 assert(merged.reconciliationIssues.some((item) => item.code === "SOURCE_CONTRADICTION"));
 
-console.log(JSON.stringify({ status: "passed", detected: [...codes].sort(), mergedIssues: merged.reconciliationIssues.length }));
+const normalized = normalizeTravelProgramme({
+  ...draft,
+  startDate: "2027-11-01",
+  endDate: "2027-11-03",
+  days: [
+    { ...draft.days[0], dayNumber: 1, date: "2027-11-01", accommodation: undefined },
+    { ...draft.days[0], dayNumber: 2, date: "2027-11-02" },
+    { ...draft.days[0], dayNumber: 3, date: "2027-11-03" },
+  ],
+}, { sourceText: "GIORNO 1 - 5 novembre 2027\nPernottamento presso Hotel Cumbres Lastarria, Santiago.\nGIORNO 2 - 6 novembre 2027\nGIORNO 3 - 7 novembre 2027" });
+const normalizedValue = travelProgrammeDraftSchema.parse(normalized.value);
+assert.deepEqual(normalizedValue.days.map((day) => day.date), ["2027-11-05", "2027-11-06", "2027-11-07"]);
+assert.equal(normalizedValue.startDate, "2027-11-05");
+assert.equal(normalizedValue.endDate, "2027-11-07");
+assert.equal(normalizedValue.days[0]?.accommodation.name, "");
+
+const correctedHotel = normalizeTravelProgramme({
+  ...draft,
+  days: [{ ...draft.days[0], dayNumber: 1, accommodation: { ...draft.days[0].accommodation, name: "Hotel Cumbres Lasterra" } }],
+}, { sourceText: "GIORNO 1 - 5 novembre 2027\nPernottamento presso Hotel Cumbres Lastarria, Santiago del Cile, Cile." });
+assert.equal(travelProgrammeDraftSchema.parse(correctedHotel.value).days[0]?.accommodation.name, "Hotel Cumbres Lastarria");
+
+console.log(JSON.stringify({ status: "passed", detected: [...codes].sort(), mergedIssues: merged.reconciliationIssues.length, sourceDateCorrections: 3 }));

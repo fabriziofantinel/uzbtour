@@ -19,7 +19,7 @@ Il replay conserva risultati applicativi versionati, non l'envelope del SDK AWS.
 | Bedrock live sul dataset ridotto | Settimanale e prima di una release | `npm run acceptance:ai:live` |
 | Registrazione nuova baseline | Solo dopo esito live approvato | `AI_TEST_RECORD_CONFIRM=1 npm run acceptance:ai:record` |
 | Dataset fotografico sintetico | Settimanale e dopo modifiche ai prompt | `npm run acceptance:bedrock:photo-synthetic-dataset` |
-| Regressione multi-formato e multi-paese | Prima di una release | UC-AI-IMP-08 |
+| Regressione multi-formato e multi-paese | Ogni push e pull request in replay; live prima di una release | `npm run acceptance:ai:replay` / `npm run acceptance:ai:live` |
 
 ## KPI e soglie
 
@@ -40,9 +40,21 @@ Un fallimento di schema, un'allucinazione critica, un falso positivo hard-negati
 ## Baseline corrente
 
 - Import Belgio: 2 giornate, 4 visite, 1 pasto incluso, 1 struttura, 3 righe commerciali, 85 evidenze e 7 anomalie di riconciliazione.
+- Import Norvegia PDF nativo: 3 giornate, 4 visite distinte, 2 strutture, valuta NOK e 91 evidenze.
+- Import Cile DOCX nativo: 3 giornate, 6 visite distinte, 2 strutture, valuta CLP e 65 evidenze; le date esplicite 5-7 novembre sono preservate.
+- Import multi-Paese da output OCR Textract: 4 giornate tra Italia, Slovenia e Croazia, 7 visite, 3 strutture e valuta EUR.
 - Contenuti Belgio: 11 sezioni utili, 12 frasi in olandese, 15 caselle bingo; città e sito con quiz, missioni, giochi, contest e schede fotografiche.
 - Controlli deterministici: rilevate tutte le 8 classi di anomalia previste.
 - Dataset fotografico sintetico: 18/18 verdetti corretti, nessun falso positivo o negativo e invarianza rispetto all'ordine.
+
+## Protezioni della conversione
+
+- Un passaggio Bedrock indipendente ricostruisce l'elenco completo delle attività e separa i siti presenti nella stessa frase.
+- Hotel già riconosciuti e formule come "fine dei servizi" non possono diventare visite o pasti.
+- Le date giornaliere esplicite di DOCX e output OCR prevalgono sulle trascrizioni del modello; gli estremi mancanti derivano dalla sequenza completa delle giornate.
+- I nomi degli hotel scritti esplicitamente nelle giornate DOCX/OCR vengono conservati letteralmente.
+- Le righe economiche senza importo sono scartate; il periodo del viaggio non può diventare data del preventivo.
+- Gli errori ToolUse malformati ammettono al massimo un secondo tentativo; errori AWS di autorizzazione e validazione non vengono ritentati.
 
 ## Gestione delle fixture
 

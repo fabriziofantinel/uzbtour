@@ -1,0 +1,952 @@
+{
+  "version": 1,
+  "scenario": "travel-import-norvegia-pdf-v1",
+  "recordedAt": "2026-09-02T17:06:19.029Z",
+  "value": {
+    "draft": {
+      "title": "PREVENTIVO NORVEGIA - FJORDI 2027",
+      "destinationCountry": "Norvegia",
+      "startDate": "2027-06-14",
+      "endDate": "2027-06-16",
+      "summary": "Il programma include visite a Oslo, Flåm e Bergen, con pernottamenti a Oslo, Flåm e Bergen. I servizi inclusi sono i trasferimenti, i treni e le navigazioni indicate, con pernottamenti con prima colazione e cena del primo giorno.",
+      "commercialDetails": {
+        "agencyName": "Agenzia non specificata",
+        "agencyContact": "",
+        "quoteCode": "NO-2027-04",
+        "quoteVersion": "Versione non specificata",
+        "quoteDate": "",
+        "clientName": "Gruppo Aurora - 8 viaggiatori",
+        "travelerCount": 8,
+        "adults": 8,
+        "minors": 0,
+        "guideLanguage": "Lingua guida non specificata",
+        "currency": "NOK",
+        "pricingRows": [],
+        "includedServices": [
+          {
+            "service": "Trasferimenti",
+            "included": true,
+            "details": ""
+          },
+          {
+            "service": "Treni",
+            "included": true,
+            "details": ""
+          },
+          {
+            "service": "Navigazione",
+            "included": true,
+            "details": ""
+          },
+          {
+            "service": "Pernottamenti",
+            "included": true,
+            "details": "due pernottamenti con prima colazione e cena del primo giorno."
+          }
+        ],
+        "conditions": [],
+        "contacts": []
+      },
+      "days": [
+        {
+          "dayNumber": 1,
+          "date": "2027-06-14",
+          "label": "Arrivo a Oslo e trasferimento in centro.",
+          "title": "Arrivo a Oslo e trasferimento in centro.",
+          "country": "Norvegia",
+          "countryValidation": {
+            "needsValidation": false,
+            "reason": ""
+          },
+          "city": "Oslo",
+          "cityValidation": {
+            "needsValidation": false,
+            "reason": "Città predominante della giornata: 1 visite"
+          },
+          "description": "Arrivo a Oslo e trasferimento in centro.",
+          "activities": [
+            {
+              "type": "visit",
+              "title": "Palazzo Reale",
+              "description": "Visita del Palazzo Reale di Oslo.",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": null,
+              "placeName": "Palazzo Reale",
+              "placeCity": "Oslo",
+              "placeCountry": "Norvegia",
+              "placeValidation": {
+                "needsValidation": false,
+                "reason": "Associazione geografica estratta dal documento"
+              }
+            },
+            {
+              "type": "visit",
+              "title": "Fortezza di Akershus",
+              "description": "Visita della Fortezza di Akershus a Oslo.",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": null,
+              "placeName": "Fortezza di Akershus",
+              "placeCity": "Oslo",
+              "placeCountry": "Norvegia",
+              "placeValidation": {
+                "needsValidation": false,
+                "reason": "Associazione geografica estratta dal documento"
+              }
+            },
+            {
+              "type": "meal",
+              "title": "Cena",
+              "description": "Cena inclusa in ristorante locale.",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": true,
+              "placeName": "ristorante locale",
+              "placeCity": "Oslo",
+              "placeCountry": "Norvegia",
+              "placeValidation": {
+                "needsValidation": false,
+                "reason": "Località operativa estratta dal documento"
+              }
+            }
+          ],
+          "accommodation": {
+            "name": "Thon Hotel Opera",
+            "city": "Oslo",
+            "country": "Norvegia",
+            "notes": "",
+            "validation": {
+              "needsValidation": true,
+              "reason": "Da verificare prima della pubblicazione"
+            }
+          },
+          "additionalAccommodations": []
+        },
+        {
+          "dayNumber": 2,
+          "date": "2027-06-15",
+          "label": "Treno panoramico da Oslo a Myrdal e prosequimento sulla Flåmsbana fino a Flåm.",
+          "title": "Treno panoramico da Oslo a Myrdal e prosequimento sulla Flåmsbana fino a Flåm.",
+          "country": "Norvegia",
+          "countryValidation": {
+            "needsValidation": false,
+            "reason": ""
+          },
+          "city": "Flåm",
+          "cityValidation": {
+            "needsValidation": false,
+            "reason": ""
+          },
+          "description": "Treno panoramico da Oslo a Myrdal e prosequimento sulla Flåmsbana fino a Flåm.",
+          "activities": [
+            {
+              "type": "transport",
+              "title": "Treno panoramico",
+              "description": "Treno panoramico da Oslo a Myrdal e prosequimento sulla Flamsbana fino a Flam.",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": null,
+              "placeName": "Oslo a Myrdal",
+              "placeCity": "Oslo",
+              "placeCountry": "Norvegia",
+              "placeValidation": {
+                "needsValidation": false,
+                "reason": "Località operativa estratta dal documento"
+              }
+            },
+            {
+              "type": "visit",
+              "title": "Villaggio di Flam",
+              "description": "Passeggiata nel villaggio di Flam.",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": null,
+              "placeName": "Villaggio di Flam",
+              "placeCity": "Flam",
+              "placeCountry": "Norvegia",
+              "placeValidation": {
+                "needsValidation": false,
+                "reason": "Associazione geografica estratta dal documento"
+              }
+            }
+          ],
+          "accommodation": {
+            "name": "Fretheim Hotel",
+            "city": "Flåm",
+            "country": "Norvegia",
+            "notes": "",
+            "validation": {
+              "needsValidation": true,
+              "reason": "Da verificare prima della pubblicazione"
+            }
+          },
+          "additionalAccommodations": []
+        },
+        {
+          "dayNumber": 3,
+          "date": "2027-06-16",
+          "label": "Navigazione sul Naeroyfjord e prosequimento verso Bergen.",
+          "title": "Navigazione sul Naeroyfjord e prosequimento verso Bergen.",
+          "country": "Norvegia",
+          "countryValidation": {
+            "needsValidation": false,
+            "reason": ""
+          },
+          "city": "Bergen",
+          "cityValidation": {
+            "needsValidation": false,
+            "reason": "Città predominante della giornata: 1 visite"
+          },
+          "description": "Navigazione sul Naeroyfjord e prosequimento verso Bergen.",
+          "activities": [
+            {
+              "type": "transport",
+              "title": "Navigazione sul Naeroyfjord",
+              "description": "Navigazione sul Naeroyfjord e prosequimento verso Bergen.",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": null,
+              "placeName": "Naeroyfjord",
+              "placeCity": "Bergen",
+              "placeCountry": "Norvegia",
+              "placeValidation": {
+                "needsValidation": false,
+                "reason": "Località operativa estratta dal documento"
+              }
+            },
+            {
+              "type": "visit",
+              "title": "Quartiere storico Bryggen",
+              "description": "Visita del quartiere storico Bryggen.",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": null,
+              "placeName": "Quartiere storico Bryggen",
+              "placeCity": "Bergen",
+              "placeCountry": "Norvegia",
+              "placeValidation": {
+                "needsValidation": false,
+                "reason": "Associazione geografica estratta dal documento"
+              }
+            }
+          ],
+          "accommodation": {
+            "name": "",
+            "city": "",
+            "country": "",
+            "notes": "",
+            "validation": {
+              "needsValidation": true,
+              "reason": "Da verificare prima della pubblicazione"
+            }
+          },
+          "additionalAccommodations": []
+        }
+      ],
+      "usefulInformation": [],
+      "extractionEvidence": [
+        {
+          "fieldPath": "title",
+          "sourcePage": null,
+          "sourceText": "PREVENTIVO NORVEGIA - FJORDI 2027",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "destinationCountry",
+          "sourcePage": null,
+          "sourceText": "NORVEGIA",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "startDate",
+          "sourcePage": null,
+          "sourceText": "14-16 giugno 2027",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "commercialDetails.agencyName",
+          "sourcePage": null,
+          "sourceText": "Agenzia non specificata",
+          "confidence": 0.85,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "commercialDetails.quoteCode",
+          "sourcePage": null,
+          "sourceText": "NO-2027-04",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "commercialDetails.quoteVersion",
+          "sourcePage": null,
+          "sourceText": "Versione non specificata",
+          "confidence": 0.85,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "commercialDetails.quoteDate",
+          "sourcePage": null,
+          "sourceText": "Data non specificata",
+          "confidence": 0.85,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "commercialDetails.clientName",
+          "sourcePage": null,
+          "sourceText": "Gruppo Aurora - 8 viaggiatori",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "commercialDetails.travelerCount",
+          "sourcePage": null,
+          "sourceText": "8 viaggiatori",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "commercialDetails.adults",
+          "sourcePage": null,
+          "sourceText": "8",
+          "confidence": 0.95,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "commercialDetails.minors",
+          "sourcePage": null,
+          "sourceText": "Nessuno specificato",
+          "confidence": 0.85,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "commercialDetails.guideLanguage",
+          "sourcePage": null,
+          "sourceText": "Lingua guida non specificata",
+          "confidence": 0.85,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "commercialDetails.currency",
+          "sourcePage": null,
+          "sourceText": "NOK",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].date",
+          "sourcePage": null,
+          "sourceText": "14 giugno 2027",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].label",
+          "sourcePage": null,
+          "sourceText": "Arrivo a Oslo e trasferimento in centro.",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].title",
+          "sourcePage": null,
+          "sourceText": "Arrivo a Oslo e trasferimento in centro.",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].country",
+          "sourcePage": null,
+          "sourceText": "Norvegia",
+          "confidence": 0.95,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[0].city",
+          "sourcePage": null,
+          "sourceText": "Oslo",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].description",
+          "sourcePage": null,
+          "sourceText": "Arrivo a Oslo e trasferimento in centro.",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].activities[0].type",
+          "sourcePage": null,
+          "sourceText": "visit",
+          "confidence": 0.95,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[0].activities[0].title",
+          "sourcePage": null,
+          "sourceText": "Visita del Palazzo Reale di Oslo e della Fortezza di Akershus a Oslo.",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].activities[0].description",
+          "sourcePage": null,
+          "sourceText": "Visita del Palazzo Reale di Oslo e della Fortezza di Akershus a Oslo.",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].activities[0].placeName",
+          "sourcePage": null,
+          "sourceText": "Palazzo Reale di Oslo e Fortezza di Akershus",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].activities[0].placeCity",
+          "sourcePage": null,
+          "sourceText": "Oslo",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].activities[0].placeCountry",
+          "sourcePage": null,
+          "sourceText": "Norvegia",
+          "confidence": 0.95,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[0].activities[0].placeValidation",
+          "sourcePage": null,
+          "sourceText": "Da verificare prima della pubblicazione",
+          "confidence": 0.85,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[0].activities[1].type",
+          "sourcePage": null,
+          "sourceText": "meal",
+          "confidence": 0.95,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[0].activities[1].title",
+          "sourcePage": null,
+          "sourceText": "Cena inclusa in ristorante locale.",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].activities[1].description",
+          "sourcePage": null,
+          "sourceText": "Cena inclusa in ristorante locale.",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].activities[1].placeName",
+          "sourcePage": null,
+          "sourceText": "Ristorante locale",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].activities[1].placeCity",
+          "sourcePage": null,
+          "sourceText": "Oslo",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].activities[1].placeCountry",
+          "sourcePage": null,
+          "sourceText": "Norvegia",
+          "confidence": 0.95,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[0].activities[1].placeValidation",
+          "sourcePage": null,
+          "sourceText": "Da verificare prima della pubblicazione",
+          "confidence": 0.85,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[0].activities[2].type",
+          "sourcePage": null,
+          "sourceText": "hotel",
+          "confidence": 0.95,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[0].activities[2].title",
+          "sourcePage": null,
+          "sourceText": "Pernottamento presso Thon Hotel Opera, Oslo, Norvegia.",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].activities[2].description",
+          "sourcePage": null,
+          "sourceText": "Pernottamento presso Thon Hotel Opera, Oslo, Norvegia.",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].activities[2].placeName",
+          "sourcePage": null,
+          "sourceText": "Thon Hotel Opera",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].activities[2].placeCity",
+          "sourcePage": null,
+          "sourceText": "Oslo",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].activities[2].placeCountry",
+          "sourcePage": null,
+          "sourceText": "Norvegia",
+          "confidence": 0.95,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[0].activities[2].placeValidation",
+          "sourcePage": null,
+          "sourceText": "Da verificare prima della pubblicazione",
+          "confidence": 0.85,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[1].date",
+          "sourcePage": null,
+          "sourceText": "15 giugno 2027",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].label",
+          "sourcePage": null,
+          "sourceText": "Treno panoramico da Oslo a Myrdal e prosequimento sulla Flåmsbana fino a Flåm.",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].title",
+          "sourcePage": null,
+          "sourceText": "Treno panoramico da Oslo a Myrdal e prosequimento sulla Flåmsbana fino a Flåm.",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].country",
+          "sourcePage": null,
+          "sourceText": "Norvegia",
+          "confidence": 0.95,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[1].city",
+          "sourcePage": null,
+          "sourceText": "Flåm",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].description",
+          "sourcePage": null,
+          "sourceText": "Treno panoramico da Oslo a Myrdal e prosequimento sulla Flåmsbana fino a Flåm.",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].activities[0].type",
+          "sourcePage": null,
+          "sourceText": "transport",
+          "confidence": 0.95,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[1].activities[0].title",
+          "sourcePage": null,
+          "sourceText": "Treno panoramico da Oslo a Myrdal e prosequimento sulla Flåmsbana fino a Flåm.",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].activities[0].description",
+          "sourcePage": null,
+          "sourceText": "Treno panoramico da Oslo a Myrdal e prosequimento sulla Flåmsbana fino a Flåm.",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].activities[1].type",
+          "sourcePage": null,
+          "sourceText": "hotel",
+          "confidence": 0.95,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[1].activities[1].title",
+          "sourcePage": null,
+          "sourceText": "Pernottamento presso Fretheim Hotel, Flåm, Norvegia.",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].activities[1].description",
+          "sourcePage": null,
+          "sourceText": "Pernottamento presso Fretheim Hotel, Flåm, Norvegia.",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].activities[1].placeName",
+          "sourcePage": null,
+          "sourceText": "Fretheim Hotel",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].activities[1].placeCity",
+          "sourcePage": null,
+          "sourceText": "Flåm",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].activities[1].placeCountry",
+          "sourcePage": null,
+          "sourceText": "Norvegia",
+          "confidence": 0.95,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[1].activities[1].placeValidation",
+          "sourcePage": null,
+          "sourceText": "Da verificare prima della pubblicazione",
+          "confidence": 0.85,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[2].date",
+          "sourcePage": null,
+          "sourceText": "16 giugno 2027",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[2].label",
+          "sourcePage": null,
+          "sourceText": "Navigazione sul Naeroyfjord e prosequimento verso Bergen.",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[2].title",
+          "sourcePage": null,
+          "sourceText": "Navigazione sul Naeroyfjord e prosequimento verso Bergen.",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[2].country",
+          "sourcePage": null,
+          "sourceText": "Norvegia",
+          "confidence": 0.95,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[2].city",
+          "sourcePage": null,
+          "sourceText": "Bergen",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[2].description",
+          "sourcePage": null,
+          "sourceText": "Navigazione sul Naeroyfjord e prosequimento verso Bergen.",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[2].activities[0].type",
+          "sourcePage": null,
+          "sourceText": "visit",
+          "confidence": 0.95,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[2].activities[0].title",
+          "sourcePage": null,
+          "sourceText": "Visita del quartiere storico Bryggen.",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[2].activities[0].description",
+          "sourcePage": null,
+          "sourceText": "Visita del quartiere storico Bryggen.",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[2].activities[0].placeName",
+          "sourcePage": null,
+          "sourceText": "Quartiere storico Bryggen",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[2].activities[0].placeCity",
+          "sourcePage": null,
+          "sourceText": "Bergen",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[2].activities[0].placeCountry",
+          "sourcePage": null,
+          "sourceText": "Norvegia",
+          "confidence": 0.95,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[2].activities[0].placeValidation",
+          "sourcePage": null,
+          "sourceText": "Da verificare prima della pubblicazione",
+          "confidence": 0.85,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[2].activities[1].type",
+          "sourcePage": null,
+          "sourceText": "free_time",
+          "confidence": 0.95,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[2].activities[1].title",
+          "sourcePage": null,
+          "sourceText": "Fine dei servizi.",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[2].activities[1].description",
+          "sourcePage": null,
+          "sourceText": "Fine dei servizi.",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[2].activities[1].placeName",
+          "sourcePage": null,
+          "sourceText": "Fine dei servizi",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[2].activities[1].placeCity",
+          "sourcePage": null,
+          "sourceText": "Bergen",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[2].activities[1].placeCountry",
+          "sourcePage": null,
+          "sourceText": "Norvegia",
+          "confidence": 0.95,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[2].activities[1].placeValidation",
+          "sourcePage": null,
+          "sourceText": "Da verificare prima della pubblicazione",
+          "confidence": 0.85,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "preventivo_norvegia_fiordi_2027.codice",
+          "sourcePage": 1,
+          "sourceText": "Codice: NO-2027-04",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "preventivo_norvegia_fiordi_2027.cliente",
+          "sourcePage": 1,
+          "sourceText": "Cliente: Gruppo Aurora - 8 viaggiatori",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "preventivo_norvegia_fiordi_2027.periodo",
+          "sourcePage": 1,
+          "sourceText": "Periodo: 14-16 giugno 2027",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "preventivo_norvegia_fiordi_2027.valuta",
+          "sourcePage": 1,
+          "sourceText": "Valuta: NOK",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "preventivo_norvegia_fiordi_2027.servizi_inclusi",
+          "sourcePage": 1,
+          "sourceText": "Trasferimenti, treni e navigazione indicatic, due pernottamenti con prima colazione e cena del primo giorno.",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[0]",
+          "sourcePage": 1,
+          "sourceText": "Visita del Palazzo Reale di Oslo e della Fortezza di Akershus a Oslo.",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[1]",
+          "sourcePage": 1,
+          "sourceText": "Visita della Fortezza di Akershus a Oslo.",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[2]",
+          "sourcePage": 1,
+          "sourceText": "Cena inclusa in ristorante locale.",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[3]",
+          "sourcePage": 1,
+          "sourceText": "Pernottamento presso Thon Hotel Opera, Oslo, Norvegia.",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[1].activities[0]",
+          "sourcePage": 1,
+          "sourceText": "Treno panoramico da Oslo a Myrdal e prosequimento sulla Flamsbana fino a Flam.",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[1].activities[1]",
+          "sourcePage": 1,
+          "sourceText": "Passeggiata nel villaggio di Flam.",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[1].activities[2]",
+          "sourcePage": 1,
+          "sourceText": "Pernottamento presso Fretheim Hotel, Flam, Norvegia.",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[2].activities[0]",
+          "sourcePage": 1,
+          "sourceText": "Navigazione sul Naeroyfjord e prosequimento verso Bergen.",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[2].activities[1]",
+          "sourcePage": 1,
+          "sourceText": "Visita del quartiere storico Bryggen.",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[2].activities[2]",
+          "sourcePage": 1,
+          "sourceText": "Fine dei servizi.",
+          "confidence": 1,
+          "method": "bedrock_native"
+        }
+      ],
+      "reconciliationIssues": [
+        {
+          "code": "EVIDENCE_MISSING",
+          "severity": "warning",
+          "fieldPath": "endDate",
+          "message": "Origine non disponibile per endDate.",
+          "sourceText": "",
+          "resolved": false
+        },
+        {
+          "code": "ACCOMMODATION_VALIDATION_PENDING",
+          "severity": "warning",
+          "fieldPath": "days[0].accommodation.name",
+          "message": "Il nome dell'hotel deve essere verificato prima della pubblicazione.",
+          "sourceText": "Pernottamento presso Thon Hotel Opera, Oslo, Norvegia.",
+          "resolved": false
+        },
+        {
+          "code": "ACCOMMODATION_VALIDATION_PENDING",
+          "severity": "warning",
+          "fieldPath": "days[1].accommodation.name",
+          "message": "Il nome dell'hotel deve essere verificato prima della pubblicazione.",
+          "sourceText": "Pernottamento presso Fretheim Hotel, Flam, Norvegia.",
+          "resolved": false
+        },
+        {
+          "code": "ACCOMMODATION_VALIDATION_PENDING",
+          "severity": "warning",
+          "fieldPath": "days[2].accommodation.name",
+          "message": "Il nome dell'hotel deve essere verificato prima della pubblicazione.",
+          "sourceText": "",
+          "resolved": false
+        }
+      ]
+    },
+    "model": "eu.amazon.nova-lite-v1:0",
+    "provider": "amazon-bedrock-native-pdf",
+    "usage": {
+      "extraction": {
+        "inputTokens": 6546,
+        "outputTokens": 4640,
+        "totalTokens": 11186
+      },
+      "commercialExtraction": {
+        "inputTokens": 3416,
+        "outputTokens": 557,
+        "totalTokens": 3973
+      },
+      "accommodationRecovery": {
+        "inputTokens": 2842,
+        "outputTokens": 188,
+        "totalTokens": 3030
+      },
+      "activityRecovery": {
+        "inputTokens": 2955,
+        "outputTokens": 1461,
+        "totalTokens": 4416
+      },
+      "reconciliation": {
+        "inputTokens": 3730,
+        "outputTokens": 248,
+        "totalTokens": 3978
+      }
+    }
+  }
+}

@@ -10,6 +10,7 @@ if (mode === "record" && process.env.AI_TEST_RECORD_CONFIRM !== "1") {
 const tsxCli = path.resolve("node_modules/tsx/dist/cli.mjs");
 const scenarios = [
   "scripts/acceptance-bedrock-travel-import.ts",
+  "scripts/acceptance-bedrock-travel-import-matrix.ts",
   "scripts/acceptance-bedrock-reference-content.ts",
   "scripts/acceptance-photo-ai-synthetic-dataset.ts",
   "scripts/acceptance-travel-import-quality.ts",

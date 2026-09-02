@@ -64,16 +64,29 @@ function activity(value: unknown, path: string, changes: string[]) {
 
 function accommodation(value: unknown, path: string, changes: string[]) {
   const item = recordValue(value);
+  if (!item) {
+    changes.push(`${path}: campo assente→nessun pernottamento`);
+    return {
+      name: "",
+      city: "",
+      country: "",
+      notes: "",
+      validation: { needsValidation: false, reason: "Nessun pernottamento indicato nella fonte" },
+    };
+  }
   const canonicalName = item ? canonicalHotelName(item.name, item.city) : undefined;
   if (item && canonicalName !== item.name) changes.push(`${path}.name: ${String(item.name)}→${String(canonicalName)}`);
-  return item ? {
+  return {
     ...item,
-    name: text(canonicalName, 240, `${path}.name`, changes),
-    city: text(item.city, 240, `${path}.city`, changes),
-    country: text(item.country, 120, `${path}.country`, changes),
-    notes: text(item.notes, 2000, `${path}.notes`, changes),
-    validation: validation(item.validation, `${path}.validation`, changes),
-  } : value;
+    name: text(canonicalName ?? "", 240, `${path}.name`, changes),
+    city: text(item.city ?? "", 240, `${path}.city`, changes),
+    country: text(item.country ?? "", 120, `${path}.country`, changes),
+    notes: text(item.notes ?? "", 2000, `${path}.notes`, changes),
+    validation: validation(item.validation, `${path}.validation`, changes) ?? {
+      needsValidation: Boolean(canonicalName),
+      reason: canonicalName ? "Pernottamento da verificare" : "Nessun pernottamento indicato nella fonte",
+    },
+  };
 }
 
 function day(value: unknown, index: number, changes: string[]) {
@@ -129,7 +142,44 @@ function day(value: unknown, index: number, changes: string[]) {
   };
 }
 
-export function normalizeTravelProgramme(input: unknown, options?: { fallbackTitle?: string }) {
+const italianMonths = new Map([
+  ["gennaio", 1], ["febbraio", 2], ["marzo", 3], ["aprile", 4], ["maggio", 5], ["giugno", 6],
+  ["luglio", 7], ["agosto", 8], ["settembre", 9], ["ottobre", 10], ["novembre", 11], ["dicembre", 12],
+]);
+
+function isoDate(year: number, month: number, dayOfMonth: number) {
+  const candidate = new Date(Date.UTC(year, month - 1, dayOfMonth));
+  return candidate.getUTCFullYear() === year && candidate.getUTCMonth() === month - 1 && candidate.getUTCDate() === dayOfMonth
+    ? `${year}-${String(month).padStart(2, "0")}-${String(dayOfMonth).padStart(2, "0")}`
+    : "";
+}
+
+function explicitDayDates(sourceText: string) {
+  const dates: string[] = [];
+  const headings = sourceText.matchAll(/\bgiorno\s+\d+\s*[-–:]\s*(\d{1,2})(?:\s*[/.-]\s*(\d{1,2})\s*[/.-]\s*(\d{4})|\s+([a-zà]+)\s+(\d{4}))/giu);
+  for (const match of headings) {
+    const dayOfMonth = Number(match[1]);
+    const month = match[2] ? Number(match[2]) : italianMonths.get(normalizedName(match[4]));
+    const year = Number(match[3] || match[5]);
+    const date = month ? isoDate(year, month, dayOfMonth) : "";
+    if (date) dates.push(date);
+  }
+  return dates;
+}
+
+function explicitDayAccommodationNames(sourceText: string) {
+  const names = new Map<number, string>();
+  const sections = sourceText.matchAll(/\bgiorno\s+(\d+)\b[^\n]*\n([\s\S]*?)(?=\bgiorno\s+\d+\b|$)/giu);
+  for (const section of sections) {
+    const dayNumber = Number(section[1]);
+    const match = section[2]?.match(/\bpernottamento\s+presso\s+([^,\n.]+)/iu);
+    const name = match?.[1]?.trim();
+    if (dayNumber > 0 && name) names.set(dayNumber, name);
+  }
+  return names;
+}
+
+export function normalizeTravelProgramme(input: unknown, options?: { fallbackTitle?: string; sourceText?: string }) {
   const source = recordValue(input);
   if (!source) return { value: input, changes: [] as string[] };
   const changes: string[] = [];
@@ -146,16 +196,45 @@ export function normalizeTravelProgramme(input: unknown, options?: { fallbackTit
   const usefulInformation = source.usefulInformation === undefined
     ? (changes.push("usefulInformation: campo assente→array vuoto"), [])
     : list(source.usefulInformation, 80, "usefulInformation", changes);
+  const normalizedDays = Array.isArray(days) ? days.map((entry, index) => day(entry, index, changes)) : days;
+  const sourceDates = options?.sourceText ? explicitDayDates(options.sourceText) : [];
+  const sourceAccommodationNames = options?.sourceText ? explicitDayAccommodationNames(options.sourceText) : new Map<number, string>();
+  if (Array.isArray(normalizedDays) && sourceDates.length === normalizedDays.length) {
+    normalizedDays.forEach((entry, index) => {
+      const item = recordValue(entry);
+      if (!item || item.date === sourceDates[index]) return;
+      changes.push(`days[${index}].date: ${String(item.date)}→${sourceDates[index]} (data esplicita nella fonte)`);
+      item.date = sourceDates[index];
+    });
+  }
+  if (Array.isArray(normalizedDays)) {
+    normalizedDays.forEach((entry, index) => {
+      const item = recordValue(entry);
+      const hotel = recordValue(item?.accommodation);
+      const sourceName = sourceAccommodationNames.get(index + 1);
+      if (!hotel || !sourceName || typeof hotel.name !== "string" || !hotel.name.trim() || hotel.name === sourceName) return;
+      changes.push(`days[${index}].accommodation.name: ${hotel.name}→${sourceName} (nome esplicito nella fonte)`);
+      hotel.name = sourceName;
+    });
+  }
+  const normalizedDayDates = Array.isArray(normalizedDays)
+    ? normalizedDays.map((entry) => recordValue(entry)?.date).filter((value): value is string => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value))
+    : [];
+  const completeDaySequence = Array.isArray(normalizedDays) && normalizedDayDates.length === normalizedDays.length;
+  const sourceStartDate = sourceDates.length > 0 ? sourceDates[0]
+    : (!source.startDate && completeDaySequence ? normalizedDayDates[0] : source.startDate);
+  const sourceEndDate = sourceDates.length > 0 ? sourceDates.at(-1)
+    : (!source.endDate && completeDaySequence ? normalizedDayDates.at(-1) : source.endDate);
 
   return {
     value: {
       ...source,
       title: text(title, 240, "title", changes),
       destinationCountry: text(destinationCountry, 120, "destinationCountry", changes),
-      startDate: text(source.startDate, 10, "startDate", changes),
-      endDate: text(source.endDate, 10, "endDate", changes),
+      startDate: text(sourceStartDate, 10, "startDate", changes),
+      endDate: text(sourceEndDate, 10, "endDate", changes),
       summary: text(source.summary, 6000, "summary", changes),
-      days: Array.isArray(days) ? days.map((entry, index) => day(entry, index, changes)) : days,
+      days: normalizedDays,
       usefulInformation: Array.isArray(usefulInformation)
         ? usefulInformation.map((entry, index) => {
             const item = recordValue(entry);

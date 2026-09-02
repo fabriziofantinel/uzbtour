@@ -5,7 +5,7 @@ Aggiornato al 2 settembre 2026.
 ## Stato sintetico
 
 - [x] 1. Collaudo end-to-end e chiusura dei casi d'uso
-- [ ] 2. Validazione sistematica della qualità AI
+- [x] 2. Validazione sistematica della qualità AI
 - [ ] 3. Consolidamento della governance delle informazioni Paese
 - [ ] 4. Osservabilità e procedure operative
 - [ ] 5. Sicurezza, privacy e conformità
@@ -56,7 +56,7 @@ Il punto è chiuso: i flussi critici sono coperti da test automatici, verifiche 
 
 Dataset di riferimento per conversione preventivi, contenuti Paese e valutazione immagini; metriche minime, regressioni e gestione degli esiti incerti.
 
-Avanzamento: introdotto il replay deterministico in CI per importazione, contenuti di riferimento e anomalie; registrata una baseline Bedrock live versionata e definite formule, soglie e frequenze in `docs/testing/AI_QUALITY_GATE.md`. Restano l'estensione multi-formato/multi-paese e l'automazione periodica dei test live fotografici.
+Completato: replay deterministico obbligatorio in CI per importazione, contenuti di riferimento, valutazione fotografica e anomalie; baseline Bedrock live versionate per Belgio OCR, Norvegia PDF, Cile DOCX e itinerario OCR multi-Paese; formule, soglie e frequenze definite in `docs/testing/AI_QUALITY_GATE.md`. La pipeline ora riconcilia date e nomi hotel espliciti, recupera indipendentemente le attività, elimina classificazioni spurie e limita i retry agli output modello malformati. L'esecuzione live resta prevista settimanalmente e prima delle release; la sua schedulazione con allarmi rientra nel punto 4.
 
 ### 3. Governance informazioni Paese
 

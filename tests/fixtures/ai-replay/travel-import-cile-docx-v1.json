@@ -1,0 +1,809 @@
+{
+  "version": 1,
+  "scenario": "travel-import-cile-docx-v1",
+  "recordedAt": "2026-09-02T16:57:53.290Z",
+  "value": {
+    "draft": {
+      "title": "PREVENTIVO CILE - SANTIAGO E VALPARAISO",
+      "destinationCountry": "Cile",
+      "startDate": "2027-11-05",
+      "endDate": "2027-11-07",
+      "summary": "Viaggio preventivo per un gruppo di 6 adulti da Santiago del Cile a Valparaíso, con visite a Plaza de Armas, Museo Chileno de Arte Precolombina, Hotel Cumbres Lasterra, Cerro San Cristóbal, Cerro Alegría, Cerro Concepción, Hotel Casa Higueras, e rientro in aeroporto.",
+      "commercialDetails": {
+        "agencyName": "Gruppo Andes",
+        "agencyContact": "",
+        "quoteCode": "CL-2027-09",
+        "quoteVersion": "",
+        "quoteDate": "",
+        "clientName": "Gruppo Andes",
+        "travelerCount": 6,
+        "adults": 6,
+        "minors": 0,
+        "guideLanguage": "",
+        "currency": "CLP",
+        "pricingRows": [],
+        "includedServices": [
+          {
+            "service": "due pernottamenti con prima colazione, pranzo del secondo giorno e visite indicate.",
+            "included": true,
+            "details": ""
+          }
+        ],
+        "conditions": [],
+        "contacts": []
+      },
+      "days": [
+        {
+          "dayNumber": 1,
+          "date": "2027-11-05",
+          "label": "Arrivo a Santiago del Cile",
+          "title": "Arrivo a Santiago del Cile",
+          "country": "Cile",
+          "countryValidation": {
+            "needsValidation": true,
+            "reason": "Nome generico"
+          },
+          "city": "Santiago del Cile",
+          "cityValidation": {
+            "needsValidation": false,
+            "reason": "Città predominante della giornata: 2 visite"
+          },
+          "description": "Arrivo e trasferimento in centro.",
+          "activities": [
+            {
+              "type": "visit",
+              "title": "Plaza de Armas",
+              "description": "Visita della Plaza de Armas",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": null,
+              "placeName": "Plaza de Armas",
+              "placeCity": "Santiago del Cile",
+              "placeCountry": "Cile",
+              "placeValidation": {
+                "needsValidation": false,
+                "reason": "Associazione geografica estratta dal documento"
+              }
+            },
+            {
+              "type": "visit",
+              "title": "Museo Chileno de Arte Precolombina",
+              "description": "Visita del Museo Chileno de Arte Precolombina",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": null,
+              "placeName": "Museo Chileno de Arte Precolombina",
+              "placeCity": "Santiago del Cile",
+              "placeCountry": "Cile",
+              "placeValidation": {
+                "needsValidation": false,
+                "reason": "Associazione geografica estratta dal documento"
+              }
+            },
+            {
+              "type": "transport",
+              "title": "Trasferimento a Valparaíso",
+              "description": "Trasferimento a Valparaíso",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": null,
+              "placeName": "Trasferimento a Valparaíso",
+              "placeCity": "",
+              "placeCountry": "",
+              "placeValidation": {
+                "needsValidation": false,
+                "reason": "Località operativa estratta dal documento"
+              }
+            },
+            {
+              "type": "visit",
+              "title": "Quartiere Cerro Alegre",
+              "description": "Visita dei quartieri Cerro Alegre e Cerro Concepcion",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": null,
+              "placeName": "Quartiere Cerro Alegre",
+              "placeCity": "Valparaíso",
+              "placeCountry": "Cile",
+              "placeValidation": {
+                "needsValidation": false,
+                "reason": "Associazione geografica estratta dal documento"
+              }
+            },
+            {
+              "type": "visit",
+              "title": "Quartiere Cerro Concepción",
+              "description": "Visita dei quartieri Cerro Alegre e Cerro Concepcion",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": null,
+              "placeName": "Quartiere Cerro Concepción",
+              "placeCity": "Valparaíso",
+              "placeCountry": "Cile",
+              "placeValidation": {
+                "needsValidation": false,
+                "reason": "Associazione geografica estratta dal documento"
+              }
+            },
+            {
+              "type": "meal",
+              "title": "Pranzo incluso in ristorante locale",
+              "description": "Pranzo incluso in ristorante locale",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": true,
+              "placeName": "Pranzo incluso in ristorante locale",
+              "placeCity": "Valparaíso",
+              "placeCountry": "Cile",
+              "placeValidation": {
+                "needsValidation": false,
+                "reason": "Località operativa estratta dal documento"
+              }
+            }
+          ],
+          "accommodation": {
+            "name": "Hotel Cumbres Lastarria",
+            "city": "Santiago del Cile",
+            "country": "Cile",
+            "notes": "",
+            "validation": {
+              "needsValidation": true,
+              "reason": "Nome generico"
+            }
+          },
+          "additionalAccommodations": []
+        },
+        {
+          "dayNumber": 2,
+          "date": "2027-11-06",
+          "label": "Valparaíso",
+          "title": "Valparaíso",
+          "country": "Cile",
+          "countryValidation": {
+            "needsValidation": true,
+            "reason": "Nome generico"
+          },
+          "city": "Valparaíso",
+          "cityValidation": {
+            "needsValidation": false,
+            "reason": "Città predominante della giornata: 1 visite"
+          },
+          "description": "Trasferimento a Valparaíso. Pranzo incluso in ristorante locale. Visita dei quartieri Cerro Alegría e Cerro Concepción.",
+          "activities": [
+            {
+              "type": "transport",
+              "title": "Trasferimento in aeroporto",
+              "description": "Trasferimento in aeroporto e fine dei servizi",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": null,
+              "placeName": "Trasferimento in aeroporto",
+              "placeCity": "",
+              "placeCountry": "",
+              "placeValidation": {
+                "needsValidation": false,
+                "reason": "Località operativa estratta dal documento"
+              }
+            },
+            {
+              "type": "visit",
+              "title": "Rientro a Santiago del Cile",
+              "description": "Rientro a Santiago del Cile vista del Cerro San Cristóbal",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": null,
+              "placeName": "Rientro a Santiago del Cile",
+              "placeCity": "Cerro San Cristóbal",
+              "placeCountry": "Cile",
+              "placeValidation": {
+                "needsValidation": false,
+                "reason": "Associazione geografica estratta dal documento"
+              }
+            }
+          ],
+          "accommodation": {
+            "name": "Hotel Casa Higueras",
+            "city": "Valparaíso",
+            "country": "Cile",
+            "notes": "",
+            "validation": {
+              "needsValidation": true,
+              "reason": "Nome generico"
+            }
+          },
+          "additionalAccommodations": []
+        },
+        {
+          "dayNumber": 3,
+          "date": "2027-11-07",
+          "label": "Rientro a Santiago del Cile",
+          "title": "Rientro a Santiago del Cile",
+          "country": "Cile",
+          "countryValidation": {
+            "needsValidation": true,
+            "reason": "Nome generico"
+          },
+          "city": "Santiago del Cile",
+          "cityValidation": {
+            "needsValidation": false,
+            "reason": "Città predominante della giornata: 1 visite"
+          },
+          "description": "Rientro a Santiago del Cile e visita del Cerro San Cristóbal. Trasferimento in aeroporto e fine dei servizi.",
+          "activities": [
+            {
+              "type": "visit",
+              "title": "Hotel Casa Higueras",
+              "description": "Pernottamento presso Hotel Casa Higueras, Valparaíso, Cile",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": null,
+              "placeName": "Hotel Casa Higueras",
+              "placeCity": "Valparaíso",
+              "placeCountry": "Cile",
+              "placeValidation": {
+                "needsValidation": false,
+                "reason": "Associazione geografica estratta dal documento"
+              }
+            }
+          ],
+          "accommodation": {
+            "name": "",
+            "city": "",
+            "country": "",
+            "notes": "",
+            "validation": {
+              "needsValidation": false,
+              "reason": "Nessun pernottamento indicato nella fonte"
+            }
+          },
+          "additionalAccommodations": []
+        }
+      ],
+      "usefulInformation": [],
+      "extractionEvidence": [
+        {
+          "fieldPath": "title",
+          "sourcePage": 1,
+          "sourceText": "PREVENTIVO CILE - SANTIAGO E VALPARAISO",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "destinationCountry",
+          "sourcePage": 1,
+          "sourceText": "Cile",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "startDate",
+          "sourcePage": 1,
+          "sourceText": "1 - 5 novembre 2027",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "endDate",
+          "sourcePage": 1,
+          "sourceText": "5-7 novembre 2027",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "summary",
+          "sourcePage": 1,
+          "sourceText": "Viaggio preventivo per un gruppo di 6 adulti da Santiago del Cile a Valparaíso, con visite a Plaza de Armas, Museo Chileno de Arte Precolombina, Hotel Cumbres Lasterra, Cerro San Cristóbal, Cerro Alegría, Cerro Concepción, Hotel Casa Higueras, e rientro in aeroporto.",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "commercialDetails.agencyName",
+          "sourcePage": 1,
+          "sourceText": "Gruppo Andes",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "commercialDetails.clientName",
+          "sourcePage": 1,
+          "sourceText": "Gruppo Andes",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "commercialDetails.travelerCount",
+          "sourcePage": 1,
+          "sourceText": "6 adulti",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "commercialDetails.currency",
+          "sourcePage": 1,
+          "sourceText": "CLP",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].dayNumber",
+          "sourcePage": 1,
+          "sourceText": "1",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].date",
+          "sourcePage": 1,
+          "sourceText": "1 - 5 novembre 2027",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].label",
+          "sourcePage": 1,
+          "sourceText": "Arrivo a Santiago del Cile",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].title",
+          "sourcePage": 1,
+          "sourceText": "Arrivo a Santiago del Cile",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].country",
+          "sourcePage": 1,
+          "sourceText": "Cile",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].city",
+          "sourcePage": 1,
+          "sourceText": "Santiago del Cile",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].description",
+          "sourcePage": 1,
+          "sourceText": "Arrivo e trasferimento in centro.",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].activities[0].type",
+          "sourcePage": 1,
+          "sourceText": "visit",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].activities[0].title",
+          "sourcePage": 1,
+          "sourceText": "Plaza de Armas",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].activities[0].description",
+          "sourcePage": 1,
+          "sourceText": "Visita della Plaza de Armas",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].activities[1].type",
+          "sourcePage": 1,
+          "sourceText": "visit",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].activities[1].title",
+          "sourcePage": 1,
+          "sourceText": "Museo Chileno de Arte Precolombina",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].activities[1].description",
+          "sourcePage": 1,
+          "sourceText": "Visita del Museo Chileno de Arte Precolombina",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[0].accommodation.name",
+          "sourcePage": 1,
+          "sourceText": "Hotel Cumbres Lasterra",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].dayNumber",
+          "sourcePage": 1,
+          "sourceText": "2",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].date",
+          "sourcePage": 1,
+          "sourceText": "2 - 5 novembre 2027",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].label",
+          "sourcePage": 1,
+          "sourceText": "Valparaíso",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].title",
+          "sourcePage": 1,
+          "sourceText": "Valparaíso",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].country",
+          "sourcePage": 1,
+          "sourceText": "Cile",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].city",
+          "sourcePage": 1,
+          "sourceText": "Valparaíso",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].description",
+          "sourcePage": 1,
+          "sourceText": "Trasferimento a Valparaíso. Pranzo incluso in ristorante locale. Visita dei quartieri Cerro Alegría e Cerro Concepción.",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].activities[0].type",
+          "sourcePage": 1,
+          "sourceText": "transport",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].activities[0].title",
+          "sourcePage": 1,
+          "sourceText": "Trasferimento a Valparaíso",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].activities[0].description",
+          "sourcePage": 1,
+          "sourceText": "Trasferimento a Valparaíso.",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].activities[1].type",
+          "sourcePage": 1,
+          "sourceText": "meal",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].activities[1].title",
+          "sourcePage": 1,
+          "sourceText": "Pranzo incluso",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].activities[1].description",
+          "sourcePage": 1,
+          "sourceText": "Pranzo incluso in ristorante locale.",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].activities[2].type",
+          "sourcePage": 1,
+          "sourceText": "visit",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].activities[2].title",
+          "sourcePage": 1,
+          "sourceText": "Cerro Alegría",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].activities[2].description",
+          "sourcePage": 1,
+          "sourceText": "Visita dei quartieri Cerro Alegría e Cerro Concepción.",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[1].accommodation.name",
+          "sourcePage": 1,
+          "sourceText": "Hotel Casa Higueras",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[2].dayNumber",
+          "sourcePage": 1,
+          "sourceText": "3",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[2].date",
+          "sourcePage": 1,
+          "sourceText": "3 - 7 novembre 2027",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[2].label",
+          "sourcePage": 1,
+          "sourceText": "Rientro a Santiago del Cile",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[2].title",
+          "sourcePage": 1,
+          "sourceText": "Rientro a Santiago del Cile",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[2].country",
+          "sourcePage": 1,
+          "sourceText": "Cile",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[2].city",
+          "sourcePage": 1,
+          "sourceText": "Santiago del Cile",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[2].description",
+          "sourcePage": 1,
+          "sourceText": "Rientro a Santiago del Cile e visita del Cerro San Cristóbal. Trasferimento in aeroporto e fine dei servizi.",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[2].activities[0].type",
+          "sourcePage": 1,
+          "sourceText": "visit",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[2].activities[0].title",
+          "sourcePage": 1,
+          "sourceText": "Cerro San Cristóbal",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "days[2].activities[0].description",
+          "sourcePage": 1,
+          "sourceText": "Rientro a Santiago del Cile e visita del Cerro San Cristóbal.",
+          "confidence": 1,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "preventivo",
+          "sourcePage": 1,
+          "sourceText": "PREVENTIVO CILE - SANTIAGO E VALPARAISO",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "codice preventivo",
+          "sourcePage": 1,
+          "sourceText": "Codice preventivo: CL-2027-09",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "cliente",
+          "sourcePage": 1,
+          "sourceText": "Cliente: Gruppo Andes - 6 adulti",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "periodo",
+          "sourcePage": 1,
+          "sourceText": "Periodo: 5-7 novembre 2027",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "valuta",
+          "sourcePage": 1,
+          "sourceText": "Valuta: CLP",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "servizi inclusi",
+          "sourcePage": 1,
+          "sourceText": "LA QUOTA INCLUDE, due pernottamenti con prima colazione, pranzo del secondo giorno e visite indicate.",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[0]",
+          "sourcePage": 1,
+          "sourceText": "Visita della Plaza de Armas",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[1]",
+          "sourcePage": 1,
+          "sourceText": "Visita del Museo Chileno de Arte Precolombina",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[2]",
+          "sourcePage": 1,
+          "sourceText": "Trasferimento a Valparaíso",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[3]",
+          "sourcePage": 1,
+          "sourceText": "Visita dei quartieri Cerro Alegre e Cerro Concepcion",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[4]",
+          "sourcePage": 1,
+          "sourceText": "Visita dei quartieri Cerro Alegre e Cerro Concepcion",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[5]",
+          "sourcePage": 1,
+          "sourceText": "Pranzo incluso in ristorante locale",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[1].activities[0]",
+          "sourcePage": 1,
+          "sourceText": "Trasferimento in aeroporto e fine dei servizi",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[1].activities[1]",
+          "sourcePage": 1,
+          "sourceText": "Rientro a Santiago del Cile vista del Cerro San Cristóbal",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[2].activities[0]",
+          "sourcePage": 1,
+          "sourceText": "Pernottamento presso Hotel Casa Higueras, Valparaíso, Cile",
+          "confidence": 1,
+          "method": "bedrock_native"
+        }
+      ],
+      "reconciliationIssues": [
+        {
+          "code": "city_mismatch",
+          "severity": "warning",
+          "fieldPath": "days[0].activities[0].placeCity",
+          "message": "La città 'Santiago del Cile' nel documento non corrisponde alla città 'Santiago' nell'estrazione JSON.",
+          "sourceText": "Visita della Plaza de Armas",
+          "resolved": false
+        },
+        {
+          "code": "city_mismatch",
+          "severity": "warning",
+          "fieldPath": "days[0].activities[1].placeCity",
+          "message": "La città 'Santiago del Cile' nel documento non corrisponde alla città 'Santiago' nell'estrazione JSON.",
+          "sourceText": "Visita del Museo Chileno de Arte Precolombina",
+          "resolved": false
+        },
+        {
+          "code": "hotel_name_mismatch",
+          "severity": "warning",
+          "fieldPath": "days[0].accommodation.name",
+          "message": "Il nome dell'hotel 'Hotel Cumbres Lastarria' nel documento non corrisponde al nome dell'hotel 'Hotel Cumbres Lastarria' nell'estrazione JSON.",
+          "sourceText": "Pernottamento presso Hotel Cumbres Lastarria, Santiago del Cile, Cile.",
+          "resolved": false
+        },
+        {
+          "code": "city_mismatch",
+          "severity": "warning",
+          "fieldPath": "days[1].activities[0].placeCity",
+          "message": "La città non è specificata nel documento ma dovrebbe essere 'Santiago' nell'estrazione JSON.",
+          "sourceText": "Trasferimento in aeroporto e fine dei servizi",
+          "resolved": false
+        },
+        {
+          "code": "city_mismatch",
+          "severity": "warning",
+          "fieldPath": "days[1].activities[1].placeCity",
+          "message": "La città 'Cerro San Cristóbal' nel documento non corrisponde alla città 'Santiago' nell'estrazione JSON.",
+          "sourceText": "Rientro a Santiago del Cile vista del Cerro San Cristóbal",
+          "resolved": false
+        },
+        {
+          "code": "city_mismatch",
+          "severity": "warning",
+          "fieldPath": "days[2].activities[0].placeCity",
+          "message": "La città 'Valparaíso' nel documento non corrisponde alla città 'Valparaíso' nell'estrazione JSON.",
+          "sourceText": "Pernottamento presso Hotel Casa Higueras, Valparaíso, Cile",
+          "resolved": false
+        },
+        {
+          "code": "hotel_name_missing",
+          "severity": "warning",
+          "fieldPath": "days[2].accommodation.name",
+          "message": "Il nome dell'hotel non è specificato nel documento ma dovrebbe essere presente nell'estrazione JSON.",
+          "sourceText": "Nessun pernottamento indicato nella fonte",
+          "resolved": false
+        }
+      ]
+    },
+    "model": "eu.amazon.nova-lite-v1:0",
+    "provider": "amazon-bedrock-native-docx",
+    "usage": {
+      "extraction": {
+        "inputTokens": 6546,
+        "outputTokens": 3685,
+        "totalTokens": 10231
+      },
+      "commercialExtraction": {
+        "inputTokens": 3416,
+        "outputTokens": 464,
+        "totalTokens": 3880
+      },
+      "accommodationRecovery": {
+        "inputTokens": 2844,
+        "outputTokens": 191,
+        "totalTokens": 3035
+      },
+      "activityRecovery": {
+        "inputTokens": 2957,
+        "outputTokens": 1429,
+        "totalTokens": 4386
+      },
+      "reconciliation": {
+        "inputTokens": 3823,
+        "outputTokens": 639,
+        "totalTokens": 4462
+      }
+    }
+  }
+}
