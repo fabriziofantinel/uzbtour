@@ -27,6 +27,19 @@ jobs:
       - name: Regressione AI deterministica senza consumo Bedrock
         run: npm run acceptance:ai:replay
 
+  browser-critical-paths:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+
   neon-tenant-isolation:
     runs-on: ubuntu-latest
     timeout-minutes: 20

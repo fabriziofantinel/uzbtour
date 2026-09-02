@@ -17,6 +17,8 @@
 /.tmp
 /.tmp-docx-render
 /.impeccable
+/test-results
+/playwright-report
 **/__pycache__/
 *.pyc
 *.log

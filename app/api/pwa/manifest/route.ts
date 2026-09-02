@@ -4,7 +4,7 @@ import { getTravelerPwaBranding } from "@/lib/platform/pwa-branding";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const branding = await getTravelerPwaBranding();
+  const branding = await getTravelerPwaBranding().catch(() => null);
   const name = branding?.agencyName || "SMF Travel";
   const color = branding?.primaryColor || "#247a6b";
   const logoSource = branding?.logoUrl ? Buffer.from(branding.logoUrl, "utf8").toString("base64url") : "";

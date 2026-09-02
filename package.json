@@ -39,6 +39,9 @@
     "db:migrate:v3:analytics-day-resolution": "node --env-file=.env.local scripts/migrate-v3-product-analytics-day-resolution.mjs --apply",
     "smoke:v3:agency-analytics": "node --env-file=.env.local scripts/smoke-v3-agency-analytics.mjs",
     "smoke:v3:kpi-change-governance": "node --env-file=.env.local scripts/smoke-v3-kpi-change-governance.mjs",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
     "test:plan-regressions": "node scripts/test-plan-regressions.mjs",
     "db:migrate:v3:expense-shares-grants:dry-run": "node --env-file=.env.local scripts/migrate-v3-expense-shares-runtime-grants.mjs",
     "db:migrate:v3:expense-shares-grants": "node --env-file=.env.local scripts/migrate-v3-expense-shares-runtime-grants.mjs --apply",
@@ -50,15 +53,15 @@
     "db:rebuild:empty": "node --env-file=.env.local scripts/rebuild-database-from-empty.mjs --apply",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "format": "prettier --write --ignore-unknown app components lib scripts workers infra .github tests tools proxy.ts eslint.config.mjs next-env.d.ts package.json package-lock.json tsconfig.json vercel.json README.md PRODUCT.md DESIGN.md AGENTS.md .env.example .gitignore .prettierignore .prettierrc.json .vercelignore",
-    "format:check": "prettier --check --ignore-unknown app components lib scripts workers infra .github tests tools proxy.ts eslint.config.mjs next-env.d.ts package.json package-lock.json tsconfig.json vercel.json README.md PRODUCT.md DESIGN.md AGENTS.md .env.example .gitignore .prettierignore .prettierrc.json .vercelignore",
+    "format": "prettier --write --ignore-unknown app components lib scripts workers infra .github tests tools proxy.ts eslint.config.mjs next-env.d.ts playwright.config.ts vitest.config.mts package.json package-lock.json tsconfig.json vercel.json README.md PRODUCT.md DESIGN.md AGENTS.md .env.example .gitignore .prettierignore .prettierrc.json .vercelignore",
+    "format:check": "prettier --check --ignore-unknown app components lib scripts workers infra .github tests tools proxy.ts eslint.config.mjs next-env.d.ts playwright.config.ts vitest.config.mts package.json package-lock.json tsconfig.json vercel.json README.md PRODUCT.md DESIGN.md AGENTS.md .env.example .gitignore .prettierignore .prettierrc.json .vercelignore",
     "prebuild": "npm run quality:guard",
     "dev": "next dev",
     "build": "next build",
     "quality:baseline": "node scripts/check-consolidation-baseline.mjs",
     "quality:baseline:report": "node scripts/check-consolidation-baseline.mjs --report",
     "quality:migrations": "node scripts/check-migration-safety.mjs",
-    "quality:guard": "npm run quality:baseline && npm run quality:migrations && npm run check:v3:runtime-boundaries && npm run check:api-security && npm run check:api-nomenclature && npm run format:check && npm run lint && tsc --noEmit",
+    "quality:guard": "npm run quality:baseline && npm run quality:migrations && npm run check:v3:runtime-boundaries && npm run check:api-security && npm run check:api-nomenclature && npm run format:check && npm run lint && tsc --noEmit && npm run test:unit",
     "quality:gate": "npm run build",
     "start": "next start",
     "db:migrate": "node --env-file=.env.local scripts/migrate.mjs",
@@ -347,6 +350,7 @@
     "sharp": "$sharp"
   },
   "devDependencies": {
+    "@playwright/test": "1.62.1",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^22.10.2",
     "@types/react": "^19.2.18",
@@ -357,6 +361,7 @@
     "eslint-config-prettier": "10.1.8",
     "prettier": "3.6.2",
     "tsx": "^4.23.12",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "4.1.11"
   }
 }
