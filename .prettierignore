@@ -1,0 +1,14 @@
+.next
+node_modules
+out
+build
+coverage
+tmp
+.tmp
+.tmp-docx-render
+public/sw.js
+public/**/*.json
+database/migrations
+docs
+*.docx
+*.pdf
