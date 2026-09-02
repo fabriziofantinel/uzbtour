@@ -10,6 +10,8 @@
     "db:migrate:v3:job-trace-correlation": "node --env-file=.env.local scripts/migrate-v3-job-trace-correlation.mjs --apply",
     "db:migrate:v3:tenant-workload-quotas:dry-run": "node --env-file=.env.local scripts/migrate-v3-tenant-workload-quotas.mjs",
     "db:migrate:v3:tenant-workload-quotas": "node --env-file=.env.local scripts/migrate-v3-tenant-workload-quotas.mjs --apply",
+    "db:migrate:v3:tenant-cumulative-budgets:dry-run": "node --env-file=.env.local scripts/migrate-v3-tenant-cumulative-workload-budgets.mjs",
+    "db:migrate:v3:tenant-cumulative-budgets": "node --env-file=.env.local scripts/migrate-v3-tenant-cumulative-workload-budgets.mjs --apply",
     "db:migrate:v3:traveler-destination-profile:dry-run": "node --env-file=.env.local scripts/migrate-v3-traveler-destination-profile.mjs",
     "db:migrate:v3:traveler-destination-profile": "node --env-file=.env.local scripts/migrate-v3-traveler-destination-profile.mjs --apply",
     "acceptance:traveler-destination-localization": "node scripts/acceptance-traveler-destination-localization.mjs",
