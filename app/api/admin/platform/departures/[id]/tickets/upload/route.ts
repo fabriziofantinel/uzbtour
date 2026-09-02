@@ -4,14 +4,21 @@ import { platformApiError } from "@/lib/platform/http";
 import { getObjectStorage } from "@/lib/platform/object-storage";
 import { requireAgencyTicketItem } from "@/lib/platform/programme-documents";
 import { MAX_TICKET_SIZE_BYTES, ticketFileDetails } from "@/lib/platform/travel-documents";
+import { enforceApiRateLimit } from "@/lib/platform/api-rate-limit";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const actor = await requirePlatformAdmin();
+    const limited = await enforceApiRateLimit(
+      request,
+      { scope: "upload.ticket", limit: 30, windowSeconds: 600 },
+      actor.id,
+    );
+    if (limited) return limited;
     const { id: departureId } = await context.params;
-    const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+    const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
     const itemId = String(body?.itemId || "");
     const sizeBytes = Number(body?.sizeBytes);
     const file = ticketFileDetails(body?.originalName, body?.contentType);

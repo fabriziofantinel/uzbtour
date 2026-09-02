@@ -6,10 +6,7 @@ import { deleteTripRecords, getTripDeletionTarget } from "@/lib/platform/reposit
 
 export const runtime = "nodejs";
 
-export async function DELETE(
-  _request: Request,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params;
     if (!/^[0-9a-f-]{36}$/i.test(id)) {

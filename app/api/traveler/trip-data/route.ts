@@ -9,5 +9,5 @@ export async function GET(request: Request) {
   const departureId = new URL(request.url).searchParams.get("partenza") || undefined;
   const experience = await getTravelerExperience(user.id, departureId);
   if (!experience) return NextResponse.json({ error: "Viaggio non disponibile" }, { status: 404 });
-  return NextResponse.json(experience, { headers: { "Cache-Control": "private, no-cache", "Vary": "Cookie" } });
+  return NextResponse.json(experience, { headers: { "Cache-Control": "private, no-cache", Vary: "Cookie" } });
 }

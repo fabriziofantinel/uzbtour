@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAuthProvider } from "@/lib/auth/auth-provider";
+import { enforceApiRateLimit } from "@/lib/platform/api-rate-limit";
 
 const schema = z.object({
   username: z.string().trim().min(3).max(80),
@@ -9,6 +10,12 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
+  const limited = await enforceApiRateLimit(request, {
+    scope: "auth.password-confirm",
+    limit: 10,
+    windowSeconds: 3600,
+  });
+  if (limited) return limited;
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Dati non validi" }, { status: 400 });
   try {

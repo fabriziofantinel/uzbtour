@@ -5,10 +5,7 @@ import { resolveV3LegacyMediaDownload } from "@/lib/platform/v3-media-download";
 
 export const runtime = "nodejs";
 
-export async function GET(
-  _request: Request,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
   const { id } = await context.params;
@@ -18,11 +15,7 @@ export async function GET(
   }
 
   try {
-    const evidence = await resolveV3LegacyMediaDownload(
-      user.id,
-      type === "m" ? "mission" : "bingo",
-      numericId,
-    );
+    const evidence = await resolveV3LegacyMediaDownload(user.id, type === "m" ? "mission" : "bingo", numericId);
     if (!evidence) {
       return NextResponse.json({ error: "Foto-prova non trovata" }, { status: 404 });
     }

@@ -20,10 +20,16 @@ export async function GET(request: Request) {
       VALUES(${experience.journey.agencyId},app.resolve_legacy_user_id(${user.id},${experience.journey.agencyId}),
       'travel_album',${experience.journey.departureId},'download',jsonb_build_object('partyId',${experience.journey.partyId},'photoCount',${experience.photos.length}))`,
   ]);
-  const filename = `diario-${experience.journey.title}`.normalize("NFKD").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase();
-  return new NextResponse(Buffer.from(pdf), { headers: {
-    "Content-Type": "application/pdf",
-    "Content-Disposition": `attachment; filename="${filename || "viaggio"}.pdf"`,
-    "Cache-Control": "private, no-store",
-  }});
+  const filename = `diario-${experience.journey.title}`
+    .normalize("NFKD")
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase();
+  return new NextResponse(Buffer.from(pdf), {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${filename || "viaggio"}.pdf"`,
+      "Cache-Control": "private, no-store",
+    },
+  });
 }

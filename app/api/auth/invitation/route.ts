@@ -3,6 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { z } from "zod";
 import { getAuthProvider } from "@/lib/auth/auth-provider";
 import { activateV3AccountInvitation, inspectV3AccountInvitation } from "@/lib/platform/v3-invitations";
+import { enforceApiRateLimit } from "@/lib/platform/api-rate-limit";
 
 const schema = z.object({
   action: z.enum(["inspect", "activate", "activate_magic"]),
@@ -11,6 +12,8 @@ const schema = z.object({
 });
 
 export async function POST(request: Request) {
+  const limited = await enforceApiRateLimit(request, { scope: "auth.invitation", limit: 20, windowSeconds: 900 });
+  if (limited) return limited;
   const auth = getAuthProvider();
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invito non valido" }, { status: 400 });
@@ -20,7 +23,8 @@ export async function POST(request: Request) {
   if (parsed.data.action === "inspect") {
     return NextResponse.json(invitation);
   }
-  if (parsed.data.action === "activate" && !parsed.data.password) return NextResponse.json({ error: "Scegli una password" }, { status: 400 });
+  if (parsed.data.action === "activate" && !parsed.data.password)
+    return NextResponse.json({ error: "Scegli una password" }, { status: 400 });
   const effectivePassword = parsed.data.password ?? `${randomBytes(24).toString("base64url")}aA7!`;
   let subject: string;
   try {

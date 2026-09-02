@@ -15,18 +15,26 @@ export async function POST(request: Request) {
     const actor = await requireAgencyAdminActor();
     const payload = payloadSchema.parse(await request.json());
     const session = await startAgencyTravelerImpersonation({
-      actorId: actor.id, targetId: payload.targetUserId,
+      actorId: actor.id,
+      targetId: payload.targetUserId,
       userAgent: request.headers.get("user-agent") || undefined,
     });
     const response = NextResponse.json({ redirectUrl: session.redirectUrl });
     response.cookies.set(IMPERSONATION_COOKIE, session.token, {
-      httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
       maxAge: IMPERSONATION_DURATION_SECONDS,
     });
     return response;
   } catch (error) {
-    if (error instanceof PlatformAuthorizationError) return NextResponse.json({ error: error.message }, { status: error.status });
+    if (error instanceof PlatformAuthorizationError)
+      return NextResponse.json({ error: error.message }, { status: error.status });
     if (error instanceof z.ZodError) return NextResponse.json({ error: "Viaggiatore non valido" }, { status: 400 });
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Accesso non riuscito" }, { status: 400 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Accesso non riuscito" },
+      { status: 400 },
+    );
   }
 }

@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+    const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
     const agencyId = cleanText(body?.agencyId, 64);
     const title = cleanText(body?.title, 240);
     const destinationCountry = cleanText(body?.destinationCountry, 120);

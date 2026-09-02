@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server";
-import {
-  PlatformAuthorizationError,
-  requirePlatformAdmin,
-} from "@/lib/platform/authorization";
+import { PlatformAuthorizationError, requirePlatformAdmin } from "@/lib/platform/authorization";
 import { getPlatformOverview } from "@/lib/platform/repository";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +15,7 @@ export async function GET() {
     console.error("Platform overview error", error);
     return NextResponse.json(
       { error: "Piattaforma non inizializzata o temporaneamente non disponibile" },
-      { status: 503 }
+      { status: 503 },
     );
   }
 }

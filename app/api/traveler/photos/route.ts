@@ -13,21 +13,24 @@ export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
-    const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+    const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
     const departureId = String(body?.departureId || "");
     const partyId = String(body?.partyId || "");
     const dayId = String(body?.dayId || "");
     const objectKey = String(body?.objectKey || "");
-    if (body?.privacyAttested !== true) return NextResponse.json({ error: "Conferma il consenso delle persone fotografate" }, { status: 400 });
+    if (body?.privacyAttested !== true)
+      return NextResponse.json({ error: "Conferma il consenso delle persone fotografate" }, { status: 400 });
     const agencyId = await assertTravelerPartyScope({ userId: user.id, departureId, partyId, dayId });
     const expectedPrefix = `agencies/${agencyId}/departures/${departureId}/parties/${partyId}/days/${dayId}/memories/`;
-    if (!objectKey.startsWith(expectedPrefix)) return NextResponse.json({ error: "Percorso foto non valido" }, { status: 400 });
+    if (!objectKey.startsWith(expectedPrefix))
+      return NextResponse.json({ error: "Percorso foto non valido" }, { status: 400 });
     uploadedObjectKey = objectKey;
     const storage = getObjectStorage();
-    const sql=getSql();
-    const [,privacyRows]=await sql.transaction((txn)=>[
-      txn`SELECT set_config('app.agency_id',${agencyId},true)`,
-      txn`SELECT membership.member_type,COALESCE((SELECT record.decision FROM privacy.consent_records record
+    const sql = getSql();
+    const [, privacyRows] = await sql.transaction(
+      (txn) => [
+        txn`SELECT set_config('app.agency_id',${agencyId},true)`,
+        txn`SELECT membership.member_type,COALESCE((SELECT record.decision FROM privacy.consent_records record
         WHERE record.agency_id=membership.agency_id AND record.departure_id=membership.departure_id
           AND record.party_id=membership.party_id AND record.subject_traveler_id=membership.traveler_id
           AND record.consent_type='minor_image_upload' AND record.consent_scope='party'
@@ -37,14 +40,23 @@ export async function POST(request: Request) {
         WHERE membership.agency_id=${agencyId} AND membership.departure_id=${departureId}
           AND membership.party_id=${partyId} AND profile.user_id=app.resolve_legacy_user_id(${user.id},${agencyId})
           AND membership.status<>'removed' LIMIT 1`,
-    ],{readOnly:true});
-    if(privacyRows[0]?.member_type==="dependent_minor"&&privacyRows[0]?.decision!=="granted"){
-      await storage.delete(objectKey).catch(()=>undefined);uploadedObjectKey="";
-      return NextResponse.json({error:"Il consenso immagini del minore non è stato concesso dall’agenzia"},{status:403});
+      ],
+      { readOnly: true },
+    );
+    if (privacyRows[0]?.member_type === "dependent_minor" && privacyRows[0]?.decision !== "granted") {
+      await storage.delete(objectKey).catch(() => undefined);
+      uploadedObjectKey = "";
+      return NextResponse.json(
+        { error: "Il consenso immagini del minore non è stato concesso dall’agenzia" },
+        { status: 403 },
+      );
     }
     const metadata = await storage.head(objectKey);
-    if (!PHOTO_CONTENT_TYPES.includes(metadata.contentType as typeof PHOTO_CONTENT_TYPES[number]) ||
-        metadata.sizeBytes <= 0 || metadata.sizeBytes > MAX_PHOTO_SIZE_BYTES) {
+    if (
+      !PHOTO_CONTENT_TYPES.includes(metadata.contentType as (typeof PHOTO_CONTENT_TYPES)[number]) ||
+      metadata.sizeBytes <= 0 ||
+      metadata.sizeBytes > MAX_PHOTO_SIZE_BYTES
+    ) {
       await storage.delete(objectKey).catch(() => undefined);
       return NextResponse.json({ error: "Il file caricato non è una foto valida" }, { status: 400 });
     }
@@ -52,20 +64,41 @@ export async function POST(request: Request) {
     const memoryId = crypto.randomUUID();
     const originalName = safeOriginalName(body?.originalName);
     const memory = await registerV3MemoryUpload({
-      userId: user.id, departureId, partyId, dayId, mediaId, memoryId,
-      provider: storage.provider, bucket: storage.bucket, objectKey,
-      originalName, contentType: metadata.contentType, sizeBytes: metadata.sizeBytes,
+      userId: user.id,
+      departureId,
+      partyId,
+      dayId,
+      mediaId,
+      memoryId,
+      provider: storage.provider,
+      bucket: storage.bucket,
+      objectKey,
+      originalName,
+      contentType: metadata.contentType,
+      sizeBytes: metadata.sizeBytes,
     });
-    return NextResponse.json({ photo: {
-      id: memory.id, mediaId, dayId, originalName,
-      contentType: metadata.contentType, sizeBytes: metadata.sizeBytes, addedBy: user.name,
-      createdAt: memory.createdAt, contentUrl: `/api/traveler/photos/${memory.id}/content`,
-      downloadUrl: `/api/traveler/photos/${memory.id}/content?download=1`, canDelete: true,
-    } });
+    return NextResponse.json({
+      photo: {
+        id: memory.id,
+        mediaId,
+        dayId,
+        originalName,
+        contentType: metadata.contentType,
+        sizeBytes: metadata.sizeBytes,
+        addedBy: user.name,
+        createdAt: memory.createdAt,
+        contentUrl: `/api/traveler/photos/${memory.id}/content`,
+        downloadUrl: `/api/traveler/photos/${memory.id}/content?download=1`,
+        canDelete: true,
+      },
+    });
   } catch (error) {
     if (uploadedObjectKey) {
       const registered = await isMediaObjectRegistered(uploadedObjectKey).catch(() => true);
-      if (!registered) await getObjectStorage().delete(uploadedObjectKey).catch(() => undefined);
+      if (!registered)
+        await getObjectStorage()
+          .delete(uploadedObjectKey)
+          .catch(() => undefined);
     }
     console.error("Registrazione foto viaggio non riuscita", error);
     return NextResponse.json({ error: "Foto caricata ma non registrata" }, { status: 503 });

@@ -4,13 +4,20 @@ import { platformApiError } from "@/lib/platform/http";
 import { getObjectStorage } from "@/lib/platform/object-storage";
 import { requireAgencyDepartureDayGroup } from "@/lib/platform/programme-documents";
 import { MAX_TICKET_SIZE_BYTES, dayDocumentFileDetails } from "@/lib/platform/travel-documents";
+import { enforceApiRateLimit } from "@/lib/platform/api-rate-limit";
 
 export const runtime = "nodejs";
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const actor = await requirePlatformAdmin();
+    const limited = await enforceApiRateLimit(
+      request,
+      { scope: "upload.day-document", limit: 30, windowSeconds: 600 },
+      actor.id,
+    );
+    if (limited) return limited;
     const { id: departureId } = await context.params;
-    const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+    const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
     const dayId = String(body?.dayId || "");
     const partyId = String(body?.partyId || "");
     const sizeBytes = Number(body?.sizeBytes);
@@ -21,5 +28,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const { agencyId } = await requireAgencyDepartureDayGroup({ departureId, dayId, partyId, actorId: actor.id });
     const key = `agencies/${agencyId}/departures/${departureId}/parties/${partyId}/days/${dayId}/documents/${crypto.randomUUID()}.${file.extension}`;
     return NextResponse.json(await getObjectStorage().createUploadAuthorization(key, file.contentType, 10 * 60));
-  } catch (error) { return platformApiError(error, "Preparazione del documento non riuscita"); }
+  } catch (error) {
+    return platformApiError(error, "Preparazione del documento non riuscita");
+  }
 }

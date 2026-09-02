@@ -6,6 +6,9 @@
     "node": ">=20.9.0"
   },
   "scripts": {
+    "db:migrate:v3:api-rate-limits:dry-run": "node --env-file=.env.local scripts/migrate-v3-api-rate-limits.mjs",
+    "db:migrate:v3:api-rate-limits": "node --env-file=.env.local scripts/migrate-v3-api-rate-limits.mjs --apply",
+    "acceptance:v3:api-rate-limits": "node --env-file=.env.local scripts/acceptance-v3-api-rate-limits.mjs",
     "db:migrate:v3:branded-web-push:dry-run": "node --env-file=.env.local scripts/migrate-v3-branded-web-push-subscriptions.mjs",
     "db:migrate:v3:branded-web-push": "node --env-file=.env.local scripts/migrate-v3-branded-web-push-subscriptions.mjs --apply",
     "db:migrate:v3:normalized-media:dry-run": "node --env-file=.env.local scripts/migrate-v3-normalized-media-registration.mjs",
@@ -48,7 +51,7 @@
     "quality:baseline": "node scripts/check-consolidation-baseline.mjs",
     "quality:baseline:report": "node scripts/check-consolidation-baseline.mjs --report",
     "quality:migrations": "node scripts/check-migration-safety.mjs",
-    "quality:guard": "npm run quality:baseline && npm run quality:migrations && npm run check:v3:runtime-boundaries && npm run lint && tsc --noEmit",
+    "quality:guard": "npm run quality:baseline && npm run quality:migrations && npm run check:v3:runtime-boundaries && npm run check:api-security && npm run lint && tsc --noEmit",
     "quality:gate": "npm run build",
     "start": "next start",
     "db:migrate": "node --env-file=.env.local scripts/migrate.mjs",
@@ -291,6 +294,7 @@
     "acceptance:v3:agency-country-profile-review": "node --env-file=.env.local scripts/acceptance-v3-agency-country-profile-review.mjs",
     "acceptance:travel-import-quality": "tsx scripts/acceptance-travel-import-quality.ts",
     "check:v3:runtime-boundaries": "node scripts/check-v3-runtime-boundaries.mjs",
+    "check:api-security": "node scripts/check-api-security-boundaries.mjs",
     "db:validate:v3": "node --env-file=.env.local scripts/validate-v3-target.mjs",
     "db:link-neon-user": "node --env-file=.env.local scripts/link-neon-auth-user.mjs",
     "db:set-platform-role": "node --env-file=.env.local scripts/set-platform-role.mjs",

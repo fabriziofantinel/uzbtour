@@ -5,10 +5,7 @@ import { deleteV3LegacyDemoMedia } from "@/lib/platform/v3-media-mutations";
 
 export const runtime = "nodejs";
 
-export async function DELETE(
-  _request: Request,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
 
@@ -24,11 +21,16 @@ export async function DELETE(
     }
     if (!result.deleted || !result.objectKey) {
       const status = result.reason === "not_found" ? 404 : 403;
-      return NextResponse.json({ error: status === 404 ? "Foto non trovata" : "Operazione non autorizzata" }, { status });
+      return NextResponse.json(
+        { error: status === 404 ? "Foto non trovata" : "Operazione non autorizzata" },
+        { status },
+      );
     }
-    await getObjectStorage().delete(result.objectKey).catch((error) => {
-      console.error("Oggetto R2 orfano dopo cancellazione metadati contest", { id, error });
-    });
+    await getObjectStorage()
+      .delete(result.objectKey)
+      .catch((error) => {
+        console.error("Oggetto R2 orfano dopo cancellazione metadati contest", { id, error });
+      });
     return NextResponse.json({ deleted: true });
   } catch (error) {
     console.error("Cancellazione foto contest non riuscita", error);

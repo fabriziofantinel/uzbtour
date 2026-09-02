@@ -16,7 +16,7 @@ function publicQuestions(day: number) {
 function buildQuizResponse(
   user: { id: string; name: string; initials: string; isAgencyAdmin: boolean },
   rows: Record<string, unknown>[],
-  users: TravelCompanion[]
+  users: TravelCompanion[],
 ) {
   const attempts = rows.map((row) => ({
     day: Number(row.day),
@@ -24,28 +24,32 @@ function buildQuizResponse(
     userName: String(row.user_name),
     score: Number(row.score),
     answers: row.answers as AnswerMap,
-    submittedAt: row.submitted_at
+    submittedAt: row.submitted_at,
   }));
   const ownAttempts = new Map(
-    attempts.filter((attempt) => attempt.userId === user.id).map((attempt) => [attempt.day, attempt])
+    attempts.filter((attempt) => attempt.userId === user.id).map((attempt) => [attempt.day, attempt]),
   );
   const dailyRankings = quizDays.map((day) => ({
     day: day.day,
     entries: attempts
       .filter((attempt) => attempt.day === day.day)
-      .sort((left, right) => right.score - left.score || String(left.submittedAt).localeCompare(String(right.submittedAt)))
-      .map(({ userId: _userId, answers: _answers, ...attempt }) => attempt)
+      .sort(
+        (left, right) => right.score - left.score || String(left.submittedAt).localeCompare(String(right.submittedAt)),
+      )
+      .map(({ userId: _userId, answers: _answers, ...attempt }) => attempt),
   }));
 
-  const totals = users.map((tripUser) => {
-    const userAttempts = attempts.filter((attempt) => attempt.userId === tripUser.id);
-    return {
-      name: tripUser.name,
-      initials: tripUser.initials,
-      score: userAttempts.reduce((sum, attempt) => sum + attempt.score, 0),
-      completed: userAttempts.length
-    };
-  }).sort((left, right) => right.score - left.score || right.completed - left.completed);
+  const totals = users
+    .map((tripUser) => {
+      const userAttempts = attempts.filter((attempt) => attempt.userId === tripUser.id);
+      return {
+        name: tripUser.name,
+        initials: tripUser.initials,
+        score: userAttempts.reduce((sum, attempt) => sum + attempt.score, 0),
+        completed: userAttempts.length,
+      };
+    })
+    .sort((left, right) => right.score - left.score || right.completed - left.completed);
 
   return {
     currentUser: user,
@@ -54,12 +58,14 @@ function buildQuizResponse(
       const unlocked = isQuizUnlocked(day, user);
       const attempt = ownAttempts.get(day.day);
       const questions = unlocked ? publicQuestions(day.day) : [];
-      const result = attempt ? getQuizQuestions(day.day).map((question) => ({
-        id: question.id,
-        selectedAnswer: attempt.answers[question.id] ?? "",
-        correctAnswer: question.correctAnswer,
-        correct: attempt.answers[question.id] === question.correctAnswer
-      })) : null;
+      const result = attempt
+        ? getQuizQuestions(day.day).map((question) => ({
+            id: question.id,
+            selectedAnswer: attempt.answers[question.id] ?? "",
+            correctAnswer: question.correctAnswer,
+            correct: attempt.answers[question.id] === question.correctAnswer,
+          }))
+        : null;
 
       return {
         day: day.day,
@@ -68,16 +74,18 @@ function buildQuizResponse(
         unlockAt: day.unlockAt,
         unlocked,
         questions,
-        attempt: attempt ? {
-          score: attempt.score,
-          answers: attempt.answers,
-          submittedAt: attempt.submittedAt,
-          result
-        } : null
+        attempt: attempt
+          ? {
+              score: attempt.score,
+              answers: attempt.answers,
+              submittedAt: attempt.submittedAt,
+              result,
+            }
+          : null,
       };
     }),
     dailyRankings,
-    totals
+    totals,
   };
 }
 
@@ -117,8 +125,8 @@ export async function POST(request: Request) {
 
   const questions = getQuizQuestions(day.day);
   const answers = body.answers;
-  const complete = questions.every((question) =>
-    typeof answers[question.id] === "string" && question.options.includes(answers[question.id])
+  const complete = questions.every(
+    (question) => typeof answers[question.id] === "string" && question.options.includes(answers[question.id]),
   );
   if (!complete || Object.keys(answers).length !== questions.length) {
     return NextResponse.json({ error: "Rispondi a tutte le 15 domande" }, { status: 400 });
@@ -139,7 +147,7 @@ export async function POST(request: Request) {
 
     const score = questions.reduce(
       (total, question) => total + (answers[question.id] === question.correctAnswer ? 1 : 0),
-      0
+      0,
     );
     const serializedAnswers = JSON.stringify(answers);
 

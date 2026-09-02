@@ -16,38 +16,43 @@ import {
   NORMALIZED_TRAVEL_DOCUMENT_CONTENT_TYPE,
   normalizedTravelDocumentName,
 } from "@/lib/platform/normalized-travel-document";
+import { enforceApiRateLimit } from "@/lib/platform/api-rate-limit";
 
 export const runtime = "nodejs";
 
-export async function POST(
-  _request: Request,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params;
     const agencyId = await getImportAgency(id);
     const actor = await requireAgencyAdmin(agencyId);
+    const limited = await enforceApiRateLimit(
+      request,
+      { scope: "ai.import-publish", limit: 10, windowSeconds: 3600 },
+      actor.id,
+    );
+    if (limited) return limited;
     const imported = await getImportForReview(id, agencyId);
     if (!imported.draft) {
       return NextResponse.json({ error: "Nessuna bozza da pubblicare" }, { status: 400 });
     }
-    const blockingIssues = imported.draft.reconciliationIssues.filter((issue) => issue.severity === "blocking" && !issue.resolved);
+    const blockingIssues = imported.draft.reconciliationIssues.filter(
+      (issue) => issue.severity === "blocking" && !issue.resolved,
+    );
     if (blockingIssues.length > 0) {
-      return NextResponse.json({
-        error: `Risolvi le ${blockingIssues.length} anomalie bloccanti prima di pubblicare.`,
-        issues: blockingIssues,
-      }, { status: 409 });
+      return NextResponse.json(
+        {
+          error: `Risolvi le ${blockingIssues.length} anomalie bloccanti prima di pubblicare.`,
+          issues: blockingIssues,
+        },
+        { status: 409 },
+      );
     }
     const documentContext = await getImportDocumentPublicationContext(id, agencyId);
     const normalizedName = normalizedTravelDocumentName(imported.draft.title);
     const normalizedBytes = await createNormalizedTravelDocument(imported.draft, documentContext.sourceName);
     const normalizedKey = `agencies/${agencyId}/trips/${documentContext.templateId}/published/${id}/${crypto.randomUUID()}/${normalizedName}`;
     const storage = getObjectStorage("r2");
-    const normalizedObject = await storage.put(
-      normalizedKey,
-      normalizedBytes,
-      NORMALIZED_TRAVEL_DOCUMENT_CONTENT_TYPE
-    );
+    const normalizedObject = await storage.put(normalizedKey, normalizedBytes, NORMALIZED_TRAVEL_DOCUMENT_CONTENT_TYPE);
     try {
       await saveNormalizedImportDocument({
         importId: id,

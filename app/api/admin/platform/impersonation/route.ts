@@ -35,8 +35,11 @@ export async function POST(request: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Utente non valido" }, { status: 400 });
     }
-    return NextResponse.json({
-      error: error instanceof Error ? error.message : "Impossibile avviare la sessione",
-    }, { status: 400 });
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Impossibile avviare la sessione",
+      },
+      { status: 400 },
+    );
   }
 }

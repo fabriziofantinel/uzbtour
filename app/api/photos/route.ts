@@ -10,7 +10,7 @@ import {
   safeOriginalName,
   savePhotoMetadata,
   validPhotoDay,
-  validPhotoPath
+  validPhotoPath,
 } from "@/lib/photos";
 
 export const runtime = "nodejs";
@@ -27,7 +27,7 @@ function photoFromRow(row: Record<string, unknown>, user: { id: string; isAgency
     createdAt: row.created_at,
     contentUrl: `/api/photos/${id}/content`,
     downloadUrl: `/api/photos/${id}/content?download=1`,
-    canDelete: String(row.uploaded_by_id) === user.id || isPhotoAdmin(user)
+    canDelete: String(row.uploaded_by_id) === user.id || isPhotoAdmin(user),
   };
 }
 
@@ -73,8 +73,11 @@ export async function POST(request: Request) {
   try {
     const storage = getObjectStorage();
     const metadata = await storage.head(body.objectKey);
-    if (!PHOTO_CONTENT_TYPES.includes(metadata.contentType as typeof PHOTO_CONTENT_TYPES[number])
-      || metadata.sizeBytes <= 0 || metadata.sizeBytes > MAX_PHOTO_SIZE_BYTES) {
+    if (
+      !PHOTO_CONTENT_TYPES.includes(metadata.contentType as (typeof PHOTO_CONTENT_TYPES)[number]) ||
+      metadata.sizeBytes <= 0 ||
+      metadata.sizeBytes > MAX_PHOTO_SIZE_BYTES
+    ) {
       await storage.delete(body.objectKey).catch(() => undefined);
       return NextResponse.json({ error: "Il file caricato non è una foto valida" }, { status: 400 });
     }
@@ -84,7 +87,7 @@ export async function POST(request: Request) {
       originalName: safeOriginalName(body.originalName),
       contentType: metadata.contentType,
       sizeBytes: metadata.sizeBytes,
-      user
+      user,
     });
     return NextResponse.json({ photo: photoFromRow(row, user) });
   } catch (error) {

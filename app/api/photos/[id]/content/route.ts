@@ -10,10 +10,7 @@ function contentDisposition(filename: string, download: boolean) {
   return `${download ? "attachment" : "inline"}; filename*=UTF-8''${encoded}`;
 }
 
-export async function GET(
-  request: Request,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
 

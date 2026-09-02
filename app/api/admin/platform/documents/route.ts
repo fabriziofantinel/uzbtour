@@ -21,19 +21,21 @@ function validDocumentPath(pathname: string, agencyId: string, templateId: strin
   const escapedTemplateId = templateId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return new RegExp(
     `^agencies/${escapedAgencyId}/trips/${escapedTemplateId}/documents/[0-9a-f-]{36}\\.(pdf|doc|docx)$`,
-    "i"
+    "i",
   ).test(pathname);
 }
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+    const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
     const agencyId = cleanText(body?.agencyId, 64);
     const templateId = cleanText(body?.templateId, 64);
     const objectKey = cleanText(body?.objectKey, 700);
     const originalName = cleanText(body?.originalName, 240);
     if (
-      !agencyId || !templateId || !validDocumentPath(objectKey, agencyId, templateId) ||
+      !agencyId ||
+      !templateId ||
+      !validDocumentPath(objectKey, agencyId, templateId) ||
       !travelDocumentExtension(originalName)
     ) {
       return NextResponse.json({ error: "Documento non valido" }, { status: 400 });

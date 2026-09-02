@@ -11,7 +11,10 @@ const expenseSchema = z.object({
   label: z.string().trim().min(1).max(240),
   amount: z.number().positive().max(100_000_000_000),
   currency: z.enum(["EUR", "USD", "UZS", "GBP", "VND"]),
-  clientOperationId: z.string().uuid().default(() => crypto.randomUUID()),
+  clientOperationId: z
+    .string()
+    .uuid()
+    .default(() => crypto.randomUUID()),
   exchangeRateToBase: z.number().positive().max(1_000_000).nullable().optional(),
   shareTravelerIds: z.array(z.string().uuid()).min(1).max(100).optional(),
 });

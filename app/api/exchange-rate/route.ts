@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { enforceApiRateLimit } from "@/lib/platform/api-rate-limit";
 
 type CentralBankRate = {
   Ccy: string;
@@ -10,6 +11,12 @@ type CentralBankRate = {
 export const revalidate = 3600;
 
 export async function GET(request: Request) {
+  const limited = await enforceApiRateLimit(request, {
+    scope: "public.exchange-rate",
+    limit: 120,
+    windowSeconds: 3600,
+  });
+  if (limited) return limited;
   const currency = new URL(request.url).searchParams.get("currency")?.toUpperCase() || "UZS";
   if (!/^[A-Z]{3}$/.test(currency)) return NextResponse.json({ error: "Valuta non valida" }, { status: 400 });
   if (currency === "EUR") return NextResponse.json({ rate: 1, source: "Parità euro" });
@@ -17,18 +24,18 @@ export async function GET(request: Request) {
     if (currency !== "UZS") {
       const response = await fetch("https://open.er-api.com/v6/latest/EUR", { next: { revalidate: 3600 } });
       if (!response.ok) throw new Error(`Exchange response: ${response.status}`);
-      const data = await response.json() as { rates?: Record<string, number>; time_last_update_utc?: string };
+      const data = (await response.json()) as { rates?: Record<string, number>; time_last_update_utc?: string };
       const rate = data.rates?.[currency];
       if (!rate || !Number.isFinite(rate)) throw new Error("Invalid exchange rate");
       return NextResponse.json({ rate, date: data.time_last_update_utc, source: "Exchange Rate API" });
     }
     const response = await fetch("https://cbu.uz/en/arkhiv-kursov-valyut/json/EUR/", {
-      next: { revalidate: 3600 }
+      next: { revalidate: 3600 },
     });
 
     if (!response.ok) throw new Error(`Central Bank response: ${response.status}`);
 
-    const rates = await response.json() as CentralBankRate[];
+    const rates = (await response.json()) as CentralBankRate[];
     const euro = rates.find((item) => item.Ccy === "EUR");
     const nominal = Number(euro?.Nominal);
     const value = Number(euro?.Rate);
@@ -40,12 +47,9 @@ export async function GET(request: Request) {
     return NextResponse.json({
       rate: value / nominal,
       date: euro.Date,
-      source: "Banca Centrale della Repubblica dell’Uzbekistan"
+      source: "Banca Centrale della Repubblica dell’Uzbekistan",
     });
   } catch {
-    return NextResponse.json(
-      { error: "Tasso ufficiale temporaneamente non disponibile" },
-      { status: 503 }
-    );
+    return NextResponse.json({ error: "Tasso ufficiale temporaneamente non disponibile" }, { status: 503 });
   }
 }

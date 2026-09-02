@@ -11,7 +11,7 @@ import {
   photoContestDays,
   photoContestDefinition,
   type PhotoContestType,
-  validPhotoContestType
+  validPhotoContestType,
 } from "@/lib/photo-contest";
 import { isPhotoAdmin } from "@/lib/photos";
 
@@ -33,14 +33,11 @@ function contestFromRow(row: Record<string, unknown>) {
     model: String(row.model),
     startedAt: row.started_at,
     completedAt: row.completed_at,
-    errorMessage: row.error_message == null ? null : String(row.error_message)
+    errorMessage: row.error_message == null ? null : String(row.error_message),
   };
 }
 
-function photoFromRow(
-  row: Record<string, unknown>,
-  user: { id: string; isAgencyAdmin: boolean }
-) {
+function photoFromRow(row: Record<string, unknown>, user: { id: string; isAgencyAdmin: boolean }) {
   const id = String(row.id);
   return {
     id,
@@ -50,7 +47,7 @@ function photoFromRow(
     isMine: String(row.uploaded_by_id) === user.id,
     canDelete: String(row.uploaded_by_id) === user.id || isPhotoAdmin(user),
     contentUrl: `/api/photo-contest/photos/${id}/content`,
-    createdAt: row.created_at
+    createdAt: row.created_at,
   };
 }
 
@@ -68,14 +65,11 @@ async function buildResponse(user: { id: string; isAgencyAdmin: boolean }) {
              uploaded_by_id, uploaded_by_name, created_at
       FROM trip_contest_photos
       ORDER BY day, contest_type, uploaded_by_name, participant_slot
-    `
+    `,
   ]);
 
   const contests = new Map(
-    contestRows.map((row) => [
-      `${Number(row.day)}:${String(row.contest_type)}`,
-      contestFromRow(row)
-    ])
+    contestRows.map((row) => [`${Number(row.day)}:${String(row.contest_type)}`, contestFromRow(row)]),
   );
   const photos = new Map<string, ReturnType<typeof photoFromRow>[]>();
   for (const row of photoRows) {
@@ -96,7 +90,7 @@ async function buildResponse(user: { id: string; isAgencyAdmin: boolean }) {
           photoCount: entries.length,
           myPhotoCount: entries.filter((photo) => photo.isMine).length,
           photos: entries,
-          contest: contests.get(key) ?? null
+          contest: contests.get(key) ?? null,
         };
       };
 
@@ -107,10 +101,10 @@ async function buildResponse(user: { id: string; isAgencyAdmin: boolean }) {
         city: day.city,
         contests: {
           free: buildKind("free"),
-          theme: buildKind("theme")
-        }
+          theme: buildKind("theme"),
+        },
       };
-    })
+    }),
   };
 }
 
@@ -123,10 +117,7 @@ export async function GET() {
     return NextResponse.json(await buildResponse(user));
   } catch (error) {
     console.error("Impossibile leggere i concorsi fotografici", error);
-    return NextResponse.json(
-      { error: "Concorsi fotografici temporaneamente non disponibili" },
-      { status: 503 }
-    );
+    return NextResponse.json({ error: "Concorsi fotografici temporaneamente non disponibili" }, { status: 503 });
   }
 }
 
@@ -137,7 +128,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Solo Fabrizio può avviare la giuria" }, { status: 403 });
   }
 
-  const body = await request.json().catch(() => null) as {
+  const body = (await request.json().catch(() => null)) as {
     day?: number;
     contestType?: PhotoContestType;
   } | null;
@@ -182,11 +173,12 @@ export async function POST(request: Request) {
       const status = String(existing[0]?.status ?? "");
       return NextResponse.json(
         {
-          error: status === "completed"
-            ? "La foto vincitrice di questo contest è già stata scelta"
-            : "La giuria di questo contest è già in corso"
+          error:
+            status === "completed"
+              ? "La foto vincitrice di questo contest è già stata scelta"
+              : "La giuria di questo contest è già in corso",
         },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -204,17 +196,19 @@ export async function POST(request: Request) {
       throw new Error(`Il contest può valutare al massimo ${MAX_CONTEST_PHOTOS} foto`);
     }
 
-    const judgment = await judgePhotos(photos.map((photo) => ({
-      id: String(photo.id),
-      pathname: String(photo.pathname),
-      originalName: String(photo.original_name),
-      addedBy: String(photo.uploaded_by_name),
-      day: tripDay.day,
-      city: tripDay.city,
-      highlights: tripDay.highlights,
-      themeTitle: definition.title,
-      themeDescription: definition.description
-    })));
+    const judgment = await judgePhotos(
+      photos.map((photo) => ({
+        id: String(photo.id),
+        pathname: String(photo.pathname),
+        originalName: String(photo.original_name),
+        addedBy: String(photo.uploaded_by_name),
+        day: tripDay.day,
+        city: tripDay.city,
+        highlights: tripDay.highlights,
+        themeTitle: definition.title,
+        themeDescription: definition.description,
+      })),
+    );
     const winner = judgment.rankings[0];
 
     await sql`

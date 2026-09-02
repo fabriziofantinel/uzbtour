@@ -59,7 +59,7 @@ jobs:
           cache: npm
       - if: steps.neon-config.outputs.enabled == 'true'
         run: npm ci
-      - name: Validazione schema, RLS e isolamento tenant
+      - name: Ricostruzione schema, RLS e contratti runtime
         if: steps.neon-config.outputs.enabled == 'true'
         env:
           DATABASE_MIGRATION_URL: ${{ steps.create-neon-branch.outputs.db_url }}
@@ -70,12 +70,18 @@ jobs:
           ALLOW_EMPTY_DATABASE_BOOTSTRAP: "1"
         run: |
           touch .env.local
-          node scripts/reset-empty-neon-ci-branch.mjs
-          npm run db:rebuild:empty
+          # Prima del reset il branch contiene una copia isolata dei dati: qui
+          # restano attivi gli smoke test di riconciliazione e lettura reali.
           node scripts/prepare-neon-ci-runtime-role.mjs
           npm run smoke:v3:operational-read
           npm run smoke:v3:travel-catalog-read
           npm run smoke:v3:gamification-read
+          # Poi proviamo separatamente che l'intero schema sia ricostruibile
+          # dal repository, senza dipendere da dati o oggetti preesistenti.
+          node scripts/reset-empty-neon-ci-branch.mjs
+          npm run db:rebuild:empty
+          node scripts/prepare-neon-ci-runtime-role.mjs
+          npm run acceptance:v3:api-rate-limits
       - uses: neondatabase/delete-branch-action@v3
         if: always() && steps.neon-config.outputs.enabled == 'true' && steps.create-neon-branch.outputs.branch_id != ''
         with:

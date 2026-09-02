@@ -5,10 +5,7 @@ import { resolveV3LegacyMediaDownload } from "@/lib/platform/v3-media-download";
 
 export const runtime = "nodejs";
 
-export async function GET(
-  _request: Request,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
 

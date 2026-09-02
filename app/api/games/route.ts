@@ -19,11 +19,10 @@ function scoreFromRow(row: Record<string, unknown>) {
 function buildResponse(
   user: { id: string; name: string; initials: string; isAgencyAdmin: boolean },
   rows: Record<string, unknown>[],
-  users: TravelCompanion[]
+  users: TravelCompanion[],
 ) {
   const ownScores = new Map(
-    rows.filter((row) => String(row.user_id) === user.id)
-      .map((row) => [Number(row.day), scoreFromRow(row)])
+    rows.filter((row) => String(row.user_id) === user.id).map((row) => [Number(row.day), scoreFromRow(row)]),
   );
   return {
     currentUser: user,
@@ -35,17 +34,19 @@ function buildResponse(
       ranking: rows
         .filter((row) => Number(row.day) === day.day)
         .map((row) => ({ name: String(row.user_name), ...scoreFromRow(row) }))
-        .sort((left, right) => right.total - left.total)
+        .sort((left, right) => right.total - left.total),
     })),
-    totals: users.map((tripUser) => {
-      const scores = rows.filter((row) => String(row.user_id) === tripUser.id);
-      return {
-        name: tripUser.name,
-        initials: tripUser.initials,
-        score: scores.reduce((sum, row) => sum + scoreFromRow(row).total, 0),
-        completed: scores.filter((row) => scoreFromRow(row).total === 100).length
-      };
-    }).sort((left, right) => right.score - left.score || right.completed - left.completed)
+    totals: users
+      .map((tripUser) => {
+        const scores = rows.filter((row) => String(row.user_id) === tripUser.id);
+        return {
+          name: tripUser.name,
+          initials: tripUser.initials,
+          score: scores.reduce((sum, row) => sum + scoreFromRow(row).total, 0),
+          completed: scores.filter((row) => scoreFromRow(row).total === 100).length,
+        };
+      })
+      .sort((left, right) => right.score - left.score || right.completed - left.completed),
   };
 }
 
@@ -63,11 +64,7 @@ export async function GET() {
 
   try {
     await ensureGameScoresTable();
-    return NextResponse.json(buildResponse(
-      user,
-      await readRows(),
-      await getTravelCompanions(user.id)
-    ));
+    return NextResponse.json(buildResponse(user, await readRows(), await getTravelCompanions(user.id)));
   } catch (error) {
     console.error("Impossibile leggere i giochi", error);
     return NextResponse.json({ error: "Giochi temporaneamente non disponibili" }, { status: 503 });
@@ -78,7 +75,7 @@ export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
 
-  const body = await request.json().catch(() => null) as {
+  const body = (await request.json().catch(() => null)) as {
     day?: number;
     game?: GameName;
     score?: number;
@@ -88,19 +85,10 @@ export async function POST(request: Request) {
   const game = body?.game;
   const score = Number(body?.score);
 
-  if (
-    !day ||
-    !game ||
-    !(game in maximums) ||
-    !Number.isInteger(score) ||
-    score < 0 ||
-    score > maximums[game]
-  ) {
+  if (!day || !game || !(game in maximums) || !Number.isInteger(score) || score < 0 || score > maximums[game]) {
     return NextResponse.json({ error: "Punteggio non valido" }, { status: 400 });
   }
-  const column = game === "word"
-    ? "word_score"
-    : game === "order" ? "order_score" : "puzzle_score";
+  const column = game === "word" ? "word_score" : game === "order" ? "order_score" : "puzzle_score";
 
   try {
     await ensureGameScoresTable();
@@ -133,11 +121,7 @@ export async function POST(request: Request) {
           updated_at = NOW()
       `;
     }
-    return NextResponse.json(buildResponse(
-      user,
-      await readRows(),
-      await getTravelCompanions(user.id)
-    ));
+    return NextResponse.json(buildResponse(user, await readRows(), await getTravelCompanions(user.id)));
   } catch (error) {
     console.error("Salvataggio del gioco non riuscito", error);
     return NextResponse.json({ error: "Punteggio non salvato" }, { status: 503 });

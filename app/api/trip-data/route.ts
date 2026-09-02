@@ -5,7 +5,13 @@ import { assertDatabaseTables } from "@/lib/platform/schema-readiness";
 
 type NoteRequest = { action: "note"; day?: number; text?: string };
 type RestaurantRequest = { action: "restaurant"; day?: number; name?: string };
-type ExpenseRequest = { action: "expense"; day?: number | null; label?: string; amount?: number; currency?: "EUR" | "UZS" };
+type ExpenseRequest = {
+  action: "expense";
+  day?: number | null;
+  label?: string;
+  amount?: number;
+  currency?: "EUR" | "UZS";
+};
 type CashMovementRequest = {
   action: "withdrawal" | "exchange";
   day?: number;
@@ -34,7 +40,7 @@ function cashMovementFromRow(row: Record<string, unknown>) {
     somAmount: Number(row.som_amount),
     feeEuro,
     addedBy: String(row.added_by_name),
-    createdAt: row.created_at
+    createdAt: row.created_at,
   };
 }
 
@@ -50,7 +56,7 @@ export async function GET() {
       sql`SELECT id, day, name, added_by_name, created_at FROM trip_restaurants ORDER BY created_at`,
       sql`SELECT id, day, label, amount, currency, payer_name, created_at FROM trip_expenses ORDER BY created_at`,
       sql`SELECT id, day, kind, location, euro_amount, som_amount, fee_eur, added_by_name, created_at
-          FROM trip_cash_movements ORDER BY created_at`
+          FROM trip_cash_movements ORDER BY created_at`,
     ]);
 
     return NextResponse.json({
@@ -58,14 +64,14 @@ export async function GET() {
         day: Number(row.day),
         text: String(row.text),
         updatedBy: String(row.updated_by_name),
-        updatedAt: row.updated_at
+        updatedAt: row.updated_at,
       })),
       restaurants: restaurantRows.map((row) => ({
         id: String(row.id),
         day: Number(row.day),
         name: String(row.name),
         addedBy: String(row.added_by_name),
-        createdAt: row.created_at
+        createdAt: row.created_at,
       })),
       expenses: expenseRows.map((row) => ({
         id: String(row.id),
@@ -74,9 +80,9 @@ export async function GET() {
         amount: Number(row.amount),
         currency: row.currency === "UZS" ? "UZS" : "EUR",
         payer: String(row.payer_name),
-        createdAt: row.created_at
+        createdAt: row.created_at,
       })),
-      cashMovements: cashRows.map(cashMovementFromRow)
+      cashMovements: cashRows.map(cashMovementFromRow),
     });
   } catch (error) {
     console.error("Impossibile leggere i dati del viaggio", error);
@@ -123,8 +129,8 @@ export async function POST(request: Request) {
           day: Number(row.day),
           text: String(row.text),
           updatedBy: String(row.updated_by_name),
-          updatedAt: row.updated_at
-        }
+          updatedAt: row.updated_at,
+        },
       });
     }
 
@@ -146,8 +152,8 @@ export async function POST(request: Request) {
           day: Number(row.day),
           name: String(row.name),
           addedBy: String(row.added_by_name),
-          createdAt: row.created_at
-        }
+          createdAt: row.created_at,
+        },
       });
     }
 
@@ -157,7 +163,8 @@ export async function POST(request: Request) {
       const euroAmount = body.euroAmount == null ? null : Number(body.euroAmount);
       const somAmount = Number(body.somAmount);
       const feeEuro = body.feeEuro == null ? null : Number(body.feeEuro);
-      const validEuro = euroAmount == null || (Number.isFinite(euroAmount) && euroAmount > 0 && euroAmount <= 1_000_000);
+      const validEuro =
+        euroAmount == null || (Number.isFinite(euroAmount) && euroAmount > 0 && euroAmount <= 1_000_000);
       const validFee = feeEuro == null || (Number.isFinite(feeEuro) && feeEuro >= 0 && feeEuro <= 100_000);
 
       if (
@@ -224,8 +231,8 @@ export async function POST(request: Request) {
         amount: Number(row.amount),
         currency: row.currency === "UZS" ? "UZS" : "EUR",
         payer: String(row.payer_name),
-        createdAt: row.created_at
-      }
+        createdAt: row.created_at,
+      },
     });
   } catch (error) {
     console.error("Impossibile salvare i dati del viaggio", error);

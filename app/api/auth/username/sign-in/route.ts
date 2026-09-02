@@ -2,32 +2,66 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getAuthProvider } from "@/lib/auth/auth-provider";
 import { readUsernameLoginState } from "@/lib/auth/login-state";
+import { enforceApiRateLimit } from "@/lib/platform/api-rate-limit";
 
 const schema = z.object({
-  username: z.string().trim().toLowerCase().regex(/^[a-z0-9][a-z0-9._-]{2,79}$/),
+  username: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^[a-z0-9][a-z0-9._-]{2,79}$/),
   password: z.string().min(1).max(256),
 });
 
 export async function POST(request: Request) {
+  const limited = await enforceApiRateLimit(request, { scope: "auth.sign-in", limit: 10, windowSeconds: 900 });
+  if (limited) return limited;
   const auth = getAuthProvider();
   const parsed = schema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ code: "INVALID_USERNAME", error: "Username non valido" }, { status: 400 });
+  if (!parsed.success)
+    return NextResponse.json({ code: "INVALID_USERNAME", error: "Username non valido" }, { status: 400 });
   if (!auth.isConfigured()) return NextResponse.json({ error: "Autenticazione in configurazione" }, { status: 503 });
   let state;
-  try{state=await readUsernameLoginState(parsed.data.username);}
-  catch{return NextResponse.json({code:"LOGIN_STATE_UNAVAILABLE",error:"Servizio di accesso temporaneamente non disponibile."},{status:503});}
-  if(state==="unknown" || state==="unassigned") return NextResponse.json({
-    code:"INVITATION_REQUIRED",error:"Account non censito: occorre richiedere un invito all’agenzia."
-  },{status:401});
-  if(state==="invited") return NextResponse.json({
-    code:"INVITATION_PENDING",error:"Invito non ancora accettato: apri l’email ricevuta per attivare l’account."
-  },{status:401});
-  if(state==="disabled_agency") return NextResponse.json({
-    code:"AGENCY_DISABLED",error:"Impossibile entrare: agenzia disabilitata."
-  },{status:403});
-  if(state==="disabled") return NextResponse.json({
-    code:"ACCOUNT_DISABLED",error:"Account disabilitato. Contatta l’assistenza."
-  },{status:403});
+  try {
+    state = await readUsernameLoginState(parsed.data.username);
+  } catch {
+    return NextResponse.json(
+      { code: "LOGIN_STATE_UNAVAILABLE", error: "Servizio di accesso temporaneamente non disponibile." },
+      { status: 503 },
+    );
+  }
+  if (state === "unknown" || state === "unassigned")
+    return NextResponse.json(
+      {
+        code: "INVITATION_REQUIRED",
+        error: "Account non censito: occorre richiedere un invito all’agenzia.",
+      },
+      { status: 401 },
+    );
+  if (state === "invited")
+    return NextResponse.json(
+      {
+        code: "INVITATION_PENDING",
+        error: "Invito non ancora accettato: apri l’email ricevuta per attivare l’account.",
+      },
+      { status: 401 },
+    );
+  if (state === "disabled_agency")
+    return NextResponse.json(
+      {
+        code: "AGENCY_DISABLED",
+        error: "Impossibile entrare: agenzia disabilitata.",
+      },
+      { status: 403 },
+    );
+  if (state === "disabled")
+    return NextResponse.json(
+      {
+        code: "ACCOUNT_DISABLED",
+        error: "Account disabilitato. Contatta l’assistenza.",
+      },
+      { status: 403 },
+    );
   try {
     const result = await auth.signIn(parsed.data.username, parsed.data.password);
     const response = NextResponse.json({ ok: true });
@@ -36,7 +70,12 @@ export async function POST(request: Request) {
   } catch (error) {
     const name = error instanceof Error ? error.name : "";
     const status = name === "TooManyRequestsException" ? 429 : 401;
-    return NextResponse.json({ code:status===429?"RATE_LIMITED":"INVALID_CREDENTIALS",
-      error: status === 429 ? "Troppi tentativi" : "Password errata." }, { status });
+    return NextResponse.json(
+      {
+        code: status === 429 ? "RATE_LIMITED" : "INVALID_CREDENTIALS",
+        error: status === 429 ? "Troppi tentativi" : "Password errata.",
+      },
+      { status },
+    );
   }
 }

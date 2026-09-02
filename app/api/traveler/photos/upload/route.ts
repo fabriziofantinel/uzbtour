@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/current-user";
 import { getObjectStorage } from "@/lib/platform/object-storage";
 import { assertTravelerPartyScope } from "@/lib/platform/traveler-experience";
 import { MAX_PHOTO_SIZE_BYTES, photoExtensionForUpload, safeOriginalName } from "@/lib/photos";
+import { enforceApiRateLimit } from "@/lib/platform/api-rate-limit";
 
 export const runtime = "nodejs";
 
@@ -10,7 +11,13 @@ export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
-    const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+    const limited = await enforceApiRateLimit(
+      request,
+      { scope: "upload.traveler-photo", limit: 30, windowSeconds: 600 },
+      user.id,
+    );
+    if (limited) return limited;
+    const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
     const departureId = String(body?.departureId || "");
     const partyId = String(body?.partyId || "");
     const dayId = String(body?.dayId || "");

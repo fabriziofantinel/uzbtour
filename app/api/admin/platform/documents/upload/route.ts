@@ -8,6 +8,7 @@ import {
   TRAVEL_DOCUMENT_MAX_BYTES,
   travelDocumentType,
 } from "@/lib/platform/travel-document";
+import { enforceApiRateLimit } from "@/lib/platform/api-rate-limit";
 
 export const runtime = "nodejs";
 
@@ -15,20 +16,30 @@ const UPLOAD_EXPIRY_SECONDS = 10 * 60;
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json().catch(() => null) as Record<string, unknown> | null;
+    const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
     const agencyId = cleanText(body?.agencyId, 64);
     const templateId = cleanText(body?.templateId, 64);
     const originalName = cleanText(body?.originalName, 240);
     const contentType = cleanText(body?.contentType, 100).toLowerCase();
     const sizeBytes = Number(body?.sizeBytes);
     if (
-      !agencyId || !templateId || !isMatchingTravelDocument(originalName, contentType) ||
-      !Number.isSafeInteger(sizeBytes) || sizeBytes <= 0 || sizeBytes > TRAVEL_DOCUMENT_MAX_BYTES
+      !agencyId ||
+      !templateId ||
+      !isMatchingTravelDocument(originalName, contentType) ||
+      !Number.isSafeInteger(sizeBytes) ||
+      sizeBytes <= 0 ||
+      sizeBytes > TRAVEL_DOCUMENT_MAX_BYTES
     ) {
       return NextResponse.json({ error: "Documento non valido: usa PDF, DOC o DOCX fino a 20 MB" }, { status: 400 });
     }
 
-    await requireAgencyAdmin(agencyId);
+    const actor = await requireAgencyAdmin(agencyId);
+    const limited = await enforceApiRateLimit(
+      request,
+      { scope: "upload.import-document", limit: 20, windowSeconds: 600 },
+      actor.id,
+    );
+    if (limited) return limited;
     await assertTripBelongsToAgency(agencyId, templateId);
     await assertTripHasNoProgramme(agencyId, templateId);
     const documentType = travelDocumentType(originalName)!;
@@ -36,7 +47,7 @@ export async function POST(request: Request) {
     const authorization = await getObjectStorage().createUploadAuthorization(
       key,
       documentType.contentType,
-      UPLOAD_EXPIRY_SECONDS
+      UPLOAD_EXPIRY_SECONDS,
     );
     return NextResponse.json(authorization);
   } catch (error) {

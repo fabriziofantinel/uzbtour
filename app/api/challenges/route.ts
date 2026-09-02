@@ -5,7 +5,7 @@ import {
   type ChallengeEvidenceType,
   ensureChallengeTables,
   saveChallengeEvidence,
-  validChallengeEvidencePath
+  validChallengeEvidencePath,
 } from "@/lib/challenges";
 import {
   BINGO_MAX_POINTS,
@@ -13,16 +13,10 @@ import {
   bingoItems,
   bingoScore,
   isMissionUnlocked,
-  missionDays
+  missionDays,
 } from "@/lib/challenge-data";
 import { getTravelCompanions } from "@/lib/platform/travel-companions";
-import {
-  isPhotoAdmin,
-  MAX_PHOTO_SIZE_BYTES,
-  PHOTO_CONTENT_TYPES,
-  safeOriginalName,
-  validPhotoDay
-} from "@/lib/photos";
+import { isPhotoAdmin, MAX_PHOTO_SIZE_BYTES, PHOTO_CONTENT_TYPES, safeOriginalName, validPhotoDay } from "@/lib/photos";
 import { getObjectStorage } from "@/lib/platform/object-storage";
 
 export const runtime = "nodejs";
@@ -38,20 +32,61 @@ function badgesFor(input: {
   languageMissions: number;
 }) {
   return [
-    { id: "explorer", name: "Esploratore", icon: "compass", description: "10 missioni completate", unlocked: input.missions >= 10 },
-    { id: "bingo", name: "Occhio di falco", icon: "grid", description: "8 caselle del Bingo trovate", unlocked: input.bingo >= 8 },
-    { id: "photographer", name: "Fotografo della Via della Seta", icon: "camera", description: "Una foto del giorno", unlocked: input.photoWins >= 1 },
-    { id: "quiz", name: "Mente brillante", icon: "brain", description: "30 punti nei quiz", unlocked: input.quiz >= 30 },
-    { id: "games", name: "Campione di viaggio", icon: "trophy", description: "300 punti nei giochi", unlocked: input.games >= 300 },
-    { id: "polyglot", name: "Poliglotta", icon: "languages", description: "3 missioni linguistiche", unlocked: input.languageMissions >= 3 },
+    {
+      id: "explorer",
+      name: "Esploratore",
+      icon: "compass",
+      description: "10 missioni completate",
+      unlocked: input.missions >= 10,
+    },
+    {
+      id: "bingo",
+      name: "Occhio di falco",
+      icon: "grid",
+      description: "8 caselle del Bingo trovate",
+      unlocked: input.bingo >= 8,
+    },
+    {
+      id: "photographer",
+      name: "Fotografo della Via della Seta",
+      icon: "camera",
+      description: "Una foto del giorno",
+      unlocked: input.photoWins >= 1,
+    },
+    {
+      id: "quiz",
+      name: "Mente brillante",
+      icon: "brain",
+      description: "30 punti nei quiz",
+      unlocked: input.quiz >= 30,
+    },
+    {
+      id: "games",
+      name: "Campione di viaggio",
+      icon: "trophy",
+      description: "300 punti nei giochi",
+      unlocked: input.games >= 300,
+    },
+    {
+      id: "polyglot",
+      name: "Poliglotta",
+      icon: "languages",
+      description: "3 missioni linguistiche",
+      unlocked: input.languageMissions >= 3,
+    },
     {
       id: "legend",
       name: "Leggenda dell’Uzbekistan",
       icon: "crown",
       description: "Sblocca tutti gli altri badge",
-      unlocked: input.missions >= 10 && input.bingo >= 8 && input.photoWins >= 1
-        && input.quiz >= 30 && input.games >= 300 && input.languageMissions >= 3
-    }
+      unlocked:
+        input.missions >= 10 &&
+        input.bingo >= 8 &&
+        input.photoWins >= 1 &&
+        input.quiz >= 30 &&
+        input.games >= 300 &&
+        input.languageMissions >= 3,
+    },
   ];
 }
 
@@ -85,7 +120,7 @@ async function readChallengeRows() {
       SELECT rankings
       FROM trip_photo_contests
       WHERE status = 'completed'
-    `
+    `,
   ]);
   return { missions, bingo, quizzes, games, photoContests };
 }
@@ -109,40 +144,42 @@ async function buildResponse(user: { id: string; name: string; initials: string;
   const ownMissions = rows.missions.filter((row) => String(row.user_id) === user.id);
   const ownBingo = rows.bingo.filter((row) => String(row.user_id) === user.id);
 
-  const totals = (await getTravelCompanions(user.id)).map((tripUser) => {
-    const missions = rows.missions.filter((row) =>
-      String(row.user_id) === tripUser.id && String(row.status) === "approved"
-    );
-    const bingo = rows.bingo.filter((row) =>
-      String(row.user_id) === tripUser.id && String(row.status) === "approved"
-    );
-    const quiz = quizScores.get(tripUser.id) ?? 0;
-    const games = gameScores.get(tripUser.id) ?? 0;
-    const wins = photoWins.get(tripUser.name) ?? 0;
-    const languageMissions = missions.filter((row) => {
-      const missionDay = missionDays.find((day) => day.day === Number(row.day));
-      return missionDay?.missions.find((mission) => mission.id === String(row.mission_id))?.kind === "language";
-    }).length;
-    const missionPoints = missions.length * MISSION_POINTS;
-    const bingoPoints = bingoScore(bingo.map((row) => String(row.item_id)));
-    const photoPoints = wins * 50;
-    const badges = badgesFor({
-      missions: missions.length,
-      bingo: bingo.length,
-      quiz,
-      games,
-      photoWins: wins,
-      languageMissions
-    });
-    return {
-      id: tripUser.id,
-      name: tripUser.name,
-      initials: tripUser.initials,
-      score: quiz + games + missionPoints + bingoPoints + photoPoints,
-      breakdown: { quiz, games, missions: missionPoints, bingo: bingoPoints, photos: photoPoints },
-      badges
-    };
-  }).sort((left, right) => right.score - left.score);
+  const totals = (await getTravelCompanions(user.id))
+    .map((tripUser) => {
+      const missions = rows.missions.filter(
+        (row) => String(row.user_id) === tripUser.id && String(row.status) === "approved",
+      );
+      const bingo = rows.bingo.filter(
+        (row) => String(row.user_id) === tripUser.id && String(row.status) === "approved",
+      );
+      const quiz = quizScores.get(tripUser.id) ?? 0;
+      const games = gameScores.get(tripUser.id) ?? 0;
+      const wins = photoWins.get(tripUser.name) ?? 0;
+      const languageMissions = missions.filter((row) => {
+        const missionDay = missionDays.find((day) => day.day === Number(row.day));
+        return missionDay?.missions.find((mission) => mission.id === String(row.mission_id))?.kind === "language";
+      }).length;
+      const missionPoints = missions.length * MISSION_POINTS;
+      const bingoPoints = bingoScore(bingo.map((row) => String(row.item_id)));
+      const photoPoints = wins * 50;
+      const badges = badgesFor({
+        missions: missions.length,
+        bingo: bingo.length,
+        quiz,
+        games,
+        photoWins: wins,
+        languageMissions,
+      });
+      return {
+        id: tripUser.id,
+        name: tripUser.name,
+        initials: tripUser.initials,
+        score: quiz + games + missionPoints + bingoPoints + photoPoints,
+        breakdown: { quiz, games, missions: missionPoints, bingo: bingoPoints, photos: photoPoints },
+        badges,
+      };
+    })
+    .sort((left, right) => right.score - left.score);
 
   return {
     currentUser: user,
@@ -164,8 +201,8 @@ async function buildResponse(user: { id: string; name: string; initials: string;
           originalName: row.original_name == null ? null : String(row.original_name),
           reviewNote: String(row.review_note ?? ""),
           reviewedBy: row.reviewed_by_name == null ? null : String(row.reviewed_by_name),
-          submittedAt: row.completed_at
-        }))
+          submittedAt: row.completed_at,
+        })),
     })),
     bingo: {
       submissions: ownBingo.map((row) => ({
@@ -178,53 +215,55 @@ async function buildResponse(user: { id: string; name: string; initials: string;
         originalName: row.original_name == null ? null : String(row.original_name),
         reviewNote: String(row.review_note ?? ""),
         reviewedBy: row.reviewed_by_name == null ? null : String(row.reviewed_by_name),
-        submittedAt: row.completed_at
+        submittedAt: row.completed_at,
       })),
       score: bingoScore(ownBingo.filter((row) => String(row.status) === "approved").map((row) => String(row.item_id))),
-      maximum: BINGO_MAX_POINTS
+      maximum: BINGO_MAX_POINTS,
     },
-    pendingReviews: isPhotoAdmin(user) ? [
-      ...rows.missions
-        .filter((row) => String(row.status) === "pending")
-        .map((row) => {
-          const day = missionDays.find((entry) => entry.day === Number(row.day));
-          const mission = day?.missions.find((entry) => entry.id === String(row.mission_id));
-          return {
-            id: Number(row.id),
-            type: "mission" as const,
-            challengeId: String(row.mission_id),
-            title: mission?.title ?? "Missione",
-            description: mission?.description ?? "",
-            day: Number(row.day),
-            dayLabel: `${day?.label ?? "GIORNO"} · ${day?.date ?? ""}`,
-            userName: String(row.user_name),
-            note: String(row.note ?? ""),
-            evidenceUrl: `/api/challenges/evidence/m-${row.id}`,
-            submittedAt: row.completed_at
-          };
-        }),
-      ...rows.bingo
-        .filter((row) => String(row.status) === "pending")
-        .map((row) => {
-          const item = bingoItems.find((entry) => entry.id === String(row.item_id));
-          return {
-            id: Number(row.id),
-            type: "bingo" as const,
-            challengeId: String(row.item_id),
-            title: item?.title ?? "Bingo",
-            description: item?.description ?? "",
-            day: row.day == null ? 12 : Number(row.day),
-            dayLabel: "BINGO UZBEKISTAN",
-            userName: String(row.user_name),
-            note: String(row.note ?? ""),
-            evidenceUrl: `/api/challenges/evidence/b-${row.id}`,
-            submittedAt: row.completed_at
-          };
-        })
-    ].sort((left, right) =>
-      new Date(String(left.submittedAt)).getTime() - new Date(String(right.submittedAt)).getTime()
-    ) : [],
-    totals
+    pendingReviews: isPhotoAdmin(user)
+      ? [
+          ...rows.missions
+            .filter((row) => String(row.status) === "pending")
+            .map((row) => {
+              const day = missionDays.find((entry) => entry.day === Number(row.day));
+              const mission = day?.missions.find((entry) => entry.id === String(row.mission_id));
+              return {
+                id: Number(row.id),
+                type: "mission" as const,
+                challengeId: String(row.mission_id),
+                title: mission?.title ?? "Missione",
+                description: mission?.description ?? "",
+                day: Number(row.day),
+                dayLabel: `${day?.label ?? "GIORNO"} · ${day?.date ?? ""}`,
+                userName: String(row.user_name),
+                note: String(row.note ?? ""),
+                evidenceUrl: `/api/challenges/evidence/m-${row.id}`,
+                submittedAt: row.completed_at,
+              };
+            }),
+          ...rows.bingo
+            .filter((row) => String(row.status) === "pending")
+            .map((row) => {
+              const item = bingoItems.find((entry) => entry.id === String(row.item_id));
+              return {
+                id: Number(row.id),
+                type: "bingo" as const,
+                challengeId: String(row.item_id),
+                title: item?.title ?? "Bingo",
+                description: item?.description ?? "",
+                day: row.day == null ? 12 : Number(row.day),
+                dayLabel: "BINGO UZBEKISTAN",
+                userName: String(row.user_name),
+                note: String(row.note ?? ""),
+                evidenceUrl: `/api/challenges/evidence/b-${row.id}`,
+                submittedAt: row.completed_at,
+              };
+            }),
+        ].sort(
+          (left, right) => new Date(String(left.submittedAt)).getTime() - new Date(String(right.submittedAt)).getTime(),
+        )
+      : [],
+    totals,
   };
 }
 
@@ -244,7 +283,7 @@ export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
 
-  const body = await request.json().catch(() => null) as {
+  const body = (await request.json().catch(() => null)) as {
     action?: "submit" | "review";
     type?: ChallengeEvidenceType;
     day?: number;
@@ -276,9 +315,7 @@ export async function POST(request: Request) {
       ) {
         return NextResponse.json({ error: "Valutazione non valida" }, { status: 400 });
       }
-      const reviewNote = typeof body.reviewNote === "string"
-        ? body.reviewNote.trim().slice(0, 240)
-        : "";
+      const reviewNote = typeof body.reviewNote === "string" ? body.reviewNote.trim().slice(0, 240) : "";
       if (body.type === "mission") {
         await sql`
           UPDATE trip_mission_completions
@@ -308,8 +345,11 @@ export async function POST(request: Request) {
       }
       const storage = getObjectStorage();
       const metadata = await storage.head(body.objectKey);
-      if (!PHOTO_CONTENT_TYPES.includes(metadata.contentType as typeof PHOTO_CONTENT_TYPES[number])
-        || metadata.sizeBytes <= 0 || metadata.sizeBytes > MAX_PHOTO_SIZE_BYTES) {
+      if (
+        !PHOTO_CONTENT_TYPES.includes(metadata.contentType as (typeof PHOTO_CONTENT_TYPES)[number]) ||
+        metadata.sizeBytes <= 0 ||
+        metadata.sizeBytes > MAX_PHOTO_SIZE_BYTES
+      ) {
         await storage.delete(body.objectKey).catch(() => undefined);
         return NextResponse.json({ error: "La foto-prova non è valida" }, { status: 400 });
       }
@@ -322,7 +362,7 @@ export async function POST(request: Request) {
         contentType: metadata.contentType,
         sizeBytes: metadata.sizeBytes,
         note,
-        user
+        user,
       });
     } else if (body?.action === "submit" && body.type === "bingo") {
       const item = bingoItems.find((entry) => entry.id === body.id);
@@ -336,8 +376,11 @@ export async function POST(request: Request) {
       }
       const storage = getObjectStorage();
       const metadata = await storage.head(body.objectKey);
-      if (!PHOTO_CONTENT_TYPES.includes(metadata.contentType as typeof PHOTO_CONTENT_TYPES[number])
-        || metadata.sizeBytes <= 0 || metadata.sizeBytes > MAX_PHOTO_SIZE_BYTES) {
+      if (
+        !PHOTO_CONTENT_TYPES.includes(metadata.contentType as (typeof PHOTO_CONTENT_TYPES)[number]) ||
+        metadata.sizeBytes <= 0 ||
+        metadata.sizeBytes > MAX_PHOTO_SIZE_BYTES
+      ) {
         await storage.delete(body.objectKey).catch(() => undefined);
         return NextResponse.json({ error: "La foto-prova non è valida" }, { status: 400 });
       }
@@ -350,7 +393,7 @@ export async function POST(request: Request) {
         contentType: metadata.contentType,
         sizeBytes: metadata.sizeBytes,
         note,
-        user
+        user,
       });
     } else {
       return NextResponse.json({ error: "Operazione non valida" }, { status: 400 });

@@ -12,9 +12,13 @@ export async function GET(request: Request) {
   const longitude = Number(url.searchParams.get("lon"));
   const date = url.searchParams.get("date") ?? "";
   if (
-    !Number.isFinite(latitude) || latitude < -90 || latitude > 90
-    || !Number.isFinite(longitude) || longitude < -180 || longitude > 180
-    || !/^\d{4}-\d{2}-\d{2}$/.test(date)
+    !Number.isFinite(latitude) ||
+    latitude < -90 ||
+    latitude > 90 ||
+    !Number.isFinite(longitude) ||
+    longitude < -180 ||
+    longitude > 180 ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(date)
   ) {
     return NextResponse.json({ error: "Località non valida" }, { status: 400 });
   }
@@ -25,10 +29,13 @@ export async function GET(request: Request) {
     endpoint.searchParams.set("longitude", String(longitude));
     endpoint.searchParams.set("timezone", "Asia/Tashkent");
     endpoint.searchParams.set("forecast_days", "16");
-    endpoint.searchParams.set("daily", "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max");
+    endpoint.searchParams.set(
+      "daily",
+      "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max",
+    );
     const response = await fetch(endpoint, { next: { revalidate: 1800 } });
     if (!response.ok) throw new Error(`Meteo ${response.status}`);
-    const payload = await response.json() as {
+    const payload = (await response.json()) as {
       daily?: {
         time?: string[];
         weather_code?: number[];
@@ -46,7 +53,7 @@ export async function GET(request: Request) {
       code: payload.daily?.weather_code?.[index] ?? 0,
       max: payload.daily?.temperature_2m_max?.[index] ?? null,
       min: payload.daily?.temperature_2m_min?.[index] ?? null,
-      rain: payload.daily?.precipitation_probability_max?.[index] ?? null
+      rain: payload.daily?.precipitation_probability_max?.[index] ?? null,
     });
   } catch (error) {
     console.error("Previsioni meteo non disponibili", error);

@@ -6,10 +6,7 @@ import { getObjectStorage } from "@/lib/platform/object-storage";
 
 export const runtime = "nodejs";
 
-export async function GET(
-  _request: Request,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params;
     const agencyId = await getImportAgency(id);

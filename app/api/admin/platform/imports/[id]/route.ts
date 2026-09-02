@@ -19,10 +19,7 @@ function validTime(value: string) {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(value) ? value : "";
 }
 
-export async function GET(
-  _request: Request,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params;
     const agencyId = await getImportAgency(id);
@@ -33,20 +30,17 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  request: Request,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params;
     const agencyId = await getImportAgency(id);
     const actor = await requireAgencyAdmin(agencyId);
-    const body = await request.json().catch(() => null) as { draft?: unknown } | null;
+    const body = (await request.json().catch(() => null)) as { draft?: unknown } | null;
     const parsed = travelProgrammeDraftSchema.safeParse(body?.draft);
     if (!parsed.success) {
       return NextResponse.json(
         { error: "La bozza contiene campi mancanti o non validi", details: parsed.error.flatten() },
-        { status: 400 }
+        { status: 400 },
       );
     }
     const draft = {
@@ -68,14 +62,11 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  _request: Request,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params;
     const agencyId = await getImportAgency(id);
-    const actor=await requireAgencyAdmin(agencyId);
+    const actor = await requireAgencyAdmin(agencyId);
     const targets = await getImportDeletionTarget(id, agencyId);
     const storage = getObjectStorage("r2");
     if (targets.some((target) => storage.bucket !== target.bucket)) {
