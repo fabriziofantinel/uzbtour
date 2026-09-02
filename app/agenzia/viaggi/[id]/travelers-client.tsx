@@ -92,7 +92,7 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
     const form = new FormData(event.currentTarget);
     try {
       const result = await json<{ data: JourneyData }>(
-        await fetch(`/api/admin/platform/trips/${data.journey.id}/families`, {
+        await fetch(`/api/admin/platform/trips/${data.journey.id}/groups`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ agencyId: data.journey.agencyId, name: form.get("name") }),
@@ -171,7 +171,7 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
     setNotice("");
     try {
       const result = await json<{ data: JourneyData }>(
-        await fetch(`/api/admin/platform/trips/${data.journey.id}/families/${partyId}`, {
+        await fetch(`/api/admin/platform/trips/${data.journey.id}/groups/${partyId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "competition", agencyId: data.journey.agencyId, travelerId, enabled }),
@@ -196,7 +196,7 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
     setNotice("");
     try {
       const result = await json<{ data: JourneyData }>(
-        await fetch(`/api/admin/platform/trips/${data.journey.id}/families/${partyId}`, {
+        await fetch(`/api/admin/platform/trips/${data.journey.id}/groups/${partyId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "leader", agencyId: data.journey.agencyId, travelerId }),
@@ -216,7 +216,7 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
     setNotice("");
     try {
       const result = await json<{ data: JourneyData }>(
-        await fetch(`/api/admin/platform/trips/${data.journey.id}/families/${partyId}`, {
+        await fetch(`/api/admin/platform/trips/${data.journey.id}/groups/${partyId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: "minorConsent", agencyId: data.journey.agencyId, travelerId, decision }),
@@ -236,7 +236,7 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
     setError("");
     try {
       const result = await json<{ data: JourneyData }>(
-        await fetch(`/api/admin/platform/trips/${data.journey.id}/families/${partyId}`, {
+        await fetch(`/api/admin/platform/trips/${data.journey.id}/groups/${partyId}`, {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ agencyId: data.journey.agencyId, travelerId }),
@@ -256,7 +256,7 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
     setError("");
     try {
       const result = await json<{ data: JourneyData }>(
-        await fetch(`/api/admin/platform/trips/${data.journey.id}/families/${partyId}`, {
+        await fetch(`/api/admin/platform/trips/${data.journey.id}/groups/${partyId}`, {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ agencyId: data.journey.agencyId }),
