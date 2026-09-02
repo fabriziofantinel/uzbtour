@@ -1,7 +1,7 @@
 export type AgencyRole = "owner" | "admin" | "editor" | "viewer";
 export type ObjectStorageProvider = "vercel-blob" | "r2";
 export type JobQueueProvider = "database" | "sqs";
-export type TravelAiProvider = "gemini" | "bedrock";
+export type TravelAiProvider = "bedrock";
 
 export type PlatformProviderConfig = {
   objectStorage: ObjectStorageProvider;

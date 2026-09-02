@@ -86,7 +86,6 @@ Configurare quindi su Vercel:
 
 ```text
 PLATFORM_JOB_QUEUE_PROVIDER=sqs
-PLATFORM_AI_PROVIDER=bedrock
 AWS_REGION=eu-central-1
 AWS_ROLE_ARN=<output VercelQueuePublisherRoleArn>
 AWS_SQS_IMPORT_QUEUE_URL=<output ImportQueueUrl>

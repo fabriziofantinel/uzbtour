@@ -1,4 +1,4 @@
-import type { JobQueueProvider, ObjectStorageProvider, PlatformProviderConfig, TravelAiProvider } from "./types";
+import type { JobQueueProvider, ObjectStorageProvider, PlatformProviderConfig } from "./types";
 
 function oneOf<T extends string>(value: string | undefined, fallback: T, allowed: readonly T[]): T {
   const candidate = value || fallback;
@@ -15,6 +15,6 @@ export function getPlatformProviderConfig(): PlatformProviderConfig {
       "r2",
     ]),
     jobQueue: oneOf<JobQueueProvider>(process.env.PLATFORM_JOB_QUEUE_PROVIDER, "sqs", ["database", "sqs"]),
-    travelAi: oneOf<TravelAiProvider>(process.env.PLATFORM_AI_PROVIDER, "bedrock", ["gemini", "bedrock"]),
+    travelAi: "bedrock",
   };
 }

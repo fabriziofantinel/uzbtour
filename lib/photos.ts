@@ -1,16 +1,5 @@
-import { getSql } from "./db";
-import { assertDatabaseTables } from "./platform/schema-readiness";
-
 export const MAX_PHOTO_SIZE_BYTES = 25 * 1024 * 1024;
 export const PHOTO_CONTENT_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"] as const;
-
-export async function ensurePhotosTable() {
-  await assertDatabaseTables(["trip_photos"]);
-}
-
-export function validPhotoDay(day: unknown): day is number {
-  return Number.isInteger(day) && Number(day) >= 1 && Number(day) <= 13;
-}
 
 export function safeOriginalName(value: unknown) {
   if (typeof value !== "string") return "foto";
@@ -33,42 +22,4 @@ export function photoExtensionForUpload(originalName: string, contentType: strin
   const extension = originalName.split(".").pop()?.toLowerCase();
   if (normalizedType === "image/jpeg" && extension === "jpeg") return "jpeg";
   return byType[normalizedType] ?? null;
-}
-
-export function validPhotoPath(pathname: unknown, day: number) {
-  if (typeof pathname !== "string") return false;
-  return new RegExp(`^uzbekistan-2026/giorno-${day}/[0-9a-f-]{36}\\.(?:jpe?g|png|webp|heic|heif)$`, "i").test(pathname);
-}
-
-export async function savePhotoMetadata(input: {
-  day: number;
-  pathname: string;
-  originalName: string;
-  contentType: string;
-  sizeBytes?: number | null;
-  user: { id: string; name: string };
-}) {
-  await ensurePhotosTable();
-  const sql = getSql();
-  const rows = await sql`
-    INSERT INTO trip_photos (
-      day, pathname, original_name, content_type, size_bytes,
-      uploaded_by_id, uploaded_by_name
-    )
-    VALUES (
-      ${input.day}, ${input.pathname}, ${input.originalName}, ${input.contentType},
-      ${input.sizeBytes ?? null}, ${input.user.id}, ${input.user.name}
-    )
-    ON CONFLICT (pathname) DO UPDATE SET
-      original_name = EXCLUDED.original_name,
-      content_type = EXCLUDED.content_type,
-      size_bytes = COALESCE(EXCLUDED.size_bytes, trip_photos.size_bytes)
-    RETURNING id, day, pathname, original_name, content_type, size_bytes,
-              uploaded_by_id, uploaded_by_name, created_at
-  `;
-  return rows[0];
-}
-
-export function isPhotoAdmin(user: { isAgencyAdmin?: boolean }) {
-  return user.isAgencyAdmin === true;
 }
