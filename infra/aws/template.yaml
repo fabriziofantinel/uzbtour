@@ -329,19 +329,67 @@ Resources:
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
-          - Sid: DenyInsecureTransportWorkloadQueues
+          - Sid: DenyInsecureTransportImportQueue
             Effect: Deny
             Principal: "*"
             Action: sqs:*
-            Resource:
-              - !GetAtt ImportQueue.Arn
-              - !GetAtt ImportDeadLetterQueue.Arn
-              - !GetAtt EnrichmentQueue.Arn
-              - !GetAtt EnrichmentDeadLetterQueue.Arn
-              - !GetAtt PhotoQueue.Arn
-              - !GetAtt PhotoDeadLetterQueue.Arn
-              - !GetAtt DeletionQueue.Arn
-              - !GetAtt DeletionDeadLetterQueue.Arn
+            Resource: !GetAtt ImportQueue.Arn
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+          - Sid: DenyInsecureTransportImportDlq
+            Effect: Deny
+            Principal: "*"
+            Action: sqs:*
+            Resource: !GetAtt ImportDeadLetterQueue.Arn
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+          - Sid: DenyInsecureTransportEnrichmentQueue
+            Effect: Deny
+            Principal: "*"
+            Action: sqs:*
+            Resource: !GetAtt EnrichmentQueue.Arn
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+          - Sid: DenyInsecureTransportEnrichmentDlq
+            Effect: Deny
+            Principal: "*"
+            Action: sqs:*
+            Resource: !GetAtt EnrichmentDeadLetterQueue.Arn
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+          - Sid: DenyInsecureTransportPhotoQueue
+            Effect: Deny
+            Principal: "*"
+            Action: sqs:*
+            Resource: !GetAtt PhotoQueue.Arn
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+          - Sid: DenyInsecureTransportPhotoDlq
+            Effect: Deny
+            Principal: "*"
+            Action: sqs:*
+            Resource: !GetAtt PhotoDeadLetterQueue.Arn
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+          - Sid: DenyInsecureTransportDeletionQueue
+            Effect: Deny
+            Principal: "*"
+            Action: sqs:*
+            Resource: !GetAtt DeletionQueue.Arn
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+          - Sid: DenyInsecureTransportDeletionDlq
+            Effect: Deny
+            Principal: "*"
+            Action: sqs:*
+            Resource: !GetAtt DeletionDeadLetterQueue.Arn
             Condition:
               Bool:
                 aws:SecureTransport: "false"
@@ -799,7 +847,6 @@ Resources:
       MemorySize: 512
       Timeout: 300
       Tracing: Active
-      ReservedConcurrentExecutions: 1
       LoggingConfig: { LogFormat: JSON, ApplicationLogLevel: INFO, SystemLogLevel: WARN }
       Environment:
         Variables:
@@ -827,7 +874,11 @@ Resources:
       Events:
         Queue:
           Type: SQS
-          Properties: { Queue: !GetAtt DeletionQueue.Arn, BatchSize: 1, FunctionResponseTypes: [ReportBatchItemFailures] }
+          Properties:
+            Queue: !GetAtt DeletionQueue.Arn
+            BatchSize: 1
+            ScalingConfig: { MaximumConcurrency: 2 }
+            FunctionResponseTypes: [ReportBatchItemFailures]
 
   ContestClosureFunction:
     Type: AWS::Serverless::Function
@@ -1156,6 +1207,103 @@ Resources:
       TreatMissingData: notBreaching
       AlarmActions:
         - !Ref AlarmTopic
+
+  IsolatedWorkerErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-isolated-worker-errors"
+      AlarmDescription: One or more isolated workload workers reported an error
+      ComparisonOperator: GreaterThanThreshold
+      Threshold: 0
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      TreatMissingData: notBreaching
+      Metrics:
+        - Id: enrichment_errors
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Errors
+              Dimensions: [{ Name: FunctionName, Value: !Ref EnrichmentWorker }]
+            Period: 60
+            Stat: Sum
+        - Id: photo_errors
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Errors
+              Dimensions: [{ Name: FunctionName, Value: !Ref PhotoWorker }]
+            Period: 60
+            Stat: Sum
+        - Id: deletion_errors
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Errors
+              Dimensions: [{ Name: FunctionName, Value: !Ref DeletionWorker }]
+            Period: 60
+            Stat: Sum
+        - Id: contest_errors
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/Lambda
+              MetricName: Errors
+              Dimensions: [{ Name: FunctionName, Value: !Ref ContestClosureFunction }]
+            Period: 60
+            Stat: Sum
+        - Id: total_errors
+          Label: Total isolated worker errors
+          Expression: enrichment_errors + photo_errors + deletion_errors + contest_errors
+          ReturnData: true
+      AlarmActions: [!Ref AlarmTopic]
+
+  IsolatedWorkloadDeadLetterAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${AWS::StackName}-isolated-dlq-not-empty"
+      AlarmDescription: A failed enrichment, photo or deletion job reached a dead-letter queue
+      ComparisonOperator: GreaterThanThreshold
+      Threshold: 0
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      TreatMissingData: notBreaching
+      Metrics:
+        - Id: enrichment_dlq
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/SQS
+              MetricName: ApproximateNumberOfMessagesVisible
+              Dimensions: [{ Name: QueueName, Value: !GetAtt EnrichmentDeadLetterQueue.QueueName }]
+            Period: 60
+            Stat: Maximum
+        - Id: photo_dlq
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/SQS
+              MetricName: ApproximateNumberOfMessagesVisible
+              Dimensions: [{ Name: QueueName, Value: !GetAtt PhotoDeadLetterQueue.QueueName }]
+            Period: 60
+            Stat: Maximum
+        - Id: deletion_dlq
+          ReturnData: false
+          MetricStat:
+            Metric:
+              Namespace: AWS/SQS
+              MetricName: ApproximateNumberOfMessagesVisible
+              Dimensions: [{ Name: QueueName, Value: !GetAtt DeletionDeadLetterQueue.QueueName }]
+            Period: 60
+            Stat: Maximum
+        - Id: total_dlq_messages
+          Label: Total isolated DLQ messages
+          Expression: enrichment_dlq + photo_dlq + deletion_dlq
+          ReturnData: true
+      AlarmActions: [!Ref AlarmTopic]
 
   WorkloadDashboard:
     Type: AWS::CloudWatch::Dashboard
