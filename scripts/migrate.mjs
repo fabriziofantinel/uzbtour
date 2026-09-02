@@ -84,6 +84,26 @@ await sql`
 `;
 
 await sql`
+  CREATE TABLE IF NOT EXISTS trip_cash_movements (
+    id BIGSERIAL PRIMARY KEY,
+    day SMALLINT NOT NULL CHECK (day BETWEEN 1 AND 13),
+    kind TEXT NOT NULL CHECK (kind IN ('exchange', 'withdrawal')),
+    location TEXT NOT NULL CHECK (char_length(location) BETWEEN 1 AND 200),
+    euro_amount NUMERIC(12, 2) CHECK (euro_amount IS NULL OR euro_amount > 0),
+    som_amount NUMERIC(15, 2) NOT NULL CHECK (som_amount > 0),
+    fee_eur NUMERIC(12, 2) CHECK (fee_eur IS NULL OR fee_eur >= 0),
+    added_by_id TEXT NOT NULL,
+    added_by_name TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )
+`;
+
+await sql`
+  CREATE INDEX IF NOT EXISTS trip_cash_movements_day_created_idx
+  ON trip_cash_movements (day, created_at)
+`;
+
+await sql`
   CREATE TABLE IF NOT EXISTS trip_photos (
     id BIGSERIAL PRIMARY KEY,
     day SMALLINT NOT NULL CHECK (day BETWEEN 1 AND 13),
