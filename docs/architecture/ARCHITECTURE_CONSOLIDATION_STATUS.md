@@ -1,6 +1,6 @@
 # SMF Travel - Stato consolidamento architetturale
 
-Data di riferimento: 2026-08-30.
+Data di riferimento: 2026-09-02.
 
 ## Componenti e connessioni as-built
 
@@ -13,11 +13,17 @@ Data di riferimento: 2026-08-30.
    indici `agency_id` leading e procedure `SECURITY DEFINER` con `search_path` fisso.
 5. Il client carica file privati in Cloudflare R2 mediante URL presigned; Neon conserva
    metadati, scope, soft delete e chiavi oggetto immutabili.
-6. Vercel assume via OIDC un ruolo AWS STS e pubblica job su SQS Standard con
-   `MessageGroupId=agency_id`. Non sono presenti access key AWS statiche su Vercel.
-7. Lambda ARM64 acquisisce job idempotenti, legge R2 e usa Bedrock Converse con Nova 2
-   Lite, Tool Use forzato e validazione Zod. L'agente deve confermare prima del publish.
-8. CloudWatch controlla errori, backlog e DLQ; gli allarmi sono collegati al topic SNS.
+6. Vercel assume via OIDC un ruolo AWS STS e instrada i job verso code SQS separate per
+   importazione, arricchimento, valutazione foto e cancellazione. Non sono presenti access
+   key AWS statiche su Vercel.
+7. Worker Lambda ARM64 dedicati applicano limiti di concorrenza indipendenti. I job sono
+   idempotenti e soggetti a quote per agenzia; la chiusura contest usa una Lambda pianificata
+   separata dai flussi di importazione.
+8. Bedrock Converse usa Nova 2 Lite, Tool Use forzato e validazione Zod. La pubblicazione
+   richiede la conferma dell'agente e i contenuti Paese sensibili la revisione del responsabile.
+9. Un `traceId` correla richiesta Vercel, payload Neon, messaggio SQS e log Lambda senza
+   utilizzare identificativi personali come dimensioni CloudWatch.
+10. CloudWatch controlla errori, backlog e DLQ con dashboard multi-workload e allarmi SNS.
 
 ## Finding del Solution Architect
 
@@ -32,6 +38,10 @@ Data di riferimento: 2026-08-30.
 | Immutabilità R2 | Chiuso | Bucket Lock `smf-travel-retention-30d` attivo sul prefisso `agencies/`; chiavi immutabili e soft delete applicativi |
 | WAF/rate limiting | Bloccato dal dominio | L'account Cloudflare non contiene ancora una zona DNS; il dominio Vercel condiviso non è configurabile nella WAF Cloudflare |
 | Neon branch su PR | Chiuso | PR `#2`: gate `neon-tenant-isolation` superato in 49 secondi e `immutable-contracts` superato |
+| Isolamento workload asincroni | Chiuso | Stack `smf-travel-worker` aggiornato con quattro code operative, DLQ dedicate, worker separati e chiusura contest autonoma |
+| Quote per tenant | Chiuso | `app.enqueue_platform_job_v3` rifiuta il superamento del limite di job attivi per agenzia e tipo di workload |
+| Tracciamento end-to-end | Chiuso | `traceId` propagato da browser/Vercel a Neon, SQS e Lambda; dashboard CloudWatch disponibile |
+| Governance Paese | Chiuso | criticità per campo, baseline attestata centralmente e approvazione del responsabile prima dell'uso applicativo |
 
 ## Gate di rilascio
 
@@ -39,7 +49,7 @@ Data di riferimento: 2026-08-30.
   TypeScript e build Next.js.
 - I pull request con credenziali Neon CI creano un branch effimero, eseguono la
   validazione V3 e i test RLS cross-tenant, quindi eliminano sempre il branch.
-- Il drill del 2026-08-30 ha validato 67 tabelle, 54 tabelle RLS, zero vincoli non
+- La validazione del 2026-09-02 ha verificato 79 tabelle, 62 tabelle RLS, zero vincoli non
   validati, zero indici invalidi e zero tabelle tenant prive di indice leading.
 - Le migrazioni applicate restano immutabili; ogni evoluzione usa una nuova migrazione.
 - Il deploy applicativo non sostituisce il deploy SAM dell'infrastruttura AWS.

@@ -6,10 +6,10 @@ Aggiornato al 2 settembre 2026.
 
 - [x] 1. Collaudo end-to-end e chiusura dei casi d'uso
 - [x] 2. Validazione sistematica della qualità AI
-- [ ] 3. Consolidamento della governance delle informazioni Paese
-- [ ] 4. Osservabilità e procedure operative
-- [ ] 5. Sicurezza, privacy e conformità
-- [ ] 6. Controllo costi, quote e limiti di servizio
+- [x] 3. Consolidamento della governance delle informazioni Paese
+- [x] 4. Osservabilità e procedure operative
+- [x] 5. Sicurezza, privacy e conformità applicativa
+- [x] 6. Controllo quote e isolamento dei workload
 - [ ] 7. Rifinitura funzionale e UX multi-dispositivo
 - [ ] 8. Preparazione della release e criteri go-live
 
@@ -60,19 +60,19 @@ Completato: replay deterministico obbligatorio in CI per importazione, contenuti
 
 ### 3. Governance informazioni Paese
 
-Fonti ufficiali, data di aggiornamento, revisione del responsabile, scadenza e rigenerazione controllata dei contenuti sensibili.
+Completato: baseline centrale attestata, fonti e data di aggiornamento, criticità per singolo campo, revisione del responsabile, scadenza e rigenerazione controllata dei contenuti sensibili.
 
 ### 4. Osservabilità
 
-Dashboard, allarmi, code/DLQ, tempi di elaborazione, errori di pubblicazione, push e runbook verificati.
+Completato: dashboard CloudWatch multi-workload, allarmi errori e DLQ, code isolate e correlazione `traceId` fra Vercel, Neon, SQS e Lambda.
 
 ### 5. Sicurezza e conformità
 
-Revisione autorizzazioni end-to-end, retention, consensi, audit, protezione documenti e dati personali.
+Completato per il perimetro applicativo: wrapper di autorizzazione delle API, censimento delle route, rate limiting sui confini sensibili, RLS forzata, URL firmati e audit. Il WAF resta dipendente da un futuro dominio personalizzato e non blocca l'assetto corrente.
 
 ### 6. Costi e quote
 
-Budget e allarmi per Bedrock, storage, notifiche e database; limiti per tenant e protezioni da uso anomalo.
+Completato per il controllo tecnico: quote di job attivi per agenzia e workload, concorrenza indipendente dei consumer, DLQ e allarmi. Budget commerciali e soglie economiche restano configurazioni operative, non modifiche applicative.
 
 ### 7. Rifinitura prodotto
 
