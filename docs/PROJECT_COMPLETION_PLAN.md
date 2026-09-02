@@ -25,6 +25,11 @@ Aggiornato al 2 settembre 2026.
 - Push: sottoscrizione, invio pianificato e contratti applicativi.
 - Giochi e foto: bingo, tentativi missioni, contest, album e isolamento gruppo.
 - Conversione preventivo: validazione deterministica e rilevazione delle anomalie attese.
+- Conversione preventivo Bedrock reale: 2 giornate, 4 visite, 1 struttura, 3 righe commerciali e 78 evidenze sorgente.
+- Contenuti Paese Bedrock reali: 11 sezioni verificate, 12 frasi, 15 caselle bingo, quiz, missioni, giochi, contest e profili fotografici.
+- Valutazione fotografica multimodale base: compatibilità corretta con confidenza 0,95.
+- Ruolo database `smf_app`: autenticazione, impersonazione, scope viaggiatore, media e mutazioni estranee verificati.
+- Cancellazione agenzia SQS-Lambda-Neon: agenzia temporanea eliminata con fase finale `completed`.
 
 ### Correzioni emerse dal collaudo
 
@@ -33,14 +38,14 @@ Aggiornato al 2 settembre 2026.
 
 ### Da completare
 
-- Test reali Bedrock: bloccati dalla sessione AWS locale scaduta.
-- Smoke test del ruolo database runtime: manca una `DATABASE_URL` locale valida con privilegi applicativi ridotti; la connessione owner non può sostituirla perché falserebbe il test.
+- Affidabilità fotografica ripetuta su immagini private: richiede autorizzazione specifica all'invio delle fixture reali a Bedrock e ai relativi costi.
+- Autenticazione della DSN Neon runtime: i privilegi sono verificati assumendo realmente `smf_app` su una connessione separata; resta esclusa soltanto la verifica della password/DSN del ruolo runtime.
 - Verifica browser autenticata dei ruoli e dei layout responsive; le sessioni browser disponibili sono ferme alla pagina di login.
 - Aggiornamento finale del rapporto DOCX con risultati, anomalie corrette ed evidenze.
 
 ## Criterio di chiusura del punto 1
 
-Il punto è completato quando i test Bedrock passano, i controlli di autorizzazione usano il vero ruolo runtime, i flussi browser principali sono verificati per superuser, responsabile/agente e viaggiatore, e il rapporto di collaudo è aggiornato.
+Il punto è completato quando la regressione fotografica ripetuta passa, la DSN runtime viene verificata oppure la sua verifica viene formalmente demandata al monitoraggio di produzione, i flussi browser principali sono verificati per superuser, responsabile/agente e viaggiatore, e il rapporto di collaudo è aggiornato.
 
 ## Punti successivi
 
