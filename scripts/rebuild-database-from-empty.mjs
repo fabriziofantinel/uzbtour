@@ -23,7 +23,8 @@ if (JSON.stringify(actualNumbers) !== JSON.stringify(expectedNumbers)) {
 
 const plan = {
   status: apply ? "ready_to_apply" : "dry_run_passed",
-  foundation: "scripts/migrate-platform.mjs (versioni legacy 001-011)",
+  legacyBootstrap: "scripts/migrate.mjs (tabelle applicative originarie)",
+  foundation: "scripts/migrate-platform.mjs (versioni multitenant 001-011)",
   hardening: numbered.slice(0, 4).map(({ name }) => name),
   targetModel: "database/schema-v3-review.sql (modello 3.2.0)",
   incremental: numbered.slice(4).map(({ name }) => name),
@@ -89,6 +90,7 @@ try {
   await client.end();
 }
 
+runNode("scripts/migrate.mjs");
 runNode("scripts/migrate-platform.mjs");
 
 const ddlClient = new Client(migrationUrl);
