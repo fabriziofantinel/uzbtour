@@ -36,6 +36,8 @@
     "db:migrate:v3:impersonation-audit": "node --env-file=.env.local scripts/migrate-v3-impersonation-audit.mjs --apply",
     "db:migrate:v3:impersonation-revalidation:dry-run": "node --env-file=.env.local scripts/migrate-v3-impersonation-tenant-revalidation.mjs",
     "db:migrate:v3:impersonation-revalidation": "node --env-file=.env.local scripts/migrate-v3-impersonation-tenant-revalidation.mjs --apply",
+    "db:rebuild:empty:dry-run": "node scripts/rebuild-database-from-empty.mjs",
+    "db:rebuild:empty": "node --env-file=.env.local scripts/rebuild-database-from-empty.mjs --apply",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

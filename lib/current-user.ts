@@ -1,10 +1,8 @@
 import { cookies } from "next/headers";
 import { createHash } from "node:crypto";
-import {
-  resolveV3CognitoAuthenticatedUser,
-  resolveV3LegacyImpersonation,
-} from "./platform/v3-identity-access";
+import { resolveV3CognitoAuthenticatedUser, resolveV3LegacyImpersonation } from "./platform/v3-identity-access";
 import { getAuthProvider } from "./auth/auth-provider";
+import { assertCurrentSchema } from "./platform/schema-readiness";
 
 export const IMPERSONATION_COOKIE = "smf_impersonation";
 
@@ -34,6 +32,7 @@ function initialsFor(name: string) {
 }
 
 export async function getAuthenticatedActor(): Promise<CurrentUser | null> {
+  await assertCurrentSchema();
   const cognitoIdentity = await getAuthProvider().identity();
   if (cognitoIdentity) {
     const platformUser = await resolveV3CognitoAuthenticatedUser(cognitoIdentity.subject);
@@ -74,7 +73,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
       actorId: actor.id,
       actorName: actor.name,
       actorIsSuperAdmin: actor.isSuperAdmin,
-      expiresAt: new Date(target.expiresAt).toISOString()
-    }
+      expiresAt: new Date(target.expiresAt).toISOString(),
+    },
   };
 }

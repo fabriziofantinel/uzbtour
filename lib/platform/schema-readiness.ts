@@ -3,6 +3,7 @@ import { getSql } from "@/lib/db";
 const checks = new Map<string, Promise<void>>();
 
 const SIMPLE_IDENTIFIER = /^[a-z][a-z0-9_]*$/;
+export const CURRENT_SCHEMA_VERSION = "128_v3_agency_country_profile_review";
 
 export function assertDatabaseTables(requiredTables: string[]) {
   const tables = [...new Set(requiredTables)].sort();
@@ -71,4 +72,8 @@ export function assertNormalizedImportSchema() {
 
 export function assertArchitectureHardeningSchema() {
   return assertSchemaVersions(["012_neon_architecture_hardening"]);
+}
+
+export function assertCurrentSchema() {
+  return assertSchemaVersions([CURRENT_SCHEMA_VERSION]);
 }

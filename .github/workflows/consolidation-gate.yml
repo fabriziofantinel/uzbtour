@@ -28,7 +28,6 @@ jobs:
         run: npm run acceptance:ai:replay
 
   neon-tenant-isolation:
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -51,7 +50,7 @@ jobs:
         id: create-neon-branch
         with:
           project_id: ${{ env.NEON_PROJECT_ID }}
-          branch_name: ci/pr-${{ github.event.pull_request.number }}-${{ github.run_id }}
+          branch_name: ci/${{ github.event.pull_request.number || 'main' }}-${{ github.run_id }}
           api_key: ${{ env.NEON_API_KEY }}
       - uses: actions/setup-node@v4
         if: steps.neon-config.outputs.enabled == 'true'
@@ -67,11 +66,12 @@ jobs:
           DATABASE_URL_UNPOOLED: ${{ steps.create-neon-branch.outputs.db_url }}
           DATABASE_URL: ${{ steps.create-neon-branch.outputs.db_url_pooled }}
           NEON_BRANCH_ID: ${{ steps.create-neon-branch.outputs.branch_id }}
+          ALLOW_CI_SCHEMA_RESET: "1"
+          ALLOW_EMPTY_DATABASE_BOOTSTRAP: "1"
         run: |
           touch .env.local
-          npm run db:migrate:v3:shadow-users
-          npm run db:migrate:v3:document-constraint -- --apply
-          npm run db:validate:v3
+          node scripts/reset-empty-neon-ci-branch.mjs
+          npm run db:rebuild:empty
           node scripts/prepare-neon-ci-runtime-role.mjs
           npm run smoke:v3:operational-read
           npm run smoke:v3:travel-catalog-read
