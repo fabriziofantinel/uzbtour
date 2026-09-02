@@ -27,6 +27,7 @@ const plan = {
   foundation: "scripts/migrate-platform.mjs (versioni multitenant 001-011)",
   hardening: numbered.slice(0, 4).map(({ name }) => name),
   targetModel: "database/schema-v3-review.sql (modello 3.2.0)",
+  shadowBackfills: ["017_v3_shadow_core_backfill", "018_v3_shadow_operational_backfill"],
   incremental: numbered.slice(4).map(({ name }) => name),
   latest: numbered.at(-1)?.name,
 };
@@ -41,8 +42,8 @@ if (process.env.ALLOW_EMPTY_DATABASE_BOOTSTRAP !== "1") {
 }
 if (!migrationUrl) throw new Error("DATABASE_MIGRATION_URL o DATABASE_URL_UNPOOLED non configurata");
 
-function runNode(script) {
-  const result = spawnSync(process.execPath, [resolve(root, script)], {
+function runNode(script, args = []) {
+  const result = spawnSync(process.execPath, [resolve(root, script), ...args], {
     cwd: root,
     env: {
       ...process.env,
@@ -116,6 +117,8 @@ try {
 }
 
 runNode("scripts/migrate-v3-target.mjs");
+runNode("scripts/backfill-v3-shadow-core.mjs", ["--apply"]);
+runNode("scripts/backfill-v3-shadow-operational.mjs", ["--apply"]);
 
 const incrementalClient = new Client(migrationUrl);
 await incrementalClient.connect();
