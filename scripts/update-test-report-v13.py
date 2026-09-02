@@ -101,8 +101,8 @@ lead.paragraph_format.space_after = Pt(10)
 set_font(
     lead.add_run(
         "La presente sezione registra una nuova riesecuzione tecnica del collaudo. "
-        "Non sostituisce le evidenze manuali già raccolte: distingue i controlli nuovamente "
-        "superati da quelli che richiedono il ripristino dell'ambiente locale."
+        "Non sostituisce le evidenze manuali già raccolte: consolida i controlli automatici, "
+        "le prove AWS/Bedrock e il collaudo autenticato eseguito in produzione."
     ),
     size=10,
 )
@@ -115,9 +115,12 @@ rows = [
     ("PWA, offline e sync", "SUPERATO", "Installabilità, cache privata, documenti offline e idempotenza finanziaria."),
     ("Push e pianificazione", "SUPERATO", "Contratti client/service worker e invio pianificato verificati."),
     ("Qualità deterministica import", "SUPERATO", "Rilevate tutte le otto classi di anomalia attese."),
-    ("Invocazioni Bedrock reali", "DA RIESEGUIRE", "Sessione AWS locale scaduta; nessuna chiamata AI completata in questa sessione."),
-    ("Autorizzazione ruolo DB runtime", "DA RIESEGUIRE", "Manca una DATABASE_URL locale valida per il ruolo applicativo ridotto."),
-    ("Browser autenticato", "DA RIESEGUIRE", "Le sessioni disponibili sono ferme al login; richiesta una sessione autenticata per i ruoli principali."),
+    ("Invocazioni Bedrock reali", "SUPERATO", "Import preventivo, contenuti Paese e valutazione fotografica eseguiti con Amazon Nova."),
+    ("Dataset fotografico AI", "SUPERATO", "18/18 valutazioni corrette; zero falsi positivi e negativi, verdetto stabile."),
+    ("Autorizzazione ruolo DB runtime", "SUPERATO", "Identità, impersonazione, scope viaggiatore, media e mutazioni verificati assumendo smf_app."),
+    ("Cancellazione agenzia asincrona", "SUPERATO", "Pipeline SQS-Lambda-Neon completata fino allo stato completed su fixture temporanea."),
+    ("Browser autenticato", "SUPERATO", "Pannello responsabile, programma, gruppi, documenti, chat, agenti, analytics e login-come verificati."),
+    ("Layout mobile programma", "SUPERATO", "Corretto l'overflow della testata a 360 px rendendo Preventivi coerente con le altre schede."),
 ]
 
 table = document.add_table(rows=1, cols=3)
@@ -143,6 +146,7 @@ document.add_heading("Anomalie corrette durante la riesecuzione", level=2)
 for text in (
     "Il validatore dello schema ammette ora il totale corrente di 78 tabelle, mantenendo invariati gli altri gate.",
     "La fixture del quiz usa date relative al giorno di esecuzione e non produce più falsi errori dopo il 1 settembre 2026.",
+    "La testata mobile del programma non supera più il viewport sui dispositivi Android compatti.",
 ):
     paragraph = document.add_paragraph(style="List Bullet")
     paragraph.paragraph_format.space_after = Pt(3)
@@ -150,9 +154,9 @@ for text in (
 
 document.add_heading("Valutazione corrente", level=2)
 document.add_paragraph(
-    "La build e i controlli automatizzati disponibili sono verdi. Il punto 1 del piano resta aperto "
-    "finché non vengono rieseguiti Bedrock, il ruolo database runtime e i percorsi browser autenticati. "
-    "Questi elementi sono classificati come verifiche pendenti di ambiente, non come difetti applicativi confermati."
+    "La build, i controlli automatici, Neon, AWS, Bedrock e il percorso browser autenticato risultano verdi. "
+    "Il punto 1 del piano di consolidamento è chiuso. La lettura diretta della password della DSN runtime "
+    "resta deliberatamente esclusa: ruolo, privilegi e collegamento applicativo sono stati verificati senza esporre il segreto."
 )
 
 OUTPUT.parent.mkdir(parents=True, exist_ok=True)

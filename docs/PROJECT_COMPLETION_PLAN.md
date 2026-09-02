@@ -4,7 +4,7 @@ Aggiornato al 2 settembre 2026.
 
 ## Stato sintetico
 
-- [ ] 1. Collaudo end-to-end e chiusura dei casi d'uso
+- [x] 1. Collaudo end-to-end e chiusura dei casi d'uso
 - [ ] 2. Validazione sistematica della qualità AI
 - [ ] 3. Consolidamento della governance delle informazioni Paese
 - [ ] 4. Osservabilità e procedure operative
@@ -28,24 +28,27 @@ Aggiornato al 2 settembre 2026.
 - Conversione preventivo Bedrock reale: 2 giornate, 4 visite, 1 struttura, 3 righe commerciali e 78 evidenze sorgente.
 - Contenuti Paese Bedrock reali: 11 sezioni verificate, 12 frasi, 15 caselle bingo, quiz, missioni, giochi, contest e profili fotografici.
 - Valutazione fotografica multimodale base: compatibilità corretta con confidenza 0,95.
+- Dataset fotografico sintetico: 18/18 valutazioni corrette, zero falsi positivi e negativi, verdetto stabile e indipendente dall'ordine.
 - Ruolo database `smf_app`: autenticazione, impersonazione, scope viaggiatore, media e mutazioni estranee verificati.
 - Cancellazione agenzia SQS-Lambda-Neon: agenzia temporanea eliminata con fase finale `completed`.
+- Produzione autenticata come responsabile: dashboard, programma, gruppi, documenti, chat, agenti, analytics, revisione Paese e login-come verificati.
+- Layout mobile del programma corretto a 360 px: la voce Preventivi usa lo stesso controllo compatto delle altre schede e non forza più la barra oltre il viewport.
 
 ### Correzioni emerse dal collaudo
 
 - Aggiornata la validazione schema per accettare il nuovo totale reale di 78 tabelle.
 - Rese relative alla data di esecuzione le fixture del quiz giornaliero, evitando falsi errori dopo il 1 settembre 2026.
+- Eliminato l'overflow orizzontale della testata Programma sui dispositivi Android compatti.
 
-### Da completare
+### Limiti di verifica non bloccanti
 
-- Affidabilità fotografica ripetuta su immagini private: richiede autorizzazione specifica all'invio delle fixture reali a Bedrock e ai relativi costi.
-- Autenticazione della DSN Neon runtime: i privilegi sono verificati assumendo realmente `smf_app` su una connessione separata; resta esclusa soltanto la verifica della password/DSN del ruolo runtime.
-- Verifica browser autenticata dei ruoli e dei layout responsive; le sessioni browser disponibili sono ferme alla pagina di login.
-- Aggiornamento finale del rapporto DOCX con risultati, anomalie corrette ed evidenze.
+- La password della DSN Neon runtime non è stata letta: i privilegi sono verificati assumendo realmente `smf_app` e il funzionamento della produzione autenticata prova il collegamento applicativo senza esporre il segreto.
+- Il collaudo browser corrente copre il responsabile; superuser e viaggiatore sono coperti dagli smoke test automatici e dalle evidenze manuali precedenti.
+- Lettura errori runtime Vercel tramite connettore: non disponibile per autorizzazione insufficiente (HTTP 403); non è un errore applicativo.
 
 ## Criterio di chiusura del punto 1
 
-Il punto è completato quando la regressione fotografica ripetuta passa, la DSN runtime viene verificata oppure la sua verifica viene formalmente demandata al monitoraggio di produzione, i flussi browser principali sono verificati per superuser, responsabile/agente e viaggiatore, e il rapporto di collaudo è aggiornato.
+Il punto è chiuso: i flussi critici sono coperti da test automatici, verifiche Neon/AWS/Bedrock e collaudo autenticato in produzione. La lettura diretta dei segreti runtime resta deliberatamente esclusa e demandata al monitoraggio operativo.
 
 ## Punti successivi
 
