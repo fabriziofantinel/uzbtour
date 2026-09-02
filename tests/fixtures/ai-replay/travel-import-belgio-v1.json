@@ -1,0 +1,876 @@
+{
+  "version": 1,
+  "scenario": "travel-import-belgio-v1",
+  "recordedAt": "2026-09-02T16:27:02.390Z",
+  "value": {
+    "draft": {
+      "title": "PREVENTIVO DI VIAGGIO - BELGIO",
+      "destinationCountry": "Belgio",
+      "startDate": "2026-10-10",
+      "endDate": "2026-10-11",
+      "summary": "Il cliente Gruppo Acceptance viaggerà in Belgio dal 10 al 11 ottobre 2026. Il preventivo include trasferimenti, cena del primo giorno e pernottamento con prima colazione. Il programma prevede visite a Bruxelles e Bruges.",
+      "commercialDetails": {
+        "agencyName": "",
+        "agencyContact": "",
+        "quoteCode": "ACC-BE-2026-01",
+        "quoteVersion": "",
+        "quoteDate": "10-11 Otto",
+        "clientName": "Gruppo Acceptance",
+        "travelerCount": 0,
+        "adults": 0,
+        "minors": 0,
+        "guideLanguage": "",
+        "currency": "EUR",
+        "pricingRows": [
+          {
+            "item": "Pernottamento presso Hotel Amigo, Bruxelles, Belgio.",
+            "amount": "",
+            "currency": "EUR",
+            "notes": ""
+          }
+        ],
+        "includedServices": [
+          {
+            "service": "Trasferimenti indicati nel programma",
+            "included": true,
+            "details": ""
+          },
+          {
+            "service": "Cena del primo giorno",
+            "included": true,
+            "details": ""
+          },
+          {
+            "service": "Pernottamento con prima colazione",
+            "included": true,
+            "details": ""
+          }
+        ],
+        "conditions": [
+          {
+            "field": "Preventivo soggetto a disponibilita al momento della conferma.",
+            "value": ""
+          }
+        ],
+        "contacts": []
+      },
+      "days": [
+        {
+          "dayNumber": 1,
+          "date": "2026-10-10",
+          "label": "Arrivo a Bruxelles e visita",
+          "title": "Arrivo a Bruxelles e visita",
+          "country": "Belgio",
+          "countryValidation": {
+            "needsValidation": true,
+            "reason": "Il nome del paese è generico e non specificato nel documento."
+          },
+          "city": "Bruxelles",
+          "cityValidation": {
+            "needsValidation": false,
+            "reason": "Città predominante della giornata: 2 visite"
+          },
+          "description": "Arrivo a Bruxelles e trasferimento in centro. Visita della Grand-Place di Bruxelles. Visita delle Galeries Royales Saint-Hubert. Cena inclusa in ristorante locale.",
+          "activities": [
+            {
+              "type": "visit",
+              "title": "Grand-Place di Bruxelles",
+              "description": "Visita della Grand-Place di Bruxelles.",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": true,
+              "placeName": "Grand-Place di Bruxelles",
+              "placeCity": "Bruxelles",
+              "placeCountry": "Belgio",
+              "placeValidation": {
+                "needsValidation": false,
+                "reason": ""
+              }
+            },
+            {
+              "type": "visit",
+              "title": "Galeries Royales Saint-Hubert",
+              "description": "Visita delle Galeries Royales Saint-Hubert.",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": true,
+              "placeName": "Galeries Royales Saint-Hubert",
+              "placeCity": "Bruxelles",
+              "placeCountry": "Belgio",
+              "placeValidation": {
+                "needsValidation": false,
+                "reason": ""
+              }
+            },
+            {
+              "type": "meal",
+              "title": "Cena",
+              "description": "Cena inclusa in ristorante locale.",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": true,
+              "placeName": "Ristorante locale",
+              "placeCity": "Bruxelles",
+              "placeCountry": "Belgio",
+              "placeValidation": {
+                "needsValidation": false,
+                "reason": ""
+              }
+            }
+          ],
+          "accommodation": {
+            "name": "Hotel Amigo",
+            "city": "Bruxelles",
+            "country": "Belgio",
+            "notes": "",
+            "validation": {
+              "needsValidation": false,
+              "reason": ""
+            }
+          },
+          "additionalAccommodations": []
+        },
+        {
+          "dayNumber": 2,
+          "date": "2026-10-11",
+          "label": "Trasferimento a Bruges e visita",
+          "title": "Trasferimento a Bruges e visita",
+          "country": "Belgio",
+          "countryValidation": {
+            "needsValidation": true,
+            "reason": "Il nome del paese è generico e non specificato nel documento."
+          },
+          "city": "Bruges",
+          "cityValidation": {
+            "needsValidation": false,
+            "reason": "Città predominante della giornata: 2 visite"
+          },
+          "description": "Trasferimento a Bruges. Visita del Belfort di Bruges. Visita della Piazza del Mercato di Bruges. Rientro a Bruxelles.",
+          "activities": [
+            {
+              "type": "visit",
+              "title": "Belfort di Bruges",
+              "description": "Visita del Belfort di Bruges.",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": true,
+              "placeName": "Belfort di Bruges",
+              "placeCity": "Bruges",
+              "placeCountry": "Belgio",
+              "placeValidation": {
+                "needsValidation": false,
+                "reason": ""
+              }
+            },
+            {
+              "type": "visit",
+              "title": "Piazza del Mercato di Bruges",
+              "description": "Visita della Piazza del Mercato di Bruges.",
+              "startsAt": "",
+              "endsAt": "",
+              "includedInQuote": true,
+              "placeName": "Piazza del Mercato di Bruges",
+              "placeCity": "Bruges",
+              "placeCountry": "Belgio",
+              "placeValidation": {
+                "needsValidation": false,
+                "reason": ""
+              }
+            }
+          ],
+          "accommodation": {
+            "name": "",
+            "city": "",
+            "country": "",
+            "notes": "",
+            "validation": {
+              "needsValidation": true,
+              "reason": "Il nome dell'hotel non è specificato nel documento."
+            }
+          },
+          "additionalAccommodations": []
+        }
+      ],
+      "usefulInformation": [],
+      "extractionEvidence": [
+        {
+          "fieldPath": "title",
+          "sourcePage": 1,
+          "sourceText": "PREVENTIVO DI VIAGGIO - BELGIO",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "destinationCountry",
+          "sourcePage": 1,
+          "sourceText": "Belgio",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "startDate",
+          "sourcePage": 1,
+          "sourceText": "10 ottobre 2026",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "endDate",
+          "sourcePage": 1,
+          "sourceText": "11 ottobre 2026",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "summary",
+          "sourcePage": 1,
+          "sourceText": "Il cliente Gruppo Acceptance viaggerà in Belgio dal 10 al 11 ottobre 2026. Il preventivo include trasferimenti, cena del primo giorno e pernottamento con prima colazione. Il programma prevede visite a Bruxelles e Bruges.",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "commercialDetails.agencyName",
+          "sourcePage": 1,
+          "sourceText": "Agenzia non specificata",
+          "confidence": 0.8,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "commercialDetails.agencyContact",
+          "sourcePage": 1,
+          "sourceText": "Contatto non specificato",
+          "confidence": 0.8,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "commercialDetails.quoteCode",
+          "sourcePage": 1,
+          "sourceText": "ACC-BE-2026-01",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "commercialDetails.quoteVersion",
+          "sourcePage": 1,
+          "sourceText": "Versione non specificata",
+          "confidence": 0.8,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "commercialDetails.quoteDate",
+          "sourcePage": 1,
+          "sourceText": "Data non specificata",
+          "confidence": 0.8,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "commercialDetails.clientName",
+          "sourcePage": 1,
+          "sourceText": "Gruppo Acceptance",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "commercialDetails.travelerCount",
+          "sourcePage": 1,
+          "sourceText": "Numero viaggiatori non specificato",
+          "confidence": 0.8,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "commercialDetails.adults",
+          "sourcePage": 1,
+          "sourceText": "Numero adulti non specificato",
+          "confidence": 0.8,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "commercialDetails.minors",
+          "sourcePage": 1,
+          "sourceText": "Numero minori non specificato",
+          "confidence": 0.8,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "commercialDetails.guideLanguage",
+          "sourcePage": 1,
+          "sourceText": "Lingua guida non specificata",
+          "confidence": 0.8,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "commercialDetails.currency",
+          "sourcePage": 1,
+          "sourceText": "EUR",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "commercialDetails.pricingRows",
+          "sourcePage": 1,
+          "sourceText": "Servizi inclusi: Trasferimenti indicati nel programma, Cena del primo giorno, Pernottamento con prima colazione",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "commercialDetails.includedServices",
+          "sourcePage": 1,
+          "sourceText": "Servizi inclusi: Trasferimenti indicati nel programma, Cena del primo giorno, Pernottamento con prima colazione",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "commercialDetails.conditions",
+          "sourcePage": 1,
+          "sourceText": "Preventivo soggetto a disponibilità al momento della conferma",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "commercialDetails.contacts",
+          "sourcePage": 1,
+          "sourceText": "Contatti non specificati",
+          "confidence": 0.8,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[0].dayNumber",
+          "sourcePage": 1,
+          "sourceText": "1",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].date",
+          "sourcePage": 1,
+          "sourceText": "2026-10-10",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].label",
+          "sourcePage": 1,
+          "sourceText": "Arrivo a Bruxelles e visita",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].title",
+          "sourcePage": 1,
+          "sourceText": "Arrivo a Bruxelles e visita",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].country",
+          "sourcePage": 1,
+          "sourceText": "Belgio",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].countryValidation",
+          "sourcePage": 1,
+          "sourceText": "Il nome del paese è generico e non specificato nel documento.",
+          "confidence": 0.9,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[0].city",
+          "sourcePage": 1,
+          "sourceText": "Bruxelles",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].cityValidation",
+          "sourcePage": 1,
+          "sourceText": "La città è specificata nel documento.",
+          "confidence": 0.9,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[0].description",
+          "sourcePage": 1,
+          "sourceText": "Arrivo a Bruxelles e trasferimento in centro. Visita della Grand-Place di Bruxelles. Visita delle Galeries Royales Saint-Hubert. Cena inclusa in ristorante locale.",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[0].type",
+          "sourcePage": 1,
+          "sourceText": "visit",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[0].title",
+          "sourcePage": 1,
+          "sourceText": "Grand-Place di Bruxelles",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[0].description",
+          "sourcePage": 1,
+          "sourceText": "Visita della Grand-Place di Bruxelles.",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[0].placeName",
+          "sourcePage": 1,
+          "sourceText": "Grand-Place di Bruxelles",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[0].placeCity",
+          "sourcePage": 1,
+          "sourceText": "Bruxelles",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[0].placeCountry",
+          "sourcePage": 1,
+          "sourceText": "Belgio",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[0].placeValidation",
+          "sourcePage": 1,
+          "sourceText": "La città e il paese sono specificati nel documento.",
+          "confidence": 0.9,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[0].activities[1].type",
+          "sourcePage": 1,
+          "sourceText": "visit",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[1].title",
+          "sourcePage": 1,
+          "sourceText": "Galeries Royales Saint-Hubert",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[1].description",
+          "sourcePage": 1,
+          "sourceText": "Visita delle Galeries Royales Saint-Hubert.",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[1].placeName",
+          "sourcePage": 1,
+          "sourceText": "Galeries Royales Saint-Hubert",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[1].placeCity",
+          "sourcePage": 1,
+          "sourceText": "Bruxelles",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[1].placeCountry",
+          "sourcePage": 1,
+          "sourceText": "Belgio",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[1].placeValidation",
+          "sourcePage": 1,
+          "sourceText": "La città e il paese sono specificati nel documento.",
+          "confidence": 0.9,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[0].activities[2].type",
+          "sourcePage": 1,
+          "sourceText": "meal",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[2].title",
+          "sourcePage": 1,
+          "sourceText": "Cena",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[2].description",
+          "sourcePage": 1,
+          "sourceText": "Cena inclusa in ristorante locale.",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[2].placeName",
+          "sourcePage": 1,
+          "sourceText": "Ristorante locale",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[2].placeCity",
+          "sourcePage": 1,
+          "sourceText": "Bruxelles",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[2].placeCountry",
+          "sourcePage": 1,
+          "sourceText": "Belgio",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].activities[2].placeValidation",
+          "sourcePage": 1,
+          "sourceText": "La città e il paese sono specificati nel documento.",
+          "confidence": 0.9,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[0].accommodation.name",
+          "sourcePage": 1,
+          "sourceText": "Hotel Amigo",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].accommodation.country",
+          "sourcePage": 1,
+          "sourceText": "Belgio",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].accommodation.city",
+          "sourcePage": 1,
+          "sourceText": "Bruxelles",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[0].accommodation.validation",
+          "sourcePage": 1,
+          "sourceText": "Il nome dell'hotel è specificato nel documento.",
+          "confidence": 0.9,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[1].dayNumber",
+          "sourcePage": 1,
+          "sourceText": "2",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[1].date",
+          "sourcePage": 1,
+          "sourceText": "2026-10-11",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[1].label",
+          "sourcePage": 1,
+          "sourceText": "Trasferimento a Bruges e visita",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[1].title",
+          "sourcePage": 1,
+          "sourceText": "Trasferimento a Bruges e visita",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[1].country",
+          "sourcePage": 1,
+          "sourceText": "Belgio",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[1].countryValidation",
+          "sourcePage": 1,
+          "sourceText": "Il nome del paese è generico e non specificato nel documento.",
+          "confidence": 0.9,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[1].city",
+          "sourcePage": 1,
+          "sourceText": "Bruges",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[1].cityValidation",
+          "sourcePage": 1,
+          "sourceText": "La città è specificata nel documento.",
+          "confidence": 0.9,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[1].description",
+          "sourcePage": 1,
+          "sourceText": "Trasferimento a Bruges. Visita del Belfort di Bruges. Visita della Piazza del Mercato di Bruges. Rientro a Bruxelles.",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[1].activities[0].type",
+          "sourcePage": 1,
+          "sourceText": "visit",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[1].activities[0].title",
+          "sourcePage": 1,
+          "sourceText": "Belfort di Bruges",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[1].activities[0].description",
+          "sourcePage": 1,
+          "sourceText": "Visita del Belfort di Bruges.",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[1].activities[0].placeName",
+          "sourcePage": 1,
+          "sourceText": "Belfort di Bruges",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[1].activities[0].placeCity",
+          "sourcePage": 1,
+          "sourceText": "Bruges",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[1].activities[0].placeCountry",
+          "sourcePage": 1,
+          "sourceText": "Belgio",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[1].activities[0].placeValidation",
+          "sourcePage": 1,
+          "sourceText": "La città e il paese sono specificati nel documento.",
+          "confidence": 0.9,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[1].activities[1].type",
+          "sourcePage": 1,
+          "sourceText": "visit",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[1].activities[1].title",
+          "sourcePage": 1,
+          "sourceText": "Piazza del Mercato di Bruges",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[1].activities[1].description",
+          "sourcePage": 1,
+          "sourceText": "Visita della Piazza del Mercato di Bruges.",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[1].activities[1].placeName",
+          "sourcePage": 1,
+          "sourceText": "Piazza del Mercato di Bruges",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[1].activities[1].placeCity",
+          "sourcePage": 1,
+          "sourceText": "Bruges",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[1].activities[1].placeCountry",
+          "sourcePage": 1,
+          "sourceText": "Belgio",
+          "confidence": 1,
+          "method": "bedrock_native"
+        },
+        {
+          "fieldPath": "days[1].activities[1].placeValidation",
+          "sourcePage": 1,
+          "sourceText": "La città e il paese sono specificati nel documento.",
+          "confidence": 0.9,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "days[1].accommodation.validation",
+          "sourcePage": 1,
+          "sourceText": "Il nome dell'hotel non è specificato nel documento.",
+          "confidence": 0.9,
+          "method": "derived"
+        },
+        {
+          "fieldPath": "clientName",
+          "sourcePage": 1,
+          "sourceText": "Cliente: Gruppo Acceptance",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "quoteCode",
+          "sourcePage": 1,
+          "sourceText": "Codice: ACC-BE-2026-01",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "quoteDate",
+          "sourcePage": 1,
+          "sourceText": "Periodo: 10-11 ottobre 2026",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "currency",
+          "sourcePage": 1,
+          "sourceText": "Valuta: EUR",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "pricingRows",
+          "sourcePage": 1,
+          "sourceText": "Pernottamento presso Hotel Amigo, Bruxelles, Belgio.",
+          "confidence": 0.9,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "includedServices",
+          "sourcePage": 1,
+          "sourceText": "SERVIZI INCLUSI\n- Trasferimenti indicati nel programma\n- Cena del primo giorno\n- Pernottamento con prima colazione",
+          "confidence": 0.95,
+          "method": "textract"
+        },
+        {
+          "fieldPath": "conditions",
+          "sourcePage": 1,
+          "sourceText": "Preventivo soggetto a disponibilita al momento della conferma.",
+          "confidence": 0.95,
+          "method": "textract"
+        }
+      ],
+      "reconciliationIssues": [
+        {
+          "code": "missing_traveler_count",
+          "severity": "blocking",
+          "fieldPath": "commercialDetails.travelerCount",
+          "message": "Il numero di partecipanti non è specificato nel documento.",
+          "sourceText": "Il numero di partecipanti non è specificato nel documento.",
+          "resolved": false
+        },
+        {
+          "code": "missing_adult_count",
+          "severity": "blocking",
+          "fieldPath": "commercialDetails.adults",
+          "message": "Il numero di adulti non è specificato nel documento.",
+          "sourceText": "Il numero di adulti non è specificato nel documento.",
+          "resolved": false
+        },
+        {
+          "code": "missing_minor_count",
+          "severity": "blocking",
+          "fieldPath": "commercialDetails.minors",
+          "message": "Il numero di minori non è specificato nel documento.",
+          "sourceText": "Il numero di minori non è specificato nel documento.",
+          "resolved": false
+        },
+        {
+          "code": "missing_hotel_name",
+          "severity": "blocking",
+          "fieldPath": "days[1].accommodation.name",
+          "message": "Il nome dell'hotel per il secondo giorno non è specificato nel documento.",
+          "sourceText": "Il nome dell'hotel per il secondo giorno non è specificato nel documento.",
+          "resolved": false
+        },
+        {
+          "code": "generic_country_name",
+          "severity": "warning",
+          "fieldPath": "days[0].countryValidation.needsValidation",
+          "message": "Il nome del paese per il primo giorno è generico e non specificato nel documento.",
+          "sourceText": "Il nome del paese per il primo giorno è generico e non specificato nel documento.",
+          "resolved": false
+        },
+        {
+          "code": "generic_country_name",
+          "severity": "warning",
+          "fieldPath": "days[1].countryValidation.needsValidation",
+          "message": "Il nome del paese per il secondo giorno è generico e non specificato nel documento.",
+          "sourceText": "Il nome del paese per il secondo giorno è generico e non specificato nel documento.",
+          "resolved": false
+        },
+        {
+          "code": "missing_price",
+          "severity": "warning",
+          "fieldPath": "pricingRows[0].amount",
+          "message": "L'importo per il pernottamento non è specificato nel documento.",
+          "sourceText": "L'importo per il pernottamento non è specificato nel documento.",
+          "resolved": false
+        }
+      ]
+    },
+    "model": "eu.amazon.nova-lite-v1:0",
+    "provider": "amazon-bedrock-native-ocr-text",
+    "usage": {
+      "extraction": {
+        "inputTokens": 5025,
+        "outputTokens": 5136,
+        "totalTokens": 10161
+      },
+      "commercialExtraction": {
+        "inputTokens": 1894,
+        "outputTokens": 597,
+        "totalTokens": 2491
+      },
+      "accommodationRecovery": {
+        "inputTokens": 1290,
+        "outputTokens": 88,
+        "totalTokens": 1378
+      },
+      "reconciliation": {
+        "inputTokens": 1869,
+        "outputTokens": 546,
+        "totalTokens": 2415
+      }
+    }
+  }
+}

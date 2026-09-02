@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { generateReferenceContent } from "../lib/platform/reference-enrichment";
 import { countryUsefulInfoCategories } from "../lib/platform/reference-content-normalizer";
 import { verifiedCountryProfileSchema } from "../lib/platform/verified-country-profile";
+import { withAiTestReplay } from "../lib/platform/ai-test-replay";
 
 function assertPhotoValidation(items: Array<{ photoValidation?: { target: string; requiredFeatures: string[]; rejectIf: string[]; minimumConfidence: number } }>, label: string) {
   if (items.some((item) => !item.photoValidation || !item.photoValidation.target || item.photoValidation.requiredFeatures.length === 0 || item.photoValidation.rejectIf.length === 0 || item.photoValidation.minimumConfidence < 0.65)) {
@@ -37,28 +38,32 @@ async function main() {
       { category: "Salute e assistenza", title: "Viaggiare Sicuri", url: officialUrl },
     ],
   });
-  const country = await generateReferenceContent(
-    { entityType: "country", entityId: randomUUID(), name: "Belgio" },
-    "Belgio, viaggio culturale tra Bruxelles e Bruges", verifiedProfile,
-  );
+  const generated = await withAiTestReplay("reference-content-belgio-v1", async () => {
+    const country = await generateReferenceContent(
+      { entityType: "country", entityId: randomUUID(), name: "Belgio" },
+      "Belgio, viaggio culturale tra Bruxelles e Bruges", verifiedProfile,
+    );
+    const city = await generateReferenceContent(
+      { entityType: "city", entityId: randomUUID(), name: "Bruxelles" },
+      "Bruxelles, Belgio",
+    );
+    const site = await generateReferenceContent(
+      { entityType: "site", entityId: randomUUID(), name: "Grand-Place di Bruxelles" },
+      "Grand-Place di Bruxelles, Bruxelles, Belgio",
+    );
+    return { country, city, site };
+  });
+  const { country, city, site } = generated;
   if (country.kind !== "country") throw new Error("Contenuto Paese non generato");
   assertPhotoValidation(country.data.bingo, "bingo Paese");
   const languages = [...new Set(country.data.phrasebook.map((item) => item.language))];
   if (languages.some((language) => /belga/i.test(language))) throw new Error("'Belga' non è una lingua valida");
 
-  const city = await generateReferenceContent(
-    { entityType: "city", entityId: randomUUID(), name: "Bruxelles" },
-    "Bruxelles, Belgio",
-  );
   if (city.kind !== "destination") throw new Error("Contenuto città non generato");
   assertPhotoValidation(city.data.missions, "missioni città");
   assertPhotoValidation(city.data.photoContests, "contest città");
   assertGames(city.data.games, "giochi città");
 
-  const site = await generateReferenceContent(
-    { entityType: "site", entityId: randomUUID(), name: "Grand-Place di Bruxelles" },
-    "Grand-Place di Bruxelles, Bruxelles, Belgio",
-  );
   if (site.kind !== "destination") throw new Error("Contenuto sito non generato");
   assertPhotoValidation(site.data.missions, "missioni sito");
   assertPhotoValidation(site.data.photoContests, "contest sito");

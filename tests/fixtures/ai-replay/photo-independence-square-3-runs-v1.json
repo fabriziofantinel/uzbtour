@@ -1,0 +1,205 @@
+{
+  "version": 1,
+  "scenario": "photo-independence-square-3-runs-v1",
+  "recordedAt": "2026-09-02T16:33:42.765Z",
+  "value": [
+    {
+      "run": 1,
+      "file": "01-valid-obvious-independence-square.png",
+      "difficulty": "easy",
+      "expected": "eligible",
+      "actual": "eligible",
+      "total": 83,
+      "passed": true,
+      "themeReason": "La foto mostra chiaramente Piazza dell'Indipendenza a Tashkent, con il monumento centrale e le fontane, in linea con la descrizione visiva fornita. Non sono presenti elementi che contraddicono le indicazioni del contest.",
+      "reason": "La foto è ben composta con un uso efficace dello spazio e una chiara rappresentazione del luogo. La qualità tecnica è buona, con colori accurati e dettagli chiari. La narrazione è forte, mostrando il contesto civico e i dettagli architettonici. L'originalità è moderata, con una prospettiva standard ma ben eseguita. La rilevanza è alta, dato che la foto rappresenta accuratamente il luogo richiesto."
+    },
+    {
+      "run": 1,
+      "file": "02-valid-partial-fountain-garden.png",
+      "difficulty": "hard",
+      "expected": "eligible",
+      "actual": "eligible",
+      "total": 83,
+      "passed": true,
+      "themeReason": "La foto mostra una fontana monumentale e un edificio istituzionale chiaro, elementi distintivi di Piazza dell'Indipendenza a Tashkent, coerenti con la descrizione visiva e le caratteristiche richieste. Non sono presenti elementi che contraddicono le condizioni di rigetto.",
+      "reason": "La foto è ben composta, con una forte presenza della fontana e dell'edificio sullo sfondo. La qualità tecnica è alta, con una buona illuminazione e dettagli chiari. La narrazione è efficace, mostrando un elemento distintivo della piazza. L'originalità è buona, ma non eccezionale. La rilevanza al tema è alta, con una chiara rappresentazione di Piazza dell'Indipendenza."
+    },
+    {
+      "run": 1,
+      "file": "03b-invalid-ala-too-square-bishkek.png",
+      "difficulty": "hard",
+      "expected": "ineligible",
+      "actual": "ineligible",
+      "total": 0,
+      "passed": true,
+      "themeReason": "La foto mostra una statua equestre su un alto piedistallo con montagne sullo sfondo, che è una condizione di rifiuto per il tema richiesto.",
+      "reason": "Foto esclusa perché non coerente con il tema: La foto mostra una statua equestre su un alto piedistallo con montagne sullo sfondo, che è una condizione di rifiuto per il tema richiesto.. La foto non rappresenta Piazza dell'Indipendenza di Tashkent come richiesto. Mostra invece una statua equestre con montagne sullo sfondo, che non è coerente con le indicazioni del contest."
+    },
+    {
+      "run": 1,
+      "file": "04-invalid-registan-samarkand.png",
+      "difficulty": "medium",
+      "expected": "ineligible",
+      "actual": "ineligible",
+      "total": 0,
+      "passed": true,
+      "themeReason": "La foto mostra il Registan di Samarcanda, non Piazza dell'Indipendenza a Tashkent. Il contesto architettonico e le caratteristiche non corrispondono alla descrizione fornita per Piazza dell'Indipendenza.",
+      "reason": "Foto esclusa perché non coerente con il tema: La foto mostra il Registan di Samarcanda, non Piazza dell'Indipendenza a Tashkent. Il contesto architettonico e le caratteristiche non corrispondono alla descrizione fornita per Piazza dell'Indipendenza.. La foto è tecnicamente ben eseguita con una buona illuminazione e composizione, ma non corrisponde al tema richiesto."
+    },
+    {
+      "run": 1,
+      "file": "05-invalid-mediterranean-sea.png",
+      "difficulty": "easy",
+      "expected": "ineligible",
+      "actual": "ineligible",
+      "total": 0,
+      "passed": true,
+      "themeReason": "La foto mostra un paesaggio marino con una barca a vela, che non corrisponde affatto alla Piazza dell'Indipendenza di Tashkent. Non sono presenti elementi distintivi della piazza come fontane, giardini formali o architettura istituzionale.",
+      "reason": "Foto esclusa perché non coerente con il tema: La foto mostra un paesaggio marino con una barca a vela, che non corrisponde affatto alla Piazza dell'Indipendenza di Tashkent. Non sono presenti elementi distintivi della piazza come fontane, giardini formali o architettura istituzionale.. La foto non rappresenta Piazza dell'Indipendenza di Tashkent e non soddisfa i requisiti del tema del contest."
+    },
+    {
+      "run": 1,
+      "file": "06-invalid-hotel-breakfast.png",
+      "difficulty": "easy",
+      "expected": "ineligible",
+      "actual": "ineligible",
+      "total": 0,
+      "passed": true,
+      "themeReason": "La foto mostra un tavolo da colazione in un ristorante, non Piazza dell'Indipendenza a Tashkent.",
+      "reason": "Foto esclusa perché non coerente con il tema: La foto mostra un tavolo da colazione in un ristorante, non Piazza dell'Indipendenza a Tashkent.. La foto non rappresenta Piazza dell'Indipendenza a Tashkent. Mostra un ambiente di ristorazione con cibo e bevande, non un luogo specifico come richiesto dal tema del contest."
+    },
+    {
+      "run": 2,
+      "file": "02-valid-partial-fountain-garden.png",
+      "difficulty": "hard",
+      "expected": "eligible",
+      "actual": "eligible",
+      "total": 78,
+      "passed": true,
+      "themeReason": "La foto mostra una fontana monumentale e un edificio istituzionale chiaro, che sono elementi distintivi di Piazza dell'Indipendenza a Tashkent. Non sono presenti elementi che escludono la foto dal contest.",
+      "reason": "La foto è ben composta con la fontana al centro e l'edificio monumentale sullo sfondo. La qualità tecnica è alta con una buona illuminazione e dettagli nitidi. La narrazione è forte grazie alla presenza degli elementi distintivi della piazza. L'originalità è buona ma non eccezionale. La rilevanza è alta perché la foto cattura bene l'essenza del luogo."
+    },
+    {
+      "run": 2,
+      "file": "01-valid-obvious-independence-square.png",
+      "difficulty": "easy",
+      "expected": "eligible",
+      "actual": "eligible",
+      "total": 83,
+      "passed": true,
+      "themeReason": "La foto mostra chiaramente Piazza dell'Indipendenza a Tashkent, con il monumento centrale e le fontane, rispettando le indicazioni del contest. Non sono presenti elementi che contraddicono le indicazioni.",
+      "reason": "La foto è ben composta e tecnicamente ben eseguita, con un'ottima illuminazione e chiarezza. Racconta bene la piazza e il suo contesto, con elementi distintivi come il monumento e le fontane. L'originalità è buona, ma potrebbe essere migliorata con un angolo o una prospettiva più insolita. La rilevanza è alta, dato che la piazza è chiaramente riconoscibile e ben rappresentata."
+    },
+    {
+      "run": 2,
+      "file": "04-invalid-registan-samarkand.png",
+      "difficulty": "medium",
+      "expected": "ineligible",
+      "actual": "ineligible",
+      "total": 0,
+      "passed": true,
+      "themeReason": "La foto mostra il Registan di Samarcanda, non Piazza dell'Indipendenza a Tashkent. Il contesto architettonico e le caratteristiche distintive non corrispondono a quelle richieste per Piazza dell'Indipendenza.",
+      "reason": "Foto esclusa perché non coerente con il tema: La foto mostra il Registan di Samarcanda, non Piazza dell'Indipendenza a Tashkent. Il contesto architettonico e le caratteristiche distintive non corrispondono a quelle richieste per Piazza dell'Indipendenza.. La foto è tecnicamente ben eseguita e mostra un'interessante composizione di persone e architettura, ma non è rilevante per il tema richiesto."
+    },
+    {
+      "run": 2,
+      "file": "03b-invalid-ala-too-square-bishkek.png",
+      "difficulty": "hard",
+      "expected": "ineligible",
+      "actual": "ineligible",
+      "total": 0,
+      "passed": true,
+      "themeReason": "La foto mostra una statua equestre su un alto piedistallo con montagne sullo sfondo, che è una condizione di rifiuto per il tema richiesto.",
+      "reason": "Foto esclusa perché non coerente con il tema: La foto mostra una statua equestre su un alto piedistallo con montagne sullo sfondo, che è una condizione di rifiuto per il tema richiesto.. La foto non rappresenta Piazza dell'Indipendenza di Tashkent come richiesto. Mostra invece una statua equestre con montagne sullo sfondo, che non è coerente con le indicazioni del contest."
+    },
+    {
+      "run": 2,
+      "file": "06-invalid-hotel-breakfast.png",
+      "difficulty": "easy",
+      "expected": "ineligible",
+      "actual": "ineligible",
+      "total": 0,
+      "passed": true,
+      "themeReason": "La foto mostra un tavolo da colazione in un ristorante, non Piazza dell'Indipendenza a Tashkent. Non sono presenti elementi distintivi della piazza come fontane, giardini formali o architettura istituzionale.",
+      "reason": "Foto esclusa perché non coerente con il tema: La foto mostra un tavolo da colazione in un ristorante, non Piazza dell'Indipendenza a Tashkent. Non sono presenti elementi distintivi della piazza come fontane, giardini formali o architettura istituzionale.. La foto non rappresenta Piazza dell'Indipendenza a Tashkent e non soddisfa i requisiti del tema del contest."
+    },
+    {
+      "run": 2,
+      "file": "05-invalid-mediterranean-sea.png",
+      "difficulty": "easy",
+      "expected": "ineligible",
+      "actual": "ineligible",
+      "total": 0,
+      "passed": true,
+      "themeReason": "La foto mostra un paesaggio marino con una barca a vela, che non corrisponde affatto alla Piazza dell'Indipendenza di Tashkent. Non sono presenti elementi distintivi della piazza come fontane, giardini formali o architettura istituzionale.",
+      "reason": "Foto esclusa perché non coerente con il tema: La foto mostra un paesaggio marino con una barca a vela, che non corrisponde affatto alla Piazza dell'Indipendenza di Tashkent. Non sono presenti elementi distintivi della piazza come fontane, giardini formali o architettura istituzionale.. La foto non rappresenta Piazza dell'Indipendenza di Tashkent e non soddisfa i requisiti del tema del contest."
+    },
+    {
+      "run": 3,
+      "file": "01-valid-obvious-independence-square.png",
+      "difficulty": "easy",
+      "expected": "eligible",
+      "actual": "eligible",
+      "total": 83,
+      "passed": true,
+      "themeReason": "La foto mostra chiaramente Piazza dell'Indipendenza a Tashkent, con il monumento centrale e le fontane, in linea con la descrizione visiva fornita. Non sono presenti elementi che contraddicono le indicazioni del contest.",
+      "reason": "La foto è ben composta con un uso efficace dello spazio e un'ottima illuminazione. La qualità tecnica è alta, con colori vividi e dettagli chiari. La narrazione è forte, mostrando la bellezza e l'importanza della piazza. L'originalità è buona, ma non eccezionale. La rilevanza è alta, dato che la piazza è chiaramente riconoscibile e ben rappresentata."
+    },
+    {
+      "run": 3,
+      "file": "02-valid-partial-fountain-garden.png",
+      "difficulty": "hard",
+      "expected": "eligible",
+      "actual": "eligible",
+      "total": 83,
+      "passed": true,
+      "themeReason": "La foto mostra una fontana monumentale e un edificio istituzionale chiaro, che sono elementi distintivi di Piazza dell'Indipendenza a Tashkent. La presenza di giardini formali e l'architettura chiara sono coerenti con la descrizione visiva fornita. Non sono presenti elementi che contraddicono le indicazioni del contest.",
+      "reason": "La foto cattura bene l'essenza di Piazza dell'Indipendenza con una composizione ben bilanciata e una qualità tecnica elevata. La narrazione è chiara e l'originalità è apprezzabile, anche se potrebbe essere ulteriormente migliorata. La foto è molto rilevante al tema del contest."
+    },
+    {
+      "run": 3,
+      "file": "03b-invalid-ala-too-square-bishkek.png",
+      "difficulty": "hard",
+      "expected": "ineligible",
+      "actual": "ineligible",
+      "total": 0,
+      "passed": true,
+      "themeReason": "La foto mostra una statua equestre su un alto piedistallo con montagne immediatamente sullo sfondo, che è una condizione di rifiuto per il tema richiesto.",
+      "reason": "Foto esclusa perché non coerente con il tema: La foto mostra una statua equestre su un alto piedistallo con montagne immediatamente sullo sfondo, che è una condizione di rifiuto per il tema richiesto.. La foto mostra una statua equestre su un alto piedistallo con montagne immediatamente sullo sfondo, che è una condizione di rifiuto per il tema richiesto. Tuttavia, la composizione e la qualità tecnica sono accettabili, e c'è una presenza di visitatori che contribuisce alla narrazione."
+    },
+    {
+      "run": 3,
+      "file": "04-invalid-registan-samarkand.png",
+      "difficulty": "medium",
+      "expected": "ineligible",
+      "actual": "ineligible",
+      "total": 0,
+      "passed": true,
+      "themeReason": "La foto mostra il Registan di Samarcanda, non Piazza dell'Indipendenza a Tashkent. Sebbene entrambe siano piazze storiche con architettura monumentale, i dettagli architettonici e le caratteristiche del luogo non corrispondono a Piazza dell'Indipendenza, come indicato nelle indicazioni del contest.",
+      "reason": "Foto esclusa perché non coerente con il tema: La foto mostra il Registan di Samarcanda, non Piazza dell'Indipendenza a Tashkent. Sebbene entrambe siano piazze storiche con architettura monumentale, i dettagli architettonici e le caratteristiche del luogo non corrispondono a Piazza dell'Indipendenza, come indicato nelle indicazioni del contest.. La foto è tecnicamente ben eseguita con una buona illuminazione e composizione, ma non corrisponde al tema richiesto."
+    },
+    {
+      "run": 3,
+      "file": "05-invalid-mediterranean-sea.png",
+      "difficulty": "easy",
+      "expected": "ineligible",
+      "actual": "ineligible",
+      "total": 0,
+      "passed": true,
+      "themeReason": "La foto mostra un paesaggio marino con una barca a vela, che non corrisponde affatto alla descrizione della Piazza dell'Indipendenza di Tashkent. Non sono presenti elementi distintivi della piazza, fontane, giardini formali o architettura istituzionale chiara. La foto è completamente fuori tema.",
+      "reason": "Foto esclusa perché non coerente con il tema: La foto mostra un paesaggio marino con una barca a vela, che non corrisponde affatto alla descrizione della Piazza dell'Indipendenza di Tashkent. Non sono presenti elementi distintivi della piazza, fontane, giardini formali o architettura istituzionale chiara. La foto è completamente fuori tema.. La foto mostra un paesaggio marino con una barca a vela, che non corrisponde affatto alla descrizione della Piazza dell'Indipendenza di Tashkent. Non sono presenti elementi distintivi della piazza, fontane, giardini formali o architettura istituzionale chiara. La foto è completamente fuori tema."
+    },
+    {
+      "run": 3,
+      "file": "06-invalid-hotel-breakfast.png",
+      "difficulty": "easy",
+      "expected": "ineligible",
+      "actual": "ineligible",
+      "total": 0,
+      "passed": true,
+      "themeReason": "La foto mostra un tavolo da colazione in un ristorante, non Piazza dell'Indipendenza a Tashkent. Non sono presenti elementi distintivi della piazza come fontane, giardini formali o architettura istituzionale.",
+      "reason": "Foto esclusa perché non coerente con il tema: La foto mostra un tavolo da colazione in un ristorante, non Piazza dell'Indipendenza a Tashkent. Non sono presenti elementi distintivi della piazza come fontane, giardini formali o architettura istituzionale.. La foto non rappresenta Piazza dell'Indipendenza a Tashkent e non soddisfa i requisiti del tema del contest."
+    }
+  ]
+}

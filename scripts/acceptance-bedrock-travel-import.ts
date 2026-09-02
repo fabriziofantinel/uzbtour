@@ -1,6 +1,7 @@
 import { extractTravelProgrammeWithBedrock } from "../lib/platform/bedrock-travel-ai";
 import { catalogValidationIssues } from "../lib/platform/import-schema";
 import { createNormalizedTravelDocument, readNormalizedTravelDocument } from "../lib/platform/normalized-travel-document";
+import { withAiTestReplay } from "../lib/platform/ai-test-replay";
 
 const source = `
 PREVENTIVO DI VIAGGIO - BELGIO
@@ -32,7 +33,9 @@ Preventivo soggetto a disponibilita al momento della conferma.
 `;
 
 async function main() {
-const extracted = await extractTravelProgrammeWithBedrock(new TextEncoder().encode(source), "acceptance-belgio.ocr.txt");
+const extracted = await withAiTestReplay("travel-import-belgio-v1", () =>
+  extractTravelProgrammeWithBedrock(new TextEncoder().encode(source), "acceptance-belgio.ocr.txt"),
+);
 const draft = extracted.draft;
 if (draft.days.length !== 2) throw new Error(`Attese 2 giornate, ottenute ${draft.days.length}`);
 if (!/belg/i.test(draft.destinationCountry)) throw new Error(`Paese inatteso: ${draft.destinationCountry}`);

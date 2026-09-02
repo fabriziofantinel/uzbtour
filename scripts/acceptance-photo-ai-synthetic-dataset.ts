@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { judgePhotoContest } from "../lib/platform/photo-contest-ai";
+import { withAiTestReplay } from "../lib/platform/ai-test-replay";
 
 type ExpectedVerdict = "eligible" | "ineligible";
 type Fixture = {
@@ -52,42 +53,34 @@ async function main() {
   );
   if (fixtures.length % 2 !== 0) throw new Error("Il dataset deve contenere un numero pari di immagini");
 
-  const observations: Observation[] = [];
-  for (let run = 1; run <= requestedRuns; run += 1) {
-    for (let index = 0; index < fixtures.length; index += 2) {
-      const pair = fixtures.slice(index, index + 2);
-      const ordered = run % 2 === 0 ? [...pair].reverse() : pair;
-      const evaluations = await judgePhotoContest({
-        title: manifest.theme,
-        instructions: `La fotografia deve raffigurare realmente ${manifest.theme}. Non sono sufficienti una piazza generica o un altro monumento dell'Uzbekistan.`,
-        category: "luogo specifico",
-        validationProfile: manifest.photoValidation,
-        photos: ordered.map((fixture) => ({
-          entryId: fixture.file,
-          bytes: fixture.bytes,
-          contentType: "image/png",
-        })),
-      });
-      for (const fixture of ordered) {
-        const evaluation = evaluations.find((item) => item.entryId === fixture.file);
-        if (!evaluation) throw new Error(`Valutazione assente per ${fixture.file}`);
-        const actual: ExpectedVerdict = evaluation.eligible ? "eligible" : "ineligible";
-        observations.push({
-          run,
-          file: fixture.file,
-          difficulty: fixture.difficulty,
-          expected: fixture.expected,
-          actual,
-          total: evaluation.total,
-          passed:
-            actual === fixture.expected &&
-            (actual === "eligible" || evaluation.total === manifest.acceptance.ineligible_total_score),
-          themeReason: evaluation.themeReason,
-          reason: evaluation.reason,
+  const observations = await withAiTestReplay<Observation[]>(`photo-independence-square-${requestedRuns}-runs-v1`, async () => {
+    const recorded: Observation[] = [];
+    for (let run = 1; run <= requestedRuns; run += 1) {
+      for (let index = 0; index < fixtures.length; index += 2) {
+        const pair = fixtures.slice(index, index + 2);
+        const ordered = run % 2 === 0 ? [...pair].reverse() : pair;
+        const evaluations = await judgePhotoContest({
+          title: manifest.theme,
+          instructions: `La fotografia deve raffigurare realmente ${manifest.theme}. Non sono sufficienti una piazza generica o un altro monumento dell'Uzbekistan.`,
+          category: "luogo specifico",
+          validationProfile: manifest.photoValidation,
+          photos: ordered.map((fixture) => ({ entryId: fixture.file, bytes: fixture.bytes, contentType: "image/png" })),
         });
+        for (const fixture of ordered) {
+          const evaluation = evaluations.find((item) => item.entryId === fixture.file);
+          if (!evaluation) throw new Error(`Valutazione assente per ${fixture.file}`);
+          const actual: ExpectedVerdict = evaluation.eligible ? "eligible" : "ineligible";
+          recorded.push({
+            run, file: fixture.file, difficulty: fixture.difficulty, expected: fixture.expected, actual,
+            total: evaluation.total,
+            passed: actual === fixture.expected && (actual === "eligible" || evaluation.total === manifest.acceptance.ineligible_total_score),
+            themeReason: evaluation.themeReason, reason: evaluation.reason,
+          });
+        }
       }
     }
-  }
+    return recorded;
+  });
 
   const fixtureResults = fixtures.map((fixture) => {
     const samples = observations.filter((item) => item.file === fixture.file);

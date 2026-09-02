@@ -56,6 +56,8 @@ Il punto è chiuso: i flussi critici sono coperti da test automatici, verifiche 
 
 Dataset di riferimento per conversione preventivi, contenuti Paese e valutazione immagini; metriche minime, regressioni e gestione degli esiti incerti.
 
+Avanzamento: introdotto il replay deterministico in CI per importazione, contenuti di riferimento e anomalie; registrata una baseline Bedrock live versionata e definite formule, soglie e frequenze in `docs/testing/AI_QUALITY_GATE.md`. Restano l'estensione multi-formato/multi-paese e l'automazione periodica dei test live fotografici.
+
 ### 3. Governance informazioni Paese
 
 Fonti ufficiali, data di aggiornamento, revisione del responsabile, scadenza e rigenerazione controllata dei contenuti sensibili.

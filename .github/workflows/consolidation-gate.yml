@@ -24,6 +24,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run quality:gate
+      - name: Regressione AI deterministica senza consumo Bedrock
+        run: npm run acceptance:ai:replay
 
   neon-tenant-isolation:
     if: github.event_name == 'pull_request'

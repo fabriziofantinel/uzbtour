@@ -119,6 +119,30 @@ function extractToolInput(content: ContentBlock[] | undefined) {
   return toolUse.input;
 }
 
+function clipped(value: unknown, maximum: number) {
+  return typeof value === "string" ? value.trim().slice(0, maximum) : "";
+}
+
+function normalizeCommercialToolInput(input: unknown) {
+  const root = input && typeof input === "object" && !Array.isArray(input) ? input as Record<string, unknown> : {};
+  const details = root.commercialDetails && typeof root.commercialDetails === "object" && !Array.isArray(root.commercialDetails)
+    ? root.commercialDetails as Record<string, unknown> : {};
+  const rows = (value: unknown) => Array.isArray(value) ? value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item)) : [];
+  return {
+    commercialDetails: {
+      ...details,
+      agencyName: clipped(details.agencyName, 240), agencyContact: clipped(details.agencyContact, 500),
+      quoteCode: clipped(details.quoteCode, 120), quoteVersion: clipped(details.quoteVersion, 40), quoteDate: clipped(details.quoteDate, 10),
+      clientName: clipped(details.clientName, 240), guideLanguage: clipped(details.guideLanguage, 120), currency: clipped(details.currency, 20),
+      pricingRows: rows(details.pricingRows).slice(0, 30).map((item) => ({ ...item, item: clipped(item.item, 240), amount: clipped(item.amount, 120), currency: clipped(item.currency, 20), notes: clipped(item.notes, 1000) })),
+      includedServices: rows(details.includedServices).slice(0, 50).map((item) => ({ ...item, service: clipped(item.service, 240), details: clipped(item.details, 2000) })),
+      conditions: rows(details.conditions).slice(0, 50).map((item) => ({ ...item, field: clipped(item.field, 240), value: clipped(item.value, 4000) })),
+      contacts: rows(details.contacts).slice(0, 30).map((item) => ({ ...item, role: clipped(item.role, 120), name: clipped(item.name, 240), phone: clipped(item.phone, 100), email: clipped(item.email, 240), availability: clipped(item.availability, 240) })),
+    },
+    evidence: rows(root.evidence).slice(0, 300).map((item) => ({ ...item, fieldPath: clipped(item.fieldPath, 300), sourceText: clipped(item.sourceText, 1200) || "Evidenza non testuale restituita dal modello" })),
+  };
+}
+
 function novaToolSchema(schema: z.ZodType) {
   const generated = z.toJSONSchema(schema, { target: "draft-7" }) as Record<string, unknown>;
   return {
@@ -230,7 +254,7 @@ async function extractCommercialDetails(input:{client:BedrockRuntimeClient;docum
     messages:[{role:"user",content:[...bedrockDocumentBlocks(input.documentParts),{text:`Rileggi tutte le sezioni esterne all'itinerario ed estrai testata, cliente, partecipanti, prezzi, valuta, servizi inclusi o esclusi, condizioni e contatti. Conserva ogni riga esplicita. Per ogni valore non vuoto aggiungi evidence con fieldPath JSON, citazione letterale breve, pagina se nota, confidence e method=${input.method}. Non inserire una riga se non è sostenuta dal documento.`}]}],
     toolConfig:{tools:[{toolSpec:{name:"emit_commercial_details",description:"Dati commerciali con evidenze",inputSchema:{json:novaToolSchema(commercialExtractionSchema)}}}],toolChoice:{tool:{name:"emit_commercial_details"}}},
     inferenceConfig:{maxTokens:Math.min(input.maxOutputTokens,4500),temperature:0},additionalModelRequestFields:{inferenceConfig:{topK:1}},requestMetadata:{application:"smf-travel",operation:"travel-import-commercial-extraction"}}));
-  return {result:commercialExtractionSchema.parse(extractToolInput(response.output?.message?.content)),usage:response.usage??null};
+  return {result:commercialExtractionSchema.parse(normalizeCommercialToolInput(extractToolInput(response.output?.message?.content))),usage:response.usage??null};
 }
 
 async function reconcileExtraction(input:{client:BedrockRuntimeClient;documentParts:BedrockDocumentPart[];model:string;maxOutputTokens:number;draft:z.infer<typeof travelProgrammeDraftSchema>}){
