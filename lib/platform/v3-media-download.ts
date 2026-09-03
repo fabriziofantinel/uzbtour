@@ -21,20 +21,20 @@ function assetFromRow(row: Record<string, unknown> | undefined): PrivateDownload
   };
 }
 
-export async function resolveV3MemoryDownload(userId: string, memoryId: string) {
+export async function resolveV3MemoryDownload(actorUserId: string, memoryId: string) {
   const sql = getSql();
   const rows = await sql`
     SELECT provider,bucket,object_key,original_name,content_type
-    FROM app.resolve_legacy_memory_download(${userId},${memoryId}::uuid)
+    FROM app.resolve_memory_download_v3(${actorUserId}::uuid,${memoryId}::uuid)
   `;
   return assetFromRow(rows[0]);
 }
 
-export async function resolveV3TravelDocumentDownload(userId: string, documentId: string) {
+export async function resolveV3TravelDocumentDownload(actorUserId: string, documentId: string) {
   const sql = getSql();
   const rows = await sql`
     SELECT provider,bucket,object_key,original_name,content_type
-    FROM app.resolve_legacy_travel_document_download(${userId},${documentId}::uuid)
+    FROM app.resolve_travel_document_download_v3(${actorUserId}::uuid,${documentId}::uuid)
   `;
   return assetFromRow(rows[0]);
 }

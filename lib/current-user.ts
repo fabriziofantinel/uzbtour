@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { createHash } from "node:crypto";
-import { resolveV3CognitoAuthenticatedUser, resolveV3LegacyImpersonation } from "./platform/v3-identity-access";
+import { resolveV3CognitoAuthenticatedUser, resolveV3Impersonation } from "./platform/v3-identity-access";
 import { getAuthProvider } from "./auth/auth-provider";
 import { assertCurrentSchema } from "./platform/schema-readiness";
 import { readMyTourLeaderDepartures } from "./platform/departure-operational-control";
@@ -65,11 +65,11 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   if (!token || (!actor.isSuperAdmin && !actor.isAgencyAdmin)) return actor;
 
   const tokenHash = createHash("sha256").update(token).digest("hex");
-  const target = await resolveV3LegacyImpersonation(actor.id, tokenHash);
+  const target = await resolveV3Impersonation(actor.nativeId, tokenHash);
   if (!target) return actor;
   return {
     id: target.id,
-    nativeId: "",
+    nativeId: target.nativeId,
     authSubject: null,
     name: target.name,
     initials: initialsFor(target.name),

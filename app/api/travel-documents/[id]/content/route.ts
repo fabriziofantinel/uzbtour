@@ -12,7 +12,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
     return NextResponse.json({ error: "Biglietto non valido" }, { status: 400 });
   }
-  const asset = await resolveV3TravelDocumentDownload(user.id, id);
+  const asset = await resolveV3TravelDocumentDownload(user.nativeId, id);
   if (!asset) return NextResponse.json({ error: "Biglietto non trovato" }, { status: 404 });
   const storage = getObjectStorage();
   if (asset.provider !== storage.provider || asset.bucket !== storage.bucket) {

@@ -1,6 +1,6 @@
 # SMF Travel - Stato consolidamento architetturale
 
-Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migrazioni 001-143.
+Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migrazioni 001-147.
 
 ## Componenti e connessioni as-built
 
@@ -14,6 +14,7 @@ Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migraz
 8. Bedrock Converse usa Nova 2 Lite, Tool Use forzato, validazione Zod, grounding con fonti ammesse e telemetria in `ops.generation_runs` con prezzi versionati.
 9. `traceId` correla browser, Vercel, Neon, SQS e Lambda; `errorId` correla gli errori web senza esporre dati personali.
 10. CloudWatch controlla errori, durata, backlog e DLQ. Il Tour Leader è un'identità autonoma limitata alla partenza, con finestra temporale e revoca.
+11. La risoluzione delle sessioni impersonate e dei download privati di ricordi e documenti usa l'identità IAM UUID nativa; la baseline dei bridge runtime legacy è scesa da 31 a 28.
 
 ## Finding del Solution Architect
 
@@ -40,7 +41,7 @@ Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migraz
 - `npm run quality:release` esegue il build, che richiama il guard non aggirabile: baseline, migrazioni, confini runtime, sicurezza API, nomenclatura, debito identità, baseline test, formato, lint, TypeScript e unit test.
 - Playwright verifica i percorsi pubblici a ogni push. I test autenticati read-only sono eseguiti su `main` quando `E2E_BASE_URL` e le credenziali dedicate sono configurati.
 - Il job Neon crea un branch effimero, esegue smoke test sulla copia isolata, ricostruisce lo schema da vuoto e verifica RLS, rate limit, timezone e budget tenant.
-- La validazione del 2026-09-03 ha verificato 88 tabelle, 68 tabelle RLS, zero vincoli non validati, zero indici invalidi e zero tabelle tenant prive di indice leading.
+- La validazione del 2026-09-03 ha verificato 89 tabelle, 68 tabelle RLS, zero vincoli non validati, zero indici invalidi e zero tabelle tenant prive di indice leading.
 - Le migrazioni applicate restano immutabili; ogni evoluzione usa una nuova migrazione. Il deploy Vercel non sostituisce il deploy SAM.
 
 ## Residui necessari prima della chiusura operativa

@@ -98,16 +98,18 @@ export async function startV3AgencyTravelerImpersonation(input: {
   return { id: String(rows[0].target_legacy_user_id) };
 }
 
-export async function resolveV3LegacyImpersonation(actorId: string, tokenHash: string) {
+export async function resolveV3Impersonation(actorUserId: string, tokenHash: string) {
   const sql = getSql();
   const rows = await sql`
-    SELECT target_legacy_user_id,display_name,email,platform_role,is_agency_admin,expires_at::text
-    FROM app.resolve_legacy_impersonation(${actorId},${tokenHash})
+    SELECT target_user_id::text,target_legacy_user_id,display_name,email,platform_role,
+      is_agency_admin,expires_at::text
+    FROM app.resolve_impersonation_v3(${actorUserId}::uuid,${tokenHash})
   `;
   const row = rows[0] as Row | undefined;
   if (!row) return null;
   return {
     id: String(row.target_legacy_user_id),
+    nativeId: String(row.target_user_id),
     name: String(row.display_name),
     email: String(row.email),
     isSuperAdmin: String(row.platform_role) === "superadmin",

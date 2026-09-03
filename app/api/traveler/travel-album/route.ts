@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   const departureId = new URL(request.url).searchParams.get("partenza") || undefined;
   const experience = await getTravelerExperience(user.id, departureId);
   if (!experience) return NextResponse.json({ error: "Viaggio non disponibile" }, { status: 404 });
-  const pdf = await createTravelAlbumPdf(user.id, experience);
+  const pdf = await createTravelAlbumPdf(user.nativeId, experience);
   const sql = getSql();
   await sql.transaction((txn) => [
     txn`SELECT set_config('app.agency_id', ${experience.journey.agencyId}, true)`,
