@@ -279,8 +279,8 @@ export async function createDepartureFromProgramme(input: {
   const sql = getSql();
   const departureId = crypto.randomUUID();
   const title = input.title || "Nuova partenza";
-  const rows = await sql`SELECT app.create_departure_from_programme_v3(${input.actorId},
-    ${input.templateId},${departureId},${departureCode(title)},${title},${input.startsOn},${input.endsOn})::text AS id`;
+  const rows = await sql`SELECT app.create_departure_from_programme_v3(${input.actorId}::uuid,
+    ${input.templateId}::uuid,${departureId}::uuid,${departureCode(title)},${title},${input.startsOn},${input.endsOn})::text AS id`;
   if (!rows[0]?.id) throw new PlatformRequestError("Pubblica il programma prima di creare una nuova partenza");
   return String(rows[0].id);
 }

@@ -238,8 +238,8 @@ export async function createTripTemplate(input: {
   const rows = await sql`
     SELECT id::text,agency_id::text,slug,title,status,default_timezone,
       version_id::text,${input.destinationCountry}::text AS destination_country
-    FROM app.create_trip_template_v3(${input.actorId},${input.agencyId},${templateId},
-      ${versionId},${slug},${input.title},${input.timezone})
+    FROM app.create_trip_template_v3(${input.actorId}::uuid,${input.agencyId}::uuid,${templateId}::uuid,
+      ${versionId}::uuid,${slug},${input.title},${input.timezone})
   `;
   return rows[0];
 }

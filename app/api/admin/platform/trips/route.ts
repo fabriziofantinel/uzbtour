@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       title,
       destinationCountry,
       timezone,
-      actorId: actor.id,
+      actorId: actor.nativeId,
     });
     return NextResponse.json({ trip }, { status: 201 });
   } catch (error) {

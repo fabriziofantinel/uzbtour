@@ -1,6 +1,6 @@
 # SMF Travel - Stato consolidamento architetturale
 
-Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migrazioni 001-162.
+Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migrazioni 001-163.
 
 ## Componenti e connessioni as-built
 
@@ -29,6 +29,7 @@ Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migraz
 23. Richiesta di cancellazione agenzia, risoluzione del viaggio, censimento degli asset e cancellazione transazionale del viaggio usano l'UUID IAM; i contratti legacy non sono più eseguibili da `smf_app` e il debito SQL è sceso a 61.
 24. Registrazione del preventivo sorgente, salvataggio della revisione e cancellazione della bozza importata usano l'UUID IAM; i tre overload testuali sono revocati e il debito SQL è sceso a 58.
 25. Accodamento dei workload e registrazione dei fallimenti di dispatch usano l'UUID IAM per agenzia e viaggiatore; le firme testuali sono revocate e il debito SQL è sceso a 56.
+26. Creazione del viaggio e creazione di una nuova partenza da programma pubblicato usano l'UUID IAM; le firme testuali sono revocate e il debito SQL è sceso a 54.
 
 ## Finding del Solution Architect
 

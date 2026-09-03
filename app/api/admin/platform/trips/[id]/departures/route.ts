@@ -22,7 +22,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     }
     const departureId = await createDepartureFromProgramme({
       templateId: id,
-      actorId: actor.id,
+      actorId: actor.nativeId,
       startsOn,
       endsOn,
       title: cleanText(body?.title, 240),
