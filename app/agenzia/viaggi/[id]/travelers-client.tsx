@@ -47,9 +47,9 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
   const [activation, setActivation] = useState<{ travelerId: string; url: string } | null>(null);
   const [activationCopied, setActivationCopied] = useState(false);
   const [usernameState, setUsernameState] = useState<Record<string, "idle" | "checking" | "available" | "taken">>({});
-  const travelerCount = data.families.reduce((sum, family) => sum + family.travelers.length, 0);
-  const activeTravelerCount = data.families.reduce(
-    (sum, family) => sum + family.travelers.filter((traveler) => traveler.status !== "invited").length,
+  const travelerCount = data.groups.reduce((sum, group) => sum + group.travelers.length, 0);
+  const activeTravelerCount = data.groups.reduce(
+    (sum, group) => sum + group.travelers.filter((traveler) => traveler.status !== "invited").length,
     0,
   );
   const invitedTravelerCount = travelerCount - activeTravelerCount;
@@ -341,7 +341,7 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
             <UsersRound />
             <span>
               <small>GRUPPI</small>
-              <strong>{data.families.length}</strong>
+              <strong>{data.groups.length}</strong>
             </span>
           </article>
           <article>
@@ -436,7 +436,7 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
           </form>
         )}
         <section className="familyCards">
-          {data.families.map((family) => {
+          {data.groups.map((family) => {
             const leader = family.travelers.find((traveler) => traveler.role === "organizer");
             return (
               <article key={family.id}>
@@ -744,7 +744,7 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
               </article>
             );
           })}
-          {data.families.length === 0 && (
+          {data.groups.length === 0 && (
             <div className="agencyEmpty">
               <UsersRound />
               <h3>Nessun gruppo</h3>

@@ -6,7 +6,7 @@ import OperationalChat from "@/components/operational-chat";
 import type { getJourneyManagement } from "@/lib/platform/journey-repository";
 type Data = Awaited<ReturnType<typeof getJourneyManagement>>;
 export default function AgencyOperationalChat({ data }: { data: Data }) {
-  const groups = data.families.map((group) => ({ id: group.id, name: group.name, travelers: group.travelers })),
+  const groups = data.groups.map((group) => ({ id: group.id, name: group.name, travelers: group.travelers })),
     [scope, setScope] = useState<"trip" | "group" | "traveler">("trip"),
     [selected, setSelected] = useState(groups[0]?.id || ""),
     [traveler, setTraveler] = useState(groups[0]?.travelers[0]?.id || "");

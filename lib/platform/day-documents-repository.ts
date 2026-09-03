@@ -27,7 +27,7 @@ export async function getAgencyDayDocuments(departureId: string, actorId: string
   return {
     departure: programme.departure,
     days: programme.days.map(({ id, number, offset, title, city }) => ({ id, number, offset, title, city })),
-    groups: management.families.map(({ id, name, code }) => ({ id, name, code })),
+    groups: management.groups.map(({ id, name, code }) => ({ id, name, code })),
     documents: rows.map((row) => ({
       id: String(row.id),
       dayId: String(row.day_id),

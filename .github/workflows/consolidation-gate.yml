@@ -23,7 +23,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run quality:gate
+      - run: npm run quality:release
       - name: Regressione AI deterministica senza consumo Bedrock
         run: npm run acceptance:ai:replay
 

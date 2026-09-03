@@ -39,15 +39,15 @@ export async function readV3JourneyManagement(departureId: string, actorId: stri
       agencyPrimaryColor: String(branding.primaryColor || "#247A6B"),
       destinationCountry: String(first.destination_country || ""),
     },
-    families: partyIds.map((id) => {
-      const familyRows = rows.filter((row) => String(row.party_id) === id);
-      const family = familyRows[0];
+    groups: partyIds.map((id) => {
+      const groupRows = rows.filter((row) => String(row.party_id) === id);
+      const group = groupRows[0];
       return {
         id,
-        name: String(family.party_name),
-        code: String(family.party_code),
-        status: String(family.party_status),
-        travelers: familyRows
+        name: String(group.party_name),
+        code: String(group.party_code),
+        status: String(group.party_status),
+        travelers: groupRows
           .filter((row) => row.traveler_id)
           .map((row) => ({
             id: String(row.traveler_id),

@@ -33,7 +33,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const input = schema.parse(await request.json());
     const actor = await requireAgencyAdmin(input.agencyId);
     const current = await getJourneyManagement(id, actor.id);
-    const group = current.families.find((family) => family.id === partyId);
+    const group = current.groups.find((item) => item.id === partyId);
     if (current.journey.agencyId !== input.agencyId || !group) {
       return NextResponse.json({ error: "Gruppo non valido" }, { status: 403 });
     }
@@ -87,7 +87,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       .parse(await request.json());
     const actor = await requireAgencyAdmin(input.agencyId);
     const current = await getJourneyManagement(id, actor.id);
-    const group = current.families.find((item) => item.id === partyId);
+    const group = current.groups.find((item) => item.id === partyId);
     if (current.journey.agencyId !== input.agencyId || !group)
       return NextResponse.json({ error: "Gruppo non valido" }, { status: 403 });
     if (input.travelerId) {

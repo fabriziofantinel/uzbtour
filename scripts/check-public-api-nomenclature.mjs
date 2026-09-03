@@ -22,6 +22,9 @@ async function visit(directory, inspectSource) {
     if (/\/api\/[^\s"'`]*\/families(?:[\s/"'`]|$)/.test(source)) {
       failures.push(`${relative(root, absolute)}: consumer della route pubblica families`);
     }
+    if (/\bfamilies\s*:|\.families\b/.test(source)) {
+      failures.push(`${relative(root, absolute)}: chiave pubblica families, usare groups`);
+    }
   }
 }
 

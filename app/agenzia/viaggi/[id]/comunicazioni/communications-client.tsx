@@ -215,7 +215,7 @@ export default function CommunicationsClient({
             <legend>Destinatari</legend>
             <p>Nessuna selezione significa tutta la partenza.</p>
             <div>
-              {journey.families.map((party) => (
+              {journey.groups.map((party) => (
                 <label key={party.id}>
                   <input type="checkbox" name="partyId" value={party.id} /> {party.name}
                 </label>
