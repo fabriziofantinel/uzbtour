@@ -23,11 +23,11 @@ export async function resolveV3CognitoAuthenticatedUser(subject: string) {
   };
 }
 
-export async function resolveV3LegacyUserAccess(userId: string, agencyId?: string | null) {
+export async function resolveV3UserAccess(userId: string, agencyId?: string | null) {
   const sql = getSql();
   const rows = await sql`
     SELECT is_active,is_superadmin,is_agency_admin,agency_role
-    FROM app.resolve_legacy_user_access(${userId},${agencyId ?? null}::uuid)
+    FROM app.resolve_user_access_v3(${userId}::uuid,${agencyId ?? null}::uuid)
   `;
   const row = rows[0] as Row | undefined;
   return {
