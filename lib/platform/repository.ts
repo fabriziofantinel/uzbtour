@@ -63,10 +63,14 @@ const expectedReferenceTypes = {
   site: new Set(["quiz", "mission", "game", "photo_contest"]),
 } as const;
 
-export async function getPlatformOverview(actor: { id: string; name: string }): Promise<PlatformOverview> {
+export async function getPlatformOverview(actor: {
+  id: string;
+  nativeId: string;
+  name: string;
+}): Promise<PlatformOverview> {
   const sql = getSql();
   const [overviewRows, importRows, referenceRows, enrichmentRows, brandingRows] = await Promise.all([
-    sql`SELECT * FROM app.read_agency_overview_v3(${actor.id})`,
+    sql`SELECT * FROM app.read_agency_overview_v3(${actor.nativeId}::uuid)`,
     sql`SELECT * FROM app.read_agency_recent_imports_v3(${actor.id})`,
     sql`SELECT * FROM app.read_agency_reference_contents_v3(${actor.id})`,
     sql`SELECT * FROM app.read_agency_enrichment_jobs_v3(${actor.id})`,
