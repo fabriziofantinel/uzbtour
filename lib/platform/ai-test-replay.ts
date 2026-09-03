@@ -11,7 +11,8 @@ type ReplayEnvelope<T> = {
 };
 
 function mode(): AiTestMode {
-  const value = (process.env.AI_TEST_MODE || "live").trim().toLowerCase();
+  // Fail closed: an omitted mode must never trigger a paid model invocation.
+  const value = (process.env.AI_TEST_MODE || "replay").trim().toLowerCase();
   if (value === "live" || value === "record" || value === "replay") return value;
   throw new Error(`AI_TEST_MODE non valido: ${value}`);
 }

@@ -3,6 +3,11 @@ import path from "node:path";
 
 const mode = process.argv[2] || "replay";
 if (!new Set(["live", "record", "replay"]).has(mode)) throw new Error(`Modalità AI non valida: ${mode}`);
+if (mode !== "replay" && process.env.AI_LIVE_TEST_CONFIRM !== "1") {
+  throw new Error(
+    "I test AI con consumo sono disattivati. Usare AI_LIVE_TEST_CONFIRM=1 soltanto dopo autorizzazione esplicita del proprietario",
+  );
+}
 if (mode === "record" && process.env.AI_TEST_RECORD_CONFIRM !== "1") {
   throw new Error("Usare AI_TEST_RECORD_CONFIRM=1 per aggiornare intenzionalmente le fixture AI");
 }

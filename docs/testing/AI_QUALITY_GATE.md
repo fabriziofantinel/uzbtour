@@ -7,7 +7,7 @@ Aggiornato al 2 settembre 2026.
 La qualità viene verificata su due livelli complementari:
 
 1. **Replay deterministico ad ogni push e pull request.** Usa risultati Bedrock registrati e riesegue schema, normalizzazione, regole di business, generazione DOCX e controlli sulle anomalie senza credenziali AWS e senza costi di inferenza.
-2. **Esecuzione Bedrock reale periodica.** Rileva variazioni del modello e aggiorna le fixture soltanto dopo revisione dell'esito. Il record richiede `AI_TEST_MODE=record` e `AI_TEST_RECORD_CONFIRM=1`.
+2. **Esecuzione Bedrock reale esclusivamente manuale.** Rileva variazioni del modello e aggiorna le fixture soltanto dopo revisione dell'esito. Non esistono pianificazioni automatiche: l'avvio richiede sempre la conferma esplicita `AI_LIVE_TEST_CONFIRM=1`; il record richiede inoltre `AI_TEST_RECORD_CONFIRM=1`.
 
 Il replay conserva risultati applicativi versionati, non l'envelope del SDK AWS. In questo modo il test resta stabile rispetto agli aggiornamenti del client e continua a validare il contratto realmente consumato dall'applicazione.
 
@@ -16,10 +16,10 @@ Il replay conserva risultati applicativi versionati, non l'envelope del SDK AWS.
 | Controllo | Frequenza | Comando |
 | --- | --- | --- |
 | Replay import e contenuti | Ogni push e pull request | `npm run acceptance:ai:replay` |
-| Bedrock live sul dataset ridotto | Settimanale e prima di una release | `npm run acceptance:ai:live` |
-| Registrazione nuova baseline | Solo dopo esito live approvato | `AI_TEST_RECORD_CONFIRM=1 npm run acceptance:ai:record` |
-| Dataset fotografico sintetico | Settimanale e dopo modifiche ai prompt | `npm run acceptance:bedrock:photo-synthetic-dataset` |
-| Regressione multi-formato e multi-paese | Ogni push e pull request in replay; live prima di una release | `npm run acceptance:ai:replay` / `npm run acceptance:ai:live` |
+| Bedrock live sul dataset ridotto | Solo su avvio manuale autorizzato dal proprietario | `AI_LIVE_TEST_CONFIRM=1 npm run acceptance:ai:live` |
+| Registrazione nuova baseline | Solo su avvio manuale autorizzato e dopo esito live approvato | `AI_LIVE_TEST_CONFIRM=1 AI_TEST_RECORD_CONFIRM=1 npm run acceptance:ai:record` |
+| Dataset fotografico sintetico | Replay gratuito in CI o locale; live solo manuale | `npm run acceptance:bedrock:photo-synthetic-dataset` |
+| Regressione multi-formato e multi-paese | Ogni push e pull request esclusivamente in replay; live solo su avvio manuale autorizzato | `npm run acceptance:ai:replay` / `AI_LIVE_TEST_CONFIRM=1 npm run acceptance:ai:live` |
 
 ## KPI e soglie
 
@@ -62,4 +62,5 @@ Un fallimento di schema, un'allucinazione critica, un falso positivo hard-negati
 - Ogni file contiene versione, scenario, data di registrazione e risultato applicativo.
 - Una modifica delle fixture deve essere accompagnata dall'esito live e dalla spiegazione della variazione attesa.
 - La CI non può registrare o sovrascrivere fixture.
+- La CI non contiene trigger schedulati per Bedrock e non riceve `AI_LIVE_TEST_CONFIRM`; i test automatici usano esclusivamente fixture replay senza costo di inferenza.
 - I test live mantengono sempre `maxTokens` esplicito e retry adattivo.

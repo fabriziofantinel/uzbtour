@@ -33,7 +33,7 @@ Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migraz
 | WAF perimetrale | Bloccato esternamente | Richiede un dominio personalizzato e una zona DNS; il dominio condiviso Vercel non è configurabile nella WAF Cloudflare |
 | Staging applicativo | Predisposto, non attivo | Branch Neon effimero e test sono pronti; manca un deployment Vercel staging isolato con configurazione e dati sintetici |
 | Playwright autenticato | Predisposto, non attivo | I percorsi read-only agenzia/viaggiatore esistono; il job resta sospeso finché non sono configurati URL e account E2E dedicati |
-| Test AI live pianificato | Da attivare | Replay deterministico in CI attivo; il live test periodico richiede credenziali AWS federate e un budget operativo esplicito |
+| Test AI live manuale | Predisposto e disattivato | Replay deterministico gratuito in CI; ogni esecuzione Bedrock reale richiede avvio del proprietario e `AI_LIVE_TEST_CONFIRM=1`. Nessuna pianificazione automatica finché l'app non sarà commercializzata |
 
 ## Gate di rilascio
 
@@ -47,5 +47,5 @@ Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migraz
 
 1. Creare un deployment Vercel staging isolato e collegarlo a dati sintetici, senza riusare credenziali o dati di produzione.
 2. Creare account Cognito E2E dedicati e configurare `E2E_BASE_URL`, `E2E_AGENCY_USERNAME`, `E2E_AGENCY_PASSWORD`, `E2E_TRAVELER_USERNAME` ed `E2E_TRAVELER_PASSWORD` nei secret GitHub.
-3. Attivare un'esecuzione settimanale dei test AI live con OIDC AWS, budget massimo e notifica su errore.
+3. Dopo la commercializzazione, valutare se attivare test AI live periodici con OIDC AWS, budget massimo e notifica su errore. Fino ad allora restano esclusivamente manuali e disattivati per impostazione predefinita.
 4. Collegare un dominio personalizzato prima di attivare la WAF Cloudflare. Questo punto non blocca il consolidamento software corrente.
