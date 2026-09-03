@@ -3,7 +3,7 @@
 import { CircleAlert, House, RotateCcw } from "lucide-react";
 import "./system-status.css";
 
-export default function ErrorPage({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
     <main className="systemStatusPage">
       <section className="systemStatusPanel" role="alert">
@@ -12,6 +12,7 @@ export default function ErrorPage({ reset }: { error: Error & { digest?: string 
         </span>
         <h1>Questa pagina non si è caricata</h1>
         <p>I tuoi dati non sono stati modificati. Controlla la connessione e prova nuovamente.</p>
+        {error.digest && <p className="systemStatusReference">Riferimento assistenza: {error.digest}</p>}
         <div className="systemStatusActions">
           <button className="primary" type="button" onClick={reset}>
             <RotateCcw />
