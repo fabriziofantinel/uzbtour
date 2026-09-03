@@ -9,7 +9,7 @@ import { Client } from "@neondatabase/serverless";
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const apply = process.argv.includes("--apply");
 const migrationUrl = process.env.DATABASE_MIGRATION_URL ?? process.env.DATABASE_URL_UNPOOLED;
-const expectedNumbers = [...[12, 13, 14, 15], ...Array.from({ length: 122 }, (_, index) => index + 19)];
+const expectedNumbers = [...[12, 13, 14, 15], ...Array.from({ length: 123 }, (_, index) => index + 19)];
 
 const files = (await readdir(resolve(root, "database/migrations")))
   .filter((name) => /^\d{3}_.+\.sql$/.test(name))

@@ -11,9 +11,17 @@ describe("grounding source policy", () => {
   });
 
   test("rejects blogs and commercial portals", () => {
-    expect(() => validateGroundingSources(["https://example-travel-blog.com/country"])).toThrow(
-      "fonti non autorizzate",
-    );
+    expect(() => validateGroundingSources(["https://example-travel-blog.com/country"])).toThrow("privo di fonti");
+  });
+
+  test("keeps trusted citations and removes incidental untrusted citations", () => {
+    expect(
+      validateGroundingSources([
+        "https://digital-strategy.ec.europa.eu/it/policies/112",
+        "https://it.wikipedia.org/wiki/112",
+        "https://www.salute.gov.it/example",
+      ]),
+    ).toEqual(["https://digital-strategy.ec.europa.eu/it/policies/112", "https://www.salute.gov.it/example"]);
   });
 
   test("supports an explicit operational allowlist", () => {

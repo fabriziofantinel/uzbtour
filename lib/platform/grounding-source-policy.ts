@@ -33,9 +33,7 @@ export function isAllowedGroundingSource(value: string) {
 
 export function validateGroundingSources(urls: Iterable<string>) {
   const unique = [...new Set(urls)];
-  const rejected = unique.filter((url) => !isAllowedGroundingSource(url));
-  if (rejected.length > 0) {
-    throw new Error(`Grounding con fonti non autorizzate: ${rejected.join(", ")}`);
-  }
-  return unique;
+  const accepted = unique.filter(isAllowedGroundingSource);
+  if (accepted.length === 0) throw new Error("Grounding privo di fonti autorizzate");
+  return accepted;
 }
