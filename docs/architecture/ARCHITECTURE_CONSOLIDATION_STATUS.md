@@ -1,6 +1,6 @@
 # SMF Travel - Stato consolidamento architetturale
 
-Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migrazioni 001-150.
+Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migrazioni 001-151.
 
 ## Componenti e connessioni as-built
 
@@ -17,6 +17,7 @@ Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migraz
 11. Sessioni impersonate, download privati, registrazione media e operazioni del viaggiatore usano l'identità IAM UUID nativa.
 12. Ambito dei viaggi, gamification, catalogo, feedback e modifiche al programma non risolvono più l'attore tramite la mappa legacy.
 13. Avvio, elenco e chiusura del Login come superuser usano contratti UUID nativi. La baseline dei bridge runtime legacy, inizialmente pari a 31 riferimenti, è ora pari a zero.
+14. Anche elenco e avvio del Login come viaggiatore dell'agenzia usano UUID nativi; le precedenti firme testuali non sono più eseguibili dal ruolo applicativo. Un audit ripetibile censisce separatamente firme SQL storiche e privilegi runtime.
 
 ## Finding del Solution Architect
 

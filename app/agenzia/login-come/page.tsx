@@ -12,7 +12,7 @@ export default async function AgencyImpersonationPage() {
   try {
     const actor = await requireAgencyAdminActor();
     const [users, overview] = await Promise.all([
-      readV3AgencyImpersonationTravelers(actor.id),
+      readV3AgencyImpersonationTravelers(actor.nativeId),
       getPlatformOverview(actor),
     ]);
     const agency = overview.agencies[0];

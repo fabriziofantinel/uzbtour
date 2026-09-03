@@ -67,9 +67,9 @@ export async function startV3Impersonation(input: {
 
 export async function readV3AgencyImpersonationTravelers(actorId: string) {
   const sql = getSql();
-  const rows = await sql`SELECT * FROM app.read_agency_impersonation_travelers(${actorId})`;
+  const rows = await sql`SELECT * FROM app.read_agency_impersonation_travelers(${actorId}::uuid)`;
   return rows.map((row) => ({
-    id: String(row.legacy_user_id),
+    id: String(row.user_id),
     name: String(row.display_name),
     username: String(row.username),
     email: String(row.email),
@@ -89,9 +89,9 @@ export async function startV3AgencyTravelerImpersonation(input: {
 }) {
   const sql = getSql();
   const rows = await sql`
-    SELECT target_legacy_user_id,display_name,email,platform_role,is_agency_admin
+    SELECT target_user_id::text,target_legacy_user_id,display_name,email,platform_role,is_agency_admin
     FROM app.start_agency_traveler_impersonation(
-      ${input.actorId},${input.targetId},${input.tokenHash},${input.expiresAt}::timestamptz,
+      ${input.actorId}::uuid,${input.targetId}::uuid,${input.tokenHash},${input.expiresAt}::timestamptz,
       ${input.userAgent?.slice(0, 500) ?? ""}
     )
   `;

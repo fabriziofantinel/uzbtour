@@ -6,7 +6,7 @@ Le API applicative passano alle funzioni PostgreSQL l'identificatore IAM nativo 
 
 ## Baseline vincolante
 
-Il registro `tests/contracts/native-identity-debt.json` ammette zero chiamate runtime a bridge legacy. `npm run check:native-identity` blocca ogni reintroduzione e fa parte di `quality:guard`, quindi della CI. Il cutover comprende sessioni impersonate, download privati, registrazione media, ambito viaggio, gamification, catalogo, spese, movimenti di cassa, note, feedback e programma.
+Il registro `tests/contracts/native-identity-debt.json` ammette zero chiamate runtime a bridge legacy. `npm run check:native-identity` blocca ogni reintroduzione e fa parte di `quality:guard`, quindi della CI. Il cutover comprende sessioni impersonate superuser e agenzia, download privati, registrazione media, ambito viaggio, gamification, catalogo, spese, movimenti di cassa, note, feedback e programma. `npm run audit:v3:legacy-sql` interroga il catalogo Neon e distingue le firme storiche ancora presenti da quelle effettivamente eseguibili dal ruolo applicativo.
 
 ## Sequenza di migrazione
 
