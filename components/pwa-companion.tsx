@@ -67,13 +67,17 @@ export default function PwaCompanion() {
     window.addEventListener("smf:sync-state", onSync);
     window.addEventListener("online", onOnline);
     const standalone = isStandalone();
-    setShowIos(isIos() && !standalone && sessionStorage.getItem("smf-install-dismissed") !== "1");
+    const initializeTimer = window.setTimeout(() => {
+      setShowIos(isIos() && !standalone && sessionStorage.getItem("smf-install-dismissed") !== "1");
+      const canUsePush =
+        "Notification" in window && "PushManager" in window && Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY);
+      setPushAvailable(canUsePush && Notification.permission !== "denied");
+    }, 0);
     const guideTimer = window.setTimeout(() => {
       if (isAndroid() && !standalone) setShowAndroidGuide(true);
     }, 1800);
     const canUsePush =
       "Notification" in window && "PushManager" in window && Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY);
-    setPushAvailable(canUsePush && Notification.permission !== "denied");
     void flushOfflineQueue();
     navigator.serviceWorker?.ready.then(async (registration) => {
       let existingSubscription = canUsePush ? await registration.pushManager.getSubscription() : null;
@@ -108,6 +112,7 @@ export default function PwaCompanion() {
       window.removeEventListener("smf:sync-state", onSync);
       window.removeEventListener("online", onOnline);
       navigator.serviceWorker?.removeEventListener("controllerchange", onController);
+      window.clearTimeout(initializeTimer);
       window.clearTimeout(guideTimer);
     };
   }, [pathname]);
@@ -198,8 +203,8 @@ export default function PwaCompanion() {
           </button>
         </aside>
       )}
-      {syncState !== "idle" && !(showInstallBanner && syncState === "complete") && (
-        <div className={`pwaSyncToast ${syncState}`} role="status">
+      {syncState !== "idle" && (
+        <div className={`pwaSyncToast ${syncState} ${showInstallBanner ? "withInstallBanner" : ""}`} role="status">
           {syncState === "pending"
             ? "Modifiche salvate: sincronizzazione in attesa"
             : syncState === "complete"

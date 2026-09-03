@@ -1,4 +1,5 @@
 :root {
+  /* Primitive and semantic tokens shared by every application surface. */
   --ink: #142b35;
   --teal: #247a6b;
   --cream: #faf7f0;
@@ -32,6 +33,156 @@
   --border-strong: #718581;
   --on-brand: #fff;
   --shadow-base: #071f1e;
+  --action: #2f66f6;
+  --radius-compact: 8px;
+  --radius-control: 10px;
+  --radius-card: 12px;
+  --radius-panel: 14px;
+  --radius-dialog: 16px;
+  --radius-sheet: 18px;
+  --radius-feature: 20px;
+  --radius-pill: 999px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-xxl: 32px;
+  --control-min-height: 48px;
+}
+
+.appDecisionOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+  background: rgb(7 31 30 / 52%);
+}
+
+.appDecisionDialog {
+  width: min(100%, 430px);
+  padding: 24px;
+  border-radius: var(--smf-radius-card, 16px);
+  background: var(--smf-surface, #fff);
+  color: var(--smf-ink, #071f1e);
+  box-shadow: 0 24px 64px rgb(7 31 30 / 24%);
+}
+
+.appDecisionIcon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  margin-bottom: 18px;
+  border-radius: 50%;
+  background: var(--smf-surface-accent, #e2ecea);
+}
+
+.appDecisionIcon.danger {
+  background: var(--smf-surface-danger, #fde2df);
+  color: var(--smf-danger, #b42318);
+}
+
+.appDecisionIcon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.appDecisionDialog h2 {
+  margin: 0 0 10px;
+  font-size: var(--smf-text-title, 1.5rem);
+  line-height: 1.15;
+}
+
+.appDecisionDialog p {
+  max-width: 52ch;
+  margin: 0;
+  color: var(--smf-ink-muted, #455b58);
+  line-height: 1.55;
+}
+
+.appDecisionField {
+  display: grid;
+  gap: 8px;
+  margin-top: 20px;
+  color: var(--smf-ink, #071f1e);
+  font-weight: 750;
+}
+
+.appDecisionField textarea {
+  width: 100%;
+  min-height: 112px;
+  resize: vertical;
+  padding: 12px 14px;
+  border: 1px solid var(--smf-border, #cbd7d4);
+  border-radius: var(--smf-radius-control, 12px);
+  background: var(--smf-surface, #fff);
+  color: var(--smf-ink, #071f1e);
+  font: inherit;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.appDecisionField textarea:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--agency-color, var(--smf-focus, #0b6462)) 45%, transparent);
+  outline-offset: 2px;
+}
+
+.appDecisionActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.appDecisionActions button {
+  min-width: 112px;
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: var(--smf-radius-control, 12px);
+  background: color-mix(in srgb, var(--agency-color, var(--smf-action, #20b8c4)) 60%, white);
+  color: var(--smf-ink, #071f1e);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.appDecisionActions button.secondary {
+  border-color: var(--smf-border, #cbd7d4);
+  background: var(--smf-surface, #fff);
+}
+
+.appDecisionActions button.danger {
+  border-color: var(--smf-danger, #b42318);
+  background: var(--smf-surface-danger, #fde2df);
+}
+
+.appDecisionActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.appDecisionActions button svg {
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+}
+
+@media (max-width: 420px) {
+  .appDecisionDialog {
+    padding: 20px;
+  }
+
+  .appDecisionActions {
+    flex-direction: column-reverse;
+  }
+
+  .appDecisionActions button {
+    width: 100%;
+  }
 }
 * {
   box-sizing: border-box;
@@ -80,7 +231,7 @@ button {
 }
 @media (pointer: coarse) {
   :is(button, [role="button"], input, select, textarea, a) {
-    min-height: 48px;
+    min-height: var(--control-min-height);
   }
 }
 
@@ -96,7 +247,7 @@ button {
   gap: 12px;
   padding: 12px 14px;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius-panel);
   background: var(--surface-raised);
   color: var(--ink);
   box-shadow: 0 12px 32px color-mix(in srgb, var(--shadow-base) 18%, transparent);
@@ -127,12 +278,12 @@ button {
 .pwaInstallBanner button,
 .pwaUpdateToast button,
 .pwaPushButton {
-  min-height: 48px;
+  min-height: var(--control-min-height);
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   padding: 10px 14px;
   background: var(--teal);
-  color: #111;
+  color: var(--ink);
   font-weight: 800;
 }
 .pwaInstallBanner .pwaDismiss {
@@ -152,7 +303,7 @@ button {
   transform: translateX(-50%);
   max-width: calc(100vw - 24px);
   padding: 10px 14px;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: var(--ink);
   color: white;
   font-size: 0.82rem;
@@ -164,12 +315,12 @@ button {
 .pwaSyncToast.failed {
   background: var(--danger);
 }
-.pwaInstallBanner ~ .pwaSyncToast.complete {
-  display: none;
-}
-.pwaInstallBanner ~ .pwaSyncToast:not(.complete) {
-  top: calc(12px + env(safe-area-inset-top));
-  bottom: auto;
+.pwaSyncToast.withInstallBanner {
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
+  transform: none;
+  width: min(100%, 420px);
+  bottom: calc(158px + env(safe-area-inset-bottom));
 }
 .pwaPushArea {
   position: fixed;
@@ -189,7 +340,7 @@ button {
 }
 .pwaPushError {
   padding: 7px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-compact);
   background: #fff4f1;
   color: #8f2619;
   font-size: 0.78rem;
@@ -278,9 +429,9 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 48px;
+  min-height: var(--control-min-height);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   padding: 10px 14px;
   background: var(--surface-raised);
   color: var(--ink);
@@ -311,10 +462,10 @@ button {
   display: flex;
   align-items: center;
   gap: 9px;
-  min-height: 48px;
+  min-height: var(--control-min-height);
   padding: 9px 11px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: var(--surface-raised);
   font-weight: 700;
 }
@@ -336,9 +487,9 @@ button {
   width: 48px;
   height: 48px;
   padding: 12px;
-  border-radius: 14px;
+  border-radius: var(--radius-panel);
   background: color-mix(in srgb, var(--brand) 24%, white);
-  color: #111;
+  color: var(--ink);
 }
 .sosPage h2 {
   margin: 3px 0;
@@ -359,9 +510,9 @@ button {
   min-height: 76px;
   padding: 14px;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius-panel);
   background: var(--brand);
-  color: #111;
+  color: var(--ink);
   text-align: left;
   text-decoration: none;
 }
@@ -370,13 +521,13 @@ button {
   gap: 2px;
 }
 .sosActions small {
-  color: #111;
+  color: var(--ink);
   opacity: 0.72;
 }
 .sosGuidance {
   padding: 18px;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius-panel);
   background: var(--surface-raised);
 }
 .sosGuidance h3 {
@@ -399,7 +550,7 @@ button {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  color: #111;
+  color: var(--ink);
   font-weight: 900;
 }
 .overviewDayList a > span:nth-child(2) {
@@ -1355,9 +1506,9 @@ textarea {
   font-weight: 800;
 }
 .agencyChatGroup select {
-  min-height: 48px;
+  min-height: var(--control-min-height);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   padding: 0 12px;
   background: var(--surface-raised);
   font: inherit;
@@ -1379,16 +1530,16 @@ textarea {
 }
 .memoryAlbumActions a,
 .memoryAlbumActions button {
-  min-height: 48px;
+  min-height: var(--control-min-height);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   padding: 11px 16px;
   border: 1px solid color-mix(in srgb, var(--agency-primary, #247a6b) 60%, #142b35);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: var(--agency-primary, #247a6b);
-  color: #111;
+  color: var(--ink);
   font: inherit;
   font-weight: 800;
   text-decoration: none;
@@ -1423,7 +1574,7 @@ textarea {
   min-height: 44px;
   padding: 8px 34px 8px 10px;
   border: 1px solid var(--line, #ded8cc);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: #fff;
   color: #142b35;
   font: inherit;
