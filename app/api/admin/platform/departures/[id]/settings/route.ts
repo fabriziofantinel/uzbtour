@@ -59,7 +59,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       if (rank[parsed.data.profile] > rank[previousProfile]) {
         const queued = await getDepartureEnrichmentQueueRecord(id, actor.id);
         enrichmentJob = await getJobQueue().enqueue({
-          actorId: actor.id,
+          actorId: actor.nativeId,
           agencyId: queued.agencyId,
           type: "travel-reference.enrich",
           payload: { ...queued.payload, experienceProfile: parsed.data.profile },

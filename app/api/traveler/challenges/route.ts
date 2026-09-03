@@ -55,7 +55,7 @@ export async function POST(request: Request) {
       const entryIds = Array.isArray(confirmed.entry_ids) ? confirmed.entry_ids.map(String) : [];
       if (entryIds.length !== 2) throw new Error("Conferma contest incompleta");
       const queued = await getJobQueue().enqueue({
-        actorId: user.id,
+        actorId: user.nativeId,
         agencyId,
         type: "photo-contest.evaluate",
         idempotencyKey: `photo-contest:${partyId}:${user.id}:${contentId}`,
@@ -138,7 +138,7 @@ export async function POST(request: Request) {
     const attemptNumber = Number(row.attempt_number);
     try {
       await getJobQueue().enqueue({
-        actorId: user.id,
+        actorId: user.nativeId,
         agencyId,
         type: "photo-evidence.validate",
         idempotencyKey: `photo-evidence:${resultId}`,

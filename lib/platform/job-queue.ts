@@ -10,7 +10,7 @@ class DatabaseJobQueue implements JobQueue {
     const sql = getSql();
     const traceId = await resolveTraceId(input.traceId);
     const rows = await sql`SELECT id::text,provider,status FROM app.enqueue_platform_job_v3(
-      ${input.actorId},${input.agencyId},${input.type},'database',
+      ${input.actorId}::uuid,${input.agencyId}::uuid,${input.type},'database',
       ${JSON.stringify({ ...input.payload, _traceId: traceId })}::jsonb,${input.idempotencyKey},
       ${input.availableAt?.toISOString() ?? new Date().toISOString()})`;
     const row = rows[0] as EnqueuedJob | undefined;
@@ -52,7 +52,7 @@ class SqsJobQueue implements JobQueue {
     const traceId = await resolveTraceId(input.traceId);
     const payload = { ...input.payload, _traceId: traceId };
     const rows = await sql`SELECT id::text,provider,status FROM app.enqueue_platform_job_v3(
-      ${input.actorId},${input.agencyId},${input.type},'sqs',
+      ${input.actorId}::uuid,${input.agencyId}::uuid,${input.type},'sqs',
       ${JSON.stringify(payload)}::jsonb,${input.idempotencyKey},
       ${input.availableAt?.toISOString() ?? new Date().toISOString()})`;
     const row = rows[0] as EnqueuedJob | undefined;
@@ -88,8 +88,8 @@ class SqsJobQueue implements JobQueue {
       return row;
     } catch (error) {
       const message = (error instanceof Error ? error.message : "Invio SQS non riuscito").slice(0, 1200);
-      await sql`SELECT app.fail_platform_job_dispatch_v3(${input.actorId},${input.agencyId},
-        ${row.id},${message})`;
+      await sql`SELECT app.fail_platform_job_dispatch_v3(${input.actorId}::uuid,${input.agencyId}::uuid,
+        ${row.id}::uuid,${message})`;
       throw error;
     }
   }

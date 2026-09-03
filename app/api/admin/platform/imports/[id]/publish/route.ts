@@ -85,7 +85,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       experienceProfile,
     });
     const enrichmentJob = await getJobQueue().enqueue({
-      actorId: actor.id,
+      actorId: actor.nativeId,
       agencyId,
       type: "travel-reference.enrich",
       payload: {

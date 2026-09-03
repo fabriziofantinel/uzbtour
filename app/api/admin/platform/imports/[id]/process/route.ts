@@ -27,7 +27,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     if (getPlatformProviderConfig().jobQueue === "sqs") {
       const queued = await getImportQueueRecord(id, agencyId);
       const job = await getJobQueue().enqueue({
-        actorId: actor.id,
+        actorId: actor.nativeId,
         agencyId,
         type: queued.type,
         payload: queued.payload,
