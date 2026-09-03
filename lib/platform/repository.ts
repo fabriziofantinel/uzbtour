@@ -389,7 +389,7 @@ export async function registerImportedDocument(input: {
   if (input.provider !== "r2" || input.sizeBytes == null)
     throw new PlatformRequestError("Il documento deve essere archiviato su R2");
   const rows = await sql`SELECT id::text,document_id::text,status,created_at::text
-    FROM app.register_import_document_v3(${input.actorId},${input.agencyId},${input.templateId},
+    FROM app.register_import_document_v3(${input.actorId}::uuid,${input.agencyId}::uuid,${input.templateId}::uuid,
       ${input.provider},${input.bucket},${input.objectKey},${input.originalName},
       ${input.contentType},${input.sizeBytes})`;
   return rows[0] as { id: string; document_id: string; status: string; created_at: string };

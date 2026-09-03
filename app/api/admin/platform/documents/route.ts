@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     const imported = await registerImportedDocument({
       agencyId,
       templateId,
-      actorId: actor.id,
+      actorId: actor.nativeId,
       provider: object.provider,
       bucket: object.bucket,
       objectKey: object.key,

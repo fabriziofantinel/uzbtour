@@ -55,7 +55,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         })),
       })),
     };
-    await saveImportDraft({ importId: id, agencyId, actorId: actor.id, draft });
+    await saveImportDraft({ importId: id, agencyId, actorId: actor.nativeId, draft });
     return NextResponse.json({ ok: true });
   } catch (error) {
     return platformApiError(error, "Salvataggio della revisione non riuscito");
@@ -76,7 +76,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
     await deleteImportDraftRecords({
       importId: id,
       agencyId,
-      actorId: actor.id,
+      actorId: actor.nativeId,
       documentIds: targets.map((target) => target.documentId),
       mediaAssetIds: targets.map((target) => target.mediaAssetId),
     });

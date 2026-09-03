@@ -347,8 +347,8 @@ export async function deleteImportDraftRecords(input: {
   mediaAssetIds: string[];
 }) {
   const sql = getSql();
-  const rows = await sql`SELECT app.delete_import_draft_v3(${input.actorId},${input.importId},
-    ${input.agencyId},${input.documentIds}::uuid[],${input.mediaAssetIds}::uuid[]) AS deleted`;
+  const rows = await sql`SELECT app.delete_import_draft_v3(${input.actorId}::uuid,${input.importId}::uuid,
+    ${input.agencyId}::uuid,${input.documentIds}::uuid[],${input.mediaAssetIds}::uuid[]) AS deleted`;
   if (!Boolean(rows[0]?.deleted)) throw new PlatformRequestError("Eliminazione della bozza non riuscita");
 }
 
@@ -359,8 +359,8 @@ export async function saveImportDraft(input: {
   draft: TravelProgrammeDraft;
 }) {
   const sql = getSql();
-  const rows = await sql`SELECT app.save_import_draft_v3(${input.actorId},${input.importId},
-    ${input.agencyId},${JSON.stringify(input.draft)}::jsonb) AS saved`;
+  const rows = await sql`SELECT app.save_import_draft_v3(${input.actorId}::uuid,${input.importId}::uuid,
+    ${input.agencyId}::uuid,${JSON.stringify(input.draft)}::jsonb) AS saved`;
   if (!Boolean(rows[0]?.saved)) throw new PlatformRequestError("La bozza non è modificabile");
 }
 
