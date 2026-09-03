@@ -1,5 +1,5 @@
 import type { Instrumentation } from "next";
-import { reportServerError } from "@/lib/observability";
+import { createServerErrorReport, persistServerError } from "@/lib/observability";
 
 export function register() {
   console.log(
@@ -14,7 +14,9 @@ export function register() {
 }
 
 export const onRequestError: Instrumentation.onRequestError = async (error, request, context) => {
-  reportServerError(error, {
+  const traceHeader = request.headers["x-smf-trace-id"];
+  const report = createServerErrorReport(error, {
+    traceId: Array.isArray(traceHeader) ? traceHeader[0] : traceHeader,
     method: request.method,
     path: request.path,
     routePath: context.routePath,
@@ -23,4 +25,5 @@ export const onRequestError: Instrumentation.onRequestError = async (error, requ
     renderSource: context.renderSource,
     revalidateReason: context.revalidateReason,
   });
+  await persistServerError(report).catch(() => undefined);
 };
