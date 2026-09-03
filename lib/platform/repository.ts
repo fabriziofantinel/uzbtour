@@ -71,9 +71,9 @@ export async function getPlatformOverview(actor: {
   const sql = getSql();
   const [overviewRows, importRows, referenceRows, enrichmentRows, brandingRows] = await Promise.all([
     sql`SELECT * FROM app.read_agency_overview_v3(${actor.nativeId}::uuid)`,
-    sql`SELECT * FROM app.read_agency_recent_imports_v3(${actor.id})`,
-    sql`SELECT * FROM app.read_agency_reference_contents_v3(${actor.id})`,
-    sql`SELECT * FROM app.read_agency_enrichment_jobs_v3(${actor.id})`,
+    sql`SELECT * FROM app.read_agency_recent_imports_v3(${actor.nativeId}::uuid)`,
+    sql`SELECT * FROM app.read_agency_reference_contents_v3(${actor.nativeId}::uuid)`,
+    sql`SELECT * FROM app.read_agency_enrichment_jobs_v3(${actor.nativeId}::uuid)`,
     sql`SELECT * FROM app.read_agency_branding_v3(${actor.id})`,
   ]);
   const rows = overviewRows as OverviewRow[];
