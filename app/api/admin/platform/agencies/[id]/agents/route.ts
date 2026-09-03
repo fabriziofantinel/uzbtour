@@ -41,7 +41,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         activationUrl,
       }).catch(() => false);
     }
-    return NextResponse.json({ agents: await readAgencyAgents(actor.id, id), invitationEmailSent }, { status: 201 });
+    return NextResponse.json(
+      { agents: await readAgencyAgents(actor.nativeId, id), invitationEmailSent },
+      { status: 201 },
+    );
   } catch (error) {
     return platformApiError(error, "Inserimento agente non riuscito");
   }
@@ -55,7 +58,7 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
     const parsed = z.object({ agentId: z.string().min(8).max(100) }).safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Agente non valido" }, { status: 400 });
     await removeAgencyAgent(actor.id, id, parsed.data.agentId);
-    return NextResponse.json({ agents: await readAgencyAgents(actor.id, id) });
+    return NextResponse.json({ agents: await readAgencyAgents(actor.nativeId, id) });
   } catch (error) {
     return platformApiError(error, "Eliminazione agente non riuscita");
   }

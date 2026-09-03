@@ -15,7 +15,7 @@ export type AgencyAgent = {
 export async function readAgencyAgents(actorId: string, agencyId: string): Promise<AgencyAgent[]> {
   const sql = getSql();
   const rows = await sql`SELECT id,name,username,email,phone,status,created_at::text
-    FROM app.read_agency_agents_v3(${actorId},${agencyId}::uuid)`;
+    FROM app.read_agency_agents_v3(${actorId}::uuid,${agencyId}::uuid)`;
   return rows.map((row) => ({
     id: String(row.id),
     name: String(row.name),

@@ -1,6 +1,6 @@
 {
   "targetParameter": "p_actor_user_id UUID",
   "maximumOccurrences": 0,
-  "maximumSqlLegacyFunctions": 80,
+  "maximumSqlLegacyFunctions": 79,
   "functions": {}
 }

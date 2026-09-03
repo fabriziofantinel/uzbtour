@@ -13,7 +13,7 @@ export default async function AgencyAgentsPage() {
     const agencies = overview.agencies.filter((agency) => agency.role === "owner");
     if (!agencies.length) redirect("/agenzia");
     const agentsByAgency = Object.fromEntries(
-      await Promise.all(agencies.map(async (agency) => [agency.id, await readAgencyAgents(actor.id, agency.id)])),
+      await Promise.all(agencies.map(async (agency) => [agency.id, await readAgencyAgents(actor.nativeId, agency.id)])),
     );
     return (
       <AgencyAgentsClient
