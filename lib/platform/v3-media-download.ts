@@ -38,19 +38,3 @@ export async function resolveV3TravelDocumentDownload(actorUserId: string, docum
   `;
   return assetFromRow(rows[0]);
 }
-
-export type LegacyMediaKind = "photo" | "contest" | "mission" | "bingo";
-
-export async function resolveV3LegacyMediaDownload(userId: string, mediaKind: LegacyMediaKind, mediaId: string) {
-  const sql = getSql();
-  const rows = await sql`
-    SELECT object_key,original_name,content_type
-    FROM app.resolve_legacy_demo_media_download(${userId},${mediaKind},${mediaId}::bigint)
-  `;
-  if (!rows[0]) return null;
-  return {
-    objectKey: String(rows[0].object_key),
-    originalName: String(rows[0].original_name),
-    contentType: String(rows[0].content_type),
-  };
-}

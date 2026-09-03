@@ -1,6 +1,6 @@
 # SMF Travel - Stato consolidamento architetturale
 
-Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migrazioni 001-147.
+Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migrazioni 001-148.
 
 ## Componenti e connessioni as-built
 
@@ -15,6 +15,7 @@ Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migraz
 9. `traceId` correla browser, Vercel, Neon, SQS e Lambda; `errorId` correla gli errori web senza esporre dati personali.
 10. CloudWatch controlla errori, durata, backlog e DLQ. Il Tour Leader è un'identità autonoma limitata alla partenza, con finestra temporale e revoca.
 11. La risoluzione delle sessioni impersonate e dei download privati di ricordi e documenti usa l'identità IAM UUID nativa; la baseline dei bridge runtime legacy è scesa da 31 a 28.
+12. Registrazione di ricordi, biglietti e documenti giornalieri usa l'identità IAM UUID nativa; i wrapper demo media non utilizzati sono stati rimossi e la baseline runtime è scesa a 23 riferimenti su 5 bridge.
 
 ## Finding del Solution Architect
 

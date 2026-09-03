@@ -24,8 +24,8 @@ export async function registerV3MemoryUpload(
   const sql = getSql();
   const rows = await sql`
     SELECT memory_id::text,created_at::text
-    FROM app.register_legacy_memory_upload(
-      ${input.userId},${input.departureId}::uuid,${input.partyId}::uuid,
+    FROM app.register_memory_upload_v3(
+      ${input.userId}::uuid,${input.departureId}::uuid,${input.partyId}::uuid,
       ${input.dayId}::uuid,${input.mediaId}::uuid,${input.memoryId}::uuid,
       ${input.provider},${input.bucket},${input.objectKey},${input.originalName},
       ${input.contentType},${input.sizeBytes}::bigint
@@ -46,8 +46,8 @@ export async function registerV3TicketUpload(
   const sql = getSql();
   const rows = await sql`
     SELECT document_id::text,title,created_at::text
-    FROM app.register_legacy_ticket_upload(
-      ${input.userId},${input.departureId}::uuid,${input.itemId}::uuid,
+    FROM app.register_ticket_upload_v3(
+      ${input.userId}::uuid,${input.departureId}::uuid,${input.itemId}::uuid,
       ${input.mediaId}::uuid,${input.documentId}::uuid,${input.provider},
       ${input.bucket},${input.objectKey},${input.originalName},${input.contentType},
       ${input.sizeBytes}::bigint
@@ -74,8 +74,8 @@ export async function registerV3DayDocument(
   const sql = getSql();
   const rows = await sql`
     SELECT document_id::text,title,description,created_at::text
-    FROM app.register_departure_day_document(
-      ${input.userId},${input.departureId}::uuid,${input.dayId}::uuid,${input.partyId}::uuid,
+    FROM app.register_departure_day_document_v3(
+      ${input.userId}::uuid,${input.departureId}::uuid,${input.dayId}::uuid,${input.partyId}::uuid,
       ${input.mediaId}::uuid,${input.documentId}::uuid,${input.provider},${input.bucket},
       ${input.objectKey},${input.originalName},${input.contentType},${input.sizeBytes}::bigint,
       ${input.description}
@@ -97,18 +97,4 @@ export async function isMediaObjectRegistered(objectKey: string) {
     ) AS registered
   `;
   return Boolean(rows[0]?.registered);
-}
-
-export async function deleteV3LegacyDemoMedia(userId: string, kind: "photo" | "contest", mediaId: string) {
-  const sql = getSql();
-  const rows = await sql`
-    SELECT deleted,object_key,reason
-    FROM app.delete_legacy_demo_media(${userId},${kind},${mediaId}::bigint)
-  `;
-  const row = rows[0];
-  return {
-    deleted: Boolean(row?.deleted),
-    objectKey: row?.object_key ? String(row.object_key) : null,
-    reason: row?.reason ? String(row.reason) : null,
-  };
 }

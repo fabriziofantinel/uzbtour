@@ -38,7 +38,7 @@ export async function POST(request: Request) {
         FROM travel.party_memberships membership JOIN travel.traveler_profiles profile
           ON profile.id=membership.traveler_id AND profile.agency_id=membership.agency_id
         WHERE membership.agency_id=${agencyId} AND membership.departure_id=${departureId}
-          AND membership.party_id=${partyId} AND profile.user_id=app.resolve_legacy_user_id(${user.id},${agencyId})
+          AND membership.party_id=${partyId} AND profile.user_id=${user.nativeId}::uuid
           AND membership.status<>'removed' LIMIT 1`,
       ],
       { readOnly: true },
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     const memoryId = crypto.randomUUID();
     const originalName = safeOriginalName(body?.originalName);
     const memory = await registerV3MemoryUpload({
-      userId: user.id,
+      userId: user.nativeId,
       departureId,
       partyId,
       dayId,

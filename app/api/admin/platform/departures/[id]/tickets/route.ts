@@ -38,7 +38,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const mediaId = crypto.randomUUID();
     const documentId = crypto.randomUUID();
     const ticket = await registerV3TicketUpload({
-      userId: actor.id,
+      userId: actor.nativeId,
       departureId,
       itemId,
       mediaId,

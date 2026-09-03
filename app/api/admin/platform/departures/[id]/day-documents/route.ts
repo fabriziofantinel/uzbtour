@@ -41,7 +41,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       return NextResponse.json({ error: "Il file caricato non è valido" }, { status: 400 });
     }
     const document = await registerV3DayDocument({
-      userId: actor.id,
+      userId: actor.nativeId,
       departureId,
       dayId,
       partyId,
