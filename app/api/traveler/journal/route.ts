@@ -26,7 +26,15 @@ export async function POST(request: Request) {
     if (action === "note") {
       const text = cleanText(body?.text, 8000);
       return NextResponse.json({
-        note: await saveTravelerNote({ userId: user.id, userName: user.name, departureId, partyId, dayId, text }),
+        note: await saveTravelerNote({
+          userId: user.id,
+          actorUserId: user.nativeId,
+          userName: user.name,
+          departureId,
+          partyId,
+          dayId,
+          text,
+        }),
       });
     }
     if (action === "restaurant") {
@@ -35,6 +43,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         restaurant: await addTravelerRestaurant({
           userId: user.id,
+          actorUserId: user.nativeId,
           userName: user.name,
           departureId,
           partyId,
@@ -65,6 +74,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         movement: await addTravelerCashMovement({
           userId: user.id,
+          actorUserId: user.nativeId,
           userName: user.name,
           departureId,
           partyId,
@@ -95,7 +105,13 @@ export async function DELETE(request: Request) {
     if (!uuid.test(departureId) || !uuid.test(partyId) || !uuid.test(movementId)) {
       return NextResponse.json({ error: "Movimento non valido" }, { status: 400 });
     }
-    await deleteTravelerCashMovement({ userId: user.id, departureId, partyId, movementId });
+    await deleteTravelerCashMovement({
+      userId: user.id,
+      actorUserId: user.nativeId,
+      departureId,
+      partyId,
+      movementId,
+    });
     return NextResponse.json({ ok: true });
   } catch (error) {
     return platformApiError(error, "Eliminazione del movimento non riuscita");

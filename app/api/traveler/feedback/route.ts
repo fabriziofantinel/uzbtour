@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     const agencyId = context.agencyId;
     const feedback = await saveTravelerProgrammeFeedbackV3({
       agencyId,
-      userId: user.id,
+      actorUserId: user.nativeId,
       departureId,
       partyId,
       dayId,

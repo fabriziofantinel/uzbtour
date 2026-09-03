@@ -1,9 +1,9 @@
 {
   "targetParameter": "p_actor_user_id UUID",
-  "maximumOccurrences": 23,
+  "maximumOccurrences": 15,
   "maximumSqlLegacyFunctions": 86,
   "functions": {
-    "resolve_legacy_user_id": 19,
+    "resolve_legacy_user_id": 11,
     "start_legacy_impersonation": 1,
     "end_legacy_impersonation": 1,
     "list_legacy_user_journeys": 1,

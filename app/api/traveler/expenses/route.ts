@@ -35,7 +35,12 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
     const parsed = expenseSchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Spesa non valida" }, { status: 400 });
-    const id = await addTravelerExpense({ userId: user.id, userName: user.name, ...parsed.data });
+    const id = await addTravelerExpense({
+      userId: user.id,
+      actorUserId: user.nativeId,
+      userName: user.name,
+      ...parsed.data,
+    });
     return NextResponse.json({ ok: true, id });
   } catch (error) {
     return platformApiError(error, "Salvataggio della spesa non riuscito");
@@ -48,7 +53,7 @@ export async function DELETE(request: Request) {
     if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
     const parsed = deleteExpenseSchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Spesa non valida" }, { status: 400 });
-    await deleteTravelerExpense({ userId: user.id, ...parsed.data });
+    await deleteTravelerExpense({ userId: user.id, actorUserId: user.nativeId, ...parsed.data });
     return NextResponse.json({ ok: true });
   } catch (error) {
     return platformApiError(error, "Eliminazione della spesa non riuscita");

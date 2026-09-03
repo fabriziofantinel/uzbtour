@@ -46,7 +46,7 @@ export async function readV3ExpenseRows(input: { agencyId: string; departureId: 
 
 export async function addTravelerExpenseV3(input: {
   agencyId: string;
-  userId: string;
+  actorUserId: string;
   userName: string;
   departureId: string;
   partyId: string;
@@ -70,7 +70,7 @@ export async function addTravelerExpenseV3(input: {
          AND membership.departure_id=${input.departureId} AND membership.party_id=${input.partyId}
          AND membership.status='active'
         WHERE traveler.agency_id=${input.agencyId}
-          AND traveler.user_id=app.resolve_legacy_user_id(${input.userId},${input.agencyId})
+          AND traveler.user_id=${input.actorUserId}::uuid
       ), departure_day AS (
         SELECT day.id FROM travel.departure_days day
         WHERE day.agency_id=${input.agencyId} AND day.departure_id=${input.departureId}
@@ -148,7 +148,7 @@ export async function addTravelerExpenseV3(input: {
 
 export async function deleteTravelerExpenseV3(input: {
   agencyId: string;
-  userId: string;
+  actorUserId: string;
   departureId: string;
   partyId: string;
   expenseId: string;
@@ -162,7 +162,7 @@ export async function deleteTravelerExpenseV3(input: {
       WHERE expense.id=${input.expenseId} AND expense.agency_id=${input.agencyId}
         AND expense.departure_id=${input.departureId} AND expense.party_id=${input.partyId}
         AND traveler.agency_id=expense.agency_id
-        AND traveler.user_id=app.resolve_legacy_user_id(${input.userId},${input.agencyId})
+        AND traveler.user_id=${input.actorUserId}::uuid
         AND membership.agency_id=expense.agency_id AND membership.departure_id=expense.departure_id
         AND membership.party_id=expense.party_id AND membership.traveler_id=traveler.id
         AND membership.status='active'

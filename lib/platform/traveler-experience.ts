@@ -447,6 +447,7 @@ export async function resolveTravelerContext(input: {
 }
 export async function addTravelerExpense(input: {
   userId: string;
+  actorUserId: string;
   userName: string;
   departureId: string;
   partyId: string;
@@ -465,6 +466,7 @@ export async function addTravelerExpense(input: {
 
 export async function deleteTravelerExpense(input: {
   userId: string;
+  actorUserId: string;
   departureId: string;
   partyId: string;
   expenseId: string;
@@ -475,6 +477,7 @@ export async function deleteTravelerExpense(input: {
 
 export async function saveTravelerNote(input: {
   userId: string;
+  actorUserId: string;
   userName: string;
   departureId: string;
   partyId: string;
@@ -487,6 +490,7 @@ export async function saveTravelerNote(input: {
 
 export async function addTravelerRestaurant(input: {
   userId: string;
+  actorUserId: string;
   userName: string;
   departureId: string;
   partyId: string;
@@ -499,6 +503,7 @@ export async function addTravelerRestaurant(input: {
 
 export async function addTravelerCashMovement(input: {
   userId: string;
+  actorUserId: string;
   userName: string;
   departureId: string;
   partyId: string;
@@ -517,6 +522,7 @@ export async function addTravelerCashMovement(input: {
 
 export async function deleteTravelerCashMovement(input: {
   userId: string;
+  actorUserId: string;
   departureId: string;
   partyId: string;
   movementId: string;

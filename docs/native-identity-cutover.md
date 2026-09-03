@@ -6,7 +6,7 @@ Le API applicative devono passare alle funzioni PostgreSQL un identificatore IAM
 
 ## Baseline vincolante
 
-Il registro `tests/contracts/native-identity-debt.json` fotografa ora 23 chiamate runtime residue a 5 bridge legacy. `npm run check:native-identity` blocca nuove funzioni legacy, nuovi utilizzi e baseline non ridotte dopo una rimozione. Il controllo fa parte di `quality:guard` e quindi della CI. Sessioni impersonate, download privati e registrazione di ricordi, biglietti e documenti giornalieri sono già passati all'identità UUID nativa con le migrazioni 147-148.
+Il registro `tests/contracts/native-identity-debt.json` fotografa ora 15 chiamate runtime residue a 5 bridge legacy. `npm run check:native-identity` blocca nuove funzioni legacy, nuovi utilizzi e baseline non ridotte dopo una rimozione. Il controllo fa parte di `quality:guard` e quindi della CI. Sessioni impersonate, download privati, registrazione media, spese, movimenti di cassa, note e feedback sono già passati all'identità UUID nativa.
 
 ## Sequenza di migrazione
 
