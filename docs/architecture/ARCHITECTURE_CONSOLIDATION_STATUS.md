@@ -1,6 +1,6 @@
 # SMF Travel - Stato consolidamento architetturale
 
-Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migrazioni 001-164.
+Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migrazioni 001-166.
 
 ## Componenti e connessioni as-built
 
@@ -32,6 +32,7 @@ Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migraz
 26. Creazione del viaggio e creazione di una nuova partenza da programma pubblicato usano l'UUID IAM; le firme testuali sono revocate e il debito SQL è sceso a 54.
 27. `CURRENT_SCHEMA_VERSION` segue l'ultima migrazione applicativa; `quality:guard` confronta automaticamente costante, ultimo file e marker, impedendo nuovi disallineamenti in CI e su Vercel.
 28. Il drill distruttivo manuale ha verificato cancellazione R2 reale, interruzione e ripresa con un secondo worker e assenza di effetti sul tenant sentinella. La migrazione 164 corregge l'ambiguità rilevata nella richiesta UUID di cancellazione.
+29. L'inventario live ha distinto 90 overload testuali reali dalla precedente baseline statica di 54 nomi funzione. Le migrazioni 165-166 hanno eliminato senza `CASCADE` 37 firme già revocate o già sostituite da chiamate UUID; rimangono 53 firme eseguibili da convertire per dominio.
 
 ## Finding del Solution Architect
 
@@ -64,7 +65,7 @@ Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migraz
 
 ## Residui necessari prima della chiusura operativa
 
-1. Creare un deployment Vercel staging isolato e collegarlo a dati sintetici, senza riusare credenziali o dati di produzione.
-2. Creare account Cognito E2E dedicati e configurare `E2E_BASE_URL`, `E2E_AGENCY_USERNAME`, `E2E_AGENCY_PASSWORD`, `E2E_TRAVELER_USERNAME` ed `E2E_TRAVELER_PASSWORD` nei secret GitHub.
-3. Dopo la commercializzazione, valutare se attivare test AI live periodici con OIDC AWS, budget massimo e notifica su errore. Fino ad allora restano esclusivamente manuali e disattivati per impostazione predefinita.
-4. Collegare un dominio personalizzato prima di attivare la WAF Cloudflare. Questo punto non blocca il consolidamento software corrente.
+1. Convertire per dominio le 53 firme SQL ancora eseguibili con attore testuale, verificando il sostituto UUID prima di ogni revoca e rimozione.
+2. In sospeso per decisione del proprietario: staging Vercel isolato e account Cognito E2E dedicati.
+3. In sospeso fino alla commercializzazione: test AI live periodici; restano manuali e disattivati per impostazione predefinita.
+4. In sospeso: dominio personalizzato e WAF Cloudflare. Non bloccano il consolidamento software corrente.

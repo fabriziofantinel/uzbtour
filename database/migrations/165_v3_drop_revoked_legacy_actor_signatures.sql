@@ -1,0 +1,40 @@
+-- Remove legacy actor overloads that are already revoked from the application role.
+-- CASCADE is intentionally forbidden: unexpected dependencies must fail the migration.
+DROP FUNCTION IF EXISTS
+  app.create_departure_from_programme_v3(TEXT,UUID,UUID,TEXT,TEXT,DATE,DATE),
+  app.create_platform_agency_with_owner(TEXT,JSONB,TEXT,TIMESTAMPTZ),
+  app.create_trip_template_v3(TEXT,UUID,UUID,UUID,TEXT,TEXT,TEXT),
+  app.delete_import_draft_v3(TEXT,UUID,UUID,UUID[],UUID[]),
+  app.delete_trip_template_v3(TEXT,UUID,UUID,UUID[]),
+  app.enqueue_platform_job_v3(TEXT,UUID,TEXT,TEXT,JSONB,TEXT,TIMESTAMPTZ),
+  app.fail_platform_job_dispatch_v3(TEXT,UUID,UUID,TEXT),
+  app.is_username_available(TEXT,TEXT),
+  app.provision_agency_agent_v3(TEXT,UUID,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TIMESTAMPTZ),
+  app.provision_platform_agency_agent(TEXT,UUID,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TIMESTAMPTZ),
+  app.read_agency_agents_v3(TEXT,UUID),
+  app.read_agency_branding_v3(TEXT),
+  app.read_agency_enrichment_jobs_v3(TEXT),
+  app.read_agency_impersonation_travelers(TEXT),
+  app.read_agency_overview_v3(TEXT),
+  app.read_agency_recent_imports_v3(TEXT),
+  app.read_agency_reference_contents_v3(TEXT),
+  app.read_superadmin_agency_registry(TEXT),
+  app.read_superadmin_summary(TEXT),
+  app.read_trip_deletion_assets_v3(TEXT,UUID,UUID),
+  app.register_import_document_v3(TEXT,UUID,UUID,TEXT,TEXT,TEXT,TEXT,TEXT,BIGINT),
+  app.remove_agency_agent_v3(TEXT,UUID,TEXT),
+  app.replace_platform_agency_owner(TEXT,UUID,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TIMESTAMPTZ),
+  app.request_agency_deletion_v3(TEXT,UUID,TEXT),
+  app.require_agency_owner_v3(TEXT,UUID),
+  app.resolve_trip_deletion_target_v3(TEXT,UUID),
+  app.save_import_draft_v3(TEXT,UUID,UUID,JSONB),
+  app.start_agency_traveler_impersonation(TEXT,TEXT,TEXT,TIMESTAMPTZ,TEXT),
+  app.update_platform_agency_branding(TEXT,UUID,TEXT,TEXT),
+  app.update_platform_agency_details(TEXT,UUID,JSONB),
+  app.update_platform_agency_owner_contact(TEXT,UUID,TEXT,TEXT),
+  app.update_platform_agency_status(TEXT,UUID,TEXT),
+  app.create_platform_agency(TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,JSONB),
+  app.read_superadmin_impersonation_users(TEXT);
+
+INSERT INTO public.platform_schema_migrations(version)
+VALUES('165_v3_drop_revoked_legacy_actor_signatures') ON CONFLICT(version) DO NOTHING;
