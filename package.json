@@ -56,6 +56,8 @@
     "db:migrate:v3:drop-revoked-legacy": "node --env-file=.env.local scripts/migrate-v3-drop-revoked-legacy-actor-signatures.mjs --apply",
     "db:migrate:v3:drop-superseded-legacy:dry-run": "node --env-file=.env.local scripts/migrate-v3-drop-superseded-runtime-legacy-signatures.mjs",
     "db:migrate:v3:drop-superseded-legacy": "node --env-file=.env.local scripts/migrate-v3-drop-superseded-runtime-legacy-signatures.mjs --apply",
+    "db:migrate:v3:drop-retired-impersonation:dry-run": "node --env-file=.env.local scripts/migrate-v3-drop-retired-legacy-impersonation.mjs",
+    "db:migrate:v3:drop-retired-impersonation": "node --env-file=.env.local scripts/migrate-v3-drop-retired-legacy-impersonation.mjs --apply",
     "db:migrate:v3:native-import-draft-lifecycle:dry-run": "node --env-file=.env.local scripts/migrate-v3-native-import-draft-lifecycle.mjs",
     "db:migrate:v3:native-import-draft-lifecycle": "node --env-file=.env.local scripts/migrate-v3-native-import-draft-lifecycle.mjs --apply",
     "db:migrate:v3:native-platform-job-dispatch:dry-run": "node --env-file=.env.local scripts/migrate-v3-native-platform-job-dispatch.mjs",

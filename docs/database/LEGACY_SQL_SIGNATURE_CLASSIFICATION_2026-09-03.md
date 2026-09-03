@@ -20,9 +20,9 @@ Il dry-run ha quindi verificato l'assenza di dipendenze catalogate prima dell'ap
 | Indicatore | Valore |
 | --- | ---: |
 | Firme testuali iniziali nel catalogo | 90 |
-| Firme eliminate | 37 |
-| Firme testuali residue | 53 |
-| Firme residue eseguibili da `smf_app` | 53 |
+| Firme eliminate | 40 |
+| Firme testuali residue | 50 |
+| Firme residue eseguibili da `smf_app` | 50 |
 | Bridge legacy nominativi nel runtime TypeScript | 0 |
 
 La precedente baseline `maximumSqlLegacyFunctions: 54` conta i nomi funzione effettivi
@@ -31,7 +31,7 @@ essere interpretata come inventario live.
 
 ## Strategia residua
 
-Le 53 firme vengono convertite per dominio: operatività e comunicazioni, gruppi e
+Le 50 firme vengono convertite per dominio: operatività e comunicazioni, gruppi e
 viaggiatori, gamification e fotografie, pubblicazione e catalogo, impersonificazione.
 Ogni lotto introduce prima il contratto UUID, aggiorna i chiamanti, revoca la firma testuale,
 la rimuove senza `CASCADE` e passa dry-run Neon, smoke test e gate di rilascio.
