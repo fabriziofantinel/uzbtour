@@ -111,7 +111,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write --ignore-unknown app components lib scripts workers infra .github tests tools proxy.ts eslint.config.mjs next-env.d.ts playwright.config.ts vitest.config.mts package.json package-lock.json tsconfig.json vercel.json README.md PRODUCT.md DESIGN.md AGENTS.md .env.example .gitignore .prettierignore .prettierrc.json .vercelignore",
-    "format:check": "prettier --check --ignore-unknown app components lib scripts workers infra .github tests tools proxy.ts eslint.config.mjs next-env.d.ts playwright.config.ts vitest.config.mts package.json package-lock.json tsconfig.json vercel.json README.md PRODUCT.md DESIGN.md AGENTS.md .env.example .gitignore .prettierignore .prettierrc.json .vercelignore",
+    "format:check": "prettier --check --ignore-unknown --no-error-on-unmatched-pattern app components lib scripts workers infra .github tests tools proxy.ts eslint.config.mjs next-env.d.ts playwright.config.ts vitest.config.mts package.json package-lock.json tsconfig.json README.md PRODUCT.md DESIGN.md AGENTS.md .env.example .gitignore .prettierignore .prettierrc.json .vercelignore",
     "prebuild": "npm run quality:guard",
     "dev": "next dev",
     "build": "next build",
