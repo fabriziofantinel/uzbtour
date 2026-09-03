@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     if (!parsed.success) {
       return NextResponse.json({ error: "Compila nome, referente, email e telefono del referente." }, { status: 400 });
     }
-    const created = await createAgency({ ...parsed.data, actorId: actor.id });
+    const created = await createAgency({ ...parsed.data, actorId: actor.nativeId });
     let invitationEmailSent = false;
     if (created.activationToken) {
       const activationUrl = new URL(

@@ -99,7 +99,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     }
     const owner = ownerSchema.safeParse(payload);
     if (owner.success) {
-      const result = await replaceAgencyOwner({ actorId: actor.id, agencyId: id, ...owner.data });
+      const result = await replaceAgencyOwner({ actorId: actor.nativeId, agencyId: id, ...owner.data });
       let invitationEmailSent = false;
       if (result.activationToken) {
         const activationUrl = new URL(

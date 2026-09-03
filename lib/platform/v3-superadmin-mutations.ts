@@ -8,18 +8,6 @@ function isUniqueViolation(error: unknown) {
   );
 }
 
-export async function createV3PlatformAgency(input: Record<string, string> & { actorId: string }) {
-  const sql = getSql();
-  const branding = JSON.stringify({ primaryColor: input.primaryColor || "#247A6B", logoUrl: input.logoUrl || "" });
-  const rows = await sql`SELECT app.create_platform_agency(${input.actorId},${input.slug},${input.name},
-    ${input.legalName || ""},${input.vatNumber || ""},${input.taxCode || ""},${input.registeredAddress || ""},
-    ${input.registeredCity || ""},${input.registeredPostalCode || ""},${input.registeredProvince || ""},
-    ${input.registeredCountry || ""},${input.pec || ""},${input.sdiCode || ""},${input.phone || ""},
-    ${input.email || ""},${input.website || ""},${input.referenceName},${input.referenceEmail || ""},
-    ${input.referencePhone || ""},${branding}::jsonb)::text id`;
-  return String(rows[0].id);
-}
-
 export async function createV3PlatformAgencyWithOwner(
   input: Record<string, string> & {
     actorId: string;
@@ -35,7 +23,7 @@ export async function createV3PlatformAgencyWithOwner(
   let rows;
   try {
     rows = await sql`SELECT * FROM app.create_platform_agency_with_owner(
-    ${input.actorId},${payload}::jsonb,${input.tokenHash},${input.expiresAt}::timestamptz)`;
+    ${input.actorId}::uuid,${payload}::jsonb,${input.tokenHash},${input.expiresAt}::timestamptz)`;
   } catch (error) {
     if (isUniqueViolation(error)) throw new PlatformRequestError("Nome agenzia o username responsabile già presente");
     throw error;
@@ -86,7 +74,7 @@ export async function replaceV3PlatformAgencyOwner(input: {
   let rows;
   try {
     rows = await sql`SELECT * FROM app.replace_platform_agency_owner(
-    ${input.actorId},${input.agencyId}::uuid,${input.name},${input.initials},${input.username},
+    ${input.actorId}::uuid,${input.agencyId}::uuid,${input.name},${input.initials},${input.username},
     ${input.email},${input.phone},${input.tokenHash},${input.expiresAt}::timestamptz)`;
   } catch (error) {
     if (isUniqueViolation(error)) throw new PlatformRequestError("Username già assegnato a un altro account");
@@ -139,7 +127,7 @@ export async function provisionV3PlatformAgencyAgent(input: {
 }) {
   const sql = getSql();
   const rows = await sql`SELECT app.provision_platform_agency_agent(
-    ${input.actorId},${input.agencyId}::uuid,${input.name},${input.initials},${input.username},
+    ${input.actorId}::uuid,${input.agencyId}::uuid,${input.name},${input.initials},${input.username},
     ${input.email},${input.phone},${input.role},${input.tokenHash},${input.expiresAt}::timestamptz)`;
   return { id: String(rows[0].legacy_user_id), activationRequired: Boolean(rows[0].activation_required) };
 }
