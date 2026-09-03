@@ -79,7 +79,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const payload = await request.json().catch(() => null);
     const status = statusSchema.safeParse(payload);
     if (status.success) {
-      await updateAgencyStatus({ actorId: actor.id, agencyId: id, status: status.data.status });
+      await updateAgencyStatus({ actorId: actor.nativeId, agencyId: id, status: status.data.status });
       return NextResponse.json({ agencies: await getAgencyRegistry(actor.id) });
     }
     const details = agencyDetailsSchema.safeParse(payload);
@@ -88,13 +88,13 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       if (logoUrl.startsWith("r2://") && !logoUrl.startsWith(`r2://agencies/${id}/branding/`)) {
         return NextResponse.json({ error: "Logo non associato all’agenzia" }, { status: 400 });
       }
-      await updateAgencyDetails({ actorId: actor.id, agencyId: id, data });
-      await updateAgencyBranding({ actorId: actor.id, agencyId: id, primaryColor, logoUrl });
+      await updateAgencyDetails({ actorId: actor.nativeId, agencyId: id, data });
+      await updateAgencyBranding({ actorId: actor.nativeId, agencyId: id, primaryColor, logoUrl });
       return NextResponse.json({ agencies: await getAgencyRegistry(actor.id) });
     }
     const ownerContact = ownerContactSchema.safeParse(payload);
     if (ownerContact.success) {
-      await updateAgencyOwnerContact({ actorId: actor.id, agencyId: id, ...ownerContact.data });
+      await updateAgencyOwnerContact({ actorId: actor.nativeId, agencyId: id, ...ownerContact.data });
       return NextResponse.json({ agencies: await getAgencyRegistry(actor.id) });
     }
     const owner = ownerSchema.safeParse(payload);
@@ -131,7 +131,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       agencyId: id,
       primaryColor: branding.data.primaryColor,
       logoUrl: branding.data.logoUrl,
-      actorId: actor.id,
+      actorId: actor.nativeId,
     });
     return NextResponse.json({ agencies: await getAgencyRegistry(actor.id) });
   } catch (error) {

@@ -56,7 +56,7 @@ export async function updateV3PlatformAgencyBranding(input: {
 }) {
   const sql = getSql();
   const rows = await sql`SELECT app.update_platform_agency_branding(
-    ${input.actorId},${input.agencyId}::uuid,${input.primaryColor},${input.logoUrl}) updated`;
+    ${input.actorId}::uuid,${input.agencyId}::uuid,${input.primaryColor},${input.logoUrl}) updated`;
   if (!rows[0]?.updated) throw new PlatformRequestError("Agenzia non trovata");
 }
 
@@ -67,7 +67,7 @@ export async function updateV3PlatformAgencyStatus(input: {
 }) {
   const sql = getSql();
   const rows = await sql`SELECT app.update_platform_agency_status(
-    ${input.actorId},${input.agencyId}::uuid,${input.status}) updated`;
+    ${input.actorId}::uuid,${input.agencyId}::uuid,${input.status}) updated`;
   if (!rows[0]?.updated) throw new PlatformRequestError("Agenzia non trovata o già in cancellazione");
 }
 
@@ -104,7 +104,7 @@ export async function updateV3PlatformAgencyOwnerContact(input: {
 }) {
   const sql = getSql();
   const rows = await sql`SELECT app.update_platform_agency_owner_contact(
-    ${input.actorId},${input.agencyId}::uuid,${input.email},${input.phone}) updated`;
+    ${input.actorId}::uuid,${input.agencyId}::uuid,${input.email},${input.phone}) updated`;
   if (!rows[0]?.updated) throw new PlatformRequestError("Responsabile non trovato");
 }
 
@@ -121,7 +121,7 @@ export async function updateV3PlatformAgencyDetails(input: {
 }) {
   const sql = getSql();
   const rows =
-    await sql`SELECT app.update_platform_agency_details(${input.actorId},${input.agencyId}::uuid,${JSON.stringify(input.data)}::jsonb) updated`;
+    await sql`SELECT app.update_platform_agency_details(${input.actorId}::uuid,${input.agencyId}::uuid,${JSON.stringify(input.data)}::jsonb) updated`;
   if (!rows[0]?.updated) throw new PlatformRequestError("Agenzia non trovata");
 }
 
