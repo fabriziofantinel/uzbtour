@@ -9,6 +9,11 @@ import type { TravelProgrammeDraft } from "../lib/platform/import-schema";
 
 const validation = { needsValidation: true, reason: "Da verificare" };
 const draft: TravelProgrammeDraft = {
+  documentAssessment: {
+    classification: "travel_programme",
+    confidence: 1,
+    reason: "Fixture di un programma di viaggio",
+  },
   title: "Viaggio prova in Uzbekistan",
   destinationCountry: "Uzbekistan",
   startDate: "2026-08-01",

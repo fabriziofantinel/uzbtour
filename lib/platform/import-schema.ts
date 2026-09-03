@@ -158,7 +158,20 @@ export const commercialDetailsSchema = z
   })
   .default(emptyCommercialDetails);
 
+export const travelDocumentAssessmentSchema = z
+  .object({
+    classification: z.enum(["travel_programme", "not_travel_programme", "unreadable"]),
+    confidence: z.number().min(0).max(1),
+    reason: z.string().min(1).max(500),
+  })
+  .default({
+    classification: "travel_programme",
+    confidence: 1,
+    reason: "Documento riconosciuto come programma di viaggio",
+  });
+
 export const travelProgrammeDraftSchema = z.object({
+  documentAssessment: travelDocumentAssessmentSchema,
   title: z.string().min(1).max(240),
   destinationCountry: z.string().max(120),
   startDate: z.string().max(10).default("").describe("Data iniziale YYYY-MM-DD oppure stringa vuota"),
