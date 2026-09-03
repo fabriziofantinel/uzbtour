@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     if (!extension || !Number.isSafeInteger(sizeBytes) || sizeBytes <= 0 || sizeBytes > MAX_PHOTO_SIZE_BYTES) {
       return NextResponse.json({ error: "Foto non valida o superiore a 25 MB" }, { status: 400 });
     }
-    const agencyId = await assertTravelerPartyScope({ userId: user.id, departureId, partyId, dayId });
+    const agencyId = await assertTravelerPartyScope({ actorUserId: user.nativeId, departureId, partyId, dayId });
     await assertTenantStorageCapacity(agencyId, sizeBytes, "photo");
     const key = `agencies/${agencyId}/departures/${departureId}/parties/${partyId}/days/${dayId}/memories/${crypto.randomUUID()}.${extension}`;
     return NextResponse.json(await getObjectStorage().createUploadAuthorization(key, contentType, 10 * 60));

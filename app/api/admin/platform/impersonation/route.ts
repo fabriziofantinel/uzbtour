@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     const actor = await requireSuperAdminActor();
     const payload = payloadSchema.parse(await request.json());
     const session = await startImpersonation({
-      actorId: actor.id,
+      actorId: actor.nativeId,
       targetId: payload.targetUserId,
       userAgent: request.headers.get("user-agent") || undefined,
     });

@@ -13,7 +13,7 @@ export default async function TravelerJourneyPage({ searchParams }: { searchPara
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=/viaggio");
   const { partenza } = await searchParams;
-  const experience = await getTravelerExperience(user.id, partenza);
+  const experience = await getTravelerExperience(user.id, partenza, user.nativeId);
 
   if (!experience) {
     return (

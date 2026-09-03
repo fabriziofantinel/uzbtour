@@ -8,11 +8,11 @@ export function v3TravelerScopeCutoverReadEnabled() {
   return process.env.V3_TRAVELER_SCOPE_READ_SOURCE !== "legacy";
 }
 
-export async function readV3TravelerJourneys(userId: string) {
+export async function readV3TravelerJourneys(actorUserId: string) {
   const sql = getSql();
   return (await sql`
     SELECT *
-    FROM app.list_legacy_user_journeys(${userId})
+    FROM app.list_user_journeys_v3(${actorUserId}::uuid)
   `) as Row[];
 }
 
@@ -26,7 +26,7 @@ export async function readV3TravelerDestinationProfile(userId: string, departure
 }
 
 export async function resolveV3TravelerScope(input: {
-  userId: string;
+  actorUserId: string;
   departureId: string;
   partyId: string;
   dayId?: string | null;
@@ -36,7 +36,7 @@ export async function resolveV3TravelerScope(input: {
 }
 
 export async function resolveV3TravelerContext(input: {
-  userId: string;
+  actorUserId: string;
   departureId: string;
   partyId: string;
   dayId?: string | null;
@@ -45,8 +45,8 @@ export async function resolveV3TravelerContext(input: {
   const rows = await sql`
     SELECT context.agency_id::text,context.template_version_id::text,
       context.traveler_id::text
-    FROM app.resolve_legacy_traveler_context(
-      ${input.userId},${input.departureId}::uuid,${input.partyId}::uuid,${input.dayId ?? null}::uuid
+    FROM app.resolve_traveler_context_v3(
+      ${input.actorUserId}::uuid,${input.departureId}::uuid,${input.partyId}::uuid,${input.dayId ?? null}::uuid
     ) context
   `;
   if (!rows[0]) return null;

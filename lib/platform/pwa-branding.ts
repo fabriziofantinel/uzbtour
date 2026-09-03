@@ -12,7 +12,7 @@ export type TravelerPwaBranding = {
 export async function getTravelerPwaBranding(): Promise<TravelerPwaBranding | null> {
   const user = await getCurrentUser();
   if (!user) return null;
-  const journeys = await readV3TravelerJourneys(user.id);
+  const journeys = await readV3TravelerJourneys(user.nativeId);
   const journey = journeys[0];
   if (!journey) return null;
   const branding =

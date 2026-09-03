@@ -38,7 +38,7 @@ export async function resolveV3UserAccess(userId: string, agencyId?: string | nu
   };
 }
 
-export async function startV3LegacyImpersonation(input: {
+export async function startV3Impersonation(input: {
   actorId: string;
   targetId: string;
   tokenHash: string;
@@ -47,9 +47,9 @@ export async function startV3LegacyImpersonation(input: {
 }) {
   const sql = getSql();
   const rows = await sql`
-    SELECT target_legacy_user_id,display_name,email,platform_role,is_agency_admin
-    FROM app.start_legacy_impersonation(
-      ${input.actorId},${input.targetId},${input.tokenHash},${input.expiresAt}::timestamptz,
+    SELECT target_user_id::text,target_legacy_user_id,display_name,email,platform_role,is_agency_admin
+    FROM app.start_impersonation_v3(
+      ${input.actorId}::uuid,${input.targetId}::uuid,${input.tokenHash},${input.expiresAt}::timestamptz,
       ${input.userAgent?.slice(0, 500) ?? ""}
     )
   `;
@@ -57,6 +57,7 @@ export async function startV3LegacyImpersonation(input: {
   if (!row) throw new Error("Utente non disponibile");
   return {
     id: String(row.target_legacy_user_id),
+    nativeId: String(row.target_user_id),
     name: String(row.display_name),
     email: String(row.email),
     isSuperAdmin: String(row.platform_role) === "superadmin",
@@ -118,7 +119,7 @@ export async function resolveV3Impersonation(actorUserId: string, tokenHash: str
   };
 }
 
-export async function endV3LegacyImpersonation(actorId: string, tokenHash: string) {
+export async function endV3Impersonation(actorId: string, tokenHash: string) {
   const sql = getSql();
-  await sql`SELECT app.end_legacy_impersonation(${actorId},${tokenHash})`;
+  await sql`SELECT app.end_impersonation_v3(${actorId}::uuid,${tokenHash})`;
 }

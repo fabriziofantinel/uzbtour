@@ -32,7 +32,12 @@ export async function POST(request: Request) {
   if (!/^[0-9a-f-]{36}$/i.test(departureId) || !/^[0-9a-f-]{36}$/i.test(partyId) || !/^[0-9a-f-]{36}$/i.test(dayId)) {
     return NextResponse.json({ error: "Sfida non valida" }, { status: 400 });
   }
-  const travelerContext = await resolveTravelerContext({ userId: user.id, departureId, partyId, dayId });
+  const travelerContext = await resolveTravelerContext({
+    actorUserId: user.nativeId,
+    departureId,
+    partyId,
+    dayId,
+  });
   if (!travelerContext) return NextResponse.json({ error: "Sfida non disponibile" }, { status: 403 });
   const agencyId = travelerContext.agencyId;
   const templateVersionId = travelerContext.templateVersionId;

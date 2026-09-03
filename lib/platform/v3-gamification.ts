@@ -14,6 +14,7 @@ async function ensureScheduledQuizGrants(input: {
   departureId: string;
   partyId: string;
   userId: string;
+  actorUserId: string;
 }) {
   const sql = getSql();
   const [, candidates] = await sql.transaction((txn) => [
@@ -32,7 +33,7 @@ async function ensureScheduledQuizGrants(input: {
       LEFT JOIN travel.departure_days operational_day ON operational_day.agency_id=activity.agency_id
         AND operational_day.departure_id=departure.id AND operational_day.template_day_id=activity.template_day_id
       WHERE traveler.agency_id=${input.agencyId}
-        AND traveler.user_id=app.resolve_legacy_user_id(${input.userId},${input.agencyId})
+        AND traveler.user_id=${input.actorUserId}::uuid
         AND (activity.availability_rule='always' OR (
           activity.availability_rule='relative_day_time' AND operational_day.service_date IS NOT NULL
           AND (((operational_day.service_date+activity.relative_days)+activity.unlock_local_time)
@@ -97,6 +98,7 @@ export async function readV3Gamification(input: {
   templateVersionId: string;
   partyId: string;
   userId: string;
+  actorUserId: string;
 }) {
   await ensureScheduledQuizGrants(input);
   const sql = getSql();
@@ -158,7 +160,7 @@ export async function readV3Gamification(input: {
             activity.agency_id,${input.departureId}::uuid,${input.partyId}::uuid,
             (SELECT profile.id FROM travel.traveler_profiles profile
              WHERE profile.agency_id=${input.agencyId}
-               AND profile.user_id=app.resolve_legacy_user_id(${input.userId},${input.agencyId})
+               AND profile.user_id=${input.actorUserId}::uuid
              LIMIT 1),activity.id
           )
         )
@@ -168,7 +170,7 @@ export async function readV3Gamification(input: {
       SELECT memory.id::text, day.template_day_id::text AS trip_day_id,
         template_day.day_number, asset.id::text AS media_id, asset.original_name,
         asset.content_type, asset.size_bytes,
-        CASE WHEN asset.uploaded_by_user_id=app.resolve_legacy_user_id(${input.userId},${input.agencyId})
+        CASE WHEN asset.uploaded_by_user_id=${input.actorUserId}::uuid
           THEN ${input.userId} ELSE COALESCE(asset.uploaded_by_user_id::text,'') END AS uploaded_by_user_id,
         creator.display_name AS added_by, memory.created_at::text
       FROM journey.memories memory
@@ -249,7 +251,7 @@ export async function readV3Gamification(input: {
       WHERE entry.agency_id=${input.agencyId} AND entry.departure_id=${input.departureId}
         AND entry.party_id=${input.partyId}
         AND (entry.status IN('selected','ranked') OR (entry.traveler_id=(SELECT profile.id FROM travel.traveler_profiles profile
-          WHERE profile.agency_id=${input.agencyId} AND profile.user_id=app.resolve_legacy_user_id(${input.userId},${input.agencyId}) LIMIT 1)
+          WHERE profile.agency_id=${input.agencyId} AND profile.user_id=${input.actorUserId}::uuid LIMIT 1)
           AND entry.status IN('draft','evaluating')))
       ORDER BY entry.submitted_at DESC
     `,
@@ -269,7 +271,7 @@ export async function readV3Gamification(input: {
           WHERE current_participant.agency_id=party.agency_id
             AND current_participant.departure_id=party.departure_id
             AND current_participant.party_id=${input.partyId}::uuid
-            AND current_profile.user_id=app.resolve_legacy_user_id(${input.userId},${input.agencyId})
+            AND current_profile.user_id=${input.actorUserId}::uuid
             AND current_participant.status<>'removed' AND current_participant.participates_in_trip_games)
       ORDER BY party.name
     `,
@@ -301,7 +303,7 @@ export async function readV3Gamification(input: {
           WHERE current_participant.agency_id=attempt.agency_id
             AND current_participant.departure_id=attempt.departure_id
             AND current_participant.party_id=${input.partyId}::uuid
-            AND current_profile.user_id=app.resolve_legacy_user_id(${input.userId},${input.agencyId})
+            AND current_profile.user_id=${input.actorUserId}::uuid
             AND current_participant.status<>'removed' AND current_participant.participates_in_trip_games)
     `,
         txn`
@@ -333,7 +335,7 @@ export async function readV3Gamification(input: {
           WHERE current_participant.agency_id=entry.agency_id
             AND current_participant.departure_id=entry.departure_id
             AND current_participant.party_id=${input.partyId}::uuid
-            AND current_profile.user_id=app.resolve_legacy_user_id(${input.userId},${input.agencyId})
+            AND current_profile.user_id=${input.actorUserId}::uuid
             AND current_participant.status<>'removed' AND current_participant.participates_in_trip_games)
     `,
       ],

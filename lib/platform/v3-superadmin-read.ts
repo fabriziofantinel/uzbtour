@@ -77,11 +77,11 @@ export async function readV3AgencyRegistry(actorId: string) {
   });
 }
 
-export async function readV3ImpersonationUsers(actorId: string) {
+export async function readV3ImpersonationUsers(actorUserId: string) {
   const sql = getSql();
-  const rows = await sql`SELECT * FROM app.read_superadmin_impersonation_users(${actorId})`;
+  const rows = await sql`SELECT * FROM app.read_superadmin_impersonation_users_v3(${actorUserId}::uuid)`;
   return rows.map((row) => ({
-    id: String(row.legacy_user_id),
+    id: String(row.user_id),
     name: String(row.display_name),
     initials: initialsFor(String(row.display_name)),
     username: String(row.username),

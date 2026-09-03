@@ -6,7 +6,7 @@ export async function readV3ProgrammeFeedbackRows(input: {
   agencyId: string;
   departureId: string;
   partyId: string;
-  userId: string;
+  actorUserId: string;
 }) {
   const sql = getSql();
   const [, rows] = await sql.transaction(
@@ -26,7 +26,7 @@ export async function readV3ProgrammeFeedbackRows(input: {
       WHERE feedback.agency_id = ${input.agencyId}
         AND feedback.departure_id = ${input.departureId}
         AND feedback.party_id = ${input.partyId}
-        AND traveler.user_id = app.resolve_legacy_user_id(${input.userId}, ${input.agencyId})
+        AND traveler.user_id = ${input.actorUserId}::uuid
     `,
     ],
     { readOnly: true },

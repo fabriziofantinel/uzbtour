@@ -27,7 +27,6 @@ export async function POST(request: Request) {
       const text = cleanText(body?.text, 8000);
       return NextResponse.json({
         note: await saveTravelerNote({
-          userId: user.id,
           actorUserId: user.nativeId,
           userName: user.name,
           departureId,
@@ -42,7 +41,6 @@ export async function POST(request: Request) {
       if (!name) return NextResponse.json({ error: "Inserisci il nome del locale" }, { status: 400 });
       return NextResponse.json({
         restaurant: await addTravelerRestaurant({
-          userId: user.id,
           actorUserId: user.nativeId,
           userName: user.name,
           departureId,
@@ -73,7 +71,6 @@ export async function POST(request: Request) {
       }
       return NextResponse.json({
         movement: await addTravelerCashMovement({
-          userId: user.id,
           actorUserId: user.nativeId,
           userName: user.name,
           departureId,
@@ -106,7 +103,6 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Movimento non valido" }, { status: 400 });
     }
     await deleteTravelerCashMovement({
-      userId: user.id,
       actorUserId: user.nativeId,
       departureId,
       partyId,

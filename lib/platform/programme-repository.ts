@@ -196,7 +196,7 @@ export type AgencyProgramme = Awaited<ReturnType<typeof getAgencyProgramme>>;
 export async function cancelAgencyProgrammeItem(input: {
   departureId: string;
   itemId: string;
-  actorId: string;
+  actorUserId: string;
   reason: string;
   clientOperationId: string;
 }) {
@@ -210,7 +210,7 @@ export async function cancelAgencyProgrammeItem(input: {
     SELECT app.record_itinerary_disruption(
       scoped_item.agency_id,scoped_item.id,scoped_item.departure_day_id,
       scoped_item.scheduled_start_at,scoped_item.scheduled_end_at,'cancelled',${input.reason},NULL,
-      app.resolve_legacy_user_id(${input.actorId},scoped_item.agency_id),${input.clientOperationId}::uuid
+      ${input.actorUserId}::uuid,${input.clientOperationId}::uuid
     ) AS event_id
     FROM scoped_item
   `;

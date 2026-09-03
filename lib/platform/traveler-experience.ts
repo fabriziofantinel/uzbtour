@@ -50,8 +50,12 @@ function contestCriteria(value: unknown) {
   return criteria;
 }
 
-export async function getTravelerExperience(userId: string, requestedDepartureId?: string) {
-  const journeys = await readV3TravelerJourneys(userId);
+export async function getTravelerExperience(
+  userId: string,
+  requestedDepartureId: string | undefined,
+  actorUserId: string,
+) {
+  const journeys = await readV3TravelerJourneys(actorUserId);
   if (journeys.length === 0) return null;
   const selected =
     (requestedDepartureId ? journeys.find((row) => String(row.departure_id) === requestedDepartureId) : journeys[0]) ??
@@ -75,9 +79,9 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
   ] = await Promise.all([
     readV3ExpenseRows({ agencyId, departureId, partyId }),
     readV3JourneyJournalRows({ agencyId, departureId, partyId }),
-    readV3ProgrammeFeedbackRows({ agencyId, departureId, partyId, userId }),
-    readV3TravelCatalog({ agencyId, departureId, templateVersionId: versionId, partyId, userId }),
-    readV3Gamification({ agencyId, departureId, templateVersionId: versionId, partyId, userId }),
+    readV3ProgrammeFeedbackRows({ agencyId, departureId, partyId, actorUserId }),
+    readV3TravelCatalog({ agencyId, departureId, templateVersionId: versionId, partyId, actorUserId }),
+    readV3Gamification({ agencyId, departureId, templateVersionId: versionId, partyId, userId, actorUserId }),
     readTravelerChangeNotices({ agencyId, departureId, userId }),
     readV3TravelerDestinationProfile(userId, departureId),
     readDepartureInsurance(userId, departureId),
@@ -427,7 +431,7 @@ export async function getTravelerExperience(userId: string, requestedDepartureId
 }
 
 export async function assertTravelerPartyScope(input: {
-  userId: string;
+  actorUserId: string;
   departureId: string;
   partyId: string;
   dayId?: string | null;
@@ -438,7 +442,7 @@ export async function assertTravelerPartyScope(input: {
 }
 
 export async function resolveTravelerContext(input: {
-  userId: string;
+  actorUserId: string;
   departureId: string;
   partyId: string;
   dayId?: string | null;
@@ -446,7 +450,6 @@ export async function resolveTravelerContext(input: {
   return resolveV3TravelerContext(input);
 }
 export async function addTravelerExpense(input: {
-  userId: string;
   actorUserId: string;
   userName: string;
   departureId: string;
@@ -465,7 +468,6 @@ export async function addTravelerExpense(input: {
 }
 
 export async function deleteTravelerExpense(input: {
-  userId: string;
   actorUserId: string;
   departureId: string;
   partyId: string;
@@ -476,7 +478,6 @@ export async function deleteTravelerExpense(input: {
 }
 
 export async function saveTravelerNote(input: {
-  userId: string;
   actorUserId: string;
   userName: string;
   departureId: string;
@@ -489,7 +490,6 @@ export async function saveTravelerNote(input: {
 }
 
 export async function addTravelerRestaurant(input: {
-  userId: string;
   actorUserId: string;
   userName: string;
   departureId: string;
@@ -502,7 +502,6 @@ export async function addTravelerRestaurant(input: {
 }
 
 export async function addTravelerCashMovement(input: {
-  userId: string;
   actorUserId: string;
   userName: string;
   departureId: string;
@@ -521,7 +520,6 @@ export async function addTravelerCashMovement(input: {
 }
 
 export async function deleteTravelerCashMovement(input: {
-  userId: string;
   actorUserId: string;
   departureId: string;
   partyId: string;

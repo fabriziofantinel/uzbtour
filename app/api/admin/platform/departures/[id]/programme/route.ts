@@ -26,7 +26,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       const eventId = await cancelAgencyProgrammeItem({
         departureId: id,
         itemId,
-        actorId: actor.id,
+        actorUserId: actor.nativeId,
         reason,
         clientOperationId,
       });

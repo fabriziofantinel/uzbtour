@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     const objectKey = String(body?.objectKey || "");
     if (body?.privacyAttested !== true)
       return NextResponse.json({ error: "Conferma il consenso delle persone fotografate" }, { status: 400 });
-    const agencyId = await assertTravelerPartyScope({ userId: user.id, departureId, partyId, dayId });
+    const agencyId = await assertTravelerPartyScope({ actorUserId: user.nativeId, departureId, partyId, dayId });
     const expectedPrefix = `agencies/${agencyId}/departures/${departureId}/parties/${partyId}/days/${dayId}/memories/`;
     if (!objectKey.startsWith(expectedPrefix))
       return NextResponse.json({ error: "Percorso foto non valido" }, { status: 400 });

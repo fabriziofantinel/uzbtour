@@ -10,14 +10,14 @@ export async function GET(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
   const departureId = new URL(request.url).searchParams.get("partenza") || undefined;
-  const experience = await getTravelerExperience(user.id, departureId);
+  const experience = await getTravelerExperience(user.id, departureId, user.nativeId);
   if (!experience) return NextResponse.json({ error: "Viaggio non disponibile" }, { status: 404 });
   const pdf = await createTravelAlbumPdf(user.nativeId, experience);
   const sql = getSql();
   await sql.transaction((txn) => [
     txn`SELECT set_config('app.agency_id', ${experience.journey.agencyId}, true)`,
     txn`INSERT INTO ops.audit_events(agency_id,actor_user_id,entity_type,entity_id,action,changes)
-      VALUES(${experience.journey.agencyId},app.resolve_legacy_user_id(${user.id},${experience.journey.agencyId}),
+      VALUES(${experience.journey.agencyId},${user.nativeId}::uuid,
       'travel_album',${experience.journey.departureId},'download',jsonb_build_object('partyId',${experience.journey.partyId},'photoCount',${experience.photos.length}))`,
   ]);
   const filename = `diario-${experience.journey.title}`

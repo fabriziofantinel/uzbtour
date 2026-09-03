@@ -1,6 +1,6 @@
 # SMF Travel - Stato consolidamento architetturale
 
-Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migrazioni 001-148.
+Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migrazioni 001-150.
 
 ## Componenti e connessioni as-built
 
@@ -14,9 +14,9 @@ Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migraz
 8. Bedrock Converse usa Nova 2 Lite, Tool Use forzato, validazione Zod, grounding con fonti ammesse e telemetria in `ops.generation_runs` con prezzi versionati.
 9. `traceId` correla browser, Vercel, Neon, SQS e Lambda; `errorId` correla gli errori web senza esporre dati personali.
 10. CloudWatch controlla errori, durata, backlog e DLQ. Il Tour Leader è un'identità autonoma limitata alla partenza, con finestra temporale e revoca.
-11. La risoluzione delle sessioni impersonate e dei download privati di ricordi e documenti usa l'identità IAM UUID nativa; la baseline dei bridge runtime legacy è scesa da 31 a 28.
-12. Registrazione di ricordi, biglietti e documenti giornalieri usa l'identità IAM UUID nativa; i wrapper demo media non utilizzati sono stati rimossi e la baseline runtime è scesa a 23 riferimenti su 5 bridge.
-13. Spese, ripartizioni, cambi, prelievi, note, ristoranti e feedback operativi usano direttamente l'UUID IAM dell'attore; la baseline runtime è scesa a 15 riferimenti.
+11. Sessioni impersonate, download privati, registrazione media e operazioni del viaggiatore usano l'identità IAM UUID nativa.
+12. Ambito dei viaggi, gamification, catalogo, feedback e modifiche al programma non risolvono più l'attore tramite la mappa legacy.
+13. Avvio, elenco e chiusura del Login come superuser usano contratti UUID nativi. La baseline dei bridge runtime legacy, inizialmente pari a 31 riferimenti, è ora pari a zero.
 
 ## Finding del Solution Architect
 
@@ -31,7 +31,7 @@ Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migraz
 | Error correlation web | Chiuso | `instrumentation.ts`, `onRequestError`, risposta con `errorId` e header `x-smf-error-id` |
 | Nomenclatura gruppi | Chiuso | URL, payload e consumer usano `groups`; il gate impedisce la reintroduzione di `families` |
 | DR e isolamento Neon | Chiuso | Ogni gate crea un branch effimero, verifica letture/RLS, ricostruisce lo schema da vuoto e rimuove il branch |
-| Dizionario e documenti architetturali | Chiuso | Architettura v1.3 e modelli logico/fisico v1.5 aggiornati alle 88 tabelle correnti |
+| Dizionario e documenti architetturali | Chiuso | Architettura v1.3 e modelli logico/fisico v1.5; lo schema operativo validato contiene 89 tabelle |
 | Dati per biglietteria | Fuori perimetro deciso | Non vengono archiviati passaporti o documenti sanitari; le sole segnalazioni operative essenziali hanno consenso e scadenza |
 | WAF perimetrale | Bloccato esternamente | Richiede un dominio personalizzato e una zona DNS; il dominio condiviso Vercel non è configurabile nella WAF Cloudflare |
 | Staging applicativo | Predisposto, non attivo | Branch Neon effimero e test sono pronti; manca un deployment Vercel staging isolato con configurazione e dati sintetici |

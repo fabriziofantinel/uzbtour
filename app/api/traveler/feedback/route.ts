@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     ) {
       return NextResponse.json({ error: "Valutazione non valida" }, { status: 400 });
     }
-    const context = await resolveTravelerContext({ userId: user.id, departureId, partyId, dayId });
+    const context = await resolveTravelerContext({ actorUserId: user.nativeId, departureId, partyId, dayId });
     if (!context) return NextResponse.json({ error: "Viaggiatore non disponibile" }, { status: 403 });
     const agencyId = context.agencyId;
     const feedback = await saveTravelerProgrammeFeedbackV3({
