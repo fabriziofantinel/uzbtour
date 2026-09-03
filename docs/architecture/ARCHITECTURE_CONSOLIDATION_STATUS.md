@@ -1,6 +1,6 @@
 # SMF Travel - Stato consolidamento architetturale
 
-Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migrazioni 001-159.
+Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migrazioni 001-160.
 
 ## Componenti e connessioni as-built
 
@@ -25,7 +25,8 @@ Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migraz
 19. Il branding dell'agenzia è letto tramite identità UUID nativa in dashboard, importazioni, programma, documenti e gestione gruppi; la firma testuale è revocata e il debito SQL è sceso a 75.
 20. Modifica di branding, stato, anagrafica e contatti del responsabile autorizzano direttamente il superuser UUID; le quattro firme testuali sono revocate e il debito SQL è sceso a 71.
 21. Riepilogo superuser, registro agenzie e verifica username usano l'UUID IAM; è inoltre revocata la vecchia lettura impersonazioni e il debito SQL statico è sceso a 68.
-22. Creazione atomica agenzia-responsabile e sostituzione del responsabile usano l'UUID IAM; uno smoke test transazionale verifica entrambi i flussi senza persistere dati e il debito SQL è sceso a 65.
+22. Creazione atomica agenzia-responsabile e sostituzione del responsabile usano l'UUID IAM; uno smoke test transazionale verifica entrambi i flussi senza persistere dati.
+23. Richiesta di cancellazione agenzia, risoluzione del viaggio, censimento degli asset e cancellazione transazionale del viaggio usano l'UUID IAM; i contratti legacy non sono più eseguibili da `smf_app` e il debito SQL è sceso a 61.
 
 ## Finding del Solution Architect
 

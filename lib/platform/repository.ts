@@ -340,13 +340,13 @@ export async function getTripDeletionTarget(templateId: string, actorId: string)
   const sql = getSql();
   const trips = await sql`
     SELECT id::text, agency_id::text, title
-    FROM app.resolve_trip_deletion_target_v3(${actorId},${templateId})
+    FROM app.resolve_trip_deletion_target_v3(${actorId}::uuid,${templateId}::uuid)
   `;
   if (!trips[0]) throw new PlatformRequestError("Viaggio non trovato");
   const agencyId = String(trips[0].agency_id);
   const assets = await sql`
     SELECT id::text,provider,bucket,object_key
-    FROM app.read_trip_deletion_assets_v3(${actorId},${agencyId},${templateId})
+    FROM app.read_trip_deletion_assets_v3(${actorId}::uuid,${agencyId}::uuid,${templateId}::uuid)
   `;
   return {
     id: String(trips[0].id),
@@ -369,8 +369,8 @@ export async function deleteTripRecords(input: {
   mediaAssetIds: string[];
 }) {
   const sql = getSql();
-  const rows = await sql`SELECT app.delete_trip_template_v3(${input.actorId},${input.agencyId},
-    ${input.templateId},${input.mediaAssetIds}::uuid[]) AS deleted`;
+  const rows = await sql`SELECT app.delete_trip_template_v3(${input.actorId}::uuid,${input.agencyId}::uuid,
+    ${input.templateId}::uuid,${input.mediaAssetIds}::uuid[]) AS deleted`;
   if (!Boolean(rows[0]?.deleted)) throw new PlatformRequestError("Eliminazione del viaggio non riuscita");
 }
 

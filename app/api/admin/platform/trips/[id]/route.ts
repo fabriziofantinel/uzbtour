@@ -13,7 +13,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
       return NextResponse.json({ error: "Viaggio non valido" }, { status: 400 });
     }
     const actor = await requirePlatformAdmin();
-    const target = await getTripDeletionTarget(id, actor.id);
+    const target = await getTripDeletionTarget(id, actor.nativeId);
     const storage = getObjectStorage();
     for (const asset of target.assets) {
       if (asset.provider !== storage.provider || asset.bucket !== storage.bucket) {
@@ -24,7 +24,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
     await deleteTripRecords({
       templateId: target.id,
       agencyId: target.agencyId,
-      actorId: actor.id,
+      actorId: actor.nativeId,
       title: target.title,
       mediaAssetIds: target.assets.map((asset) => asset.id),
     });

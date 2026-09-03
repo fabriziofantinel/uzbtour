@@ -190,7 +190,7 @@ export async function isUsernameAvailable(actorId: string, username: string) {
 export async function requestAgencyDeletion(input: { actorId: string; agencyId: string; reason: string }) {
   const sql = getSql();
   const rows = await sql`SELECT job_id::text,agency_name,status,phase
-    FROM app.request_agency_deletion_v3(${input.actorId},${input.agencyId},${input.reason})`;
+    FROM app.request_agency_deletion_v3(${input.actorId}::uuid,${input.agencyId}::uuid,${input.reason})`;
   if (!rows[0]) throw new PlatformRequestError("Richiesta di eliminazione non registrata");
   const deletionJobId = String(rows[0].job_id);
   const queueJob = await getJobQueue().enqueue({

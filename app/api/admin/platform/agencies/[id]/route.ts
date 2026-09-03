@@ -148,7 +148,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
     }
 
     const deletion = await requestAgencyDeletion({
-      actorId: actor.id,
+      actorId: actor.nativeId,
       agencyId: id,
       reason: "Cancellazione richiesta dal superadmin tramite pannello piattaforma",
     });
