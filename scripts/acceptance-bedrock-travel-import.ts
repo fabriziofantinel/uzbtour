@@ -40,6 +40,9 @@ async function main() {
     extractTravelProgrammeWithBedrock(new TextEncoder().encode(source), "acceptance-belgio.ocr.txt"),
   );
   const draft = extracted.draft;
+  if (process.env.AI_TEST_MODE === "live" && !extracted.usage.specializedExtraction) {
+    throw new Error("Telemetria dell'estrazione specialistica accorpata mancante");
+  }
   if (draft.days.length !== 2) throw new Error(`Attese 2 giornate, ottenute ${draft.days.length}`);
   if (!/belg/i.test(draft.destinationCountry)) throw new Error(`Paese inatteso: ${draft.destinationCountry}`);
   if (draft.days.some((day) => day.activities.some((activity) => activity.startsAt || activity.endsAt))) {

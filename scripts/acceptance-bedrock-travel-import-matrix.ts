@@ -146,6 +146,9 @@ async function validateImport(expected: ExpectedImport) {
     extractTravelProgrammeWithBedrock(expected.bytes, expected.filename),
   );
   const { draft } = extracted;
+  if (process.env.AI_TEST_MODE === "live" && !extracted.usage.specializedExtraction) {
+    throw new Error(`${expected.scenario}: telemetria dell'estrazione specialistica accorpata mancante`);
+  }
   if (extracted.provider !== `amazon-bedrock-native-${expected.provider}`) {
     throw new Error(`${expected.scenario}: provider inatteso ${extracted.provider}`);
   }

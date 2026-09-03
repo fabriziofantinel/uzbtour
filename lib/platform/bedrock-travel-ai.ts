@@ -70,6 +70,15 @@ const activityRecoverySchema = z.object({
   evidence: z.array(extractionEvidenceSchema).max(500).default([]),
 });
 
+const specializedExtractionSchema = z.preprocess(
+  normalizeSpecializedToolInput,
+  z.object({
+    commercial: z.preprocess(normalizeCommercialToolInput, commercialExtractionSchema),
+    accommodations: accommodationRecoverySchema,
+    activities: activityRecoverySchema,
+  }),
+);
+
 const reconciliationSchema = z.object({
   issues: z.array(reconciliationIssueSchema).max(100),
 });
@@ -162,6 +171,36 @@ function clipped(value: unknown, maximum: number) {
   return typeof value === "string" ? value.trim().slice(0, maximum) : "";
 }
 
+function normalizeEvidencePage(item: Record<string, unknown>) {
+  const sourcePage = Number(item.sourcePage);
+  return { ...item, sourcePage: Number.isInteger(sourcePage) && sourcePage > 0 ? sourcePage : null };
+}
+
+function normalizeSpecializedToolInput(input: unknown) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return input;
+  const root = input as Record<string, unknown>;
+  const normalizeSection = (value: unknown) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+    const section = value as Record<string, unknown>;
+    return {
+      ...section,
+      evidence: Array.isArray(section.evidence)
+        ? section.evidence.map((item) =>
+            item && typeof item === "object" && !Array.isArray(item)
+              ? normalizeEvidencePage(item as Record<string, unknown>)
+              : item,
+          )
+        : section.evidence,
+    };
+  };
+  return {
+    ...root,
+    commercial: normalizeSection(root.commercial),
+    accommodations: normalizeSection(root.accommodations),
+    activities: normalizeSection(root.activities),
+  };
+}
+
 function normalizeCommercialToolInput(input: unknown) {
   const root = input && typeof input === "object" && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
   const details =
@@ -241,7 +280,7 @@ function normalizeCommercialToolInput(input: unknown) {
     evidence: rows(root.evidence)
       .slice(0, 300)
       .map((item) => ({
-        ...item,
+        ...normalizeEvidencePage(item),
         fieldPath: evidencePath(item.fieldPath),
         sourceText: clipped(item.sourceText, 1200) || "Evidenza non testuale restituita dal modello",
       })),
@@ -318,63 +357,7 @@ function flagAccommodationCityConflicts(draft: z.infer<typeof travelProgrammeDra
   });
 }
 
-async function recoverAccommodations(input: {
-  client: BedrockRuntimeClient;
-  documentParts: BedrockDocumentPart[];
-  model: string;
-  maxOutputTokens: number;
-  days: Array<{ dayNumber: number; date: string; city: string; country: string }>;
-}) {
-  const response = await input.client.send(
-    new ConverseCommand({
-      modelId: input.model,
-      system: [
-        {
-          text: "Sei un esperto di documenti turistici. Estrai soltanto le sistemazioni e usa sempre lo strumento disponibile.",
-        },
-      ],
-      messages: [
-        {
-          role: "user",
-          content: [
-            ...bedrockDocumentBlocks(input.documentParts),
-            {
-              text: `Riesamina in modo indipendente l'intero documento, soprattutto tabelle o allegati esterni al programma giornaliero, e associa tutte le sistemazioni alle giornate elencate qui sotto:\n${JSON.stringify(input.days)}\n\nNon inventare strutture. Usa date, numero di notti e località per l'associazione. Se tabella alberghi e programma giornaliero sono incoerenti, conserva i dati espliciti della tabella e imposta needsValidation=true spiegando il conflitto. Imposta needsValidation=true anche quando la grafia del nome sembra incompleta, non canonica o potenzialmente errata. Restituisci solo giornate con una sistemazione esplicitamente ricavabile.`,
-            },
-          ],
-        },
-      ],
-      toolConfig: {
-        tools: [
-          {
-            toolSpec: {
-              name: "emit_accommodations",
-              description: "Restituisce le sistemazioni ricavate dalle tabelle e dalle altre sezioni del documento",
-              inputSchema: { json: novaToolSchema(accommodationRecoverySchema) },
-            },
-          },
-        ],
-        toolChoice: { tool: { name: "emit_accommodations" } },
-      },
-      inferenceConfig: { maxTokens: Math.min(input.maxOutputTokens, 4_000), temperature: 0 },
-      additionalModelRequestFields: { inferenceConfig: { topK: 1 } },
-      requestMetadata: { application: "smf-travel", operation: "travel-import-accommodation-extraction" },
-    }),
-  );
-  captureBedrockGeneration({
-    model: input.model,
-    operation: "travel-import-accommodation-extraction",
-    region: process.env.AWS_REGION || "",
-    prompt: input.documentParts,
-    usage: response.usage,
-  });
-  return {
-    result: accommodationRecoverySchema.parse(extractToolInput(response.output?.message?.content)),
-    usage: response.usage ?? null,
-  };
-}
-
-async function recoverActivities(input: {
+async function extractSpecializedDetails(input: {
   client: BedrockRuntimeClient;
   documentParts: BedrockDocumentPart[];
   model: string;
@@ -387,7 +370,7 @@ async function recoverActivities(input: {
       modelId: input.model,
       system: [
         {
-          text: "Sei un estrattore specializzato di attività turistiche. Copia soltanto ciò che è presente nel documento e usa lo strumento richiesto.",
+          text: "Sei un estrattore specializzato di preventivi turistici. Copia soltanto dati presenti nel documento e usa sempre lo strumento disponibile.",
         },
       ],
       messages: [
@@ -396,7 +379,7 @@ async function recoverActivities(input: {
           content: [
             ...bedrockDocumentBlocks(input.documentParts),
             {
-              text: `Riesamina indipendentemente tutte le giornate ${JSON.stringify(input.days)} ed estrai la sequenza completa delle attività esplicite. Crea una visita distinta per ogni monumento, museo, quartiere, piazza, sito o attrazione, anche quando più luoghi sono nella stessa frase. Includi trasferimenti, treni, voli, incontri e soltanto pasti dichiarati inclusi; non creare il pernottamento come attività hotel perché viene gestito separatamente. Non duplicare attività. startsAt ed endsAt devono essere vuoti. Per ogni visita usa lo stesso nome in title e placeName e indica città e Paese. includedInQuote deve essere true per i pasti inclusi e null per le altre attività. Ogni attività deve avere un'evidenza con fieldPath days[N].activities[M], citazione letterale e method=${input.method}.`,
+              text: `Riesamina una sola volta l'intero documento e completa tre sezioni indipendenti per le giornate ${JSON.stringify(input.days)}. COMMERCIAL: estrai testata, cliente, partecipanti, prezzi, valuta, servizi inclusi o esclusi, condizioni e contatti; conserva solo righe esplicite. ACCOMMODATIONS: associa le sistemazioni alle giornate usando date, notti e località; non inventare strutture e segnala grafie o conflitti con needsValidation=true. ACTIVITIES: estrai la sequenza completa delle attività esplicite, separando ogni sito visitato; includi trasferimenti, treni, voli, incontri e solo pasti inclusi; non creare pernottamenti come attività e lascia startsAt/endsAt vuoti. Per ogni dato aggiungi una breve evidenza letterale con fieldPath JSON e method=${input.method}.`,
             },
           ],
         },
@@ -405,47 +388,50 @@ async function recoverActivities(input: {
         tools: [
           {
             toolSpec: {
-              name: "emit_daily_activities",
-              description: "Sequenza completa e non duplicata delle attività giornaliere",
-              inputSchema: { json: novaToolSchema(activityRecoverySchema) },
+              name: "emit_specialized_extraction",
+              description: "Restituisce dati commerciali, sistemazioni e attività verificati in un'unica rilettura",
+              inputSchema: { json: novaToolSchema(specializedExtractionSchema) },
             },
           },
         ],
-        toolChoice: { tool: { name: "emit_daily_activities" } },
+        toolChoice: { tool: { name: "emit_specialized_extraction" } },
       },
-      inferenceConfig: { maxTokens: Math.min(input.maxOutputTokens, 4_500), temperature: 0 },
+      inferenceConfig: { maxTokens: Math.min(input.maxOutputTokens, 8_000), temperature: 0 },
       additionalModelRequestFields: { inferenceConfig: { topK: 1 } },
-      requestMetadata: { application: "smf-travel", operation: "travel-import-activity-extraction" },
+      requestMetadata: { application: "smf-travel", operation: "travel-import-specialized-extraction" },
     }),
   );
   captureBedrockGeneration({
     model: input.model,
-    operation: "travel-import-activity-extraction",
+    operation: "travel-import-specialized-extraction",
     region: process.env.AWS_REGION || "",
     prompt: input.documentParts,
     usage: response.usage,
   });
-  const recovered = activityRecoverySchema.parse(extractToolInput(response.output?.message?.content));
+  const specialized = specializedExtractionSchema.parse(extractToolInput(response.output?.message?.content));
   return {
     result: {
-      ...recovered,
-      days: recovered.days.map((day) => ({
-        ...day,
-        activities: day.activities.map((activity) => ({
-          ...activity,
-          startsAt: "",
-          endsAt: "",
-          placeValidation: {
-            needsValidation:
-              activity.type === "visit" &&
-              (!activity.placeName.trim() || !activity.placeCity.trim() || !activity.placeCountry.trim()),
-            reason:
-              activity.type === "visit"
-                ? "Associazione geografica estratta dal documento"
-                : "Località operativa estratta dal documento",
-          },
+      ...specialized,
+      activities: {
+        ...specialized.activities,
+        days: specialized.activities.days.map((day) => ({
+          ...day,
+          activities: day.activities.map((activity) => ({
+            ...activity,
+            startsAt: "",
+            endsAt: "",
+            placeValidation: {
+              needsValidation:
+                activity.type === "visit" &&
+                (!activity.placeName.trim() || !activity.placeCity.trim() || !activity.placeCountry.trim()),
+              reason:
+                activity.type === "visit"
+                  ? "Associazione geografica estratta dal documento"
+                  : "Località operativa estratta dal documento",
+            },
+          })),
         })),
-      })),
+      },
     },
     usage: response.usage ?? null,
   };
@@ -477,64 +463,6 @@ function mergeCommercialDetails(
     conditions: specialized.conditions.length ? specialized.conditions : primary.conditions,
     contacts: specialized.contacts.length ? specialized.contacts : primary.contacts,
   });
-}
-
-async function extractCommercialDetails(input: {
-  client: BedrockRuntimeClient;
-  documentParts: BedrockDocumentPart[];
-  model: string;
-  maxOutputTokens: number;
-  method: "bedrock_native" | "textract";
-}) {
-  const response = await input.client.send(
-    new ConverseCommand({
-      modelId: input.model,
-      system: [
-        {
-          text: "Estrai esclusivamente dati economici e contrattuali dal preventivo. Non inventare valori e usa lo strumento richiesto.",
-        },
-      ],
-      messages: [
-        {
-          role: "user",
-          content: [
-            ...bedrockDocumentBlocks(input.documentParts),
-            {
-              text: `Rileggi tutte le sezioni esterne all'itinerario ed estrai testata, cliente, partecipanti, prezzi, valuta, servizi inclusi o esclusi, condizioni e contatti. Conserva ogni riga esplicita. Per ogni valore non vuoto aggiungi evidence con fieldPath JSON, citazione letterale breve, pagina se nota, confidence e method=${input.method}. Non inserire una riga se non è sostenuta dal documento.`,
-            },
-          ],
-        },
-      ],
-      toolConfig: {
-        tools: [
-          {
-            toolSpec: {
-              name: "emit_commercial_details",
-              description: "Dati commerciali con evidenze",
-              inputSchema: { json: novaToolSchema(commercialExtractionSchema) },
-            },
-          },
-        ],
-        toolChoice: { tool: { name: "emit_commercial_details" } },
-      },
-      inferenceConfig: { maxTokens: Math.min(input.maxOutputTokens, 4500), temperature: 0 },
-      additionalModelRequestFields: { inferenceConfig: { topK: 1 } },
-      requestMetadata: { application: "smf-travel", operation: "travel-import-commercial-extraction" },
-    }),
-  );
-  captureBedrockGeneration({
-    model: input.model,
-    operation: "travel-import-commercial-extraction",
-    region: process.env.AWS_REGION || "",
-    prompt: input.documentParts,
-    usage: response.usage,
-  });
-  return {
-    result: commercialExtractionSchema.parse(
-      normalizeCommercialToolInput(extractToolInput(response.output?.message?.content)),
-    ),
-    usage: response.usage ?? null,
-  };
 }
 
 async function reconcileExtraction(input: {
@@ -628,7 +556,6 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
     : ("bedrock_native" as const);
 
   const schema = novaToolSchema(travelProgrammeDraftSchema);
-  const documentName = safeDocumentName(filename);
   const client = getBedrockClient(region);
   const request: ConverseCommandInput = {
     modelId: model,
@@ -680,51 +607,53 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
       }
       let draft = travelProgrammeDraftSchema.parse(normalized.value);
       assertImportableTravelDocument(draft);
-      const [commercial, recovery, activityRecovery] = await Promise.all([
-        extractCommercialDetails({ client, documentParts, model, maxOutputTokens, method: evidenceMethod }),
-        recoverAccommodations({
-          client,
-          documentParts,
-          model,
-          maxOutputTokens,
-          days: draft.days.map((day) => ({
-            dayNumber: day.dayNumber,
-            date: day.date,
-            city: day.city,
-            country: day.country,
-          })),
-        }),
-        recoverActivities({
-          client,
-          documentParts,
-          model,
-          maxOutputTokens,
-          method: evidenceMethod,
-          days: draft.days.map((day) => ({
-            dayNumber: day.dayNumber,
-            date: day.date,
-            city: day.city,
-            country: day.country,
-          })),
-        }),
-      ]);
+      const specializedInput = {
+        client,
+        documentParts,
+        model,
+        maxOutputTokens,
+        method: evidenceMethod,
+        days: draft.days.map((day) => ({
+          dayNumber: day.dayNumber,
+          date: day.date,
+          city: day.city,
+          country: day.country,
+        })),
+      } as const;
+      let specialized: Awaited<ReturnType<typeof extractSpecializedDetails>> | undefined;
+      for (let specializedAttempt = 1; specializedAttempt <= 2; specializedAttempt += 1) {
+        try {
+          specialized = await extractSpecializedDetails(specializedInput);
+          break;
+        } catch (error) {
+          if (specializedAttempt === 2 || !retryableModelOutputError(error)) throw error;
+          console.warn("Bedrock specialized extraction rejected, retrying without repeating main extraction", {
+            specializedAttempt,
+            error: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500),
+          });
+        }
+      }
+      if (!specialized) throw new Error("Bedrock non ha completato l'estrazione specialistica");
+      const commercial = specialized.result.commercial;
+      const recovery = specialized.result.accommodations;
+      const activityRecovery = specialized.result.activities;
       const recoveredByDay = new Map(
-        recovery.result.accommodations
+        recovery.accommodations
           .filter((item) => item.name.trim() && item.dayNumber <= draft.days.length)
           .map((item) => [item.dayNumber, item] as const),
       );
       draft = travelProgrammeDraftSchema.parse({
         ...draft,
-        commercialDetails: mergeCommercialDetails(draft.commercialDetails, commercial.result.commercialDetails),
+        commercialDetails: mergeCommercialDetails(draft.commercialDetails, commercial.commercialDetails),
         extractionEvidence: [
           ...draft.extractionEvidence,
-          ...commercial.result.evidence,
-          ...recovery.result.evidence,
-          ...activityRecovery.result.evidence,
+          ...commercial.evidence,
+          ...recovery.evidence,
+          ...activityRecovery.evidence,
         ],
         days: draft.days.map((day) => {
           const recovered = recoveredByDay.get(day.dayNumber);
-          const recoveredActivities = activityRecovery.result.days.find(
+          const recoveredActivities = activityRecovery.days.find(
             (item) => item.dayNumber === day.dayNumber,
           )?.activities;
           const filteredActivities = recoveredActivities?.length
@@ -745,9 +674,7 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
         provider: `amazon-bedrock-native-${"extension" in documentType ? documentType.extension : "ocr-text"}`,
         usage: {
           extraction: response.usage ?? null,
-          commercialExtraction: commercial.usage,
-          accommodationRecovery: recovery.usage,
-          activityRecovery: activityRecovery.usage,
+          specializedExtraction: specialized.usage,
           reconciliation: reconciliation.usage,
         },
       };
