@@ -40,6 +40,32 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
 
+  authenticated-production-paths:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.E2E_BASE_URL != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      E2E_BASE_URL: ${{ vars.E2E_BASE_URL }}
+      E2E_AGENCY_USERNAME: ${{ secrets.E2E_AGENCY_USERNAME }}
+      E2E_AGENCY_PASSWORD: ${{ secrets.E2E_AGENCY_PASSWORD }}
+      E2E_TRAVELER_USERNAME: ${{ secrets.E2E_TRAVELER_USERNAME }}
+      E2E_TRAVELER_PASSWORD: ${{ secrets.E2E_TRAVELER_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Verifica credenziali E2E dedicate
+        shell: bash
+        run: |
+          test -n "$E2E_AGENCY_USERNAME" && test -n "$E2E_AGENCY_PASSWORD"
+          test -n "$E2E_TRAVELER_USERNAME" && test -n "$E2E_TRAVELER_PASSWORD"
+      - name: Percorsi autenticati senza mutazioni
+        run: npm run test:e2e -- authenticated-critical-paths.spec.ts
+
   neon-tenant-isolation:
     runs-on: ubuntu-latest
     timeout-minutes: 20
