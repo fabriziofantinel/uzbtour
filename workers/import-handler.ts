@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { getPlatformJobStatus } from "@/lib/platform/import-repository";
 import { processTravelImport } from "@/lib/platform/process-import";
+import { getImportTelemetryContext } from "@/lib/platform/import-repository";
 import { loadWorkerParameters } from "@/lib/platform/worker-parameters";
 import { processReferenceEnrichment } from "@/lib/platform/reference-enrichment";
 import { processAgencyDeletion } from "@/lib/platform/agency-deletion";
@@ -67,7 +68,10 @@ export async function handler(event: SqsEvent | ScheduledEvent): Promise<SqsBatc
       if (sns.success) {
         const notification = textractNotificationSchema.parse(JSON.parse(sns.data.Message));
         if (notification.Status !== "SUCCEEDED") throw new Error(`Textract OCR fallito: ${notification.Status}`);
-        const result = await processTravelImport(notification.JobTag, undefined, { textractJobId: notification.JobId });
+        const telemetry = await getImportTelemetryContext(notification.JobTag);
+        const result = await withAiGenerationTelemetry(telemetry, () =>
+          processTravelImport(notification.JobTag, undefined, { textractJobId: notification.JobId }),
+        );
         console.info("OCR import completed", {
           messageId: record.messageId,
           importId: notification.JobTag,

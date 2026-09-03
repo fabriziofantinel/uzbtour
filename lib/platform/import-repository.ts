@@ -84,6 +84,19 @@ export async function getImportQueueRecord(importId: string, agencyId: string) {
   };
 }
 
+export async function getImportTelemetryContext(importId: string) {
+  const sql = getSql();
+  const rows = await sql`
+    SELECT pj.id::text platform_job_id,pj.agency_id::text agency_id
+    FROM ops.platform_jobs pj
+    JOIN ops.import_jobs ij ON ij.agency_id=pj.agency_id
+      AND (ij.id=pj.import_job_id OR ij.id::text=pj.payload->>'importId')
+    WHERE ij.id=${importId} AND pj.job_type='travel-programme.import'
+    ORDER BY pj.created_at DESC LIMIT 1`;
+  if (!rows[0]) throw new PlatformRequestError("Contesto telemetria OCR non trovato");
+  return { platformJobId: String(rows[0].platform_job_id), agencyId: String(rows[0].agency_id) };
+}
+
 export async function claimImportJob(importId: string, expected?: { jobId?: string; agencyId?: string }) {
   const sql = getSql();
   const rows = await sql`
