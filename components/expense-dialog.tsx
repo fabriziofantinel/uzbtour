@@ -33,7 +33,7 @@ export default function ExpenseDialog({
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState<ExpenseCurrency>("EUR");
   const [submitError, setSubmitError] = useState("");
-  const [shareTravelerIds, setShareTravelerIds] = useState<string[]>([]);
+  const [shareTravelerIds, setShareTravelerIds] = useState<string[]>(() => travelers.map((traveler) => traveler.id));
   const dialogRef = useRef<HTMLElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
@@ -43,15 +43,6 @@ export default function ExpenseDialog({
     onCloseRef.current = onClose;
     savingRef.current = saving;
   }, [onClose, saving]);
-
-  useEffect(() => {
-    if (!open) return;
-    setLabel("");
-    setAmount("");
-    setCurrency("EUR");
-    setSubmitError("");
-    setShareTravelerIds(travelers.map((traveler) => traveler.id));
-  }, [open, travelers]);
 
   useEffect(() => {
     if (!open) return;

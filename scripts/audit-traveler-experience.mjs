@@ -22,7 +22,6 @@ try {
   const reports = [];
   for (const journey of journeys) {
     await client.query("SELECT set_config('app.agency_id',$1,false)", [journey.agency_id]);
-    const params = [journey.agency_id, journey.departure_id, journey.party_id, journey.template_version_id];
     const [
       catalog,
       activities,

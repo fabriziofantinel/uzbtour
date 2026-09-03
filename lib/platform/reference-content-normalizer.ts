@@ -512,14 +512,20 @@ export function normalizeReferenceContent(input: unknown, kind: "country" | "des
       const game = rawGames.map(recordValue).find((item) => item?.type === type);
       if (!game) return undefined;
       if (type === "photo_puzzle") {
-        const { pairs: _pairs, options: _options, correctIndex: _correctIndex, ...puzzle } = game;
+        const puzzle = { ...game };
+        delete puzzle.pairs;
+        delete puzzle.options;
+        delete puzzle.correctIndex;
         return puzzle;
       }
       if (type === "memory") {
-        const { options: _options, correctIndex: _correctIndex, ...memory } = game;
+        const memory = { ...game };
+        delete memory.options;
+        delete memory.correctIndex;
         return memory;
       }
-      const { pairs: _pairs, ...oddOneOut } = game;
+      const oddOneOut = { ...game };
+      delete oddOneOut.pairs;
       return oddOneOut;
     })
     .filter((game) => Boolean(game)) as Array<Record<string, unknown>>;

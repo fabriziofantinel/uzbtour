@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 import { getSql } from "@/lib/db";
 import { PlatformRequestError } from "./errors";
 
-type Row = Record<string, unknown>;
 function scope(actorUserId: string, agencyId: string, departureId: string, partyId: string, dayId: string) {
   return { actorUserId, agencyId, departureId, partyId, dayId };
 }

@@ -84,7 +84,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     }
     const details = agencyDetailsSchema.safeParse(payload);
     if (details.success) {
-      const { action: _, primaryColor, logoUrl, ...data } = details.data;
+      const { action, primaryColor, logoUrl, ...data } = details.data;
+      void action;
       if (logoUrl.startsWith("r2://") && !logoUrl.startsWith(`r2://agencies/${id}/branding/`)) {
         return NextResponse.json({ error: "Logo non associato all’agenzia" }, { status: 400 });
       }

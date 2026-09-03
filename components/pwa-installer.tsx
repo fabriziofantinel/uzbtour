@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { CheckCircle2, Download, Share2, Smartphone, Wifi, WifiOff } from "lucide-react";
 
 interface InstallPromptEvent extends Event {
@@ -16,34 +16,47 @@ function isStandalone() {
   );
 }
 
+function subscribeToInstallationState(onStoreChange: () => void) {
+  window.addEventListener("appinstalled", onStoreChange);
+  return () => window.removeEventListener("appinstalled", onStoreChange);
+}
+
+function subscribeToConnectivity(onStoreChange: () => void) {
+  window.addEventListener("online", onStoreChange);
+  window.addEventListener("offline", onStoreChange);
+  return () => {
+    window.removeEventListener("online", onStoreChange);
+    window.removeEventListener("offline", onStoreChange);
+  };
+}
+
 export default function PwaInstaller() {
   const [promptEvent, setPromptEvent] = useState<InstallPromptEvent | null>(null);
-  const [installed, setInstalled] = useState(false);
-  const [online, setOnline] = useState(true);
+  const installed = useSyncExternalStore(subscribeToInstallationState, isStandalone, () => false);
+  const online = useSyncExternalStore(
+    subscribeToConnectivity,
+    () => navigator.onLine,
+    () => true,
+  );
   const [showHelp, setShowHelp] = useState(false);
-  const [isIos, setIsIos] = useState(false);
+  const isIos = useSyncExternalStore(
+    () => () => undefined,
+    () => /iPad|iPhone|iPod/.test(navigator.userAgent),
+    () => false,
+  );
   const [offlineReady, setOfflineReady] = useState(false);
 
   useEffect(() => {
-    setInstalled(isStandalone());
-    setOnline(navigator.onLine);
-    setIsIos(/iPad|iPhone|iPod/.test(navigator.userAgent));
-
     const handlePrompt = (event: Event) => {
       event.preventDefault();
       setPromptEvent(event as InstallPromptEvent);
     };
     const handleInstalled = () => {
-      setInstalled(true);
       setPromptEvent(null);
     };
-    const handleOnline = () => setOnline(true);
-    const handleOffline = () => setOnline(false);
 
     window.addEventListener("beforeinstallprompt", handlePrompt);
     window.addEventListener("appinstalled", handleInstalled);
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
 
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
@@ -56,8 +69,6 @@ export default function PwaInstaller() {
     return () => {
       window.removeEventListener("beforeinstallprompt", handlePrompt);
       window.removeEventListener("appinstalled", handleInstalled);
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
     };
   }, []);
 
@@ -67,8 +78,7 @@ export default function PwaInstaller() {
       return;
     }
     await promptEvent.prompt();
-    const choice = await promptEvent.userChoice;
-    if (choice.outcome === "accepted") setInstalled(true);
+    await promptEvent.userChoice;
     setPromptEvent(null);
   }
 

@@ -6,7 +6,6 @@ import type { ReferenceTarget } from "./travel-catalog";
 import {
   countryBingoCategories,
   countryPhraseTranslations,
-  countryUsefulInfoSchema,
   countryReferenceSchema,
   destinationReferenceSchema,
   normalizeReferenceContent,
@@ -314,7 +313,8 @@ function stripEmbeddedPhotoValidation(value: unknown, isCountry: boolean) {
     Array.isArray(items)
       ? items.map((item) => {
           if (!item || typeof item !== "object" || Array.isArray(item)) return item;
-          const { photoValidation: _ignored, ...rest } = item as Record<string, unknown>;
+          const rest = { ...(item as Record<string, unknown>) };
+          delete rest.photoValidation;
           return rest;
         })
       : items;

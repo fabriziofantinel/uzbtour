@@ -3,6 +3,7 @@
 import { FormEvent, Suspense, useState } from "react";
 import { CircleUserRound, Eye, EyeOff, LoaderCircle, LockKeyhole, Plane, UserRound } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import "./login.css";
 import "./login-fix.css";
 import "../smf-2026.css";
@@ -127,7 +128,6 @@ function LoginContent() {
           <span className="loginLock">
             <LockKeyhole size={24} />
           </span>
-          <p className="loginEyebrow">AREA RISERVATA</p>
           <h2>Accedi al tuo spazio</h2>
           <p className="loginIntro">
             Inserisci le credenziali ricevute dall’agenzia. Verrai indirizzato automaticamente al tuo ambiente.
@@ -189,9 +189,9 @@ function LoginContent() {
             </button>
           </form>
           <p className="loginHelp">
-            <CircleUserRound size={13} /> <a href="/auth/forgot-password">Password dimenticata?</a>
+            <CircleUserRound size={13} /> <Link href="/auth/forgot-password">Password dimenticata?</Link>
             <span aria-hidden="true">·</span>
-            <a href="/accessibilita">Accessibilità e assistenza</a>
+            <Link href="/accessibilita">Accessibilità e assistenza</Link>
           </p>
         </div>
       </section>

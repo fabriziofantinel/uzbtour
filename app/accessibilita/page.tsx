@@ -59,7 +59,6 @@ export default function AccessibilityPage() {
             <ScanText />
           </span>
           <div>
-            <p>ACCESSIBILITÀ E ASSISTENZA</p>
             <h1>Un viaggio digitale accessibile a più persone.</h1>
             <p>
               SMF Travel è progettata seguendo i principi WCAG di percepibilità, utilizzabilità, comprensibilità e

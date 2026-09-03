@@ -1,4 +1,5 @@
 import { House, MapPinned } from "lucide-react";
+import Link from "next/link";
 import "./system-status.css";
 
 export default function NotFound() {
@@ -11,10 +12,10 @@ export default function NotFound() {
         <h1>Questa destinazione non esiste</h1>
         <p>Il collegamento potrebbe essere cambiato oppure non essere disponibile per il tuo profilo.</p>
         <div className="systemStatusActions">
-          <a className="primary" href="/">
+          <Link className="primary" href="/">
             <House />
             Torna alla pagina iniziale
-          </a>
+          </Link>
         </div>
       </section>
     </main>

@@ -29,12 +29,10 @@ function stringValue(value: unknown) {
 
 function withoutAnswerKeys(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return value;
-  const {
-    answer: _answer,
-    correctIndex: _correctIndex,
-    answerSpec: _answerSpec,
-    ...safe
-  } = value as Record<string, unknown>;
+  const safe = { ...(value as Record<string, unknown>) };
+  delete safe.answer;
+  delete safe.correctIndex;
+  delete safe.answerSpec;
   return safe;
 }
 

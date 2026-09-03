@@ -1,32 +1,36 @@
 "use client";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState, useSyncExternalStore } from "react";
 import { CircleAlert, Eye, EyeOff, LoaderCircle, LockKeyhole, LogIn, Mail, UserCheck } from "lucide-react";
 import Link from "next/link";
 import "../login/login.css";
 import "../login/login-fix.css";
 import "../smf-2026.css";
 type Invitation = { name: string; username: string; email: string };
+
+function subscribeToActivationToken(onStoreChange: () => void) {
+  window.addEventListener("hashchange", onStoreChange);
+  return () => window.removeEventListener("hashchange", onStoreChange);
+}
+
+function activationTokenSnapshot() {
+  return new URLSearchParams(window.location.hash.slice(1)).get("token") || "";
+}
+
 export default function ActivateAccountPage() {
-  const [token, setToken] = useState(""),
-    [invitation, setInvitation] = useState<Invitation | null>(null),
+  const token = useSyncExternalStore(subscribeToActivationToken, activationTokenSnapshot, () => null);
+  const [invitation, setInvitation] = useState<Invitation | null>(null),
     [password, setPassword] = useState(""),
     [confirmPassword, setConfirmPassword] = useState(""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(true),
     [showPassword, setShowPassword] = useState(false);
   useEffect(() => {
-    const value = new URLSearchParams(window.location.hash.slice(1)).get("token") || "";
-    setToken(value);
-    if (!value) {
-      setError("Il link di attivazione è incompleto. Richiedi un nuovo invito alla tua agenzia.");
-      setBusy(false);
-      return;
-    }
+    if (!token) return;
     const controller = new AbortController();
     fetch("/api/auth/invitation", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "inspect", token: value }),
+      body: JSON.stringify({ action: "inspect", token }),
       signal: controller.signal,
     })
       .then(async (response) => {
@@ -43,12 +47,12 @@ export default function ActivateAccountPage() {
         if (!controller.signal.aborted) setBusy(false);
       });
     return () => controller.abort();
-  }, []);
+  }, [token]);
   async function finish(action: "activate" | "activate_magic", selectedPassword?: string) {
     const response = await fetch("/api/auth/invitation", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, token, password: selectedPassword }),
+      body: JSON.stringify({ action, token: token || "", password: selectedPassword }),
     });
     const body = (await response.json().catch(() => ({}))) as { error?: string };
     if (!response.ok) throw new Error(body.error || "Attivazione non riuscita");
@@ -103,7 +107,10 @@ export default function ActivateAccountPage() {
   }
   const passwordLongEnough =
       password.length >= 10 && /[a-z]/.test(password) && /[A-Z]/.test(password) && /[0-9]/.test(password),
-    passwordsMatch = Boolean(confirmPassword) && password === confirmPassword;
+    passwordsMatch = Boolean(confirmPassword) && password === confirmPassword,
+    activationBusy = token === null || (Boolean(token) && busy),
+    activationError =
+      token === "" ? "Il link di attivazione è incompleto. Richiedi un nuovo invito alla tua agenzia." : error;
   return (
     <main className="loginPage">
       <section className="loginStory">
@@ -125,20 +132,19 @@ export default function ActivateAccountPage() {
           <span className="loginLock">
             <UserCheck />
           </span>
-          <p className="loginEyebrow">PRIMO ACCESSO</p>
           <h2>{invitation ? `Benvenuto, ${invitation.name}` : "Verifica invito"}</h2>
-          {busy && !invitation && (
+          {activationBusy && !invitation && (
             <div className="activationLoading" role="status">
               <LoaderCircle className="spin" />
               <span>Verifica dell’invito in corso…</span>
             </div>
           )}
-          {error && (
+          {activationError && (
             <p className="loginError" role="alert">
-              <CircleAlert /> {error}
+              <CircleAlert /> {activationError}
             </p>
           )}
-          {!busy && !invitation && (
+          {!activationBusy && !invitation && (
             <Link className="activationLoginLink" href="/login">
               <LogIn /> Torna alla pagina di accesso
             </Link>
@@ -148,7 +154,7 @@ export default function ActivateAccountPage() {
               <button
                 type="button"
                 className="loginSubmit activationMagic"
-                disabled={busy}
+                disabled={activationBusy}
                 onClick={() => void quickAccess()}
               >
                 <LogIn /> Entra subito con il link personale
@@ -212,8 +218,12 @@ export default function ActivateAccountPage() {
                     {passwordsMatch ? "Le password coincidono" : "Le password non coincidono"}
                   </p>
                 )}
-                <button type="submit" className="loginSubmit" disabled={busy || !passwordLongEnough || !passwordsMatch}>
-                  {busy ? (
+                <button
+                  type="submit"
+                  className="loginSubmit"
+                  disabled={activationBusy || !passwordLongEnough || !passwordsMatch}
+                >
+                  {activationBusy ? (
                     <>
                       <LoaderCircle className="spin" /> Attivazione…
                     </>

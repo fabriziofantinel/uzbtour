@@ -29,7 +29,7 @@ import {
   UsersRound,
   X,
 } from "lucide-react";
-import { CSSProperties, FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { CSSProperties, FormEvent, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { PlatformOverview } from "@/lib/platform/types";
 import { accessibleBrandColor, agencyLogoSource, validBrandColor } from "@/lib/platform/branding-ui";
 import { TRAVEL_DOCUMENT_MAX_BYTES, travelDocumentType } from "@/lib/platform/travel-document";
@@ -67,6 +67,24 @@ const statusLabels: Record<string, string> = {
 
 const activeImportStatuses = new Set(["queued", "extracting", "generating"]);
 const activeEnrichmentStatuses = new Set(["queued", "processing"]);
+const tripViewStorageKey = "smf-agency-trip-view";
+const tripViewChangedEvent = "smf-agency-trip-view-changed";
+
+function readTripView(): "list" | "cards" {
+  return window.localStorage.getItem(tripViewStorageKey) === "cards" ? "cards" : "list";
+}
+
+function subscribeTripView(onStoreChange: () => void) {
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key === tripViewStorageKey) onStoreChange();
+  };
+  window.addEventListener("storage", handleStorage);
+  window.addEventListener(tripViewChangedEvent, onStoreChange);
+  return () => {
+    window.removeEventListener("storage", handleStorage);
+    window.removeEventListener(tripViewChangedEvent, onStoreChange);
+  };
+}
 
 function importProgress(status: string) {
   if (status === "queued") return 15;
@@ -101,7 +119,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
   const [showNewTrip, setShowNewTrip] = useState(false);
   const [selectedProgrammeName, setSelectedProgrammeName] = useState("");
   const [tripPeriod, setTripPeriod] = useState<"all" | "upcoming" | "ongoing" | "past">("all");
-  const [tripView, setTripView] = useState<"list" | "cards">("list");
+  const tripView = useSyncExternalStore(subscribeTripView, readTripView, () => "list");
   const [tripSort, setTripSort] = useState<"date-asc" | "date-desc" | "name">("date-asc");
   const [travelerFilter, setTravelerFilter] = useState("");
   const [busy, setBusy] = useState("");
@@ -194,11 +212,6 @@ export default function AgencyDashboard({ initialOverview }: Props) {
     .map((trip) => `${trip.id}:${trip.contentGeneration?.status}:${trip.contentGeneration?.readySections}`)
     .join("|");
   const activeGenerationKey = `${activeImportKey}|${activeEnrichmentKey}`;
-
-  useEffect(() => {
-    const savedView = window.localStorage.getItem("smf-agency-trip-view");
-    if (savedView === "list" || savedView === "cards") setTripView(savedView);
-  }, []);
 
   useEffect(() => {
     if (!activeGenerationKey) return;
@@ -415,8 +428,8 @@ export default function AgencyDashboard({ initialOverview }: Props) {
   }
 
   function selectTripView(view: "list" | "cards") {
-    setTripView(view);
-    window.localStorage.setItem("smf-agency-trip-view", view);
+    window.localStorage.setItem(tripViewStorageKey, view);
+    window.dispatchEvent(new Event(tripViewChangedEvent));
   }
 
   function clearTripFilters() {

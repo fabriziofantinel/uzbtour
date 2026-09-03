@@ -8,13 +8,21 @@ colors:
   action: "#2F66F6"
   paper: "#FAF7F0"
   surface: "#FFFFFF"
+  surface-brand: "#EDF5F3"
+  surface-success: "#F0F8F4"
+  surface-warning: "#FFF4D9"
+  surface-danger: "#FFF0ED"
+  surface-game: "#FFF2F6"
   ink: "#142B35"
   text-muted: "#52625F"
   line: "#DED8CC"
+  border-strong: "#718581"
   success: "#247A6B"
   warning: "#A96516"
   danger: "#A63D32"
   focus: "#2F66F6"
+  gold: "#B77A18"
+  game: "#715C9D"
 typography:
   display:
     fontFamily: "Playfair Display, Georgia, serif"
@@ -46,10 +54,26 @@ typography:
     fontWeight: 750
     lineHeight: 1.25
     letterSpacing: "0.04em"
+  small:
+    fontFamily: "Manrope, Arial, sans-serif"
+    fontSize: "0.8125rem"
+    fontWeight: 450
+    lineHeight: 1.4
+    letterSpacing: "normal"
+  meta:
+    fontFamily: "Manrope, Arial, sans-serif"
+    fontSize: "0.75rem"
+    fontWeight: 650
+    lineHeight: 1.35
+    letterSpacing: "normal"
 rounded:
+  compact: "8px"
   control: "10px"
+  card: "12px"
   panel: "14px"
+  dialog: "16px"
   sheet: "18px"
+  feature: "20px"
   pill: "999px"
 spacing:
   xs: "4px"
@@ -60,15 +84,15 @@ spacing:
   xxl: "32px"
 components:
   button-primary:
-    backgroundColor: "{colors.action}"
-    textColor: "{colors.surface}"
+    backgroundColor: "{colors.agency-primary}"
+    textColor: "{colors.ink}"
     typography: "{typography.title}"
     rounded: "{rounded.control}"
     padding: "12px 18px"
     height: "48px"
   button-secondary:
     backgroundColor: "{colors.surface}"
-    textColor: "{colors.action}"
+    textColor: "{colors.ink}"
     typography: "{typography.title}"
     rounded: "{rounded.control}"
     padding: "12px 16px"
@@ -113,7 +137,7 @@ L'identità dell'agenzia entra attraverso logo e colore primario, ma non può ca
 
 ## Colors
 
-La palette unisce carta calda e inchiostro profondo a un accento di percorso; il blu d'azione resta stabile per evitare che il white-label modifichi il significato dei controlli.
+La palette unisce carta calda e inchiostro profondo a un accento di percorso. Il colore dell'agenzia caratterizza selezioni e azioni principali, mentre testo, icone e significati operativi restano controllati dal sistema.
 
 ### Primary
 
@@ -123,7 +147,7 @@ La palette unisce carta calda e inchiostro profondo a un accento di percorso; il
 ### Secondary
 
 - **Arancio tappa:** accento SMF usato con parsimonia per numeri, piccoli segnali e avanzamento. Non è un colore generico per call to action.
-- **Blu azione:** colore funzionale stabile per confermare, aprire, scaricare e concedere un'autorizzazione.
+- **Blu azione:** colore funzionale di focus e collegamento, indipendente dal marchio dell'agenzia.
 
 ### Neutral
 
@@ -140,6 +164,8 @@ La palette unisce carta calda e inchiostro profondo a un accento di percorso; il
 **The One Route Rule.** In ogni schermata una sola voce cromatica descrive il percorso o la selezione. Il colore dell'agenzia non deve riempire indiscriminatamente card, sfondi e pulsanti.
 
 **The Meaning Beyond Color Rule.** Stato corrente, completamento, errore, offline e selezione hanno sempre anche testo, icona o forma distintiva.
+
+**The Dark Label Rule.** Testi e icone dei controlli restano scuri anche quando il colore dell'agenzia è chiaro; il sistema non usa testo bianco su superfici configurabili.
 
 ## Typography
 
@@ -199,8 +225,8 @@ Icone e illustrazioni sono lineari, riconoscibili a 20-24px e coerenti nello spe
 ### Buttons
 
 - **Shape:** controllo compatto ma tattile con angoli dolci e altezza minima di 48px nel companion.
-- **Primary:** blu funzionale con testo bianco; una sola azione primaria per contesto.
-- **Secondary:** superficie neutra con testo blu e bordo discreto; adatto a "Non ora", annulla e azioni alternative.
+- **Primary:** colore accessibile dell'agenzia con testo e icona scuri; una sola azione primaria per contesto.
+- **Secondary:** superficie neutra con testo scuro e bordo discreto; adatto a "Non ora", annulla e azioni alternative.
 - **Hover / Focus:** il desktop usa un lieve cambiamento tonale; il focus visibile usa un anello continuo ad alto contrasto. Lo stato premuto riduce appena la luminosità senza animazioni di spostamento.
 - **Disabled / Busy:** includere testo comprensibile e, durante operazioni di rete, conservare la larghezza del pulsante.
 
@@ -267,6 +293,7 @@ La localizzazione viene richiesta all'apertura della giornata o tramite azione "
 - **Don't** trasformare il tratto fra le tappe in una scala temporale o attribuirgli distanze fittizie.
 - **Don't** avviare geolocalizzazione continua, cambiare automaticamente la visita corrente o nascondere la scelta manuale.
 - **Don't** usare il colore dell'agenzia se compromette il contrasto o altera il significato dei colori semantici.
+- **Don't** usare testo bianco sui controlli o sulle superfici configurabili dell'agenzia.
 - **Don't** racchiudere ogni attività, nota e azione in card indipendenti.
 - **Don't** usare icone senza etichetta nella navigazione primaria o per azioni irreversibili.
 - **Don't** applicare il layout mobile del viaggiatore al back office: agenti e superadmin richiedono scansione orizzontale, filtri, selezione multipla e operazioni affidabili da tastiera.

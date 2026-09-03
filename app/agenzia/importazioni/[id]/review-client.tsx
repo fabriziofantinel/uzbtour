@@ -23,6 +23,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import type { TravelProgrammeDraft } from "@/lib/platform/import-schema";
 import type { PlatformImportReview } from "@/lib/platform/types";
@@ -166,6 +167,7 @@ export default function ImportReview({
   initialImport: PlatformImportReview;
   agencyPrimaryColor: string;
 }) {
+  const router = useRouter();
   const [draft, setDraft] = useState(initialImport.draft);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState(initialImport.errorMessage ?? "");
@@ -173,12 +175,12 @@ export default function ImportReview({
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [pendingAction, setPendingAction] = useState<"publish" | "delete" | null>(null);
   const [experienceProfile, setExperienceProfile] = useState<"essential" | "standard" | "complete">("complete");
-  const savedSignatureRef = useRef(JSON.stringify(initialImport.draft));
+  const [savedSignature, setSavedSignature] = useState(() => JSON.stringify(initialImport.draft));
   const navigatingRef = useRef(false);
   const dialogRef = useRef<HTMLElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const draftSignature = useMemo(() => JSON.stringify(draft), [draft]);
-  const isDirty = draftSignature !== savedSignatureRef.current;
+  const isDirty = draftSignature !== savedSignature;
   const validationsPending = useMemo(() => (draft ? pendingValidationCount(draft) : 0), [draft]);
   const unresolvedIssues = useMemo(() => draft?.reconciliationIssues.filter((issue) => !issue.resolved) ?? [], [draft]);
   const blockingIssues = useMemo(
@@ -334,7 +336,7 @@ export default function ImportReview({
           body: JSON.stringify({ draft }),
         }),
       );
-      savedSignatureRef.current = JSON.stringify(draft);
+      setSavedSignature(JSON.stringify(draft));
       setNotice("Revisione salvata.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Salvataggio non riuscito");
@@ -387,7 +389,8 @@ export default function ImportReview({
         }),
       );
       navigatingRef.current = true;
-      window.location.href = "/agenzia";
+      router.push("/agenzia");
+      router.refresh();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Pubblicazione non riuscita");
       setBusy("");
@@ -410,7 +413,8 @@ export default function ImportReview({
         }),
       );
       navigatingRef.current = true;
-      window.location.href = "/agenzia";
+      router.push("/agenzia");
+      router.refresh();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Eliminazione non riuscita");
       setBusy("");

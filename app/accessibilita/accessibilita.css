@@ -71,13 +71,6 @@
   width: 34px;
   height: 34px;
 }
-.accessibilityHero p:first-child {
-  margin: 2px 0 10px;
-  color: #9a472f;
-  font-size: 0.78rem;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-}
 .accessibilityHero h1 {
   max-width: 17ch;
   margin: 0;

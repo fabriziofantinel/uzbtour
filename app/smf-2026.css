@@ -31,7 +31,7 @@ html {
   background: var(--smf-paper);
 }
 body {
-  min-width: 320px;
+  min-width: 0;
   color: var(--smf-ink);
   background: var(--smf-paper);
   font-size: 16px;
@@ -147,7 +147,7 @@ body::-webkit-scrollbar-thumb {
   margin-top: 3px;
   color: var(--smf-muted);
   font:
-    750 9px/1.2 var(--font-sans),
+    750 var(--text-meta) / 1.2 var(--font-sans),
     sans-serif;
   letter-spacing: 0.1em;
 }
@@ -177,7 +177,7 @@ body::-webkit-scrollbar-thumb {
   border-radius: 999px;
   color: var(--smf-success);
   background: color-mix(in srgb, var(--smf-success) 10%, white);
-  font-size: 11px;
+  font-size: var(--text-meta);
 }
 .travelerRedesign .connectionStatus svg {
   width: 15px;
@@ -193,7 +193,7 @@ body::-webkit-scrollbar-thumb {
   display: grid;
   place-items: center;
   border-radius: 11px;
-  color: var(--agency-on-primary, white);
+  color: var(--agency-on-primary, #111111);
   background: var(--trail-primary);
   font:
     800 12px/1 var(--font-sans),
@@ -275,7 +275,7 @@ body::-webkit-scrollbar-thumb {
   display: block;
   margin-top: 5px;
   color: var(--agency-on-primary);
-  font-size: 9px;
+  font-size: var(--text-meta);
   letter-spacing: 0.08em;
 }
 
@@ -295,7 +295,7 @@ body::-webkit-scrollbar-thumb {
   min-height: 62px;
   padding: 7px 10px;
   color: var(--smf-muted);
-  font-size: 11px;
+  font-size: var(--text-meta);
   font-weight: 750;
 }
 .travelerRedesign .tabs button:hover {
@@ -310,6 +310,32 @@ body::-webkit-scrollbar-thumb {
 .travelerRedesign .tabs button.active::after {
   height: 3px;
   background: var(--trail-primary);
+}
+.travelerRedesign :is(button, [role="button"], a):disabled {
+  opacity: 0.58;
+}
+
+@media (forced-colors: active) {
+  .travelerRedesign :is(button, a, input, select, textarea):focus-visible {
+    outline: 3px solid Highlight;
+  }
+  .travelerRedesign .tabs button.active {
+    border: 2px solid Highlight;
+  }
+  .travelerRedesign .tabs button.active::after {
+    background: Highlight;
+  }
+}
+.travelerRedesign .tabs .compactNavLabel {
+  display: none;
+}
+@media (max-width: 700px) {
+  .travelerRedesign .tabs .desktopNavLabel {
+    display: none;
+  }
+  .travelerRedesign .tabs .compactNavLabel {
+    display: block;
+  }
 }
 
 .travelerRedesign .travelMainContent {
@@ -2318,7 +2344,14 @@ body::-webkit-scrollbar-thumb {
 
 /* Touch devices can expose a tablet-sized CSS viewport even on foldable phones. */
 @media (max-width: 1024px), (pointer: coarse) {
+  .travelExperience.travelerRedesign {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: clip;
+  }
   .travelerRedesign .dashboard {
+    width: 100%;
+    min-width: 0;
     display: block;
     min-height: auto;
   }
@@ -2382,6 +2415,20 @@ body::-webkit-scrollbar-thumb {
   }
   .travelerRedesign .dayRow.selected {
     box-shadow: inset 0 -3px 0 var(--trail-primary);
+  }
+}
+
+@media (max-width: 360px) {
+  .travelerRedesign .timeline {
+    padding-inline: 10px;
+  }
+  .travelerRedesign .dayList {
+    margin-inline: -10px;
+    padding-inline: 10px;
+  }
+  .travelerRedesign .dayRow {
+    min-width: 140px;
+    flex-basis: 140px;
   }
 }
 
@@ -2546,7 +2593,7 @@ body::-webkit-scrollbar-thumb {
 .travelerRedesign .missionNumber,
 .travelerRedesign .quizDayNumber {
   border-radius: 10px;
-  color: white;
+  color: var(--smf-ink);
   background: var(--smf-accent);
 }
 .travelerRedesign .dualContestGrid,
@@ -2590,7 +2637,7 @@ body::-webkit-scrollbar-thumb {
   min-height: 46px;
   border: 0;
   border-radius: 10px;
-  color: white;
+  color: var(--smf-ink);
   background: var(--smf-action);
   font-weight: 800;
 }
@@ -2656,7 +2703,7 @@ body::-webkit-scrollbar-thumb {
 .travelerRedesign .documentsHead small {
   display: block;
   color: var(--smf-muted);
-  font-size: 10px;
+  font-size: var(--text-meta);
   font-weight: 850;
   letter-spacing: 0.08em;
 }
@@ -2770,7 +2817,7 @@ body::-webkit-scrollbar-thumb {
 .travelerRedesign .photoGrid figcaption span {
   margin-top: 2px;
   color: #d8e3e2;
-  font-size: 11px;
+  font-size: var(--text-small);
 }
 .travelerRedesign .photoActions {
   inset: 10px 10px auto auto;
@@ -3002,7 +3049,7 @@ body::-webkit-scrollbar-thumb {
   border-radius: 999px;
   color: var(--trail-primary);
   background: white;
-  font-size: 10px;
+  font-size: var(--text-meta);
 }
 .travelerRedesign .challengePanel {
   min-width: 0;
@@ -3141,7 +3188,13 @@ body::-webkit-scrollbar-thumb {
 .loginSubmit {
   min-height: 50px;
   border-radius: 10px;
-  background: var(--smf-action);
+  background: color-mix(in srgb, var(--smf-action) 60%, white);
+  color: var(--smf-ink);
+}
+.loginSubmit:disabled {
+  background: color-mix(in srgb, var(--smf-action) 35%, white);
+  color: var(--smf-ink);
+  opacity: 1;
 }
 .loginHelp {
   display: flex;
@@ -3199,8 +3252,8 @@ body::-webkit-scrollbar-thumb {
   gap: 8px;
   border-radius: 10px;
   padding: 0 16px;
-  color: white;
-  background: var(--smf-action);
+  color: var(--smf-ink);
+  background: color-mix(in srgb, var(--smf-action) 60%, white);
   text-decoration: none;
   font-size: 14px;
   font-weight: 800;
@@ -3445,7 +3498,7 @@ body::-webkit-scrollbar-thumb {
   padding: 0 13px;
   border: 0;
   border-radius: 9px;
-  color: white;
+  color: var(--smf-ink);
   background: var(--smf-action);
   font-size: 12px;
   font-weight: 800;
@@ -6169,7 +6222,7 @@ body::-webkit-scrollbar-thumb {
   border: 0;
   border-radius: 9px;
   background: var(--smf-action);
-  color: #fff;
+  color: var(--smf-ink);
   font-weight: 800;
   display: flex;
   align-items: center;
@@ -6396,12 +6449,12 @@ body::-webkit-scrollbar-thumb {
   font-size: 11px;
 }
 .agencyAgentDelete {
-  min-height: 38px;
+  min-height: 44px;
   padding: 8px 11px;
-  border: 0;
+  border: 1px solid var(--smf-danger);
   border-radius: 9px;
-  background: #b43631;
-  color: #fff;
+  background: var(--smf-surface-danger);
+  color: var(--smf-ink);
   font-size: 11px;
   font-weight: 800;
   display: flex;

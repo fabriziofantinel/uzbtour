@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { uploadPrivateFile } from "@/lib/private-upload-client";
 import type { AgencyDayDocuments } from "@/lib/platform/day-documents-repository";
+import { useAppConfirm } from "@/components/app-confirm-dialog";
 
 function formatDay(startsOn: string, offset: number) {
   const date = new Date(`${startsOn.slice(0, 10)}T12:00:00Z`);
@@ -38,6 +39,7 @@ function sizeLabel(size: number) {
 }
 
 export default function DayDocumentsClient({ initialData }: { initialData: AgencyDayDocuments }) {
+  const { confirm: confirmAction, dialog: confirmDialog } = useAppConfirm();
   const [documents, setDocuments] = useState(initialData.documents);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
@@ -92,7 +94,15 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
     }
   }
   async function removeDocument(documentId: string) {
-    if (!window.confirm("Eliminare questo documento dal viaggio?")) return;
+    if (
+      !(await confirmAction({
+        title: "Elimina il documento",
+        message: "Il documento non sarà più disponibile ai viaggiatori del gruppo.",
+        confirmLabel: "Elimina documento",
+        tone: "danger",
+      }))
+    )
+      return;
     setBusy(true);
     setMessage(null);
     try {
@@ -112,153 +122,161 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
     }
   }
   return (
-    <main
-      className="journeyManagePage dayDocumentsPage"
-      style={
-        {
-          "--smf-brand": departure.agencyPrimaryColor,
-          "--smf-brand-deep": departure.agencyPrimaryColor,
-          "--smf-action": departure.agencyPrimaryColor,
-        } as CSSProperties
-      }
-    >
-      <header>
-        <Link href="/agenzia">
-          <ArrowLeft /> Tutti i viaggi
-        </Link>
-        <nav aria-label="Gestione del viaggio">
-          <Link href={`/agenzia/viaggi/${departure.id}/programma`}>
-            <BookOpen /> Programma
+    <>
+      <main
+        className="journeyManagePage dayDocumentsPage"
+        style={
+          {
+            "--smf-brand": departure.agencyPrimaryColor,
+            "--smf-brand-deep": departure.agencyPrimaryColor,
+            "--smf-action": departure.agencyPrimaryColor,
+          } as CSSProperties
+        }
+      >
+        <header>
+          <Link href="/agenzia">
+            <ArrowLeft /> Tutti i viaggi
           </Link>
-          <Link href={`/agenzia/viaggi/${departure.id}`}>
-            <UsersRound /> Gruppi
-          </Link>
-          <span aria-current="page">
-            <FolderOpen /> Documenti
-          </span>
-          <Link href={`/agenzia/viaggi/${departure.id}/chat`}>
-            <MessageCircle /> Chat
-          </Link>
-          <Link href={`/agenzia/viaggi/${departure.id}/comunicazioni`}>
-            <Send /> Comunicazioni
-          </Link>
-          <Link href={`/agenzia/viaggi/${departure.id}/impostazioni`}>
-            <Settings2 /> Configurazione
-          </Link>
-        </nav>
-        <span className="journeyAgencyName">{departure.programmeTitle}</span>
-      </header>
-      <section className="journeyManageHero">
-        <small>DOCUMENTI DEL VIAGGIO</small>
-        <h1>{departure.title}</h1>
-        <p>
-          <CalendarDays /> Associa ogni documento alla giornata e al gruppo corretti.
-        </p>
-      </section>
-      <div className="journeyManageShell">
-        <div className="journeyManageHead">
-          <div>
-            <small>ARCHIVIO PRIVATO</small>
-            <h2>Documenti per giornata e gruppo</h2>
+          <nav aria-label="Gestione del viaggio">
+            <Link href={`/agenzia/viaggi/${departure.id}/programma`}>
+              <BookOpen /> Programma
+            </Link>
+            <Link href={`/agenzia/viaggi/${departure.id}`}>
+              <UsersRound /> Gruppi
+            </Link>
+            <span aria-current="page">
+              <FolderOpen /> Documenti
+            </span>
+            <Link href={`/agenzia/viaggi/${departure.id}/chat`}>
+              <MessageCircle /> Chat
+            </Link>
+            <Link href={`/agenzia/viaggi/${departure.id}/comunicazioni`}>
+              <Send /> Comunicazioni
+            </Link>
+            <Link href={`/agenzia/viaggi/${departure.id}/impostazioni`}>
+              <Settings2 /> Configurazione
+            </Link>
+          </nav>
+          <span className="journeyAgencyName">{departure.programmeTitle}</span>
+        </header>
+        <section className="journeyManageHero">
+          <small>DOCUMENTI DEL VIAGGIO</small>
+          <h1>{departure.title}</h1>
+          <p>
+            <CalendarDays /> Associa ogni documento alla giornata e al gruppo corretti.
+          </p>
+        </section>
+        <div className="journeyManageShell">
+          <div className="journeyManageHead">
+            <div>
+              <small>ARCHIVIO PRIVATO</small>
+              <h2>Documenti per giornata e gruppo</h2>
+            </div>
           </div>
-        </div>
-        {message && (
-          <div className={`agencyMessage ${message.kind}`} role={message.kind === "error" ? "alert" : "status"}>
-            {message.kind === "error" ? <CircleAlert /> : <CheckCircle2 />}
-            {message.text}
-          </div>
-        )}
-        <form className="dayDocumentForm" onSubmit={submit} aria-busy={busy}>
-          <label>
-            Giornata *
-            <select name="dayId" required defaultValue="">
-              <option value="" disabled>
-                Seleziona la giornata
-              </option>
-              {initialData.days.map((day) => (
-                <option key={day.id} value={day.id}>
-                  Giorno {day.number} · {formatDay(departure.startsOn, day.offset)} · {day.city || day.title}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Gruppo *
-            <select name="partyId" required defaultValue="">
-              <option value="" disabled>
-                Seleziona il gruppo
-              </option>
-              {initialData.groups.map((group) => (
-                <option key={group.id} value={group.id}>
-                  {group.name} · {group.code}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Descrizione *
-            <input name="description" required maxLength={500} placeholder="Es. Voucher escursione o biglietto museo" />
-          </label>
-          <label>
-            Documento *
-            <input
-              name="document"
-              type="file"
-              required
-              accept="application/pdf,.pdf,.doc,.docx,image/jpeg,image/png,image/webp"
-            />
-          </label>
-          <button type="submit" disabled={busy}>
-            {busy ? (
-              <>
-                <LoaderCircle className="spin" /> Caricamento…
-              </>
-            ) : (
-              <>
-                <Upload /> Carica documento
-              </>
-            )}
-          </button>
-        </form>
-        <section className="dayDocumentList" aria-label="Documenti caricati">
-          {documents.map((document) => {
-            const day = initialData.days.find((entry) => entry.id === document.dayId);
-            return (
-              <article key={document.id}>
-                <FileText />
-                <span>
-                  <small>
-                    {document.partyName} · GIORNO {day?.number ?? "–"} ·{" "}
-                    {day ? formatDay(departure.startsOn, day.offset) : "Giornata"}
-                  </small>
-                  <b>{document.description}</b>
-                  <em>
-                    {document.title} · {sizeLabel(document.sizeBytes)}
-                  </em>
-                </span>
-                <a href={document.downloadUrl}>
-                  <Download /> Scarica
-                </a>
-                <button
-                  type="button"
-                  className="documentDelete"
-                  disabled={busy}
-                  onClick={() => void removeDocument(document.id)}
-                >
-                  <Trash2 /> Elimina
-                </button>
-              </article>
-            );
-          })}
-          {documents.length === 0 && (
-            <div className="agencyEmpty">
-              <FolderOpen />
-              <h3>Nessun documento</h3>
-              <p>I documenti caricati saranno visibili solo al gruppo selezionato.</p>
+          {message && (
+            <div className={`agencyMessage ${message.kind}`} role={message.kind === "error" ? "alert" : "status"}>
+              {message.kind === "error" ? <CircleAlert /> : <CheckCircle2 />}
+              {message.text}
             </div>
           )}
-        </section>
-      </div>
-    </main>
+          <form className="dayDocumentForm" onSubmit={submit} aria-busy={busy}>
+            <label>
+              Giornata *
+              <select name="dayId" required defaultValue="">
+                <option value="" disabled>
+                  Seleziona la giornata
+                </option>
+                {initialData.days.map((day) => (
+                  <option key={day.id} value={day.id}>
+                    Giorno {day.number} · {formatDay(departure.startsOn, day.offset)} · {day.city || day.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Gruppo *
+              <select name="partyId" required defaultValue="">
+                <option value="" disabled>
+                  Seleziona il gruppo
+                </option>
+                {initialData.groups.map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.name} · {group.code}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Descrizione *
+              <input
+                name="description"
+                required
+                maxLength={500}
+                placeholder="Es. Voucher escursione o biglietto museo"
+              />
+            </label>
+            <label>
+              Documento *
+              <input
+                name="document"
+                type="file"
+                required
+                accept="application/pdf,.pdf,.doc,.docx,image/jpeg,image/png,image/webp"
+              />
+            </label>
+            <button type="submit" disabled={busy}>
+              {busy ? (
+                <>
+                  <LoaderCircle className="spin" /> Caricamento…
+                </>
+              ) : (
+                <>
+                  <Upload /> Carica documento
+                </>
+              )}
+            </button>
+          </form>
+          <section className="dayDocumentList" aria-label="Documenti caricati">
+            {documents.map((document) => {
+              const day = initialData.days.find((entry) => entry.id === document.dayId);
+              return (
+                <article key={document.id}>
+                  <FileText />
+                  <span>
+                    <small>
+                      {document.partyName} · GIORNO {day?.number ?? "–"} ·{" "}
+                      {day ? formatDay(departure.startsOn, day.offset) : "Giornata"}
+                    </small>
+                    <b>{document.description}</b>
+                    <em>
+                      {document.title} · {sizeLabel(document.sizeBytes)}
+                    </em>
+                  </span>
+                  <a href={document.downloadUrl}>
+                    <Download /> Scarica
+                  </a>
+                  <button
+                    type="button"
+                    className="documentDelete"
+                    disabled={busy}
+                    onClick={() => void removeDocument(document.id)}
+                  >
+                    <Trash2 /> Elimina
+                  </button>
+                </article>
+              );
+            })}
+            {documents.length === 0 && (
+              <div className="agencyEmpty">
+                <FolderOpen />
+                <h3>Nessun documento</h3>
+                <p>I documenti caricati saranno visibili solo al gruppo selezionato.</p>
+              </div>
+            )}
+          </section>
+        </div>
+      </main>
+      {confirmDialog}
+    </>
   );
 }

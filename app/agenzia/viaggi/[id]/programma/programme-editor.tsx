@@ -31,11 +31,12 @@ import {
   UsersRound,
   Utensils,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { uploadPrivateFile } from "@/lib/private-upload-client";
 import { accessibleBrandColor, validBrandColor } from "@/lib/platform/branding-ui";
 import type { AgencyProgramme } from "@/lib/platform/programme-repository";
+import { useAppConfirm } from "@/components/app-confirm-dialog";
 
 type Props = { initialProgramme: AgencyProgramme };
 type Day = AgencyProgramme["days"][number];
@@ -116,6 +117,7 @@ async function responseJson(response: Response) {
 }
 
 export default function ProgrammeEditor({ initialProgramme }: Props) {
+  const { confirm: confirmAction, dialog: confirmDialog } = useAppConfirm();
   const [days, setDays] = useState(initialProgramme.days);
   const [openDayId, setOpenDayId] = useState(() =>
     initialDayId(initialProgramme.days, initialProgramme.departure.startsOn),
@@ -126,13 +128,15 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
   const [busy, setBusy] = useState("");
   const [message, setMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const [cancellationReasons, setCancellationReasons] = useState<Record<string, string>>({});
-  const savedDaysRef = useRef(new Map(initialProgramme.days.map((day) => [day.id, JSON.stringify(day)])));
+  const [savedDays, setSavedDays] = useState(
+    () => new Map(initialProgramme.days.map((day) => [day.id, JSON.stringify(day)])),
+  );
   const departure = initialProgramme.departure;
   const openDay = useMemo(() => days.find((day) => day.id === openDayId), [days, openDayId]);
   const openDayIndex = useMemo(() => days.findIndex((day) => day.id === openDayId), [days, openDayId]);
   const dirtyDayIds = useMemo(
-    () => new Set(days.filter((day) => savedDaysRef.current.get(day.id) !== JSON.stringify(day)).map((day) => day.id)),
-    [days, message],
+    () => new Set(days.filter((day) => savedDays.get(day.id) !== JSON.stringify(day)).map((day) => day.id)),
+    [days, savedDays],
   );
   const agencyColor = validBrandColor(departure.agencyPrimaryColor);
   const agencyStyle = {
@@ -180,7 +184,15 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
       setMessage({ kind: "error", text: "Indica il motivo dell’annullamento della tappa." });
       return;
     }
-    if (!confirm(`Annullare “${item.title}”? La tappa resterà nello storico operativo.`)) return;
+    if (
+      !(await confirmAction({
+        title: "Annulla la tappa",
+        message: `“${item.title}” sarà annullata ma resterà visibile nello storico operativo.`,
+        confirmLabel: "Annulla tappa",
+        tone: "danger",
+      }))
+    )
+      return;
     setBusy(`cancel-${item.id}`);
     setMessage(null);
     try {
@@ -198,7 +210,7 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
       );
       const nextDay = { ...day, items: day.items.filter((entry) => entry.id !== item.id) };
       setDays((current) => current.map((entry) => (entry.id === day.id ? nextDay : entry)));
-      savedDaysRef.current.set(day.id, JSON.stringify(nextDay));
+      setSavedDays((current) => new Map(current).set(day.id, JSON.stringify(nextDay)));
       setMessage({
         kind: "success",
         text: "Tappa annullata. Lo storico operativo è stato conservato e i viaggiatori saranno avvisati.",
@@ -250,7 +262,7 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
           body: JSON.stringify({ ...day, dayId: day.id }),
         }),
       );
-      savedDaysRef.current.set(day.id, JSON.stringify(day));
+      setSavedDays((current) => new Map(current).set(day.id, JSON.stringify(day)));
       setMessage({
         kind: "success",
         text: `Giorno ${day.number} salvato. La modifica è condivisa da tutte le partenze del programma.`,
@@ -322,413 +334,426 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
   }
 
   return (
-    <main className="programmePage" style={agencyStyle}>
-      <header className="programmeTopbar">
-        <Link href="/agenzia">
-          <ArrowLeft /> Tutti i viaggi
-        </Link>
-        <nav aria-label="Gestione del viaggio">
-          <span aria-current="page">
-            <BookOpen /> Programma
-          </span>
-          <Link href={`/agenzia/viaggi/${departure.id}`}>
-            <UsersRound /> Gruppi
+    <>
+      <main className="programmePage" style={agencyStyle}>
+        <header className="programmeTopbar">
+          <Link href="/agenzia">
+            <ArrowLeft /> Tutti i viaggi
           </Link>
-          <Link href={`/agenzia/viaggi/${departure.id}/documenti`}>
-            <FileText /> Documenti
-          </Link>
-          <Link href={`/agenzia/viaggi/${departure.id}/chat`}>
-            <MessageCircle /> Chat
-          </Link>
-          <Link href={`/agenzia/viaggi/${departure.id}/comunicazioni`}>
-            <Send /> Comunicazioni
-          </Link>
-          <Link href={`/agenzia/viaggi/${departure.id}/impostazioni`}>
-            <Settings2 /> Configurazione
-          </Link>
-          {departure.quoteImportId && (
-            <details className="programmeQuotes">
-              <summary>
-                <Download /> Preventivi
-              </summary>
-              <div>
-                <a href={`/api/admin/platform/imports/${departure.quoteImportId}/original`}>
-                  <FileText /> Originale
-                </a>
-                <a href={`/api/admin/platform/imports/${departure.quoteImportId}/normalized`}>
-                  <Download /> Revisionato DOCX
-                </a>
-              </div>
-            </details>
+          <nav aria-label="Gestione del viaggio">
+            <span aria-current="page">
+              <BookOpen /> Programma
+            </span>
+            <Link href={`/agenzia/viaggi/${departure.id}`}>
+              <UsersRound /> Gruppi
+            </Link>
+            <Link href={`/agenzia/viaggi/${departure.id}/documenti`}>
+              <FileText /> Documenti
+            </Link>
+            <Link href={`/agenzia/viaggi/${departure.id}/chat`}>
+              <MessageCircle /> Chat
+            </Link>
+            <Link href={`/agenzia/viaggi/${departure.id}/comunicazioni`}>
+              <Send /> Comunicazioni
+            </Link>
+            <Link href={`/agenzia/viaggi/${departure.id}/impostazioni`}>
+              <Settings2 /> Configurazione
+            </Link>
+            {departure.quoteImportId && (
+              <details className="programmeQuotes">
+                <summary>
+                  <Download /> Preventivi
+                </summary>
+                <div>
+                  <a href={`/api/admin/platform/imports/${departure.quoteImportId}/original`}>
+                    <FileText /> Originale
+                  </a>
+                  <a href={`/api/admin/platform/imports/${departure.quoteImportId}/normalized`}>
+                    <Download /> Revisionato DOCX
+                  </a>
+                </div>
+              </details>
+            )}
+          </nav>
+          <span className="programmeHeaderBalance" aria-hidden="true" />
+        </header>
+        <section className="journeyManageHero programmeHero">
+          <small>{departure.destinationCountry}</small>
+          <h1>{departure.programmeTitle}</h1>
+          <p>
+            <CalendarDays /> {dateFor(departure.startsOn, 0)} –{" "}
+            {dateFor(departure.startsOn, Math.max(0, days.length - 1))}
+          </p>
+        </section>
+        <section className="programmeNotice">
+          <CalendarDays />
+          <div>
+            <b>Partenza visualizzata: {departure.title}</b>
+            <span>
+              {dateFor(departure.startsOn, 0)} – {dateFor(departure.startsOn, Math.max(0, days.length - 1))}
+            </span>
+          </div>
+          {dirtyDayIds.size > 0 && (
+            <strong className="programmeUnsaved" role="status">
+              {dirtyDayIds.size} {dirtyDayIds.size === 1 ? "giornata da salvare" : "giornate da salvare"}
+            </strong>
           )}
-        </nav>
-        <span className="programmeHeaderBalance" aria-hidden="true" />
-      </header>
-      <section className="journeyManageHero programmeHero">
-        <small>{departure.destinationCountry}</small>
-        <h1>{departure.programmeTitle}</h1>
-        <p>
-          <CalendarDays /> {dateFor(departure.startsOn, 0)} –{" "}
-          {dateFor(departure.startsOn, Math.max(0, days.length - 1))}
-        </p>
-      </section>
-      <section className="programmeNotice">
-        <CalendarDays />
-        <div>
-          <b>Partenza visualizzata: {departure.title}</b>
-          <span>
-            {dateFor(departure.startsOn, 0)} – {dateFor(departure.startsOn, Math.max(0, days.length - 1))}
-          </span>
-        </div>
-        {dirtyDayIds.size > 0 && (
-          <strong className="programmeUnsaved" role="status">
-            {dirtyDayIds.size} {dirtyDayIds.size === 1 ? "giornata da salvare" : "giornate da salvare"}
-          </strong>
+        </section>
+        {message && (
+          <div className={`programmeMessage ${message.kind}`} role={message.kind === "error" ? "alert" : "status"}>
+            {message.kind === "error" ? <CircleAlert /> : <CheckCircle2 />}
+            {message.text}
+          </div>
         )}
-      </section>
-      {message && (
-        <div className={`programmeMessage ${message.kind}`} role={message.kind === "error" ? "alert" : "status"}>
-          {message.kind === "error" ? <CircleAlert /> : <CheckCircle2 />}
-          {message.text}
-        </div>
-      )}
-      <div className="programmeLayout">
-        <nav className="programmeDays" aria-label="Giornate del programma">
-          {days.map((day) => (
-            <button
-              type="button"
-              key={day.id}
-              className={day.id === openDayId ? "active" : ""}
-              aria-current={day.id === openDayId ? "page" : undefined}
-              onClick={() => setOpenDayId(day.id)}
-            >
-              <small>
-                GIORNO {day.number}
-                {dirtyDayIds.has(day.id) ? " · DA SALVARE" : ""}
-              </small>
-              <b>{dateFor(departure.startsOn, day.offset)}</b>
-              <span>{day.city || day.title || "Da completare"}</span>
-            </button>
-          ))}
-        </nav>
-        {openDay && (
-          <section className="dayEditor">
-            <div className="dayEditorHead">
-              <div>
+        <div className="programmeLayout">
+          <nav className="programmeDays" aria-label="Giornate del programma">
+            {days.map((day) => (
+              <button
+                type="button"
+                key={day.id}
+                className={day.id === openDayId ? "active" : ""}
+                aria-current={day.id === openDayId ? "page" : undefined}
+                onClick={() => setOpenDayId(day.id)}
+              >
                 <small>
-                  GIORNO {openDay.number}
-                  {dirtyDayIds.has(openDay.id) ? " · MODIFICHE DA SALVARE" : " · SALVATO"}
+                  GIORNO {day.number}
+                  {dirtyDayIds.has(day.id) ? " · DA SALVARE" : ""}
                 </small>
-                <h2>{dateFor(departure.startsOn, openDay.offset)}</h2>
-                <span>
-                  {openDay.items.length} {openDay.items.length === 1 ? "attività" : "attività"} ·{" "}
-                  {openDay.hotels.length} {openDay.hotels.length === 1 ? "pernottamento" : "pernottamenti"}
-                </span>
-              </div>
-              <div className="dayEditorActions">
-                <div className="dayPager">
+                <b>{dateFor(departure.startsOn, day.offset)}</b>
+                <span>{day.city || day.title || "Da completare"}</span>
+              </button>
+            ))}
+          </nav>
+          {openDay && (
+            <section className="dayEditor">
+              <div className="dayEditorHead">
+                <div>
+                  <small>
+                    GIORNO {openDay.number}
+                    {dirtyDayIds.has(openDay.id) ? " · MODIFICHE DA SALVARE" : " · SALVATO"}
+                  </small>
+                  <h2>{dateFor(departure.startsOn, openDay.offset)}</h2>
+                  <span>
+                    {openDay.items.length} {openDay.items.length === 1 ? "attività" : "attività"} ·{" "}
+                    {openDay.hotels.length} {openDay.hotels.length === 1 ? "pernottamento" : "pernottamenti"}
+                  </span>
+                </div>
+                <div className="dayEditorActions">
+                  <div className="dayPager">
+                    <button
+                      type="button"
+                      aria-label="Giornata precedente"
+                      disabled={openDayIndex <= 0}
+                      onClick={() => setOpenDayId(days[openDayIndex - 1].id)}
+                    >
+                      <ChevronLeft />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Giornata successiva"
+                      disabled={openDayIndex < 0 || openDayIndex >= days.length - 1}
+                      onClick={() => setOpenDayId(days[openDayIndex + 1].id)}
+                    >
+                      <ChevronRight />
+                    </button>
+                  </div>
                   <button
+                    className="saveDayButton"
                     type="button"
-                    aria-label="Giornata precedente"
-                    disabled={openDayIndex <= 0}
-                    onClick={() => setOpenDayId(days[openDayIndex - 1].id)}
+                    disabled={Boolean(busy) || !dirtyDayIds.has(openDay.id)}
+                    onClick={() => void saveDay(openDay)}
                   >
-                    <ChevronLeft />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Giornata successiva"
-                    disabled={openDayIndex < 0 || openDayIndex >= days.length - 1}
-                    onClick={() => setOpenDayId(days[openDayIndex + 1].id)}
-                  >
-                    <ChevronRight />
+                    {busy === openDay.id ? (
+                      <>
+                        <LoaderCircle className="spin" /> Salvataggio…
+                      </>
+                    ) : (
+                      <>
+                        <Save /> Salva giornata
+                      </>
+                    )}
                   </button>
                 </div>
-                <button
-                  className="saveDayButton"
-                  type="button"
-                  disabled={Boolean(busy) || !dirtyDayIds.has(openDay.id)}
-                  onClick={() => void saveDay(openDay)}
-                >
-                  {busy === openDay.id ? (
-                    <>
-                      <LoaderCircle className="spin" /> Salvataggio…
-                    </>
-                  ) : (
-                    <>
-                      <Save /> Salva giornata
-                    </>
-                  )}
-                </button>
               </div>
-            </div>
-            <div className="dayFields">
-              <label>
-                Etichetta
-                <input
-                  value={openDay.label}
-                  onChange={(event) => updateDay(openDay.id, { label: event.target.value })}
-                />
-              </label>
-              <label>
-                Titolo
-                <input
-                  value={openDay.title}
-                  onChange={(event) => updateDay(openDay.id, { title: event.target.value })}
-                />
-              </label>
-              <label>
-                <MapPin /> Località
-                <input value={openDay.city} onChange={(event) => updateDay(openDay.id, { city: event.target.value })} />
-              </label>
-              <label className="wide">
-                Descrizione
-                <textarea
-                  rows={4}
-                  value={openDay.description}
-                  onChange={(event) => updateDay(openDay.id, { description: event.target.value })}
-                />
-              </label>
-            </div>
-            <div className="programmeBlock">
-              <div className="programmeBlockHead">
-                <h3>Programma della giornata</h3>
-                <button type="button" onClick={() => addItem(openDay)}>
-                  <Plus /> Aggiungi attività
-                </button>
+              <div className="dayFields">
+                <label>
+                  Etichetta
+                  <input
+                    value={openDay.label}
+                    onChange={(event) => updateDay(openDay.id, { label: event.target.value })}
+                  />
+                </label>
+                <label>
+                  Titolo
+                  <input
+                    value={openDay.title}
+                    onChange={(event) => updateDay(openDay.id, { title: event.target.value })}
+                  />
+                </label>
+                <label>
+                  <MapPin /> Località
+                  <input
+                    value={openDay.city}
+                    onChange={(event) => updateDay(openDay.id, { city: event.target.value })}
+                  />
+                </label>
+                <label className="wide">
+                  Descrizione
+                  <textarea
+                    rows={4}
+                    value={openDay.description}
+                    onChange={(event) => updateDay(openDay.id, { description: event.target.value })}
+                  />
+                </label>
               </div>
-              {openDay.items.map((item, index) => {
-                const presentation = itemPresentation(item.type);
-                const ItemIcon = presentation.Icon;
-                return (
-                  <article className="programmeItem" key={item.id}>
-                    <div className="orderButtons">
-                      <span>{String(index + 1).padStart(2, "0")}</span>
-                      <button
-                        type="button"
-                        aria-label={`Sposta “${item.title}” in alto`}
-                        onClick={() => moveItem(openDay, index, -1)}
-                        disabled={index === 0}
+              <div className="programmeBlock">
+                <div className="programmeBlockHead">
+                  <h3>Programma della giornata</h3>
+                  <button type="button" onClick={() => addItem(openDay)}>
+                    <Plus /> Aggiungi attività
+                  </button>
+                </div>
+                {openDay.items.map((item, index) => {
+                  const presentation = itemPresentation(item.type);
+                  const ItemIcon = presentation.Icon;
+                  return (
+                    <article className="programmeItem" key={item.id}>
+                      <div className="orderButtons">
+                        <span>{String(index + 1).padStart(2, "0")}</span>
+                        <button
+                          type="button"
+                          aria-label={`Sposta “${item.title}” in alto`}
+                          onClick={() => moveItem(openDay, index, -1)}
+                          disabled={index === 0}
+                        >
+                          <ArrowUp />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Sposta “${item.title}” in basso`}
+                          onClick={() => moveItem(openDay, index, 1)}
+                          disabled={index === openDay.items.length - 1}
+                        >
+                          <ArrowDown />
+                        </button>
+                      </div>
+                      <details
+                        className="itemEditorDetails"
+                        open={expandedItems.has(item.id)}
+                        onToggle={(event) => setItemExpanded(item.id, event.currentTarget.open)}
                       >
-                        <ArrowUp />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`Sposta “${item.title}” in basso`}
-                        onClick={() => moveItem(openDay, index, 1)}
-                        disabled={index === openDay.items.length - 1}
-                      >
-                        <ArrowDown />
-                      </button>
-                    </div>
-                    <details
-                      className="itemEditorDetails"
-                      open={expandedItems.has(item.id)}
-                      onToggle={(event) => setItemExpanded(item.id, event.currentTarget.open)}
-                    >
-                      <summary>
-                        <span className="itemSummaryIcon">
-                          <ItemIcon />
-                        </span>
-                        <span>
-                          <small>
-                            {presentation.label}
-                            {item.startsAt ? ` · ${item.startsAt}${item.endsAt ? `–${item.endsAt}` : ""}` : ""}
-                          </small>
-                          <strong>{item.title || `${presentation.label} da completare`}</strong>
-                          <em>{item.description || "Nessuna nota inserita"}</em>
-                        </span>
-                        <ChevronRight />
-                      </summary>
-                      <div className="itemFields">
-                        <label>
-                          Tipo
-                          <div className="programmeSelect">
-                            <select
-                              value={item.type}
-                              onChange={(event) => {
-                                const type = event.target.value as Item["type"];
-                                updateItem(openDay, item.id, {
-                                  type,
-                                  ...(!timedActivityTypes.has(type) ? { startsAt: "", endsAt: "" } : {}),
-                                });
-                              }}
-                              aria-label={`Tipo attività ${index + 1}`}
-                            >
-                              {activityTypes.map(([value, label]) => (
-                                <option value={value} key={value}>
-                                  {label}
-                                </option>
-                              ))}
-                            </select>
-                            <ChevronDown />
-                          </div>
-                        </label>
-                        <label>
-                          Titolo
-                          <input
-                            value={item.title}
-                            onChange={(event) => updateItem(openDay, item.id, { title: event.target.value })}
-                          />
-                        </label>
-                        {timedActivityTypes.has(item.type) && (
-                          <div className="timeFields">
-                            <Clock3 />
-                            <label>
-                              Orario di inizio
-                              <input
-                                type="time"
-                                value={item.startsAt}
-                                onChange={(event) => updateItem(openDay, item.id, { startsAt: event.target.value })}
-                              />
-                            </label>
-                            <label>
-                              Orario di fine
-                              <input
-                                type="time"
-                                value={item.endsAt}
-                                onChange={(event) => updateItem(openDay, item.id, { endsAt: event.target.value })}
-                              />
-                            </label>
-                          </div>
-                        )}
-                        <label className="wide">
-                          {item.type === "transport"
-                            ? "Note operative (autista, telefono, targa o punto d’incontro)"
-                            : "Note"}
-                          <textarea
-                            rows={2}
-                            value={item.description}
-                            onChange={(event) => updateItem(openDay, item.id, { description: event.target.value })}
-                          />
-                        </label>
-                        {["flight", "train"].includes(item.type) && (
-                          <div className="ticketManager">
-                            <div className="ticketManagerHead">
-                              <FileText />
-                              <div>
-                                <b>Biglietti</b>
-                                <small>Salva prima una nuova attività, poi allega PDF o immagini fino a 25 MB.</small>
-                              </div>
-                              <label className={busy === `ticket-${item.id}` ? "busy" : ""}>
-                                {busy === `ticket-${item.id}` ? <LoaderCircle className="spin" /> : <Upload />}
-                                <span>{busy === `ticket-${item.id}` ? "Caricamento…" : "Allega biglietto"}</span>
-                                <input
-                                  type="file"
-                                  aria-label={`Allega biglietto per ${item.title}`}
-                                  accept="application/pdf,image/jpeg,image/png,image/webp,.pdf"
-                                  disabled={busy === `ticket-${item.id}` || dirtyDayIds.has(openDay.id)}
-                                  onChange={(event) => {
-                                    const file = event.target.files?.[0];
-                                    event.target.value = "";
-                                    if (file) void uploadTicket(openDay.id, item.id, file);
-                                  }}
-                                />
-                              </label>
-                            </div>
-                            {item.tickets.length > 0 ? (
-                              <div className="ticketList">
-                                {item.tickets.map((ticket) => (
-                                  <a href={ticket.downloadUrl} key={ticket.id}>
-                                    <FileText />
-                                    <span>{ticket.title}</span>
-                                    <Download />
-                                  </a>
-                                ))}
-                              </div>
-                            ) : (
-                              <p className="ticketEmpty">Nessun biglietto allegato.</p>
-                            )}
-                          </div>
-                        )}
-                        <div className="programmeItemRemoval">
-                          <button
-                            type="button"
-                            className="removeProgrammeItem"
-                            onClick={() => removeItem(openDay, item.id)}
-                          >
-                            <Trash2 /> Elimina dalla bozza
-                          </button>
-                          {!dirtyDayIds.has(openDay.id) && (
-                            <div className="programmeDisruption">
-                              <label>
-                                Motivo dell’annullamento
-                                <input
-                                  value={cancellationReasons[item.id] || ""}
-                                  maxLength={1000}
-                                  placeholder="Es. visita annullata per chiusura straordinaria"
-                                  onChange={(event) =>
-                                    setCancellationReasons((current) => ({ ...current, [item.id]: event.target.value }))
-                                  }
-                                />
-                              </label>
-                              <button
-                                type="button"
-                                className="cancelProgrammeItem"
-                                disabled={Boolean(busy)}
-                                onClick={() => void cancelItem(openDay, item)}
+                        <summary>
+                          <span className="itemSummaryIcon">
+                            <ItemIcon />
+                          </span>
+                          <span>
+                            <small>
+                              {presentation.label}
+                              {item.startsAt ? ` · ${item.startsAt}${item.endsAt ? `–${item.endsAt}` : ""}` : ""}
+                            </small>
+                            <strong>{item.title || `${presentation.label} da completare`}</strong>
+                            <em>{item.description || "Nessuna nota inserita"}</em>
+                          </span>
+                          <ChevronRight />
+                        </summary>
+                        <div className="itemFields">
+                          <label>
+                            Tipo
+                            <div className="programmeSelect">
+                              <select
+                                value={item.type}
+                                onChange={(event) => {
+                                  const type = event.target.value as Item["type"];
+                                  updateItem(openDay, item.id, {
+                                    type,
+                                    ...(!timedActivityTypes.has(type) ? { startsAt: "", endsAt: "" } : {}),
+                                  });
+                                }}
+                                aria-label={`Tipo attività ${index + 1}`}
                               >
-                                {busy === `cancel-${item.id}` ? <LoaderCircle className="spin" /> : <CircleAlert />}{" "}
-                                Annulla tappa
-                              </button>
+                                {activityTypes.map(([value, label]) => (
+                                  <option value={value} key={value}>
+                                    {label}
+                                  </option>
+                                ))}
+                              </select>
+                              <ChevronDown />
+                            </div>
+                          </label>
+                          <label>
+                            Titolo
+                            <input
+                              value={item.title}
+                              onChange={(event) => updateItem(openDay, item.id, { title: event.target.value })}
+                            />
+                          </label>
+                          {timedActivityTypes.has(item.type) && (
+                            <div className="timeFields">
+                              <Clock3 />
+                              <label>
+                                Orario di inizio
+                                <input
+                                  type="time"
+                                  value={item.startsAt}
+                                  onChange={(event) => updateItem(openDay, item.id, { startsAt: event.target.value })}
+                                />
+                              </label>
+                              <label>
+                                Orario di fine
+                                <input
+                                  type="time"
+                                  value={item.endsAt}
+                                  onChange={(event) => updateItem(openDay, item.id, { endsAt: event.target.value })}
+                                />
+                              </label>
                             </div>
                           )}
+                          <label className="wide">
+                            {item.type === "transport"
+                              ? "Note operative (autista, telefono, targa o punto d’incontro)"
+                              : "Note"}
+                            <textarea
+                              rows={2}
+                              value={item.description}
+                              onChange={(event) => updateItem(openDay, item.id, { description: event.target.value })}
+                            />
+                          </label>
+                          {["flight", "train"].includes(item.type) && (
+                            <div className="ticketManager">
+                              <div className="ticketManagerHead">
+                                <FileText />
+                                <div>
+                                  <b>Biglietti</b>
+                                  <small>Salva prima una nuova attività, poi allega PDF o immagini fino a 25 MB.</small>
+                                </div>
+                                <label className={busy === `ticket-${item.id}` ? "busy" : ""}>
+                                  {busy === `ticket-${item.id}` ? <LoaderCircle className="spin" /> : <Upload />}
+                                  <span>{busy === `ticket-${item.id}` ? "Caricamento…" : "Allega biglietto"}</span>
+                                  <input
+                                    type="file"
+                                    aria-label={`Allega biglietto per ${item.title}`}
+                                    accept="application/pdf,image/jpeg,image/png,image/webp,.pdf"
+                                    disabled={busy === `ticket-${item.id}` || dirtyDayIds.has(openDay.id)}
+                                    onChange={(event) => {
+                                      const file = event.target.files?.[0];
+                                      event.target.value = "";
+                                      if (file) void uploadTicket(openDay.id, item.id, file);
+                                    }}
+                                  />
+                                </label>
+                              </div>
+                              {item.tickets.length > 0 ? (
+                                <div className="ticketList">
+                                  {item.tickets.map((ticket) => (
+                                    <a href={ticket.downloadUrl} key={ticket.id}>
+                                      <FileText />
+                                      <span>{ticket.title}</span>
+                                      <Download />
+                                    </a>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="ticketEmpty">Nessun biglietto allegato.</p>
+                              )}
+                            </div>
+                          )}
+                          <div className="programmeItemRemoval">
+                            <button
+                              type="button"
+                              className="removeProgrammeItem"
+                              onClick={() => removeItem(openDay, item.id)}
+                            >
+                              <Trash2 /> Elimina dalla bozza
+                            </button>
+                            {!dirtyDayIds.has(openDay.id) && (
+                              <div className="programmeDisruption">
+                                <label>
+                                  Motivo dell’annullamento
+                                  <input
+                                    value={cancellationReasons[item.id] || ""}
+                                    maxLength={1000}
+                                    placeholder="Es. visita annullata per chiusura straordinaria"
+                                    onChange={(event) =>
+                                      setCancellationReasons((current) => ({
+                                        ...current,
+                                        [item.id]: event.target.value,
+                                      }))
+                                    }
+                                  />
+                                </label>
+                                <button
+                                  type="button"
+                                  className="cancelProgrammeItem"
+                                  disabled={Boolean(busy)}
+                                  onClick={() => void cancelItem(openDay, item)}
+                                >
+                                  {busy === `cancel-${item.id}` ? <LoaderCircle className="spin" /> : <CircleAlert />}{" "}
+                                  Annulla tappa
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </details>
-                  </article>
-                );
-              })}
-              {openDay.items.length === 0 && (
-                <div className="programmeEmpty">
-                  <CalendarDays />
-                  <b>Nessuna attività</b>
-                  <p>Questa giornata non contiene ancora tappe modificabili.</p>
-                </div>
-              )}
-            </div>
-            <div className="programmeBlock">
-              <div className="programmeBlockHead">
-                <h3>
-                  <BedDouble /> Pernottamenti
-                </h3>
-                <button type="button" onClick={() => addHotel(openDay)}>
-                  <Plus /> Nuovo pernottamento
-                </button>
+                      </details>
+                    </article>
+                  );
+                })}
+                {openDay.items.length === 0 && (
+                  <div className="programmeEmpty">
+                    <CalendarDays />
+                    <b>Nessuna attività</b>
+                    <p>Questa giornata non contiene ancora tappe modificabili.</p>
+                  </div>
+                )}
               </div>
-              {openDay.hotels.map((hotel, index) => (
-                <article className="hotelFields" key={hotel.id}>
-                  <label>
-                    Hotel
-                    <input
-                      value={hotel.name}
-                      onChange={(event) => updateHotel(openDay, hotel.id, { name: event.target.value })}
-                    />
-                  </label>
-                  <label>
-                    Note
-                    <textarea
-                      rows={2}
-                      value={hotel.notes}
-                      onChange={(event) => updateHotel(openDay, hotel.id, { notes: event.target.value })}
-                    />
-                  </label>
-                  <button type="button" className="removeProgrammeItem" onClick={() => removeHotel(openDay, hotel.id)}>
-                    <Trash2 /> Elimina pernottamento {index + 1}
+              <div className="programmeBlock">
+                <div className="programmeBlockHead">
+                  <h3>
+                    <BedDouble /> Pernottamenti
+                  </h3>
+                  <button type="button" onClick={() => addHotel(openDay)}>
+                    <Plus /> Nuovo pernottamento
                   </button>
-                </article>
-              ))}
-              {openDay.hotels.length === 0 && (
-                <div className="programmeEmpty">
-                  <BedDouble />
-                  <b>Nessun pernottamento</b>
-                  <p>Aggiungilo solo quando previsto dal programma.</p>
                 </div>
-              )}
-            </div>
-          </section>
-        )}
-      </div>
-    </main>
+                {openDay.hotels.map((hotel, index) => (
+                  <article className="hotelFields" key={hotel.id}>
+                    <label>
+                      Hotel
+                      <input
+                        value={hotel.name}
+                        onChange={(event) => updateHotel(openDay, hotel.id, { name: event.target.value })}
+                      />
+                    </label>
+                    <label>
+                      Note
+                      <textarea
+                        rows={2}
+                        value={hotel.notes}
+                        onChange={(event) => updateHotel(openDay, hotel.id, { notes: event.target.value })}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="removeProgrammeItem"
+                      onClick={() => removeHotel(openDay, hotel.id)}
+                    >
+                      <Trash2 /> Elimina pernottamento {index + 1}
+                    </button>
+                  </article>
+                ))}
+                {openDay.hotels.length === 0 && (
+                  <div className="programmeEmpty">
+                    <BedDouble />
+                    <b>Nessun pernottamento</b>
+                    <p>Aggiungilo solo quando previsto dal programma.</p>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+        </div>
+      </main>
+      {confirmDialog}
+    </>
   );
 }

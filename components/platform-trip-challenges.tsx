@@ -26,6 +26,7 @@ import {
   XCircle,
 } from "lucide-react";
 import PlatformTripRankings from "@/components/platform-trip-rankings";
+import { useAppConfirm } from "@/components/app-confirm-dialog";
 import { uploadPrivateFile } from "@/lib/private-upload-client";
 import type { TravelerExperience as Experience } from "@/lib/platform/traveler-experience";
 import { bingoMilestone } from "@/lib/bingo-scoring";
@@ -167,6 +168,7 @@ export default function PlatformTripChallenges({
   isAdmin: boolean;
   onResultsChange?: (results: Experience["challengeResults"]) => void;
 }) {
+  const { confirm: confirmAction, dialog: confirmDialog } = useAppConfirm();
   const [tab, setTab] = useState<ChallengeTab>("missioni");
   const [activeDayId, setActiveDayId] = useState(experience.days[0]?.id || "");
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -501,7 +503,14 @@ export default function PlatformTripChallenges({
       setError("Rispondi a tutte le domande prima di confermare.");
       return;
     }
-    if (!confirm("Confermi definitivamente le risposte? Il punteggio sarà visibile agli altri partecipanti.")) return;
+    if (
+      !(await confirmAction({
+        title: "Conferma le risposte",
+        message: "Dopo la conferma non potrai modificarle e il punteggio sarà visibile agli altri partecipanti.",
+        confirmLabel: "Invia risposte",
+      }))
+    )
+      return;
     setBusy("quiz");
     setError("");
     try {
@@ -684,7 +693,15 @@ export default function PlatformTripChallenges({
       return;
     }
     const selected = experience.journey.travelers.find((traveler) => traveler.id === newLeaderId);
-    if (!selected || !confirm(`Cedere il ruolo di capogruppo a ${selected.name}?`)) return;
+    if (
+      !selected ||
+      !(await confirmAction({
+        title: "Cedi il ruolo di capogruppo",
+        message: `${selected.name} diventerà il nuovo capogruppo e potrà gestire le attività riservate al ruolo.`,
+        confirmLabel: "Cedi ruolo",
+      }))
+    )
+      return;
     setBusy("profile-leader");
     setError("");
     setProfileNotice("");
@@ -726,908 +743,884 @@ export default function PlatformTripChallenges({
     ...(isAdmin ? [{ id: "valida" as const, label: "Valida", icon: <CheckCircle2 />, badge: pendingReviews }] : []),
   ];
   return (
-    <section className="challengesPage">
-      <div className="challengesHero">
-        <div>
-          <span>GIOCA · ESPLORA · RICORDA</span>
-          <h2>Le sfide del viaggio</h2>
-          <p>Missioni e Bingo assegnano punti soltanto dopo la validazione fotografica.</p>
+    <>
+      <section className="challengesPage">
+        <div className="challengesHero">
+          <div>
+            <span>GIOCA · ESPLORA · RICORDA</span>
+            <h2>Le sfide del viaggio</h2>
+            <p>Missioni e Bingo assegnano punti soltanto dopo la validazione fotografica.</p>
+          </div>
+          <Sparkles size={54} />
         </div>
-        <Sparkles size={54} />
-      </div>
-      <nav
-        ref={challengeTabsRef}
-        className={`challengeTabs${isAdmin ? " admin" : ""}`}
-        aria-label="Tipi di sfida"
-        role="tablist"
-      >
-        {tabs.map((item) => (
-          <button
-            key={item.id}
-            id={`challenge-tab-${item.id}`}
-            type="button"
-            role="tab"
-            className={tab === item.id ? "active" : ""}
-            aria-selected={tab === item.id}
-            aria-controls={`challenge-panel-${item.id}`}
-            onClick={() => selectChallengeTab(item.id)}
-          >
-            {item.icon}
-            <span>{item.label}</span>
-            {item.badge !== undefined && <b aria-label={`${item.badge} prove da validare`}>{item.badge}</b>}
-          </button>
-        ))}
-      </nav>
-      {error && (
-        <p className="quizError" role="alert">
-          {error}
-        </p>
-      )}
-      <div
-        className="challengePanel"
-        id={`challenge-panel-${tab}`}
-        role="tabpanel"
-        aria-labelledby={`challenge-tab-${tab}`}
-        tabIndex={0}
-      >
-        {tab === "missioni" && (
-          <section className="missionBoard">
-            <DayPicker
-              days={experience.days}
-              activeDayId={day.id}
-              onDay={setActiveDayId}
-              count={(entry) =>
-                Math.min(
-                  5,
-                  experience.challenges.filter((item) => item.type === "mission" && item.dayId === entry.id).length,
-                )
-              }
-            />
-            <div className="missionDayHeading">
-              <div>
-                <span>
-                  GIORNO {day.number} · {dateLabel(day.date)}
-                </span>
-                <h3>{day.city}</h3>
-              </div>
-              <strong>
-                {missions.filter((item) => approved.has(item.id)).length * 10}
-                <small>punti validati</small>
-              </strong>
-            </div>
-            <p className="evidenceIntro">
-              <Camera /> Cinque missioni ogni giorno: allega una foto e ottieni 10 punti dopo la validazione. Hai al
-              massimo due tentativi.
-            </p>
-            {missions.length === 0 ? (
-              <ChallengeEmpty
-                icon={<Compass />}
-                title="Missioni in preparazione"
-                copy="L’agenzia non ha ancora pubblicato le missioni di questa giornata."
-              />
-            ) : (
-              <div className="missionList">
-                {missions.map((mission, index) => {
-                  const latestEvidence = challengeResults.find(
-                    (result) =>
-                      result.travelerName === userName &&
-                      result.contentId === mission.id &&
-                      Boolean(result.evidenceUrl),
-                  );
-                  return (
-                    <article
-                      key={mission.id}
-                      className={
-                        approved.has(mission.id)
-                          ? "approved"
-                          : submitted.has(mission.id)
-                            ? "pending"
-                            : rejectedOnce.has(mission.id) || attemptsExhausted.has(mission.id)
-                              ? "rejected"
-                              : ""
-                      }
-                    >
-                      <span className="missionNumber">
-                        {submitted.has(mission.id) || approved.has(mission.id) ? <Check /> : index + 1}
-                      </span>
-                      <div>
-                        <small>MISSIONE {index + 1} DI 5</small>
-                        <h4>{mission.title}</h4>
-                        <p>{text(mission.content, "description", "instructions")}</p>
-                      </div>
-                      {approved.has(mission.id) ? (
-                        <div className="missionOutcome">
-                          <MissionEvidencePhoto result={latestEvidence} title={mission.title} />
-                          <span className="missionStatus approved">Validata · 10 pt</span>
-                        </div>
-                      ) : submitted.has(mission.id) ? (
-                        <div className="missionOutcome">
-                          <MissionEvidencePhoto result={latestEvidence} title={mission.title} />
-                          <span className="missionStatus pending">In verifica</span>
-                        </div>
-                      ) : attemptsExhausted.has(mission.id) ? (
-                        <div className="missionOutcome">
-                          <MissionEvidencePhoto result={latestEvidence} title={mission.title} />
-                          <span className="missionStatus rejected">Tentativi esauriti · 0 pt</span>
-                        </div>
-                      ) : (
-                        <div className="missionOutcome">
-                          {rejectedOnce.has(mission.id) && (
-                            <MissionEvidencePhoto result={latestEvidence} title={mission.title} />
-                          )}
-                          <PhotoPicker
-                            busy={busy === `${mission.id}-photo`}
-                            label={rejectedOnce.has(mission.id) ? "Secondo tentativo" : "Aggiungi foto"}
-                            onFile={(file) => void uploadEvidence(mission, day, file)}
-                          />
-                        </div>
-                      )}
-                    </article>
-                  );
-                })}
-              </div>
-            )}
-          </section>
+        <nav
+          ref={challengeTabsRef}
+          className={`challengeTabs${isAdmin ? " admin" : ""}`}
+          aria-label="Tipi di sfida"
+          role="tablist"
+        >
+          {tabs.map((item) => (
+            <button
+              key={item.id}
+              id={`challenge-tab-${item.id}`}
+              type="button"
+              role="tab"
+              className={tab === item.id ? "active" : ""}
+              aria-selected={tab === item.id}
+              aria-controls={`challenge-panel-${item.id}`}
+              onClick={() => selectChallengeTab(item.id)}
+            >
+              {item.icon}
+              <span>{item.label}</span>
+              {item.badge !== undefined && <b aria-label={`${item.badge} prove da validare`}>{item.badge}</b>}
+            </button>
+          ))}
+        </nav>
+        {error && (
+          <p className="quizError" role="alert">
+            {error}
+          </p>
         )}
-
-        {tab === "bingo" && (
-          <section className="bingoBoard">
-            <div className="bingoHeading">
-              <div>
-                <span>SEMPRE SBLOCCATO · CARTELLA 3 × 9</span>
-                <h3>Tombola fotografica {experience.journey.destinationCountry}</h3>
-                <p>
-                  Carica una foto: viene valutata automaticamente. Se è respinta puoi fare un solo secondo tentativo.
-                </p>
-              </div>
-              <strong>
-                {bingo.filter((item) => approved.has(item.id)).length}/15<small>caselle validate</small>
-              </strong>
-            </div>
-            <div className="bingoAwards">
-              {bingoRows.map((row, index) => {
-                const milestone = bingoMilestone(row.filter((item) => approved.has(item.id)).length);
-                return (
-                  <span className={milestone ? "won" : ""} key={index}>
-                    Riga {index + 1}
-                    <b>{milestone ? `${milestone.label} · ${milestone.points} pt` : "In gioco"}</b>
+        <div
+          className="challengePanel"
+          id={`challenge-panel-${tab}`}
+          role="tabpanel"
+          aria-labelledby={`challenge-tab-${tab}`}
+          tabIndex={0}
+        >
+          {tab === "missioni" && (
+            <section className="missionBoard">
+              <DayPicker days={experience.days} activeDayId={day.id} onDay={setActiveDayId} />
+              <div className="missionDayHeading">
+                <div>
+                  <span>
+                    GIORNO {day.number} · {dateLabel(day.date)}
                   </span>
-                );
-              })}
-              <span
-                className={bingo.length === 15 && bingo.every((item) => approved.has(item.id)) ? "won tombola" : ""}
-              >
-                Cartella completa<b>Tombola · 50 pt</b>
-              </span>
-            </div>
-            <div className="tombolaScroller">
-              <div className="tombolaCard">
-                {bingoCells.map(({ rowIndex, columnIndex, item }) => {
-                  if (!item) return <span className="tombolaBlank" key={`${rowIndex}-${columnIndex}`} />;
-                  const latestEvidence = challengeResults.find(
-                    (result) =>
-                      result.travelerName === userName && result.contentId === item.id && Boolean(result.evidenceUrl),
-                  );
-                  return (
-                    <article
-                      key={item.id}
-                      className={
-                        approved.has(item.id)
-                          ? "approved"
-                          : submitted.has(item.id)
-                            ? "pending"
-                            : rejectedOnce.has(item.id) || attemptsExhausted.has(item.id)
-                              ? "rejected"
-                              : ""
-                      }
-                    >
-                      <span className="tombolaNumber">{columnIndex * 10 + rowIndex * 3 + 1}</span>
-                      <strong>{item.title}</strong>
-                      {approved.has(item.id) ? (
-                        <div className="bingoOutcome">
-                          <MissionEvidencePhoto result={latestEvidence} title={item.title} />
-                          <b className="bingoStatus approved">
-                            <Check /> Validata
-                          </b>
-                        </div>
-                      ) : submitted.has(item.id) ? (
-                        <div className="bingoOutcome">
-                          <MissionEvidencePhoto result={latestEvidence} title={item.title} />
-                          <b className="bingoStatus pending">In verifica</b>
-                        </div>
-                      ) : attemptsExhausted.has(item.id) ? (
-                        <div className="bingoOutcome">
-                          <MissionEvidencePhoto result={latestEvidence} title={item.title} />
-                          <b className="bingoStatus rejected">Tentativi esauriti</b>
-                        </div>
-                      ) : (
-                        <div className="bingoOutcome">
-                          {rejectedOnce.has(item.id) && (
-                            <MissionEvidencePhoto result={latestEvidence} title={item.title} />
-                          )}
-                          <PhotoPicker
-                            busy={busy === `${item.id}-photo`}
-                            label={rejectedOnce.has(item.id) ? "2° tentativo" : "Foto"}
-                            onFile={(file) => void uploadEvidence(item, day, file)}
-                          />
-                        </div>
-                      )}
-                    </article>
-                  );
-                })}
-              </div>
-            </div>
-            <p className="bingoRules">
-              Punteggi per ogni riga: ambo 5, terno 10, quaterna 20, cinquina 30. Completando tutte le 15 caselle
-              ottieni altri 50 punti.
-            </p>
-          </section>
-        )}
-
-        {tab === "foto" && (
-          <section className="contestHub">
-            <header className="contestHubHero">
-              <span>
-                <Camera />
-              </span>
-              <div>
-                <small>DUE CONTEST · DUE FOTO A TESTA</small>
-                <h3>Contest fotografici</h3>
-                <p>Carica due foto, cambiale liberamente e confermale quando sei soddisfatto.</p>
-              </div>
-            </header>
-            <p className="contestTieRule">
-              <Trophy /> Vince la foto con il punteggio AI più alto. In caso di parità vince quella caricata prima.
-            </p>
-            <DayPicker
-              days={experience.days}
-              activeDayId={day.id}
-              onDay={setActiveDayId}
-              count={(entry) =>
-                experience.challenges.filter((item) => item.type === "photo_contest" && item.dayId === entry.id).length
-              }
-            />
-            <div className="dualContestDayHeading">
-              <div>
-                <small>
-                  GIORNO {day.number} · {dateLabel(day.date)}
-                </small>
-                <h3>{day.city}</h3>
-              </div>
-              <span>Chiusura alle 06:00 del giorno successivo</span>
-            </div>
-            {contests.length === 0 ? (
-              <ChallengeEmpty
-                icon={<Camera />}
-                title="Contest in preparazione"
-                copy="I due contest fotografici appariranno qui appena saranno pubblicati."
-              />
-            ) : (
-              <div className="dualContestGrid">
-                {contests.map((contest, index) => {
-                  const entries = contestEntries.filter((entry) => entry.contentId === contest.id);
-                  const ownEntries = entries.filter((entry) => entry.travelerName === userName);
-                  const drafts = ownEntries.filter((entry) => entry.status === "draft").sort((a, b) => a.slot - b.slot);
-                  const evaluating = ownEntries.some((entry) => entry.status === "evaluating");
-                  const publicEntries = entries.filter((entry) => ["selected", "completed"].includes(entry.status));
-                  const closed = Boolean(data(contest.content).closed);
-                  const confirmed =
-                    closed || ownEntries.some((entry) => ["selected", "completed", "rejected"].includes(entry.status));
-                  const tiedWinner = publicEntries.find(
-                    (entry) =>
-                      entry.isWinner &&
-                      entry.score != null &&
-                      publicEntries.some(
-                        (candidate) =>
-                          candidate.id !== entry.id &&
-                          candidate.score != null &&
-                          Number(candidate.score) === Number(entry.score),
-                      ),
-                  );
-                  return (
-                    <article className={`dualContestCard ${index === 0 ? "free" : "theme"}`} key={contest.id}>
-                      <header>
-                        <span>{index === 0 ? <Camera /> : <Sparkles />}</span>
-                        <div>
-                          <small>
-                            CONTEST {index + 1} · {index === 0 ? "TEMA LIBERO" : "TEMA DEL GIORNO"}
-                          </small>
-                          <h3>{contest.title}</h3>
-                          <p>{text(contest.content, "description")}</p>
-                        </div>
-                        <b>{publicEntries.length} foto</b>
-                      </header>
-                      {publicEntries.length > 0 && (
-                        <div className="contestEntryGrid">
-                          {publicEntries.map(
-                            (entry) =>
-                              entry.contentUrl && (
-                                <ContestPhotoDetails
-                                  key={entry.id}
-                                  entry={entry}
-                                  title={contest.title}
-                                  isOwn={entry.travelerName === userName}
-                                  isClosed={closed}
-                                  wonOnTie={tiedWinner?.id === entry.id}
-                                />
-                              ),
-                          )}
-                        </div>
-                      )}
-                      {!confirmed && !evaluating && (
-                        <>
-                          <div className="contestDraftGrid">
-                            {[1, 2].map((slot) => {
-                              const draft = drafts.find((entry) => entry.slot === slot);
-                              return (
-                                <div key={slot}>
-                                  {draft?.contentUrl ? (
-                                    <>
-                                      <figure>
-                                        <div>
-                                          <Image
-                                            src={draft.contentUrl}
-                                            alt={`Foto ${slot} in bozza`}
-                                            fill
-                                            sizes="180px"
-                                            unoptimized
-                                          />
-                                        </div>
-                                        <figcaption>Foto {slot} · modificabile</figcaption>
-                                      </figure>
-                                      <PhotoPicker
-                                        busy={busy === `${contest.id}-photo`}
-                                        label="Cambia foto"
-                                        onFile={(file) => void uploadEvidence(contest, day, file, slot)}
-                                      />
-                                    </>
-                                  ) : (
-                                    <PhotoPicker
-                                      busy={busy === `${contest.id}-photo`}
-                                      label={`Carica foto ${slot}`}
-                                      onFile={(file) => void uploadEvidence(contest, day, file)}
-                                    />
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                          <div className="contestJudgeBar">
-                            <p>Solo dopo la conferma le foto vengono valutate dall’AI.</p>
-                            <button
-                              type="button"
-                              disabled={drafts.length !== 2 || busy === `${contest.id}-confirm`}
-                              onClick={() => void confirmPhotoContest(contest)}
-                            >
-                              {busy === `${contest.id}-confirm` ? <LoaderCircle className="spin" /> : <Check />}{" "}
-                              Conferma le due foto
-                            </button>
-                          </div>
-                        </>
-                      )}
-                      {evaluating && (
-                        <div className="contestEvaluationPending">
-                          <LoaderCircle className="spin" />
-                          <strong>Valutazione AI in corso</strong>
-                          <small>Verrà mostrata soltanto la foto con il punteggio migliore.</small>
-                        </div>
-                      )}
-                      {confirmed && !closed && !evaluating && (
-                        <div className="contestJudgeBar">
-                          <p>
-                            <CheckCircle2 /> Foto confermate. La migliore concorrerà alla classifica dopo la chiusura.
-                          </p>
-                        </div>
-                      )}
-                      {closed && (
-                        <div className="contestJudgeBar">
-                          <p>
-                            <Trophy /> Contest chiuso. La classifica è definitiva.
-                          </p>
-                        </div>
-                      )}
-                    </article>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        )}
-
-        {tab === "quiz" && (
-          <section className="quizPage">
-            <div className="quizHero">
-              <div>
-                <span>SFIDA DELLA GIORNATA</span>
-                <h2>Il quiz della giornata</h2>
-                <p>{questions.length} domande, un punto per ogni risposta corretta.</p>
-              </div>
-              <Trophy />
-            </div>
-            <div className="quizLayout">
-              <aside className="quizDays">
-                <div className="quizSectionHead">
-                  <div>
-                    <span>LE SFIDE</span>
-                    <h3>Scegli la giornata</h3>
-                  </div>
+                  <h3>{day.city}</h3>
                 </div>
-                <div className="quizDayList">
-                  {experience.days.map((entry) => (
-                    <button
-                      className={entry.id === day.id ? "active" : ""}
-                      aria-current={entry.id === day.id ? "date" : undefined}
-                      onClick={() => {
-                        setActiveDayId(entry.id);
-                        setAnswers({});
-                        setQuizResult(null);
-                      }}
-                      key={entry.id}
-                    >
-                      <span className="quizDayNumber">{entry.number}</span>
-                      <span>
-                        <small>{dateLabel(entry.date)}</small>
-                        <strong>{entry.city}</strong>
-                      </span>
-                      <ChevronRight />
-                    </button>
-                  ))}
-                </div>
-              </aside>
-              <div className="quizPlay">
-                <div className="quizPlayHead">
-                  <div>
-                    <span>
-                      GIORNO {day.number} · {dateLabel(day.date).toUpperCase()}
-                    </span>
-                    <h3>{day.city}</h3>
-                  </div>
-                  {quizResult && (
-                    <div className="quizScoreBadge">
-                      <Medal />
-                      <strong>
-                        {quizResult.score}/{quizResult.maximum}
-                      </strong>
-                    </div>
-                  )}
-                </div>
-                {quizResult ? (
-                  <div className="quizResultBanner">
-                    <span className={quizResult.score >= Math.ceil(quizResult.maximum * 0.8) ? "great" : ""}>
-                      <Trophy />
-                    </span>
-                    <div>
-                      <small>RISULTATO CONFERMATO</small>
-                      <strong>
-                        {quizResult.score} risposte corrette su {quizResult.maximum}
-                      </strong>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="quizProgress">
-                      <span>
-                        <b
-                          style={{
-                            transform: `scaleX(${questions.length ? Object.keys(answers).length / questions.length : 0})`,
-                          }}
-                        />
-                      </span>
-                      <small>
-                        {Object.keys(answers).length} di {questions.length} risposte
-                      </small>
-                    </div>
-                    <div className="quizQuestions">
-                      {questions.map((question, questionIndex) => {
-                        const item = data(question.content);
-                        const options = Array.isArray(item.options) ? item.options.map(String) : [];
-                        return (
-                          <fieldset key={question.id}>
-                            <legend>
-                              <span>{questionIndex + 1}</span>
-                              {text(question.content, "question") || question.title}
-                            </legend>
-                            <div>
-                              {options.map((option, optionIndex) => (
-                                <label className={answers[question.id] === optionIndex ? "selected" : ""} key={option}>
-                                  <input
-                                    type="radio"
-                                    checked={answers[question.id] === optionIndex}
-                                    onChange={() =>
-                                      setAnswers((current) => ({ ...current, [question.id]: optionIndex }))
-                                    }
-                                  />
-                                  <span>{String.fromCharCode(65 + optionIndex)}</span>
-                                  <strong>{option}</strong>
-                                </label>
-                              ))}
-                            </div>
-                          </fieldset>
-                        );
-                      })}
-                    </div>
-                    <div className="quizSubmitBar">
-                      <span>
-                        <CheckCircle2 /> {Object.keys(answers).length}/{questions.length} completate
-                      </span>
-                      <button
-                        disabled={
-                          busy === "quiz" || Object.keys(answers).length !== questions.length || questions.length === 0
-                        }
-                        onClick={() => void submitQuiz()}
-                      >
-                        {busy === "quiz" ? <LoaderCircle className="spin" /> : <Send />} Conferma risposte
-                      </button>
-                    </div>
-                  </>
-                )}
+                <strong>
+                  {missions.filter((item) => approved.has(item.id)).length * 10}
+                  <small>punti validati</small>
+                </strong>
               </div>
-            </div>
-          </section>
-        )}
-
-        {tab === "giochi" && (
-          <section className="gamesPage">
-            <div className="gamesHero">
-              <div>
-                <span>SEMPRE SBLOCCATI · 3 GIOCHI FACILI</span>
-                <h2>Giochi della giornata</h2>
-                <p>Ricostruisci una foto, abbina le coppie e trova l’elemento fuori posto.</p>
-              </div>
-              <Gamepad2 />
-            </div>
-            <DayPicker
-              days={experience.days}
-              activeDayId={day.id}
-              onDay={(id) => {
-                setActiveDayId(id);
-                setGameAnswers({});
-                setGameFeedback({});
-              }}
-              count={(entry) =>
-                Math.min(
-                  3,
-                  experience.challenges.filter(
-                    (item) => ["word_game", "order_game"].includes(item.type) && item.dayId === entry.id,
-                  ).length,
-                )
-              }
-            />
-            <section className="gamesDayHead">
-              <div>
-                <span>
-                  GIORNO {day.number} · {dateLabel(day.date)}
-                </span>
-                <h3>{day.city}</h3>
-              </div>
-              <strong>
-                {currentGameScore}
-                <small>pt</small>
-              </strong>
-            </section>
-            <div className="dailyGamesGrid easyGamesGrid">
-              {puzzleGame && (
-                <PhotoPuzzle
-                  key={`puzzle-${day.id}-${puzzlePhoto.contentUrl}`}
-                  dayNumber={day.number}
-                  photo={puzzlePhoto}
-                  score={
-                    gameFeedback[puzzleGame.id]?.score ??
-                    challengeResults.find(
-                      (result) =>
-                        result.travelerName === userName &&
-                        result.contentId === puzzleGame.id &&
-                        result.status === "approved",
-                    )?.score ??
-                    0
-                  }
-                  busy={busy === `game-${puzzleGame.id}`}
-                  onComplete={() => void submitGame(puzzleGame, "puzzle")}
-                />
-              )}
-              {memoryGame && (
-                <MemoryGame
-                  key={`memory-${day.id}-${memoryGame.id}`}
-                  game={memoryGame}
-                  dayNumber={day.number}
-                  score={
-                    gameFeedback[memoryGame.id]?.score ??
-                    challengeResults.find(
-                      (result) =>
-                        result.travelerName === userName &&
-                        result.contentId === memoryGame.id &&
-                        result.status === "approved",
-                    )?.score ??
-                    0
-                  }
-                  busy={busy === `game-${memoryGame.id}`}
-                  onComplete={() => void submitGame(memoryGame, "memory")}
-                />
-              )}
-              {oddOneOutGame && (
-                <article
-                  className={`dailyGameCard interactiveGame oddOneOutCard ${gameFeedback[oddOneOutGame.id]?.correct ? "solved" : ""}`}
-                >
-                  <header>
-                    <span>3</span>
-                    <div>
-                      <small>TROVA L’INTRUSO</small>
-                      <h3>{oddOneOutGame.title}</h3>
-                    </div>
-                    <b>
-                      {gameFeedback[oddOneOutGame.id]?.score ??
-                        challengeResults.find(
-                          (result) =>
-                            result.travelerName === userName &&
-                            result.contentId === oddOneOutGame.id &&
-                            result.status === "approved",
-                        )?.score ??
-                        0}
-                      /10
-                    </b>
-                  </header>
-                  <p>
-                    {text(oddOneOutGame.content, "instructions") ||
-                      "Tre elementi hanno qualcosa in comune. Tocca quello che non appartiene al gruppo."}
-                  </p>
-                  <div className="oddOneOutOptions" role="group" aria-label="Scegli l'intruso">
-                    {(Array.isArray(data(oddOneOutGame.content).options)
-                      ? (data(oddOneOutGame.content).options as unknown[])
-                      : []
-                    )
-                      .slice(0, 4)
-                      .map((option, optionIndex) => {
-                        const selected = gameAnswers[oddOneOutGame.id] === String(optionIndex);
-                        const solved = gameFeedback[oddOneOutGame.id]?.correct;
-                        return (
-                          <button
-                            key={`${optionIndex}-${String(option)}`}
-                            type="button"
-                            className={selected ? "selected" : ""}
-                            disabled={busy === `game-${oddOneOutGame.id}` || solved}
-                            aria-pressed={selected}
-                            onClick={() =>
-                              setGameAnswers((current) => ({ ...current, [oddOneOutGame.id]: String(optionIndex) }))
-                            }
-                          >
-                            <span>{String.fromCharCode(65 + optionIndex)}</span>
-                            <strong>{String(option)}</strong>
-                          </button>
-                        );
-                      })}
-                  </div>
-                  <button
-                    className="gameTapSubmit"
-                    type="button"
-                    disabled={
-                      gameAnswers[oddOneOutGame.id] == null ||
-                      busy === `game-${oddOneOutGame.id}` ||
-                      gameFeedback[oddOneOutGame.id]?.correct
-                    }
-                    onClick={() => void submitGame(oddOneOutGame, "oddOneOut", gameAnswers[oddOneOutGame.id])}
-                  >
-                    {busy === `game-${oddOneOutGame.id}` ? <LoaderCircle className="spin" /> : <CheckCircle2 />}{" "}
-                    Conferma scelta
-                  </button>
-                  {gameFeedback[oddOneOutGame.id] && (
-                    <p className={`gameFeedback ${gameFeedback[oddOneOutGame.id].correct ? "correct" : "wrong"}`}>
-                      {gameFeedback[oddOneOutGame.id].correct
-                        ? "Intruso trovato: +10 punti!"
-                        : "Non è quello: osserva di nuovo gli altri elementi."}
-                    </p>
-                  )}
-                </article>
-              )}
-            </div>
-            {(!puzzleGame || !memoryGame || !oddOneOutGame) && (
-              <p className="gamesNotice">
-                I nuovi giochi saranno disponibili dopo la prossima pubblicazione del viaggio.
+              <p className="evidenceIntro">
+                <Camera /> Cinque missioni ogni giorno: allega una foto e ottieni 10 punti dopo la validazione. Hai al
+                massimo due tentativi.
               </p>
-            )}
-          </section>
-        )}
-
-        {tab === "valida" && isAdmin && (
-          <section className="reviewPanel">
-            <div className="reviewHeading">
-              <span>
-                <CheckCircle2 />
-              </span>
-              <div>
-                <small>AREA AMMINISTRATORE</small>
-                <h3>Valida le foto-prova</h3>
-                <p>Controlla le missioni e le caselle della tombola prima di assegnare i punti.</p>
-              </div>
-            </div>
-            {challengeResults.filter(
-              (result) => result.status === "submitted" && ["mission", "bingo"].includes(result.type),
-            ).length === 0 ? (
-              <div className="reviewEmpty">
-                <CheckCircle2 />
-                <h3>Nessuna foto da validare</h3>
-                <p>Tutte le prove ricevute sono state esaminate.</p>
-              </div>
-            ) : (
-              <div className="reviewList">
-                {challengeResults
-                  .filter((result) => result.status === "submitted" && ["mission", "bingo"].includes(result.type))
-                  .map((result) => {
-                    const challenge = experience.challenges.find((item) => item.id === result.contentId);
-                    const challengeDay = experience.days.find((entry) => entry.id === result.dayId);
+              {missions.length === 0 ? (
+                <ChallengeEmpty
+                  icon={<Compass />}
+                  title="Missioni in preparazione"
+                  copy="L’agenzia non ha ancora pubblicato le missioni di questa giornata."
+                />
+              ) : (
+                <div className="missionList">
+                  {missions.map((mission, index) => {
+                    const latestEvidence = challengeResults.find(
+                      (result) =>
+                        result.travelerName === userName &&
+                        result.contentId === mission.id &&
+                        Boolean(result.evidenceUrl),
+                    );
                     return (
-                      <article key={result.id}>
-                        <div className="reviewImage">
-                          {result.evidenceUrl ? (
-                            <Image
-                              src={result.evidenceUrl}
-                              alt={`Foto-prova di ${result.travelerName}`}
-                              fill
-                              sizes="(max-width: 800px) 100vw, 380px"
-                              unoptimized
-                            />
-                          ) : (
-                            <Camera />
-                          )}
+                      <article
+                        key={mission.id}
+                        className={
+                          approved.has(mission.id)
+                            ? "approved"
+                            : submitted.has(mission.id)
+                              ? "pending"
+                              : rejectedOnce.has(mission.id) || attemptsExhausted.has(mission.id)
+                                ? "rejected"
+                                : ""
+                        }
+                      >
+                        <span className="missionNumber">
+                          {submitted.has(mission.id) || approved.has(mission.id) ? <Check /> : index + 1}
+                        </span>
+                        <div>
+                          <small>MISSIONE {index + 1} DI 5</small>
+                          <h4>{mission.title}</h4>
+                          <p>{text(mission.content, "description", "instructions")}</p>
                         </div>
-                        <div className="reviewCopy">
-                          <small>
-                            {result.type === "mission" ? "MISSIONE" : "TOMBOLA"} ·{" "}
-                            {challengeDay ? `GIORNO ${challengeDay.number}` : "VIAGGIO"}
-                          </small>
-                          <h4>{challenge?.title || "Foto-prova"}</h4>
-                          <p>{result.travelerName}</p>
-                          <blockquote>
-                            {challenge
-                              ? text(challenge.content, "description", "instructions")
-                              : "Verifica che la foto rispetti la richiesta."}
-                          </blockquote>
-                          <div>
-                            <button
-                              className="reject"
-                              disabled={busy === `review-${result.id}`}
-                              onClick={() => void reviewEvidence(result.id, false)}
-                            >
-                              <XCircle /> Rifiuta
-                            </button>
-                            <button
-                              className="approve"
-                              disabled={busy === `review-${result.id}`}
-                              onClick={() => void reviewEvidence(result.id, true)}
-                            >
-                              {busy === `review-${result.id}` ? <LoaderCircle className="spin" /> : <Check />} Valida
-                            </button>
+                        {approved.has(mission.id) ? (
+                          <div className="missionOutcome">
+                            <MissionEvidencePhoto result={latestEvidence} title={mission.title} />
+                            <span className="missionStatus approved">Validata · 10 pt</span>
                           </div>
-                        </div>
+                        ) : submitted.has(mission.id) ? (
+                          <div className="missionOutcome">
+                            <MissionEvidencePhoto result={latestEvidence} title={mission.title} />
+                            <span className="missionStatus pending">In verifica</span>
+                          </div>
+                        ) : attemptsExhausted.has(mission.id) ? (
+                          <div className="missionOutcome">
+                            <MissionEvidencePhoto result={latestEvidence} title={mission.title} />
+                            <span className="missionStatus rejected">Tentativi esauriti · 0 pt</span>
+                          </div>
+                        ) : (
+                          <div className="missionOutcome">
+                            {rejectedOnce.has(mission.id) && (
+                              <MissionEvidencePhoto result={latestEvidence} title={mission.title} />
+                            )}
+                            <PhotoPicker
+                              busy={busy === `${mission.id}-photo`}
+                              label={rejectedOnce.has(mission.id) ? "Secondo tentativo" : "Aggiungi foto"}
+                              onFile={(file) => void uploadEvidence(mission, day, file)}
+                            />
+                          </div>
+                        )}
                       </article>
                     );
                   })}
-              </div>
-            )}
-          </section>
-        )}
-
-        {tab === "profilo" && (
-          <section className="travellerProfile">
-            <div className="profileScore">
-              <span>
-                {userName
-                  .split(/\s+/)
-                  .map((part) => part[0])
-                  .join("")
-                  .slice(0, 2)
-                  .toUpperCase()}
-              </span>
-              <div>
-                <small>PROFILO DI VIAGGIO</small>
-                <h3>{userName}</h3>
-                <p>
-                  {submitted.size} sfide inviate · {profileRole === "organizer" ? "Capogruppo" : "Membro del gruppo"}
-                </p>
-              </div>
-              <strong>
-                {challengeResults
-                  .filter((item) => item.travelerName === userName && item.status === "approved")
-                  .reduce((sum, item) => sum + item.score, 0)}
-                <small>punti validati</small>
-              </strong>
-            </div>
-            <section className="profileSettings" aria-label="Impostazioni di gioco">
-              <div>
-                <Trophy />
-                <span>
-                  <h3>Classifiche del viaggio</h3>
-                  <p>Scegli se confrontare i tuoi risultati anche con gli altri gruppi.</p>
-                </span>
-                <label className="profileCompetitionSwitch">
-                  <input
-                    type="checkbox"
-                    checked={tripCompetitionEnabled}
-                    disabled={busy === "profile-competition"}
-                    onChange={(event) => void updateProfileCompetition(event.currentTarget.checked)}
-                  />
-                  <span>{tripCompetitionEnabled ? "Partecipo" : "Solo il mio gruppo"}</span>
-                </label>
-              </div>
-              {profileRole === "organizer" && (
-                <div className="leaderTransfer">
-                  <Crown />
-                  <span>
-                    <h3>Cedi il ruolo di capogruppo</h3>
-                    <p>Seleziona un adulto del tuo gruppo. Il passaggio è immediato.</p>
-                  </span>
-                  <select
-                    value={newLeaderId}
-                    disabled={busy === "profile-leader"}
-                    onChange={(event) => setNewLeaderId(event.currentTarget.value)}
-                    aria-label="Nuovo capogruppo"
-                  >
-                    <option value="">Seleziona una persona</option>
-                    {experience.journey.travelers
-                      .filter((traveler) => !traveler.isCurrent && traveler.memberType === "adult")
-                      .map((traveler) => (
-                        <option key={traveler.id} value={traveler.id}>
-                          {traveler.name}
-                        </option>
-                      ))}
-                  </select>
-                  <button
-                    type="button"
-                    disabled={!newLeaderId || busy === "profile-leader"}
-                    onClick={() => void transferLeadership()}
-                  >
-                    {busy === "profile-leader" ? <LoaderCircle className="spin" /> : <Crown />} Cedi ruolo
-                  </button>
                 </div>
               )}
-              {profileNotice && (
-                <p className="profileNotice" role="status">
-                  <CheckCircle2 />
-                  {profileNotice}
+            </section>
+          )}
+
+          {tab === "bingo" && (
+            <section className="bingoBoard">
+              <div className="bingoHeading">
+                <div>
+                  <span>SEMPRE SBLOCCATO · CARTELLA 3 × 9</span>
+                  <h3>Tombola fotografica {experience.journey.destinationCountry}</h3>
+                  <p>
+                    Carica una foto: viene valutata automaticamente. Se è respinta puoi fare un solo secondo tentativo.
+                  </p>
+                </div>
+                <strong>
+                  {bingo.filter((item) => approved.has(item.id)).length}/15<small>caselle validate</small>
+                </strong>
+              </div>
+              <div className="bingoAwards">
+                {bingoRows.map((row, index) => {
+                  const milestone = bingoMilestone(row.filter((item) => approved.has(item.id)).length);
+                  return (
+                    <span className={milestone ? "won" : ""} key={index}>
+                      Riga {index + 1}
+                      <b>{milestone ? `${milestone.label} · ${milestone.points} pt` : "In gioco"}</b>
+                    </span>
+                  );
+                })}
+                <span
+                  className={bingo.length === 15 && bingo.every((item) => approved.has(item.id)) ? "won tombola" : ""}
+                >
+                  Cartella completa<b>Tombola · 50 pt</b>
+                </span>
+              </div>
+              <div className="tombolaScroller">
+                <div className="tombolaCard">
+                  {bingoCells.map(({ rowIndex, columnIndex, item }) => {
+                    if (!item) return <span className="tombolaBlank" key={`${rowIndex}-${columnIndex}`} />;
+                    const latestEvidence = challengeResults.find(
+                      (result) =>
+                        result.travelerName === userName && result.contentId === item.id && Boolean(result.evidenceUrl),
+                    );
+                    return (
+                      <article
+                        key={item.id}
+                        className={
+                          approved.has(item.id)
+                            ? "approved"
+                            : submitted.has(item.id)
+                              ? "pending"
+                              : rejectedOnce.has(item.id) || attemptsExhausted.has(item.id)
+                                ? "rejected"
+                                : ""
+                        }
+                      >
+                        <span className="tombolaNumber">{columnIndex * 10 + rowIndex * 3 + 1}</span>
+                        <strong>{item.title}</strong>
+                        {approved.has(item.id) ? (
+                          <div className="bingoOutcome">
+                            <MissionEvidencePhoto result={latestEvidence} title={item.title} />
+                            <b className="bingoStatus approved">
+                              <Check /> Validata
+                            </b>
+                          </div>
+                        ) : submitted.has(item.id) ? (
+                          <div className="bingoOutcome">
+                            <MissionEvidencePhoto result={latestEvidence} title={item.title} />
+                            <b className="bingoStatus pending">In verifica</b>
+                          </div>
+                        ) : attemptsExhausted.has(item.id) ? (
+                          <div className="bingoOutcome">
+                            <MissionEvidencePhoto result={latestEvidence} title={item.title} />
+                            <b className="bingoStatus rejected">Tentativi esauriti</b>
+                          </div>
+                        ) : (
+                          <div className="bingoOutcome">
+                            {rejectedOnce.has(item.id) && (
+                              <MissionEvidencePhoto result={latestEvidence} title={item.title} />
+                            )}
+                            <PhotoPicker
+                              busy={busy === `${item.id}-photo`}
+                              label={rejectedOnce.has(item.id) ? "2° tentativo" : "Foto"}
+                              onFile={(file) => void uploadEvidence(item, day, file)}
+                            />
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+              </div>
+              <p className="bingoRules">
+                Punteggi per ogni riga: ambo 5, terno 10, quaterna 20, cinquina 30. Completando tutte le 15 caselle
+                ottieni altri 50 punti.
+              </p>
+            </section>
+          )}
+
+          {tab === "foto" && (
+            <section className="contestHub">
+              <header className="contestHubHero">
+                <span>
+                  <Camera />
+                </span>
+                <div>
+                  <small>DUE CONTEST · DUE FOTO A TESTA</small>
+                  <h3>Contest fotografici</h3>
+                  <p>Carica due foto, cambiale liberamente e confermale quando sei soddisfatto.</p>
+                </div>
+              </header>
+              <p className="contestTieRule">
+                <Trophy /> Vince la foto con il punteggio AI più alto. In caso di parità vince quella caricata prima.
+              </p>
+              <DayPicker days={experience.days} activeDayId={day.id} onDay={setActiveDayId} />
+              <div className="dualContestDayHeading">
+                <div>
+                  <small>
+                    GIORNO {day.number} · {dateLabel(day.date)}
+                  </small>
+                  <h3>{day.city}</h3>
+                </div>
+                <span>Chiusura alle 06:00 del giorno successivo</span>
+              </div>
+              {contests.length === 0 ? (
+                <ChallengeEmpty
+                  icon={<Camera />}
+                  title="Contest in preparazione"
+                  copy="I due contest fotografici appariranno qui appena saranno pubblicati."
+                />
+              ) : (
+                <div className="dualContestGrid">
+                  {contests.map((contest, index) => {
+                    const entries = contestEntries.filter((entry) => entry.contentId === contest.id);
+                    const ownEntries = entries.filter((entry) => entry.travelerName === userName);
+                    const drafts = ownEntries
+                      .filter((entry) => entry.status === "draft")
+                      .sort((a, b) => a.slot - b.slot);
+                    const evaluating = ownEntries.some((entry) => entry.status === "evaluating");
+                    const publicEntries = entries.filter((entry) => ["selected", "completed"].includes(entry.status));
+                    const closed = Boolean(data(contest.content).closed);
+                    const confirmed =
+                      closed ||
+                      ownEntries.some((entry) => ["selected", "completed", "rejected"].includes(entry.status));
+                    const tiedWinner = publicEntries.find(
+                      (entry) =>
+                        entry.isWinner &&
+                        entry.score != null &&
+                        publicEntries.some(
+                          (candidate) =>
+                            candidate.id !== entry.id &&
+                            candidate.score != null &&
+                            Number(candidate.score) === Number(entry.score),
+                        ),
+                    );
+                    return (
+                      <article className={`dualContestCard ${index === 0 ? "free" : "theme"}`} key={contest.id}>
+                        <header>
+                          <span>{index === 0 ? <Camera /> : <Sparkles />}</span>
+                          <div>
+                            <small>
+                              CONTEST {index + 1} · {index === 0 ? "TEMA LIBERO" : "TEMA DEL GIORNO"}
+                            </small>
+                            <h3>{contest.title}</h3>
+                            <p>{text(contest.content, "description")}</p>
+                          </div>
+                          <b>{publicEntries.length} foto</b>
+                        </header>
+                        {publicEntries.length > 0 && (
+                          <div className="contestEntryGrid">
+                            {publicEntries.map(
+                              (entry) =>
+                                entry.contentUrl && (
+                                  <ContestPhotoDetails
+                                    key={entry.id}
+                                    entry={entry}
+                                    title={contest.title}
+                                    isOwn={entry.travelerName === userName}
+                                    isClosed={closed}
+                                    wonOnTie={tiedWinner?.id === entry.id}
+                                  />
+                                ),
+                            )}
+                          </div>
+                        )}
+                        {!confirmed && !evaluating && (
+                          <>
+                            <div className="contestDraftGrid">
+                              {[1, 2].map((slot) => {
+                                const draft = drafts.find((entry) => entry.slot === slot);
+                                return (
+                                  <div key={slot}>
+                                    {draft?.contentUrl ? (
+                                      <>
+                                        <figure>
+                                          <div>
+                                            <Image
+                                              src={draft.contentUrl}
+                                              alt={`Foto ${slot} in bozza`}
+                                              fill
+                                              sizes="180px"
+                                              unoptimized
+                                            />
+                                          </div>
+                                          <figcaption>Foto {slot} · modificabile</figcaption>
+                                        </figure>
+                                        <PhotoPicker
+                                          busy={busy === `${contest.id}-photo`}
+                                          label="Cambia foto"
+                                          onFile={(file) => void uploadEvidence(contest, day, file, slot)}
+                                        />
+                                      </>
+                                    ) : (
+                                      <PhotoPicker
+                                        busy={busy === `${contest.id}-photo`}
+                                        label={`Carica foto ${slot}`}
+                                        onFile={(file) => void uploadEvidence(contest, day, file)}
+                                      />
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <div className="contestJudgeBar">
+                              <p>Solo dopo la conferma le foto vengono valutate dall’AI.</p>
+                              <button
+                                type="button"
+                                disabled={drafts.length !== 2 || busy === `${contest.id}-confirm`}
+                                onClick={() => void confirmPhotoContest(contest)}
+                              >
+                                {busy === `${contest.id}-confirm` ? <LoaderCircle className="spin" /> : <Check />}{" "}
+                                Conferma le due foto
+                              </button>
+                            </div>
+                          </>
+                        )}
+                        {evaluating && (
+                          <div className="contestEvaluationPending">
+                            <LoaderCircle className="spin" />
+                            <strong>Valutazione AI in corso</strong>
+                            <small>Verrà mostrata soltanto la foto con il punteggio migliore.</small>
+                          </div>
+                        )}
+                        {confirmed && !closed && !evaluating && (
+                          <div className="contestJudgeBar">
+                            <p>
+                              <CheckCircle2 /> Foto confermate. La migliore concorrerà alla classifica dopo la chiusura.
+                            </p>
+                          </div>
+                        )}
+                        {closed && (
+                          <div className="contestJudgeBar">
+                            <p>
+                              <Trophy /> Contest chiuso. La classifica è definitiva.
+                            </p>
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          )}
+
+          {tab === "quiz" && (
+            <section className="quizPage">
+              <div className="quizHero">
+                <div>
+                  <span>SFIDA DELLA GIORNATA</span>
+                  <h2>Il quiz della giornata</h2>
+                  <p>{questions.length} domande, un punto per ogni risposta corretta.</p>
+                </div>
+                <Trophy />
+              </div>
+              <div className="quizLayout">
+                <aside className="quizDays">
+                  <div className="quizSectionHead">
+                    <div>
+                      <span>LE SFIDE</span>
+                      <h3>Scegli la giornata</h3>
+                    </div>
+                  </div>
+                  <div className="quizDayList">
+                    {experience.days.map((entry) => (
+                      <button
+                        className={entry.id === day.id ? "active" : ""}
+                        aria-current={entry.id === day.id ? "date" : undefined}
+                        onClick={() => {
+                          setActiveDayId(entry.id);
+                          setAnswers({});
+                          setQuizResult(null);
+                        }}
+                        key={entry.id}
+                      >
+                        <span className="quizDayNumber">{entry.number}</span>
+                        <span>
+                          <small>{dateLabel(entry.date)}</small>
+                          <strong>{entry.city}</strong>
+                        </span>
+                        <ChevronRight />
+                      </button>
+                    ))}
+                  </div>
+                </aside>
+                <div className="quizPlay">
+                  <div className="quizPlayHead">
+                    <div>
+                      <span>
+                        GIORNO {day.number} · {dateLabel(day.date).toUpperCase()}
+                      </span>
+                      <h3>{day.city}</h3>
+                    </div>
+                    {quizResult && (
+                      <div className="quizScoreBadge">
+                        <Medal />
+                        <strong>
+                          {quizResult.score}/{quizResult.maximum}
+                        </strong>
+                      </div>
+                    )}
+                  </div>
+                  {quizResult ? (
+                    <div className="quizResultBanner">
+                      <span className={quizResult.score >= Math.ceil(quizResult.maximum * 0.8) ? "great" : ""}>
+                        <Trophy />
+                      </span>
+                      <div>
+                        <small>RISULTATO CONFERMATO</small>
+                        <strong>
+                          {quizResult.score} risposte corrette su {quizResult.maximum}
+                        </strong>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="quizProgress">
+                        <span>
+                          <b
+                            style={{
+                              transform: `scaleX(${questions.length ? Object.keys(answers).length / questions.length : 0})`,
+                            }}
+                          />
+                        </span>
+                        <small>
+                          {Object.keys(answers).length} di {questions.length} risposte
+                        </small>
+                      </div>
+                      <div className="quizQuestions">
+                        {questions.map((question, questionIndex) => {
+                          const item = data(question.content);
+                          const options = Array.isArray(item.options) ? item.options.map(String) : [];
+                          return (
+                            <fieldset key={question.id}>
+                              <legend>
+                                <span>{questionIndex + 1}</span>
+                                {text(question.content, "question") || question.title}
+                              </legend>
+                              <div>
+                                {options.map((option, optionIndex) => (
+                                  <label
+                                    className={answers[question.id] === optionIndex ? "selected" : ""}
+                                    key={option}
+                                  >
+                                    <input
+                                      type="radio"
+                                      checked={answers[question.id] === optionIndex}
+                                      onChange={() =>
+                                        setAnswers((current) => ({ ...current, [question.id]: optionIndex }))
+                                      }
+                                    />
+                                    <span>{String.fromCharCode(65 + optionIndex)}</span>
+                                    <strong>{option}</strong>
+                                  </label>
+                                ))}
+                              </div>
+                            </fieldset>
+                          );
+                        })}
+                      </div>
+                      <div className="quizSubmitBar">
+                        <span>
+                          <CheckCircle2 /> {Object.keys(answers).length}/{questions.length} completate
+                        </span>
+                        <button
+                          disabled={
+                            busy === "quiz" ||
+                            Object.keys(answers).length !== questions.length ||
+                            questions.length === 0
+                          }
+                          onClick={() => void submitQuiz()}
+                        >
+                          {busy === "quiz" ? <LoaderCircle className="spin" /> : <Send />} Conferma risposte
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {tab === "giochi" && (
+            <section className="gamesPage">
+              <div className="gamesHero">
+                <div>
+                  <span>SEMPRE SBLOCCATI · 3 GIOCHI FACILI</span>
+                  <h2>Giochi della giornata</h2>
+                  <p>Ricostruisci una foto, abbina le coppie e trova l’elemento fuori posto.</p>
+                </div>
+                <Gamepad2 />
+              </div>
+              <DayPicker
+                days={experience.days}
+                activeDayId={day.id}
+                onDay={(id) => {
+                  setActiveDayId(id);
+                  setGameAnswers({});
+                  setGameFeedback({});
+                }}
+              />
+              <section className="gamesDayHead">
+                <div>
+                  <span>
+                    GIORNO {day.number} · {dateLabel(day.date)}
+                  </span>
+                  <h3>{day.city}</h3>
+                </div>
+                <strong>
+                  {currentGameScore}
+                  <small>pt</small>
+                </strong>
+              </section>
+              <div className="dailyGamesGrid easyGamesGrid">
+                {puzzleGame && (
+                  <PhotoPuzzle
+                    key={`puzzle-${day.id}-${puzzlePhoto.contentUrl}`}
+                    dayNumber={day.number}
+                    photo={puzzlePhoto}
+                    score={
+                      gameFeedback[puzzleGame.id]?.score ??
+                      challengeResults.find(
+                        (result) =>
+                          result.travelerName === userName &&
+                          result.contentId === puzzleGame.id &&
+                          result.status === "approved",
+                      )?.score ??
+                      0
+                    }
+                    busy={busy === `game-${puzzleGame.id}`}
+                    onComplete={() => void submitGame(puzzleGame, "puzzle")}
+                  />
+                )}
+                {memoryGame && (
+                  <MemoryGame
+                    key={`memory-${day.id}-${memoryGame.id}`}
+                    game={memoryGame}
+                    dayNumber={day.number}
+                    score={
+                      gameFeedback[memoryGame.id]?.score ??
+                      challengeResults.find(
+                        (result) =>
+                          result.travelerName === userName &&
+                          result.contentId === memoryGame.id &&
+                          result.status === "approved",
+                      )?.score ??
+                      0
+                    }
+                    busy={busy === `game-${memoryGame.id}`}
+                    onComplete={() => void submitGame(memoryGame, "memory")}
+                  />
+                )}
+                {oddOneOutGame && (
+                  <article
+                    className={`dailyGameCard interactiveGame oddOneOutCard ${gameFeedback[oddOneOutGame.id]?.correct ? "solved" : ""}`}
+                  >
+                    <header>
+                      <span>3</span>
+                      <div>
+                        <small>TROVA L’INTRUSO</small>
+                        <h3>{oddOneOutGame.title}</h3>
+                      </div>
+                      <b>
+                        {gameFeedback[oddOneOutGame.id]?.score ??
+                          challengeResults.find(
+                            (result) =>
+                              result.travelerName === userName &&
+                              result.contentId === oddOneOutGame.id &&
+                              result.status === "approved",
+                          )?.score ??
+                          0}
+                        /10
+                      </b>
+                    </header>
+                    <p>
+                      {text(oddOneOutGame.content, "instructions") ||
+                        "Tre elementi hanno qualcosa in comune. Tocca quello che non appartiene al gruppo."}
+                    </p>
+                    <div className="oddOneOutOptions" role="group" aria-label="Scegli l'intruso">
+                      {(Array.isArray(data(oddOneOutGame.content).options)
+                        ? (data(oddOneOutGame.content).options as unknown[])
+                        : []
+                      )
+                        .slice(0, 4)
+                        .map((option, optionIndex) => {
+                          const selected = gameAnswers[oddOneOutGame.id] === String(optionIndex);
+                          const solved = gameFeedback[oddOneOutGame.id]?.correct;
+                          return (
+                            <button
+                              key={`${optionIndex}-${String(option)}`}
+                              type="button"
+                              className={selected ? "selected" : ""}
+                              disabled={busy === `game-${oddOneOutGame.id}` || solved}
+                              aria-pressed={selected}
+                              onClick={() =>
+                                setGameAnswers((current) => ({ ...current, [oddOneOutGame.id]: String(optionIndex) }))
+                              }
+                            >
+                              <span>{String.fromCharCode(65 + optionIndex)}</span>
+                              <strong>{String(option)}</strong>
+                            </button>
+                          );
+                        })}
+                    </div>
+                    <button
+                      className="gameTapSubmit"
+                      type="button"
+                      disabled={
+                        gameAnswers[oddOneOutGame.id] == null ||
+                        busy === `game-${oddOneOutGame.id}` ||
+                        gameFeedback[oddOneOutGame.id]?.correct
+                      }
+                      onClick={() => void submitGame(oddOneOutGame, "oddOneOut", gameAnswers[oddOneOutGame.id])}
+                    >
+                      {busy === `game-${oddOneOutGame.id}` ? <LoaderCircle className="spin" /> : <CheckCircle2 />}{" "}
+                      Conferma scelta
+                    </button>
+                    {gameFeedback[oddOneOutGame.id] && (
+                      <p className={`gameFeedback ${gameFeedback[oddOneOutGame.id].correct ? "correct" : "wrong"}`}>
+                        {gameFeedback[oddOneOutGame.id].correct
+                          ? "Intruso trovato: +10 punti!"
+                          : "Non è quello: osserva di nuovo gli altri elementi."}
+                      </p>
+                    )}
+                  </article>
+                )}
+              </div>
+              {(!puzzleGame || !memoryGame || !oddOneOutGame) && (
+                <p className="gamesNotice">
+                  I nuovi giochi saranno disponibili dopo la prossima pubblicazione del viaggio.
                 </p>
               )}
             </section>
-            <section className="overallRanking">
-              <div>
-                <Medal />
+          )}
+
+          {tab === "valida" && isAdmin && (
+            <section className="reviewPanel">
+              <div className="reviewHeading">
                 <span>
-                  <small>CLASSIFICA COMPLESSIVA</small>
-                  <h3>{experience.journey.partyName}</h3>
+                  <CheckCircle2 />
                 </span>
+                <div>
+                  <small>AREA AMMINISTRATORE</small>
+                  <h3>Valida le foto-prova</h3>
+                  <p>Controlla le missioni e le caselle della tombola prima di assegnare i punti.</p>
+                </div>
               </div>
-              {scores.length === 0 ? (
-                <p>Il podio aspetta il primo punteggio.</p>
+              {challengeResults.filter(
+                (result) => result.status === "submitted" && ["mission", "bingo"].includes(result.type),
+              ).length === 0 ? (
+                <div className="reviewEmpty">
+                  <CheckCircle2 />
+                  <h3>Nessuna foto da validare</h3>
+                  <p>Tutte le prove ricevute sono state esaminate.</p>
+                </div>
               ) : (
-                scores.map(([name, score], index) => (
-                  <article className={name === userName ? "current" : ""} key={name}>
-                    <span>{index === 0 ? <Crown /> : index + 1}</span>
-                    <i>{name.slice(0, 2).toUpperCase()}</i>
-                    <strong>{name}</strong>
-                    <b>{score} pt</b>
-                  </article>
-                ))
+                <div className="reviewList">
+                  {challengeResults
+                    .filter((result) => result.status === "submitted" && ["mission", "bingo"].includes(result.type))
+                    .map((result) => {
+                      const challenge = experience.challenges.find((item) => item.id === result.contentId);
+                      const challengeDay = experience.days.find((entry) => entry.id === result.dayId);
+                      return (
+                        <article key={result.id}>
+                          <div className="reviewImage">
+                            {result.evidenceUrl ? (
+                              <Image
+                                src={result.evidenceUrl}
+                                alt={`Foto-prova di ${result.travelerName}`}
+                                fill
+                                sizes="(max-width: 800px) 100vw, 380px"
+                                unoptimized
+                              />
+                            ) : (
+                              <Camera />
+                            )}
+                          </div>
+                          <div className="reviewCopy">
+                            <small>
+                              {result.type === "mission" ? "MISSIONE" : "TOMBOLA"} ·{" "}
+                              {challengeDay ? `GIORNO ${challengeDay.number}` : "VIAGGIO"}
+                            </small>
+                            <h4>{challenge?.title || "Foto-prova"}</h4>
+                            <p>{result.travelerName}</p>
+                            <blockquote>
+                              {challenge
+                                ? text(challenge.content, "description", "instructions")
+                                : "Verifica che la foto rispetti la richiesta."}
+                            </blockquote>
+                            <div>
+                              <button
+                                className="reject"
+                                disabled={busy === `review-${result.id}`}
+                                onClick={() => void reviewEvidence(result.id, false)}
+                              >
+                                <XCircle /> Rifiuta
+                              </button>
+                              <button
+                                className="approve"
+                                disabled={busy === `review-${result.id}`}
+                                onClick={() => void reviewEvidence(result.id, true)}
+                              >
+                                {busy === `review-${result.id}` ? <LoaderCircle className="spin" /> : <Check />} Valida
+                              </button>
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
+                </div>
               )}
             </section>
-          </section>
-        )}
-        {tab === "classifica" && (
-          <PlatformTripRankings experience={{ ...experience, challengeResults }} userName={userName} />
-        )}
-      </div>
-    </section>
+          )}
+
+          {tab === "profilo" && (
+            <section className="travellerProfile">
+              <div className="profileScore">
+                <span>
+                  {userName
+                    .split(/\s+/)
+                    .map((part) => part[0])
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase()}
+                </span>
+                <div>
+                  <small>PROFILO DI VIAGGIO</small>
+                  <h3>{userName}</h3>
+                  <p>
+                    {submitted.size} sfide inviate · {profileRole === "organizer" ? "Capogruppo" : "Membro del gruppo"}
+                  </p>
+                </div>
+                <strong>
+                  {challengeResults
+                    .filter((item) => item.travelerName === userName && item.status === "approved")
+                    .reduce((sum, item) => sum + item.score, 0)}
+                  <small>punti validati</small>
+                </strong>
+              </div>
+              <section className="profileSettings" aria-label="Impostazioni di gioco">
+                <div>
+                  <Trophy />
+                  <span>
+                    <h3>Classifiche del viaggio</h3>
+                    <p>Scegli se confrontare i tuoi risultati anche con gli altri gruppi.</p>
+                  </span>
+                  <label className="profileCompetitionSwitch">
+                    <input
+                      type="checkbox"
+                      checked={tripCompetitionEnabled}
+                      disabled={busy === "profile-competition"}
+                      onChange={(event) => void updateProfileCompetition(event.currentTarget.checked)}
+                    />
+                    <span>{tripCompetitionEnabled ? "Partecipo" : "Solo il mio gruppo"}</span>
+                  </label>
+                </div>
+                {profileRole === "organizer" && (
+                  <div className="leaderTransfer">
+                    <Crown />
+                    <span>
+                      <h3>Cedi il ruolo di capogruppo</h3>
+                      <p>Seleziona un adulto del tuo gruppo. Il passaggio è immediato.</p>
+                    </span>
+                    <select
+                      value={newLeaderId}
+                      disabled={busy === "profile-leader"}
+                      onChange={(event) => setNewLeaderId(event.currentTarget.value)}
+                      aria-label="Nuovo capogruppo"
+                    >
+                      <option value="">Seleziona una persona</option>
+                      {experience.journey.travelers
+                        .filter((traveler) => !traveler.isCurrent && traveler.memberType === "adult")
+                        .map((traveler) => (
+                          <option key={traveler.id} value={traveler.id}>
+                            {traveler.name}
+                          </option>
+                        ))}
+                    </select>
+                    <button
+                      type="button"
+                      disabled={!newLeaderId || busy === "profile-leader"}
+                      onClick={() => void transferLeadership()}
+                    >
+                      {busy === "profile-leader" ? <LoaderCircle className="spin" /> : <Crown />} Cedi ruolo
+                    </button>
+                  </div>
+                )}
+                {profileNotice && (
+                  <p className="profileNotice" role="status">
+                    <CheckCircle2 />
+                    {profileNotice}
+                  </p>
+                )}
+              </section>
+              <section className="overallRanking">
+                <div>
+                  <Medal />
+                  <span>
+                    <small>CLASSIFICA COMPLESSIVA</small>
+                    <h3>{experience.journey.partyName}</h3>
+                  </span>
+                </div>
+                {scores.length === 0 ? (
+                  <p>Il podio aspetta il primo punteggio.</p>
+                ) : (
+                  scores.map(([name, score], index) => (
+                    <article className={name === userName ? "current" : ""} key={name}>
+                      <span>{index === 0 ? <Crown /> : index + 1}</span>
+                      <i>{name.slice(0, 2).toUpperCase()}</i>
+                      <strong>{name}</strong>
+                      <b>{score} pt</b>
+                    </article>
+                  ))
+                )}
+              </section>
+            </section>
+          )}
+          {tab === "classifica" && (
+            <PlatformTripRankings experience={{ ...experience, challengeResults }} userName={userName} />
+          )}
+        </div>
+      </section>
+      {confirmDialog}
+    </>
   );
 }
 
-function DayPicker({
-  days,
-  activeDayId,
-  onDay,
-  count: _count,
-}: {
-  days: Day[];
-  activeDayId: string;
-  onDay: (id: string) => void;
-  count: (day: Day) => number;
-}) {
+function DayPicker({ days, activeDayId, onDay }: { days: Day[]; activeDayId: string; onDay: (id: string) => void }) {
   return (
     <div className="challengeDayPicker" aria-label="Scegli la giornata">
       {days.map((day) => (

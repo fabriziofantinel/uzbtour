@@ -15,12 +15,11 @@ export default function OperationalChat({
 }) {
   const [messages, setMessages] = useState<Message[]>([]),
     [body, setBody] = useState(""),
-    [busy, setBusy] = useState(false),
+    [busy, setBusy] = useState(true),
     [error, setError] = useState("");
   const end = useRef<HTMLDivElement>(null);
   const load = useCallback(
-    async (silent = false) => {
-      if (!silent) setBusy(true);
+    async (reportError = true) => {
       try {
         const parameters = new URLSearchParams({ departureId, scope });
         if (partyId) parameters.set("partyId", partyId);
@@ -31,21 +30,27 @@ export default function OperationalChat({
         setMessages(result.messages || []);
         setError("");
       } catch (caught) {
-        if (!silent) setError(caught instanceof Error ? caught.message : "Chat non disponibile");
-      } finally {
-        if (!silent) setBusy(false);
+        if (reportError) setError(caught instanceof Error ? caught.message : "Chat non disponibile");
       }
     },
     [departureId, partyId, scope, travelerId],
   );
   useEffect(() => {
-    void load();
-    const timer = window.setInterval(() => void load(true), 15000);
-    return () => window.clearInterval(timer);
+    const initialLoad = window.setTimeout(() => void load().finally(() => setBusy(false)), 0);
+    const timer = window.setInterval(() => void load(false), 15000);
+    return () => {
+      window.clearTimeout(initialLoad);
+      window.clearInterval(timer);
+    };
   }, [load]);
   useEffect(() => {
     end.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [messages]);
+  async function refresh() {
+    setBusy(true);
+    await load();
+    setBusy(false);
+  }
   async function submit(event: FormEvent) {
     event.preventDefault();
     const text = body.trim();
@@ -68,7 +73,7 @@ export default function OperationalChat({
         result = (await response.json()) as { error?: string };
       if (!response.ok) throw new Error(result.error || "Invio non riuscito");
       setBody("");
-      await load(true);
+      await load(false);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Invio non riuscito");
     } finally {
@@ -91,7 +96,7 @@ export default function OperationalChat({
                 : "Conversazione privata con lo staff operativo."}
           </p>
         </div>
-        <button type="button" onClick={() => void load()} disabled={busy} aria-label="Aggiorna conversazione">
+        <button type="button" onClick={() => void refresh()} disabled={busy} aria-label="Aggiorna conversazione">
           <RefreshCw />
         </button>
       </header>

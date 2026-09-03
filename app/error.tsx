@@ -1,6 +1,7 @@
 "use client";
 
 import { CircleAlert, House, RotateCcw } from "lucide-react";
+import Link from "next/link";
 import "./system-status.css";
 
 export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
@@ -18,10 +19,10 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
             <RotateCcw />
             Riprova
           </button>
-          <a href="/">
+          <Link href="/">
             <House />
             Torna alla pagina iniziale
-          </a>
+          </Link>
         </div>
       </section>
     </main>

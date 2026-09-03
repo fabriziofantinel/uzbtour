@@ -17,6 +17,7 @@ export type TripMapDay = {
 
 type TripOverviewMapProps = {
   days: TripMapDay[];
+  routeColor: string;
   onSelect: (index: number) => void;
 };
 
@@ -41,7 +42,7 @@ function markerOffsets(days: TripMapDay[]) {
   return offsets;
 }
 
-export default function TripOverviewMap({ days, onSelect }: TripOverviewMapProps) {
+export default function TripOverviewMap({ days, routeColor, onSelect }: TripOverviewMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const onSelectRef = useRef(onSelect);
@@ -74,7 +75,7 @@ export default function TripOverviewMap({ days, onSelect }: TripOverviewMapProps
 
       const route = days.map((day) => [day.lat, day.lon] as [number, number]);
       L.polyline(route, {
-        color: "#0b6462",
+        color: routeColor,
         opacity: 0.85,
         weight: 4,
         dashArray: "8 7",
@@ -120,7 +121,7 @@ export default function TripOverviewMap({ days, onSelect }: TripOverviewMapProps
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, [days]);
+  }, [days, routeColor]);
 
   function showWholeRoute() {
     if (!mapRef.current || days.length === 0) return;

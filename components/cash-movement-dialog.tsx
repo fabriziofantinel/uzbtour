@@ -47,13 +47,6 @@ export default function CashMovementDialog({
 
   useEffect(() => {
     if (!kind) return;
-    setLocalAmount("");
-    setEuroAmount("");
-    setSubmitError("");
-  }, [kind]);
-
-  useEffect(() => {
-    if (!kind) return;
     returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
