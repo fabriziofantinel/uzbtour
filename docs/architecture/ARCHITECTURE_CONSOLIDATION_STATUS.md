@@ -1,6 +1,6 @@
 # SMF Travel - Stato consolidamento architetturale
 
-Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migrazioni 001-163.
+Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migrazioni 001-164.
 
 ## Componenti e connessioni as-built
 
@@ -30,7 +30,8 @@ Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migraz
 24. Registrazione del preventivo sorgente, salvataggio della revisione e cancellazione della bozza importata usano l'UUID IAM; i tre overload testuali sono revocati e il debito SQL è sceso a 58.
 25. Accodamento dei workload e registrazione dei fallimenti di dispatch usano l'UUID IAM per agenzia e viaggiatore; le firme testuali sono revocate e il debito SQL è sceso a 56.
 26. Creazione del viaggio e creazione di una nuova partenza da programma pubblicato usano l'UUID IAM; le firme testuali sono revocate e il debito SQL è sceso a 54.
-27. `CURRENT_SCHEMA_VERSION` segue l'ultima migrazione applicativa (163); `quality:guard` confronta automaticamente costante, ultimo file e marker, impedendo nuovi disallineamenti in CI e su Vercel.
+27. `CURRENT_SCHEMA_VERSION` segue l'ultima migrazione applicativa; `quality:guard` confronta automaticamente costante, ultimo file e marker, impedendo nuovi disallineamenti in CI e su Vercel.
+28. Il drill distruttivo manuale ha verificato cancellazione R2 reale, interruzione e ripresa con un secondo worker e assenza di effetti sul tenant sentinella. La migrazione 164 corregge l'ambiguità rilevata nella richiesta UUID di cancellazione.
 
 ## Finding del Solution Architect
 
@@ -51,6 +52,7 @@ Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migraz
 | Staging applicativo | Predisposto, non attivo | Branch Neon effimero e test sono pronti; manca un deployment Vercel staging isolato con configurazione e dati sintetici |
 | Playwright autenticato | Predisposto, non attivo | I percorsi read-only agenzia/viaggiatore esistono; il job resta sospeso finché non sono configurati URL e account E2E dedicati |
 | Test AI live manuale | Predisposto e disattivato | Replay deterministico gratuito in CI; ogni esecuzione Bedrock reale richiede avvio del proprietario e `AI_LIVE_TEST_CONFIRM=1`. Nessuna pianificazione automatica finché l'app non sarà commercializzata |
+| Cancellazione distruttiva R2 | Chiuso | Drill manuale con due tenant sintetici: oggetto target eliminato, ripresa al secondo worker, tenant sentinella invariato e fixture ripulite |
 
 ## Gate di rilascio
 
