@@ -27,7 +27,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       .safeParse(await request.json().catch(() => null));
     if (!parsed.success)
       return NextResponse.json({ error: "Compila nome, username, email e telefono." }, { status: 400 });
-    const created = await createAgencyAgent({ actorId: actor.id, agencyId: id, ...parsed.data });
+    const created = await createAgencyAgent({ actorId: actor.nativeId, agencyId: id, ...parsed.data });
     let invitationEmailSent = false;
     if (created.activationToken) {
       const activationUrl = new URL(
@@ -57,7 +57,7 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
     if (!/^[0-9a-f-]{36}$/i.test(id)) return NextResponse.json({ error: "Agenzia non valida" }, { status: 400 });
     const parsed = z.object({ agentId: z.string().min(8).max(100) }).safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Agente non valido" }, { status: 400 });
-    await removeAgencyAgent(actor.id, id, parsed.data.agentId);
+    await removeAgencyAgent(actor.nativeId, id, parsed.data.agentId);
     return NextResponse.json({ agents: await readAgencyAgents(actor.nativeId, id) });
   } catch (error) {
     return platformApiError(error, "Eliminazione agente non riuscita");

@@ -44,7 +44,7 @@ export async function createAgencyAgent(input: {
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("");
   const rows = await sql`SELECT legacy_user_id,activation_required FROM app.provision_agency_agent_v3(
-    ${input.actorId},${input.agencyId}::uuid,${input.name},${initials},
+    ${input.actorId}::uuid,${input.agencyId}::uuid,${input.name},${initials},
     ${input.username.trim().toLocaleLowerCase("en-US")},${input.email},${input.phone},
     ${createHash("sha256").update(token).digest("hex")},${new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()}::timestamptz)`;
   return { id: String(rows[0].legacy_user_id), activationToken: Boolean(rows[0].activation_required) ? token : null };
@@ -52,6 +52,6 @@ export async function createAgencyAgent(input: {
 
 export async function removeAgencyAgent(actorId: string, agencyId: string, agentId: string) {
   const sql = getSql();
-  const rows = await sql`SELECT app.remove_agency_agent_v3(${actorId},${agencyId}::uuid,${agentId}) removed`;
+  const rows = await sql`SELECT app.remove_agency_agent_v3(${actorId}::uuid,${agencyId}::uuid,${agentId}) removed`;
   return Boolean(rows[0]?.removed);
 }
