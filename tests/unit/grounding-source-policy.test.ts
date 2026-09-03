@@ -12,6 +12,15 @@ describe("grounding source policy", () => {
 
   test("rejects blogs and commercial portals", () => {
     expect(() => validateGroundingSources(["https://example-travel-blog.com/country"])).toThrow("privo di fonti");
+    expect(isAllowedGroundingSource("https://gov.example.com/deceptive-path")).toBe(false);
+    expect(isAllowedGroundingSource("https://example.gov.com/deceptive-path")).toBe(false);
+  });
+
+  test("accepts government labels only in the public suffix position", () => {
+    expect(isAllowedGroundingSource("https://travel.state.gov/content/travel.html")).toBe(true);
+    expect(isAllowedGroundingSource("https://www.salute.gov.it/example")).toBe(true);
+    expect(isAllowedGroundingSource("https://www.gov.uk/foreign-travel-advice")).toBe(true);
+    expect(isAllowedGroundingSource("https://www.gob.mx/example")).toBe(true);
   });
 
   test("keeps trusted citations and removes incidental untrusted citations", () => {

@@ -13,7 +13,10 @@ function matchesDomain(hostname: string, domain: string) {
 
 function isGovernmentHostname(hostname: string) {
   const labels = hostname.split(".");
-  return labels.some((label) => ["gov", "gob", "go", "gouv", "gc", "admin"].includes(label));
+  const governmentLabels = new Set(["gov", "gob", "go", "gouv", "gc", "admin"]);
+  const finalLabel = labels.at(-1) ?? "";
+  const governmentLabel = labels.at(-2) ?? "";
+  return governmentLabels.has(finalLabel) || (finalLabel.length === 2 && governmentLabels.has(governmentLabel));
 }
 
 export function isAllowedGroundingSource(value: string) {

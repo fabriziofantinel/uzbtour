@@ -51,7 +51,7 @@ export function captureBedrockGeneration(input: {
   });
 }
 
-async function persist(context: Context) {
+async function persist(context: Context, status: "completed" | "failed", errorMessage: string | null = null) {
   if (context.entries.length === 0) return;
   const grouped = new Map<string, Entry & { invocationCount: number }>();
   for (const entry of context.entries) {
@@ -67,8 +67,8 @@ async function persist(context: Context) {
   await sql.transaction((txn) =>
     [...grouped.values()].map(
       (entry) => txn`SELECT app.record_ai_generation_v3(${context.agencyId},${context.platformJobId},
-        'amazon-bedrock',${entry.model},${entry.operation},${entry.region},${entry.promptHash},'completed',
-        ${entry.inputTokens},${entry.outputTokens},${entry.invocationCount},NULL)`,
+        'amazon-bedrock',${entry.model},${entry.operation},${entry.region},${entry.promptHash},${status},
+        ${entry.inputTokens},${entry.outputTokens},${entry.invocationCount},${errorMessage})`,
     ),
   );
 }
@@ -76,8 +76,21 @@ async function persist(context: Context) {
 export async function withAiGenerationTelemetry<T>(context: Omit<Context, "entries">, action: () => Promise<T>) {
   const active = { ...context, entries: [] as Entry[] };
   return storage.run(active, async () => {
-    const result = await action();
-    await persist(active);
-    return result;
+    try {
+      const result = await action();
+      await persist(active, "completed");
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+      try {
+        await persist(active, "failed", errorMessage);
+      } catch (persistenceError) {
+        console.error("AI failure telemetry persistence failed", {
+          platformJobId: context.platformJobId,
+          error: persistenceError instanceof Error ? persistenceError.message : String(persistenceError),
+        });
+      }
+      throw error;
+    }
   });
 }
