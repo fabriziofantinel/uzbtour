@@ -20,11 +20,11 @@ export async function readMyTourLeaderDepartures(actorUserId: string) {
   }));
 }
 
-export async function readDepartureOperationalControl(actorId: string, departureId: string, actorUserId?: string) {
+export async function readDepartureOperationalControl(actorId: string, departureId: string, actorUserId: string) {
   const [rows, alerts, staffRows] = await Promise.all([
     getSql()`SELECT * FROM app.list_departure_operations_v3(${actorId},${departureId}::uuid)`,
-    getSql()`SELECT * FROM app.list_operational_alerts_v3(${actorId},${departureId}::uuid)`,
-    getSql()`SELECT * FROM app.list_departure_tour_leaders_v3(${actorUserId || null}::uuid,${departureId}::uuid)`,
+    getSql()`SELECT * FROM app.list_operational_alerts_v3(${actorUserId}::uuid,${departureId}::uuid)`,
+    getSql()`SELECT * FROM app.list_departure_tour_leaders_v3(${actorUserId}::uuid,${departureId}::uuid)`,
   ]);
   return {
     staff: staffRows.map((row) => ({
