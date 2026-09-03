@@ -30,6 +30,7 @@ Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migraz
 24. Registrazione del preventivo sorgente, salvataggio della revisione e cancellazione della bozza importata usano l'UUID IAM; i tre overload testuali sono revocati e il debito SQL è sceso a 58.
 25. Accodamento dei workload e registrazione dei fallimenti di dispatch usano l'UUID IAM per agenzia e viaggiatore; le firme testuali sono revocate e il debito SQL è sceso a 56.
 26. Creazione del viaggio e creazione di una nuova partenza da programma pubblicato usano l'UUID IAM; le firme testuali sono revocate e il debito SQL è sceso a 54.
+27. `CURRENT_SCHEMA_VERSION` segue l'ultima migrazione applicativa (163); `quality:guard` confronta automaticamente costante, ultimo file e marker, impedendo nuovi disallineamenti in CI e su Vercel.
 
 ## Finding del Solution Architect
 
