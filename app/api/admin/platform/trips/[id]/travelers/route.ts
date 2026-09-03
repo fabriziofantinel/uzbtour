@@ -25,7 +25,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const { id } = await params;
     const input = schema.parse(await request.json());
     const actor = await requireAgencyAdmin(input.agencyId);
-    const current = await getJourneyManagement(id, actor.id);
+    const current = await getJourneyManagement(id, actor.id, actor.nativeId);
     const group = current.groups.find((item) => item.id === input.partyId);
     if (current.journey.agencyId !== input.agencyId || !group) {
       return NextResponse.json({ error: "Gruppo non valido" }, { status: 403 });
@@ -64,7 +64,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
     return NextResponse.json(
       {
-        data: await getJourneyManagement(id, actor.id),
+        data: await getJourneyManagement(id, actor.id, actor.nativeId),
         travelerId: invitation.travelerId,
         activationToken: invitation.activationToken,
         invitationEmailSent,

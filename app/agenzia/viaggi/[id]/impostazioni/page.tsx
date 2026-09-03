@@ -13,7 +13,7 @@ export default async function DepartureSettingsPage({ params }: { params: Promis
     const actor = await requirePlatformAdmin();
     const { id } = await params;
     const [journey, profile, insurance] = await Promise.all([
-      getJourneyManagement(id, actor.id),
+      getJourneyManagement(id, actor.id, actor.nativeId),
       readDepartureExperienceProfile(actor.id, id),
       readDepartureInsurance(actor.id, id),
     ]);

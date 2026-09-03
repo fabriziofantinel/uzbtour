@@ -9,7 +9,7 @@ export default async function DayDocumentsPage({ params }: { params: Promise<{ i
   try {
     const actor = await requirePlatformAdmin();
     const { id } = await params;
-    return <DayDocumentsClient initialData={await getAgencyDayDocuments(id, actor.id)} />;
+    return <DayDocumentsClient initialData={await getAgencyDayDocuments(id, actor.id, actor.nativeId)} />;
   } catch (error) {
     if (error instanceof PlatformAuthorizationError) redirect("/");
     throw error;

@@ -74,7 +74,7 @@ export async function getPlatformOverview(actor: {
     sql`SELECT * FROM app.read_agency_recent_imports_v3(${actor.nativeId}::uuid)`,
     sql`SELECT * FROM app.read_agency_reference_contents_v3(${actor.nativeId}::uuid)`,
     sql`SELECT * FROM app.read_agency_enrichment_jobs_v3(${actor.nativeId}::uuid)`,
-    sql`SELECT * FROM app.read_agency_branding_v3(${actor.id})`,
+    sql`SELECT * FROM app.read_agency_branding_v3(${actor.nativeId}::uuid)`,
   ]);
   const rows = overviewRows as OverviewRow[];
   const brandingByAgency = new Map(

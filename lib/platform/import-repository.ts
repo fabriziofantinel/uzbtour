@@ -49,7 +49,7 @@ export async function getImportAgency(importId: string) {
 export async function getImportAgencyPrimaryColor(actorId: string, agencyId: string) {
   const sql = getSql();
   const rows =
-    await sql`SELECT branding FROM app.read_agency_branding_v3(${actorId}) WHERE agency_id=${agencyId} LIMIT 1`;
+    await sql`SELECT branding FROM app.read_agency_branding_v3(${actorId}::uuid) WHERE agency_id=${agencyId} LIMIT 1`;
   const branding =
     rows[0]?.branding && typeof rows[0].branding === "object" && !Array.isArray(rows[0].branding)
       ? (rows[0].branding as Record<string, unknown>)

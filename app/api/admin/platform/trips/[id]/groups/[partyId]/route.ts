@@ -32,7 +32,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const { id, partyId } = await params;
     const input = schema.parse(await request.json());
     const actor = await requireAgencyAdmin(input.agencyId);
-    const current = await getJourneyManagement(id, actor.id);
+    const current = await getJourneyManagement(id, actor.id, actor.nativeId);
     const group = current.groups.find((item) => item.id === partyId);
     if (current.journey.agencyId !== input.agencyId || !group) {
       return NextResponse.json({ error: "Gruppo non valido" }, { status: 403 });
@@ -73,7 +73,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         enabled: input.enabled,
       });
     }
-    return NextResponse.json({ data: await getJourneyManagement(id, actor.id) });
+    return NextResponse.json({ data: await getJourneyManagement(id, actor.id, actor.nativeId) });
   } catch (error) {
     return platformApiError(error, "Aggiornamento del gruppo non riuscito");
   }
@@ -86,7 +86,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       .object({ agencyId: z.string().uuid(), travelerId: z.string().uuid().optional() })
       .parse(await request.json());
     const actor = await requireAgencyAdmin(input.agencyId);
-    const current = await getJourneyManagement(id, actor.id);
+    const current = await getJourneyManagement(id, actor.id, actor.nativeId);
     const group = current.groups.find((item) => item.id === partyId);
     if (current.journey.agencyId !== input.agencyId || !group)
       return NextResponse.json({ error: "Gruppo non valido" }, { status: 403 });
@@ -101,7 +101,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
         travelerId: input.travelerId,
       });
     } else await deleteJourneyGroup({ actorId: actor.id, agencyId: input.agencyId, departureId: id, partyId });
-    return NextResponse.json({ data: await getJourneyManagement(id, actor.id) });
+    return NextResponse.json({ data: await getJourneyManagement(id, actor.id, actor.nativeId) });
   } catch (error) {
     return platformApiError(error, "Eliminazione non riuscita");
   }

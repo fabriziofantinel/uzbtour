@@ -18,7 +18,7 @@ export default async function ImportReviewPage({ params }: { params: Promise<{ i
     return (
       <ImportReview
         initialImport={imported}
-        agencyPrimaryColor={await getImportAgencyPrimaryColor(actor.id, agencyId)}
+        agencyPrimaryColor={await getImportAgencyPrimaryColor(actor.nativeId, agencyId)}
       />
     );
   } catch (error) {

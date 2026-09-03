@@ -13,7 +13,7 @@ export default async function CommunicationsPage({ params }: { params: Promise<{
     const actor = await requirePlatformAdmin();
     const { id } = await params;
     const [journey, communications] = await Promise.all([
-      getJourneyManagement(id, actor.id),
+      getJourneyManagement(id, actor.id, actor.nativeId),
       readDepartureCommunications(actor.id, id),
     ]);
     return <CommunicationsClient journey={journey} initialCommunications={communications} />;

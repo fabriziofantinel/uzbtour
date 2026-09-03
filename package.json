@@ -40,6 +40,8 @@
     "db:migrate:v3:native-agency-agents-read": "node --env-file=.env.local scripts/migrate-v3-native-agency-agents-read.mjs --apply",
     "db:migrate:v3:native-agency-agent-mutations:dry-run": "node --env-file=.env.local scripts/migrate-v3-native-agency-agent-mutations.mjs",
     "db:migrate:v3:native-agency-agent-mutations": "node --env-file=.env.local scripts/migrate-v3-native-agency-agent-mutations.mjs --apply",
+    "db:migrate:v3:native-agency-branding-read:dry-run": "node --env-file=.env.local scripts/migrate-v3-native-agency-branding-read.mjs",
+    "db:migrate:v3:native-agency-branding-read": "node --env-file=.env.local scripts/migrate-v3-native-agency-branding-read.mjs --apply",
     "db:migrate:v3:tenant-storage-quotas:dry-run": "node --env-file=.env.local scripts/migrate-v3-tenant-storage-quotas.mjs",
     "db:migrate:v3:tenant-storage-quotas": "node --env-file=.env.local scripts/migrate-v3-tenant-storage-quotas.mjs --apply",
     "db:migrate:v3:tenant-limit-precedence:dry-run": "node --env-file=.env.local scripts/migrate-v3-tenant-workload-limit-precedence.mjs",

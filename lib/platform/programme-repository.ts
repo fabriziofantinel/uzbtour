@@ -8,7 +8,7 @@ function value(value: unknown) {
   return value == null ? "" : String(value);
 }
 
-export async function getAgencyProgramme(departureId: string, actorId: string) {
+export async function getAgencyProgramme(departureId: string, actorId: string, actorNativeId: string) {
   await assertProgrammeFeedbackSchema();
   const sql = getSql();
   const scopeRows = await sql`
@@ -44,7 +44,7 @@ export async function getAgencyProgramme(departureId: string, actorId: string) {
     `,
       transaction`
       SELECT branding
-      FROM app.read_agency_branding_v3(${actorId})
+      FROM app.read_agency_branding_v3(${actorNativeId}::uuid)
       WHERE agency_id = ${agencyId}
       LIMIT 1
     `,

@@ -3,8 +3,8 @@ import { getSql } from "@/lib/db";
 import { getAgencyProgramme } from "./programme-repository";
 import { getJourneyManagement } from "./journey-repository";
 
-export async function getAgencyDayDocuments(departureId: string, actorId: string) {
-  const programme = await getAgencyProgramme(departureId, actorId);
+export async function getAgencyDayDocuments(departureId: string, actorId: string, actorNativeId: string) {
+  const programme = await getAgencyProgramme(departureId, actorId, actorNativeId);
   const sql = getSql();
   const [, rows] = await sql.transaction(
     (txn) => [
@@ -23,7 +23,7 @@ export async function getAgencyDayDocuments(departureId: string, actorId: string
     ],
     { readOnly: true },
   );
-  const management = await getJourneyManagement(departureId, actorId);
+  const management = await getJourneyManagement(departureId, actorId, actorNativeId);
   return {
     departure: programme.departure,
     days: programme.days.map(({ id, number, offset, title, city }) => ({ id, number, offset, title, city })),

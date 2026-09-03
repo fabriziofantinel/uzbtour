@@ -12,11 +12,11 @@ function toIsoDate(value: unknown) {
   return Number.isNaN(parsed.valueOf()) ? "" : parsed.toISOString().slice(0, 10);
 }
 
-export async function readV3JourneyManagement(departureId: string, actorId: string) {
+export async function readV3JourneyManagement(departureId: string, actorId: string, actorNativeId: string) {
   const sql = getSql();
   const [rows, brandingRows] = await Promise.all([
     sql`SELECT * FROM app.read_journey_management(${actorId},${departureId}::uuid)`,
-    sql`SELECT agency_id::text,branding FROM app.read_agency_branding_v3(${actorId})`,
+    sql`SELECT agency_id::text,branding FROM app.read_agency_branding_v3(${actorNativeId}::uuid)`,
   ]);
   const first = rows[0];
   if (!first) throw new PlatformRequestError("Viaggio non trovato");

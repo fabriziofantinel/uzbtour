@@ -16,7 +16,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const originalName = String(body?.originalName || "")
       .trim()
       .slice(0, 500);
-    const journey = await getJourneyManagement(id, actor.id);
+    const journey = await getJourneyManagement(id, actor.id, actor.nativeId);
     const prefix = `agencies/${journey.journey.agencyId}/departures/${id}/insurance/`;
     if (!objectKey.startsWith(prefix) || !originalName.toLowerCase().endsWith(".pdf"))
       return NextResponse.json({ error: "Documento assicurativo non valido" }, { status: 400 });

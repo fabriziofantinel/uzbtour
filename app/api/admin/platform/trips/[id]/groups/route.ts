@@ -11,7 +11,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const { id } = await params;
     const input = schema.parse(await request.json());
     const actor = await requireAgencyAdmin(input.agencyId);
-    const current = await getJourneyManagement(id, actor.id);
+    const current = await getJourneyManagement(id, actor.id, actor.nativeId);
     if (current.journey.agencyId !== input.agencyId)
       return NextResponse.json({ error: "Agenzia non valida" }, { status: 403 });
     const familyId = await createJourneyFamily({
@@ -20,7 +20,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       name: input.name,
       actorId: actor.id,
     });
-    return NextResponse.json({ familyId, data: await getJourneyManagement(id, actor.id) }, { status: 201 });
+    return NextResponse.json(
+      { familyId, data: await getJourneyManagement(id, actor.id, actor.nativeId) },
+      { status: 201 },
+    );
   } catch (error) {
     return platformApiError(error, "Creazione del gruppo non riuscita");
   }

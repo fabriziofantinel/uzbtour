@@ -11,7 +11,7 @@ export default async function ProgrammePage({ params }: { params: Promise<{ id: 
   try {
     const actor = await requirePlatformAdmin();
     const { id } = await params;
-    return <ProgrammeEditor initialProgramme={await getAgencyProgramme(id, actor.id)} />;
+    return <ProgrammeEditor initialProgramme={await getAgencyProgramme(id, actor.id, actor.nativeId)} />;
   } catch (error) {
     if (error instanceof PlatformAuthorizationError) redirect("/");
     throw error;

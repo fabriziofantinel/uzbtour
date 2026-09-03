@@ -8,7 +8,7 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
   try {
     const actor = await requirePlatformAdmin(),
       { id } = await params;
-    return <AgencyOperationalChat data={await getJourneyManagement(id, actor.id)} />;
+    return <AgencyOperationalChat data={await getJourneyManagement(id, actor.id, actor.nativeId)} />;
   } catch (error) {
     if (error instanceof PlatformAuthorizationError) redirect("/");
     throw error;

@@ -23,8 +23,8 @@ function familyCode(name: string) {
   return `${base}-${crypto.randomUUID().slice(0, 6).toUpperCase()}`;
 }
 
-export async function getJourneyManagement(departureId: string, actorId: string) {
-  return readV3JourneyManagement(departureId, actorId);
+export async function getJourneyManagement(departureId: string, actorId: string, actorNativeId: string) {
+  return readV3JourneyManagement(departureId, actorId, actorNativeId);
 }
 
 export async function createJourneyFamily(input: {

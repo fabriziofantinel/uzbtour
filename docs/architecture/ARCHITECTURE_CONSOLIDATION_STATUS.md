@@ -1,6 +1,6 @@
 # SMF Travel - Stato consolidamento architetturale
 
-Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migrazioni 001-155.
+Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migrazioni 001-156.
 
 ## Componenti e connessioni as-built
 
@@ -22,6 +22,7 @@ Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migraz
 16. Import recenti, contenuti di riferimento e stato enrichment della dashboard agenzia usano l'UUID IAM; le tre firme testuali sono revocate e il debito SQL è sceso a 80.
 17. L'elenco degli agenti autorizza direttamente l'UUID IAM; la firma testuale non è più eseguibile dal ruolo applicativo e il debito SQL è sceso a 79.
 18. Invito e rimozione degli agenti, inclusa la verifica del responsabile, autorizzano l'UUID IAM; le tre firme testuali sono revocate e il debito SQL è sceso a 76.
+19. Il branding dell'agenzia è letto tramite identità UUID nativa in dashboard, importazioni, programma, documenti e gestione gruppi; la firma testuale è revocata e il debito SQL è sceso a 75.
 
 ## Finding del Solution Architect
 
