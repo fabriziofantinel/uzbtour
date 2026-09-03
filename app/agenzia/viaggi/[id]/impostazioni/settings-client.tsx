@@ -1,27 +1,20 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useState } from "react";
 import type { CSSProperties } from "react";
 import {
-  ArrowLeft,
-  BookOpen,
   CheckCircle2,
   CircleAlert,
   FileText,
-  FolderOpen,
   LoaderCircle,
-  MessageCircle,
   Plus,
   Save,
-  Send,
-  Settings2,
   ShieldCheck,
   Trash2,
   Upload,
-  UsersRound,
 } from "lucide-react";
 import { uploadPrivateFile } from "@/lib/private-upload-client";
+import AgencyManagementNav from "@/components/agency-management-nav";
 import { accessibleBrandColor, validBrandColor } from "@/lib/platform/branding-ui";
 import type { readDepartureInsurance } from "@/lib/platform/departure-operations";
 import type { getJourneyManagement } from "@/lib/platform/journey-repository";
@@ -61,6 +54,7 @@ export default function DepartureSettingsClient({
     "--agency-ui": color,
     "--agency-ui-ink": "#111111",
     "--smf-brand": color,
+    "--smf-brand-deep": color,
     "--smf-focus": accessibleBrandColor(color),
   } as CSSProperties;
 
@@ -151,33 +145,13 @@ export default function DepartureSettingsClient({
   }
 
   return (
-    <main className="departureSettingsPage" style={style}>
-      <header className="journeyOpsHeader">
-        <Link href="/agenzia">
-          <ArrowLeft /> Tutti i viaggi
-        </Link>
-        <nav aria-label="Gestione del viaggio">
-          <Link href={`/agenzia/viaggi/${journey.journey.id}/programma`}>
-            <BookOpen /> Programma
-          </Link>
-          <Link href={`/agenzia/viaggi/${journey.journey.id}`}>
-            <UsersRound /> Gruppi
-          </Link>
-          <Link href={`/agenzia/viaggi/${journey.journey.id}/documenti`}>
-            <FolderOpen /> Documenti
-          </Link>
-          <Link href={`/agenzia/viaggi/${journey.journey.id}/chat`}>
-            <MessageCircle /> Chat
-          </Link>
-          <Link href={`/agenzia/viaggi/${journey.journey.id}/comunicazioni`}>
-            <Send /> Comunicazioni
-          </Link>
-          <span aria-current="page">
-            <Settings2 /> Configurazione
-          </span>
-        </nav>
-      </header>
-      <section className="communicationsHero">
+    <main className="journeyManagePage" style={style}>
+      <AgencyManagementNav
+        departureId={journey.journey.id}
+        activeTab="configurazione"
+        quoteImportId={journey.journey.quoteImportId}
+      />
+      <section className="journeyManageHero">
         <small>CONFIGURAZIONE PARTENZA</small>
         <h1>{journey.journey.title}</h1>
         <p>Definisci l’esperienza del viaggiatore e i riferimenti assicurativi reali della partenza.</p>

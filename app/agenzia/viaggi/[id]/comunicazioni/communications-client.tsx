@@ -1,24 +1,19 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
 import {
-  ArrowLeft,
-  BookOpen,
   CheckCircle2,
   CircleAlert,
   Clock3,
-  FolderOpen,
   LoaderCircle,
   Mail,
-  MessageCircle,
   Send,
-  Settings2,
   UsersRound,
 } from "lucide-react";
 import { accessibleBrandColor, validBrandColor } from "@/lib/platform/branding-ui";
+import AgencyManagementNav from "@/components/agency-management-nav";
 import type { readDepartureCommunications } from "@/lib/platform/departure-operations";
 import type { getJourneyManagement } from "@/lib/platform/journey-repository";
 
@@ -204,33 +199,13 @@ export default function CommunicationsClient({
 
   return (
     <>
-      <main className="communicationsPage" style={style}>
-        <header className="journeyOpsHeader">
-          <Link href="/agenzia">
-            <ArrowLeft /> Tutti i viaggi
-          </Link>
-          <nav aria-label="Gestione del viaggio">
-            <Link href={`/agenzia/viaggi/${journey.journey.id}/programma`}>
-              <BookOpen /> Programma
-            </Link>
-            <Link href={`/agenzia/viaggi/${journey.journey.id}`}>
-              <UsersRound /> Gruppi
-            </Link>
-            <Link href={`/agenzia/viaggi/${journey.journey.id}/documenti`}>
-              <FolderOpen /> Documenti
-            </Link>
-            <Link href={`/agenzia/viaggi/${journey.journey.id}/chat`}>
-              <MessageCircle /> Chat
-            </Link>
-            <span aria-current="page">
-              <Send /> Comunicazioni
-            </span>
-            <Link href={`/agenzia/viaggi/${journey.journey.id}/impostazioni`}>
-              <Settings2 /> Configurazione
-            </Link>
-          </nav>
-        </header>
-        <section className="communicationsHero">
+      <main className="journeyManagePage" style={style}>
+        <AgencyManagementNav
+          departureId={journey.journey.id}
+          activeTab="comunicazioni"
+          quoteImportId={journey.journey.quoteImportId}
+        />
+        <section className="journeyManageHero">
           <h1>{journey.journey.title}</h1>
           <p>Invia aggiornamenti all’intera partenza o soltanto ai gruppi selezionati e controlla le prese visione.</p>
         </section>

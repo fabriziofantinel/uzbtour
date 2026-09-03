@@ -1,12 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import {
   ArrowDown,
-  ArrowLeft,
   ArrowUp,
   BedDouble,
-  BookOpen,
   Bus,
   CalendarDays,
   CheckCircle2,
@@ -19,16 +16,12 @@ import {
   FileText,
   LoaderCircle,
   MapPin,
-  MessageCircle,
   Plane,
   Plus,
   Save,
-  Send,
-  Settings2,
   TrainFront,
   Trash2,
   Upload,
-  UsersRound,
   Utensils,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -37,6 +30,7 @@ import { uploadPrivateFile } from "@/lib/private-upload-client";
 import { accessibleBrandColor, validBrandColor } from "@/lib/platform/branding-ui";
 import type { AgencyProgramme } from "@/lib/platform/programme-repository";
 import { useAppConfirm } from "@/components/app-confirm-dialog";
+import AgencyManagementNav from "@/components/agency-management-nav";
 
 type Props = { initialProgramme: AgencyProgramme };
 type Day = AgencyProgramme["days"][number];
@@ -336,47 +330,13 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
   return (
     <>
       <main className="programmePage" style={agencyStyle}>
-        <header className="programmeTopbar">
-          <Link href="/agenzia">
-            <ArrowLeft /> Tutti i viaggi
-          </Link>
-          <nav aria-label="Gestione del viaggio">
-            <span aria-current="page">
-              <BookOpen /> Programma
-            </span>
-            <Link href={`/agenzia/viaggi/${departure.id}`}>
-              <UsersRound /> Gruppi
-            </Link>
-            <Link href={`/agenzia/viaggi/${departure.id}/documenti`}>
-              <FileText /> Documenti
-            </Link>
-            <Link href={`/agenzia/viaggi/${departure.id}/chat`}>
-              <MessageCircle /> Chat
-            </Link>
-            <Link href={`/agenzia/viaggi/${departure.id}/comunicazioni`}>
-              <Send /> Comunicazioni
-            </Link>
-            <Link href={`/agenzia/viaggi/${departure.id}/impostazioni`}>
-              <Settings2 /> Configurazione
-            </Link>
-            {departure.quoteImportId && (
-              <details className="programmeQuotes">
-                <summary>
-                  <Download /> Preventivi
-                </summary>
-                <div>
-                  <a href={`/api/admin/platform/imports/${departure.quoteImportId}/original`}>
-                    <FileText /> Originale
-                  </a>
-                  <a href={`/api/admin/platform/imports/${departure.quoteImportId}/normalized`}>
-                    <Download /> Revisionato DOCX
-                  </a>
-                </div>
-              </details>
-            )}
-          </nav>
-          <span className="programmeHeaderBalance" aria-hidden="true" />
-        </header>
+        <AgencyManagementNav
+          className="programmeTopbar"
+          departureId={departure.id}
+          activeTab="programma"
+          quoteImportId={departure.quoteImportId}
+          rightSlot={<span className="programmeHeaderBalance" aria-hidden="true" />}
+        />
         <section className="journeyManageHero programmeHero">
           <small>{departure.destinationCountry}</small>
           <h1>{departure.programmeTitle}</h1>

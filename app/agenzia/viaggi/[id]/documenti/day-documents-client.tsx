@@ -1,10 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useState, type CSSProperties } from "react";
 import {
-  ArrowLeft,
-  BookOpen,
   CalendarDays,
   CheckCircle2,
   CircleAlert,
@@ -12,16 +9,13 @@ import {
   FileText,
   FolderOpen,
   LoaderCircle,
-  MessageCircle,
-  Send,
-  Settings2,
   Trash2,
   Upload,
-  UsersRound,
 } from "lucide-react";
 import { uploadPrivateFile } from "@/lib/private-upload-client";
 import type { AgencyDayDocuments } from "@/lib/platform/day-documents-repository";
 import { useAppConfirm } from "@/components/app-confirm-dialog";
+import AgencyManagementNav from "@/components/agency-management-nav";
 
 function formatDay(startsOn: string, offset: number) {
   const date = new Date(`${startsOn.slice(0, 10)}T12:00:00Z`);
@@ -133,32 +127,12 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
           } as CSSProperties
         }
       >
-        <header>
-          <Link href="/agenzia">
-            <ArrowLeft /> Tutti i viaggi
-          </Link>
-          <nav aria-label="Gestione del viaggio">
-            <Link href={`/agenzia/viaggi/${departure.id}/programma`}>
-              <BookOpen /> Programma
-            </Link>
-            <Link href={`/agenzia/viaggi/${departure.id}`}>
-              <UsersRound /> Gruppi
-            </Link>
-            <span aria-current="page">
-              <FolderOpen /> Documenti
-            </span>
-            <Link href={`/agenzia/viaggi/${departure.id}/chat`}>
-              <MessageCircle /> Chat
-            </Link>
-            <Link href={`/agenzia/viaggi/${departure.id}/comunicazioni`}>
-              <Send /> Comunicazioni
-            </Link>
-            <Link href={`/agenzia/viaggi/${departure.id}/impostazioni`}>
-              <Settings2 /> Configurazione
-            </Link>
-          </nav>
-          <span className="journeyAgencyName">{departure.programmeTitle}</span>
-        </header>
+        <AgencyManagementNav
+          departureId={departure.id}
+          activeTab="documenti"
+          quoteImportId={departure.quoteImportId}
+          journeyTitle={departure.programmeTitle}
+        />
         <section className="journeyManageHero">
           <small>DOCUMENTI DEL VIAGGIO</small>
           <h1>{departure.title}</h1>
