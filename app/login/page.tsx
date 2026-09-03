@@ -76,7 +76,7 @@ function LoginContent() {
       const requestedDestination = searchParams.get("next");
       const meResponse = await fetch("/api/auth/me", { cache: "no-store" });
       const me = (await meResponse.json().catch(() => null)) as {
-        user?: { isSuperAdmin?: boolean; isAgencyAdmin?: boolean };
+        user?: { isSuperAdmin?: boolean; isAgencyAdmin?: boolean; isTourLeader?: boolean };
       } | null;
       if (!meResponse.ok || !me?.user) {
         await fetch("/api/auth/username/sign-out", { method: "POST" }).catch(() => undefined);
@@ -86,7 +86,8 @@ function LoginContent() {
       const destination =
         me.user.isAgencyAdmin && !me.user.isSuperAdmin
           ? "/agenzia"
-          : (requestedDestination ?? (me.user.isSuperAdmin ? "/admin" : "/viaggio"));
+          : (requestedDestination ??
+            (me.user.isSuperAdmin ? "/admin" : me.user.isTourLeader ? "/tour-leader" : "/viaggio"));
       const safeDestination = destination.startsWith("/") && !destination.startsWith("//") ? destination : "/";
       window.location.href = safeDestination;
     } catch (caught) {

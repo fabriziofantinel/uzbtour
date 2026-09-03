@@ -1,4 +1,5 @@
 import "server-only";
+import { createHash, randomBytes } from "node:crypto";
 import { getSql } from "@/lib/db";
 
 export async function canOperateDeparture(actorId: string, departureId: string) {
@@ -6,13 +7,35 @@ export async function canOperateDeparture(actorId: string, departureId: string) 
   return Boolean(rows[0]?.allowed);
 }
 
-export async function readDepartureOperationalControl(actorId: string, departureId: string) {
-  const [rows, alerts] = await Promise.all([
+export async function readMyTourLeaderDepartures(actorUserId: string) {
+  const rows = await getSql()`SELECT * FROM app.list_my_tour_leader_departures_v3(${actorUserId}::uuid)`;
+  return rows.map((row) => ({
+    id: String(row.departure_id),
+    title: String(row.title),
+    agencyName: String(row.agency_name),
+    startsOn: String(row.starts_on),
+    endsOn: String(row.ends_on),
+    validFrom: String(row.valid_from),
+    validUntil: String(row.valid_until),
+  }));
+}
+
+export async function readDepartureOperationalControl(actorId: string, departureId: string, actorUserId?: string) {
+  const [rows, alerts, staffRows] = await Promise.all([
     getSql()`SELECT * FROM app.list_departure_operations_v3(${actorId},${departureId}::uuid)`,
     getSql()`SELECT * FROM app.list_operational_alerts_v3(${actorId},${departureId}::uuid)`,
+    getSql()`SELECT * FROM app.list_departure_tour_leaders_v3(${actorUserId || null}::uuid,${departureId}::uuid)`,
   ]);
   return {
-    staff: rows.filter((row) => row.kind === "staff").map((row) => ({ id: String(row.id), name: String(row.name) })),
+    staff: staffRows.map((row) => ({
+      id: String(row.id),
+      userId: String(row.user_id),
+      name: String(row.name),
+      email: String(row.email),
+      status: String(row.status),
+      validFrom: String(row.valid_from),
+      validUntil: String(row.valid_until),
+    })),
     eligibleStaff: rows
       .filter((row) => row.kind === "eligible_staff")
       .map((row) => ({ id: String(row.id), name: String(row.name), email: String(row.detail) })),
@@ -45,9 +68,53 @@ export async function readDepartureOperationalControl(actorId: string, departure
   };
 }
 
-export async function assignTourLeader(actorId: string, departureId: string, userId: string) {
-  const rows = await getSql()`SELECT app.assign_tour_leader_v3(${actorId},${departureId}::uuid,${userId})::text id`;
+export async function assignTourLeader(
+  actorUserId: string,
+  departureId: string,
+  userId: string,
+  validFrom: string,
+  validUntil: string,
+) {
+  const rows =
+    await getSql()`SELECT app.assign_tour_leader_period_v3(${actorUserId}::uuid,${departureId}::uuid,${userId}::uuid,${validFrom}::timestamptz,${validUntil}::timestamptz)::text id`;
   return String(rows[0]?.id || "");
+}
+
+export async function inviteTourLeader(input: {
+  actorUserId: string;
+  departureId: string;
+  name: string;
+  username: string;
+  email: string;
+  phone: string;
+  validFrom: string;
+  validUntil: string;
+}) {
+  const token = randomBytes(32).toString("base64url");
+  const initials = input.name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+  const rows = await getSql()`SELECT legacy_user_id,activation_required,assignment_id::text
+    FROM app.provision_departure_tour_leader_v3(
+      ${input.actorUserId}::uuid,${input.departureId}::uuid,${input.name},${initials},
+      ${input.username.trim().toLocaleLowerCase("en-US")},${input.email},${input.phone},
+      ${createHash("sha256").update(token).digest("hex")},
+      ${new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()}::timestamptz,
+      ${input.validFrom}::timestamptz,${input.validUntil}::timestamptz)`;
+  return {
+    userId: String(rows[0]?.legacy_user_id || ""),
+    assignmentId: String(rows[0]?.assignment_id || ""),
+    activationToken: Boolean(rows[0]?.activation_required) ? token : null,
+  };
+}
+
+export async function revokeTourLeader(actorUserId: string, departureId: string, assignmentId: string, reason: string) {
+  const rows =
+    await getSql()`SELECT app.revoke_tour_leader_v3(${actorUserId}::uuid,${departureId}::uuid,${assignmentId}::uuid,${reason}) revoked`;
+  return Boolean(rows[0]?.revoked);
 }
 
 export async function recordAttendance(input: {

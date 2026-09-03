@@ -54,9 +54,17 @@ export default function ActivateAccountPage() {
     if (!response.ok) throw new Error(body.error || "Attivazione non riuscita");
     const meResponse = await fetch("/api/auth/me", { cache: "no-store" });
     const me = (await meResponse.json().catch(() => null)) as {
-      user?: { isSuperAdmin?: boolean; isAgencyAdmin?: boolean };
+      user?: { isSuperAdmin?: boolean; isAgencyAdmin?: boolean; isTourLeader?: boolean };
     } | null;
-    window.location.replace(me?.user?.isSuperAdmin ? "/admin" : me?.user?.isAgencyAdmin ? "/agenzia" : "/viaggio");
+    window.location.replace(
+      me?.user?.isSuperAdmin
+        ? "/admin"
+        : me?.user?.isAgencyAdmin
+          ? "/agenzia"
+          : me?.user?.isTourLeader
+            ? "/tour-leader"
+            : "/viaggio",
+    );
   }
   async function activate(event: FormEvent) {
     event.preventDefault();

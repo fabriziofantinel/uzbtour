@@ -7,13 +7,14 @@ type Row = Record<string, unknown>;
 export async function resolveV3CognitoAuthenticatedUser(subject: string) {
   const sql = getSql();
   const rows = await sql`
-    SELECT legacy_user_id,display_name,username,email,platform_role,is_agency_admin
+    SELECT native_user_id,legacy_user_id,display_name,username,email,platform_role,is_agency_admin
     FROM app.resolve_cognito_authenticated_user(${subject})
   `;
   const row = rows[0] as Row | undefined;
   if (!row) return null;
   return {
     id: String(row.legacy_user_id),
+    nativeId: String(row.native_user_id),
     name: String(row.display_name),
     username: String(row.username),
     email: String(row.email),

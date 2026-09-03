@@ -1,36 +1,65 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, CheckCircle2, ClipboardCheck, HeartHandshake, UserRoundCog } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ClipboardCheck, HeartHandshake, UserRoundCog, UserPlus, XCircle } from "lucide-react";
 import type { readDepartureOperationalControl } from "@/lib/platform/departure-operational-control";
 type Data = Awaited<ReturnType<typeof readDepartureOperationalControl>>;
 export default function OperationalControlClient({
   departureId,
   initialData,
+  backHref,
+  backLabel,
 }: {
   departureId: string;
   initialData: Data;
+  backHref?: string;
+  backLabel?: string;
 }) {
   const [data, setData] = useState(initialData),
     [day, setDay] = useState(initialData.days[0]?.id || ""),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(""),
+    [error, setError] = useState(""),
+    [busy, setBusy] = useState(false),
+    [period, setPeriod] = useState(() => ({
+      validFrom: new Date().toISOString().slice(0, 16),
+      validUntil: new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 16),
+    })),
+    [invite, setInvite] = useState({ name: "", username: "", email: "", phone: "" });
   async function post(body: Record<string, unknown>) {
-    const response = await fetch(`/api/departures/${departureId}/operations`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || "Operazione non riuscita");
-    const refresh = await fetch(`/api/departures/${departureId}/operations`, { cache: "no-store" });
-    setData(await refresh.json());
-    setNotice("Aggiornamento registrato.");
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/departures/${departureId}/operations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Operazione non riuscita");
+      const refresh = await fetch(`/api/departures/${departureId}/operations`, { cache: "no-store" });
+      setData(await refresh.json());
+      setNotice(
+        result.invitationEmailSent === false
+          ? "Tour Leader creato, ma l’email di invito non è stata inviata."
+          : result.invitationEmailSent
+            ? "Tour Leader invitato via email e assegnato alla partenza."
+            : "Aggiornamento registrato.",
+      );
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Operazione non riuscita");
+    } finally {
+      setBusy(false);
+    }
   }
+  const isoPeriod = () => ({
+    validFrom: new Date(period.validFrom).toISOString(),
+    validUntil: new Date(period.validUntil).toISOString(),
+  });
   return (
     <main className="journeyManagePage">
       <header>
-        <Link href={`/agenzia/viaggi/${departureId}`}>
-          <ArrowLeft /> Gruppi e viaggiatori
+        <Link href={backHref ?? `/agenzia/viaggi/${departureId}`}>
+          <ArrowLeft /> {backLabel ?? "Gruppi e viaggiatori"}
         </Link>
       </header>
       <section className="journeyManageHero">
@@ -45,17 +74,38 @@ export default function OperationalControlClient({
             {notice}
           </p>
         )}
+        {error && <p className="agencyMessage error">{error}</p>}
         {data.eligibleStaff.length > 0 && (
           <section className="agencyPanel">
             <h2>
               <UserRoundCog /> Tour Leader
             </h2>
             <p>Il responsabile assegna una persona già censita nell’agenzia alla sola partenza.</p>
+            <div className="agencyFormGrid">
+              <label>
+                Abilitato dal
+                <input
+                  type="datetime-local"
+                  value={period.validFrom}
+                  onChange={(event) => setPeriod((value) => ({ ...value, validFrom: event.target.value }))}
+                />
+              </label>
+              <label>
+                Abilitato fino al
+                <input
+                  type="datetime-local"
+                  value={period.validUntil}
+                  onChange={(event) => setPeriod((value) => ({ ...value, validUntil: event.target.value }))}
+                />
+              </label>
+            </div>
             <select
               aria-label="Persona da assegnare"
               onChange={(event) =>
-                event.target.value && void post({ action: "assignTourLeader", userId: event.target.value })
+                event.target.value &&
+                void post({ action: "assignTourLeader", userId: event.target.value, ...isoPeriod() })
               }
+              disabled={busy}
               defaultValue=""
             >
               <option value="" disabled>
@@ -67,13 +117,90 @@ export default function OperationalControlClient({
                 </option>
               ))}
             </select>
-            <ul>
+            <ul className="agencyStackList">
               {data.staff.map((person) => (
-                <li key={person.id}>{person.name}</li>
+                <li key={person.id}>
+                  <span>
+                    <strong>{person.name}</strong> · {person.email}
+                    <small>
+                      {new Date(person.validFrom).toLocaleString("it-IT")} -{" "}
+                      {new Date(person.validUntil).toLocaleString("it-IT")}
+                    </small>
+                  </span>
+                  {person.status === "active" && (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() =>
+                        void post({
+                          action: "revokeTourLeader",
+                          assignmentId: person.id,
+                          reason: "Revoca manuale del responsabile agenzia",
+                        })
+                      }
+                    >
+                      <XCircle /> Revoca
+                    </button>
+                  )}
+                </li>
               ))}
             </ul>
           </section>
         )}
+        <section className="agencyPanel">
+          <h2>
+            <UserPlus /> Invita Tour Leader esterno
+          </h2>
+          <p>
+            L’account sarà legato esclusivamente a questa partenza e non diventerà un utente permanente dell’agenzia.
+          </p>
+          <form
+            className="agencyFormGrid"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void post({ action: "inviteTourLeader", ...invite, ...isoPeriod() });
+            }}
+          >
+            <label>
+              Abilitato dal
+              <input
+                required
+                type="datetime-local"
+                value={period.validFrom}
+                onChange={(event) => setPeriod((value) => ({ ...value, validFrom: event.target.value }))}
+              />
+            </label>
+            <label>
+              Abilitato fino al
+              <input
+                required
+                type="datetime-local"
+                value={period.validUntil}
+                onChange={(event) => setPeriod((value) => ({ ...value, validUntil: event.target.value }))}
+              />
+            </label>
+            {(["name", "username", "email", "phone"] as const).map((field) => (
+              <label key={field}>
+                {field === "name"
+                  ? "Nome e cognome"
+                  : field === "username"
+                    ? "Username"
+                    : field === "email"
+                      ? "Email"
+                      : "Telefono"}
+                <input
+                  required
+                  type={field === "email" ? "email" : field === "phone" ? "tel" : "text"}
+                  value={invite[field]}
+                  onChange={(event) => setInvite((value) => ({ ...value, [field]: event.target.value }))}
+                />
+              </label>
+            ))}
+            <button type="submit" disabled={busy}>
+              <UserPlus /> {busy ? "Invio…" : "Crea e invia invito"}
+            </button>
+          </form>
+        </section>
         <section className="agencyPanel">
           <h2>
             <ClipboardCheck /> Presenze

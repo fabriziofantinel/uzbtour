@@ -8,5 +8,6 @@ export default async function HomePage() {
   if (!user) redirect("/login");
   if (user.isSuperAdmin) redirect("/admin");
   if (user.isAgencyAdmin) redirect("/agenzia");
+  if (user.isTourLeader) redirect("/tour-leader");
   redirect("/viaggio");
 }

@@ -8,5 +8,10 @@ export default async function OperationalControlPage({ params }: { params: Promi
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const { id } = await params;
-  return <OperationalControlClient departureId={id} initialData={await readDepartureOperationalControl(user.id, id)} />;
+  return (
+    <OperationalControlClient
+      departureId={id}
+      initialData={await readDepartureOperationalControl(user.id, id, user.nativeId)}
+    />
+  );
 }

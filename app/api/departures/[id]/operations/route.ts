@@ -4,13 +4,40 @@ import { getCurrentUser } from "@/lib/current-user";
 import { platformApiError } from "@/lib/platform/http";
 import {
   assignTourLeader,
+  inviteTourLeader,
   readDepartureOperationalControl,
   recordAttendance,
+  revokeTourLeader,
   saveOperationalAlert,
 } from "@/lib/platform/departure-operational-control";
+import { sendTravelerInvitation } from "@/lib/auth/invitation-email";
 
 const action = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("assignTourLeader"), userId: z.string().min(1).max(200) }),
+  z.object({
+    action: z.literal("assignTourLeader"),
+    userId: z.string().min(1).max(200),
+    validFrom: z.iso.datetime(),
+    validUntil: z.iso.datetime(),
+  }),
+  z.object({
+    action: z.literal("inviteTourLeader"),
+    name: z.string().trim().min(2).max(160),
+    username: z
+      .string()
+      .trim()
+      .min(3)
+      .max(80)
+      .regex(/^[A-Za-z0-9][A-Za-z0-9._-]{2,79}$/),
+    email: z.email(),
+    phone: z.string().trim().min(5).max(40),
+    validFrom: z.iso.datetime(),
+    validUntil: z.iso.datetime(),
+  }),
+  z.object({
+    action: z.literal("revokeTourLeader"),
+    assignmentId: z.string().uuid(),
+    reason: z.string().trim().min(3).max(300),
+  }),
   z.object({
     action: z.literal("attendance"),
     dayId: z.string().uuid(),
@@ -32,7 +59,7 @@ export async function GET(_: Request, context: { params: Promise<{ id: string }>
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
     const { id } = await context.params;
-    return NextResponse.json(await readDepartureOperationalControl(user.id, id));
+    return NextResponse.json(await readDepartureOperationalControl(user.id, id, user.nativeId));
   } catch (error) {
     return platformApiError(error, "Operatività non disponibile");
   }
@@ -45,7 +72,26 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const { id } = await context.params,
       parsed = action.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Dati operativi non validi" }, { status: 400 });
-    if (parsed.data.action === "assignTourLeader") await assignTourLeader(user.id, id, parsed.data.userId);
+    let invitationEmailSent: boolean | undefined;
+    if (parsed.data.action === "assignTourLeader")
+      await assignTourLeader(user.nativeId, id, parsed.data.userId, parsed.data.validFrom, parsed.data.validUntil);
+    else if (parsed.data.action === "inviteTourLeader") {
+      const invited = await inviteTourLeader({ actorUserId: user.nativeId, departureId: id, ...parsed.data });
+      invitationEmailSent = false;
+      if (invited.activationToken) {
+        const activationUrl = new URL(
+          `/attiva-account#token=${encodeURIComponent(invited.activationToken)}`,
+          request.url,
+        ).toString();
+        invitationEmailSent = await sendTravelerInvitation({
+          email: parsed.data.email,
+          name: parsed.data.name,
+          username: parsed.data.username,
+          activationUrl,
+        }).catch(() => false);
+      }
+    } else if (parsed.data.action === "revokeTourLeader")
+      await revokeTourLeader(user.nativeId, id, parsed.data.assignmentId, parsed.data.reason);
     else if (parsed.data.action === "attendance") await recordAttendance({ actorId: user.id, ...parsed.data });
     else
       await saveOperationalAlert({
@@ -56,7 +102,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         instructions: parsed.data.instructions,
         consent: parsed.data.explicitConsent,
       });
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, invitationEmailSent });
   } catch (error) {
     return platformApiError(error, "Operazione non riuscita");
   }
