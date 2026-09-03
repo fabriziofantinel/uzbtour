@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const actor = await requireSuperAdmin();
-    return NextResponse.json(await getSuperadminSummary(actor.id));
+    return NextResponse.json(await getSuperadminSummary(actor.nativeId));
   } catch (error) {
     if (error instanceof PlatformAuthorizationError) {
       return NextResponse.json({ error: error.message }, { status: error.status });

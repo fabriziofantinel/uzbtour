@@ -14,7 +14,7 @@ function initialsFor(name: string) {
 
 export async function readV3SuperadminSummary(actorId: string) {
   const sql = getSql();
-  const rows = await sql`SELECT * FROM app.read_superadmin_summary(${actorId})`;
+  const rows = await sql`SELECT * FROM app.read_superadmin_summary(${actorId}::uuid)`;
   if (!rows[0]) throw new PlatformAuthorizationError("Accesso riservato al superadmin", 403);
   return {
     agencies: Number(rows[0].agencies),
@@ -25,7 +25,7 @@ export async function readV3SuperadminSummary(actorId: string) {
 
 export async function readV3AgencyRegistry(actorId: string) {
   const sql = getSql();
-  const rows = await sql`SELECT * FROM app.read_superadmin_agency_registry(${actorId})`;
+  const rows = await sql`SELECT * FROM app.read_superadmin_agency_registry(${actorId}::uuid)`;
   const agencyIds = [...new Set(rows.map((row) => String(row.agency_id)))];
   return agencyIds.map((id) => {
     const agencyRows = rows.filter((row) => String(row.agency_id) === id);

@@ -18,5 +18,5 @@ export async function POST(request: Request) {
   if (!actor) return NextResponse.json({ error: "Autenticazione richiesta" }, { status: 401 });
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ available: false, error: "Username non valido" }, { status: 400 });
-  return NextResponse.json({ available: await isUsernameAvailable(actor.id, parsed.data.username) });
+  return NextResponse.json({ available: await isUsernameAvailable(actor.nativeId, parsed.data.username) });
 }

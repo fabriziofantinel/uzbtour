@@ -110,7 +110,7 @@ export async function updateV3PlatformAgencyOwnerContact(input: {
 
 export async function readV3UsernameAvailability(actorId: string, username: string) {
   const sql = getSql();
-  const rows = await sql`SELECT app.is_username_available(${actorId},${username}) available`;
+  const rows = await sql`SELECT app.is_username_available(${actorId}::uuid,${username}) available`;
   return Boolean(rows[0]?.available);
 }
 

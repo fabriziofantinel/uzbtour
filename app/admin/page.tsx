@@ -5,7 +5,7 @@ import { requireSuperAdmin } from "@/lib/platform/authorization";
 
 export default async function SuperadminHome() {
   const actor = await requireSuperAdmin();
-  const summary = await getSuperadminSummary(actor.id);
+  const summary = await getSuperadminSummary(actor.nativeId);
   const tripsPerAgency = summary.agencies ? summary.trips / summary.agencies : 0;
   const travelersPerTrip = summary.trips ? summary.travelers / summary.trips : 0;
   return (

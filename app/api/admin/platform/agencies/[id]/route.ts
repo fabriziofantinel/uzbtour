@@ -80,7 +80,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const status = statusSchema.safeParse(payload);
     if (status.success) {
       await updateAgencyStatus({ actorId: actor.nativeId, agencyId: id, status: status.data.status });
-      return NextResponse.json({ agencies: await getAgencyRegistry(actor.id) });
+      return NextResponse.json({ agencies: await getAgencyRegistry(actor.nativeId) });
     }
     const details = agencyDetailsSchema.safeParse(payload);
     if (details.success) {
@@ -90,12 +90,12 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       }
       await updateAgencyDetails({ actorId: actor.nativeId, agencyId: id, data });
       await updateAgencyBranding({ actorId: actor.nativeId, agencyId: id, primaryColor, logoUrl });
-      return NextResponse.json({ agencies: await getAgencyRegistry(actor.id) });
+      return NextResponse.json({ agencies: await getAgencyRegistry(actor.nativeId) });
     }
     const ownerContact = ownerContactSchema.safeParse(payload);
     if (ownerContact.success) {
       await updateAgencyOwnerContact({ actorId: actor.nativeId, agencyId: id, ...ownerContact.data });
-      return NextResponse.json({ agencies: await getAgencyRegistry(actor.id) });
+      return NextResponse.json({ agencies: await getAgencyRegistry(actor.nativeId) });
     }
     const owner = ownerSchema.safeParse(payload);
     if (owner.success) {
@@ -114,7 +114,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         }).catch(() => false);
       }
       return NextResponse.json({
-        agencies: await getAgencyRegistry(actor.id),
+        agencies: await getAgencyRegistry(actor.nativeId),
         invitationEmailSent,
         activationToken: result.activationToken,
       });
@@ -133,7 +133,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       logoUrl: branding.data.logoUrl,
       actorId: actor.nativeId,
     });
-    return NextResponse.json({ agencies: await getAgencyRegistry(actor.id) });
+    return NextResponse.json({ agencies: await getAgencyRegistry(actor.nativeId) });
   } catch (error) {
     return platformApiError(error, "Aggiornamento dell’agenzia non riuscito");
   }
@@ -158,7 +158,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
         queued: true,
         deletionJobId: deletion.deletionJobId,
         deletedAgency: deletion.agencyName,
-        agencies: await getAgencyRegistry(actor.id),
+        agencies: await getAgencyRegistry(actor.nativeId),
       },
       { status: 202 },
     );

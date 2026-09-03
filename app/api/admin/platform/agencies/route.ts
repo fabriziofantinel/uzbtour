@@ -55,7 +55,7 @@ const agencySchema = z.object({
 export async function GET() {
   try {
     const actor = await requireSuperAdmin();
-    return NextResponse.json({ agencies: await getAgencyRegistry(actor.id) });
+    return NextResponse.json({ agencies: await getAgencyRegistry(actor.nativeId) });
   } catch (error) {
     return platformApiError(error, "Elenco agenzie non disponibile");
   }
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
         id: created.id,
         invitationEmailSent,
         activationToken: created.activationToken,
-        agencies: await getAgencyRegistry(actor.id),
+        agencies: await getAgencyRegistry(actor.nativeId),
       },
       { status: 201 },
     );
