@@ -733,7 +733,14 @@ Resources:
         mutable: change-with-constraints
       BuildMethod: esbuild
       BuildProperties:
-        { EntryPoints: [workers/import-handler.ts], Minify: true, Sourcemap: true, Target: es2022, Format: cjs, Conditions: react-server }
+        {
+          EntryPoints: [workers/import-handler.ts],
+          Minify: true,
+          Sourcemap: true,
+          Target: es2022,
+          Format: cjs,
+          Conditions: react-server,
+        }
     Properties:
       FunctionName: !Sub "${AWS::StackName}-enrichment-worker"
       Description: Genera e aggiorna i contenuti Paese con Bedrock
@@ -799,7 +806,14 @@ Resources:
         mutable: change-with-constraints
       BuildMethod: esbuild
       BuildProperties:
-        { EntryPoints: [workers/import-handler.ts], Minify: true, Sourcemap: true, Target: es2022, Format: cjs, Conditions: react-server }
+        {
+          EntryPoints: [workers/import-handler.ts],
+          Minify: true,
+          Sourcemap: true,
+          Target: es2022,
+          Format: cjs,
+          Conditions: react-server,
+        }
     Properties:
       FunctionName: !Sub "${AWS::StackName}-photo-worker"
       Description: Valida foto di missioni e contest con Bedrock
@@ -858,7 +872,14 @@ Resources:
         mutable: change-with-constraints
       BuildMethod: esbuild
       BuildProperties:
-        { EntryPoints: [workers/import-handler.ts], Minify: true, Sourcemap: true, Target: es2022, Format: cjs, Conditions: react-server }
+        {
+          EntryPoints: [workers/import-handler.ts],
+          Minify: true,
+          Sourcemap: true,
+          Target: es2022,
+          Format: cjs,
+          Conditions: react-server,
+        }
     Properties:
       FunctionName: !Sub "${AWS::StackName}-deletion-worker"
       Description: Esegue cancellazioni tenant asincrone e verificabili
