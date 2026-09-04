@@ -132,7 +132,7 @@ export async function deleteJourneyGroup(input: {
 }
 
 export async function updateJourneyGroupExperienceProfile(input: {
-  actorId: string;
+  actorNativeId: string;
   departureId: string;
   partyId: string;
   profile: "essential" | "standard" | "complete";

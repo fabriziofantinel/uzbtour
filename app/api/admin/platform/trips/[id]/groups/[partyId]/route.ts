@@ -45,7 +45,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
     if (input.action === "experienceProfile") {
       await updateJourneyGroupExperienceProfile({
-        actorId: actor.id,
+        actorNativeId: actor.nativeId,
         departureId: id,
         partyId,
         profile: input.profile,

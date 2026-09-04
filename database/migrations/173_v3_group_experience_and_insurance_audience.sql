@@ -81,14 +81,15 @@ SET search_path=pg_catalog,iam,travel,ref,ops,privacy SET row_security=off AS $$
   ORDER BY party.name,membership.role,traveler.display_name
 $$;
 
+DROP FUNCTION IF EXISTS app.set_departure_party_experience_profile_v3(TEXT,UUID,UUID,TEXT);
 CREATE OR REPLACE FUNCTION app.set_departure_party_experience_profile_v3(
-  p_actor_legacy TEXT,p_departure UUID,p_party UUID,p_profile TEXT
+  p_actor_user_id UUID,p_departure UUID,p_party UUID,p_profile TEXT
 ) RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER
 SET search_path=pg_catalog,app,iam,travel,ops SET row_security=off AS $$
 DECLARE v_actor UUID;v_agency UUID;
 BEGIN
  IF p_profile NOT IN('essential','standard','complete') THEN RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='invalid experience profile'; END IF;
- SELECT target_id INTO v_actor FROM ops.legacy_id_map WHERE source_system='public-v2' AND entity_type='user' AND legacy_id=p_actor LIMIT 1;
+ v_actor:=p_actor_user_id;
  SELECT departure.agency_id INTO v_agency FROM travel.departures departure JOIN iam.agency_memberships membership
   ON membership.agency_id=departure.agency_id AND membership.user_id=v_actor AND membership.status='active' AND membership.role IN('owner','admin','editor')
  WHERE departure.id=p_departure LIMIT 1;
@@ -115,14 +116,15 @@ SET search_path=pg_catalog,app,iam,travel,ops SET row_security=off AS $$
  WHERE departure.id=p_departure AND (EXISTS(SELECT 1 FROM iam.agency_memberships member,actor WHERE member.agency_id=departure.agency_id AND member.user_id=actor.id AND member.status='active') OR EXISTS(SELECT 1 FROM membership)) LIMIT 1
 $$;
 
+DROP FUNCTION IF EXISTS app.save_departure_insurance_scoped_v3(TEXT,UUID,TEXT,UUID,UUID,TEXT,TEXT,TEXT,TEXT,DATE,DATE,JSONB,UUID);
 CREATE OR REPLACE FUNCTION app.save_departure_insurance_scoped_v3(
- p_actor_legacy TEXT,p_departure UUID,p_scope TEXT,p_party UUID,p_traveler UUID,p_provider TEXT,p_product TEXT,p_policy_number TEXT,p_phone TEXT,
+ p_actor_user_id UUID,p_departure UUID,p_scope TEXT,p_party UUID,p_traveler UUID,p_provider TEXT,p_product TEXT,p_policy_number TEXT,p_phone TEXT,
  p_valid_from DATE,p_valid_to DATE,p_guarantees JSONB,p_document UUID
 ) RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER
 SET search_path=pg_catalog,app,iam,travel,ops SET row_security=off AS $$
 DECLARE v_actor UUID;v_agency UUID;v_id UUID;v_version INTEGER;
 BEGIN
- SELECT target_id INTO v_actor FROM ops.legacy_id_map WHERE source_system='public-v2' AND entity_type='user' AND legacy_id=p_actor_legacy LIMIT 1;
+ v_actor:=p_actor_user_id;
  SELECT departure.agency_id INTO v_agency FROM travel.departures departure JOIN iam.agency_memberships membership ON membership.agency_id=departure.agency_id
   AND membership.user_id=v_actor AND membership.status='active' AND membership.role IN('owner','admin','editor') WHERE departure.id=p_departure LIMIT 1;
  IF v_agency IS NULL OR p_scope NOT IN('trip','group','traveler') OR p_valid_to<p_valid_from OR jsonb_typeof(COALESCE(p_guarantees,'[]'))<>'array' THEN RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='invalid insurance policy'; END IF;
@@ -137,12 +139,13 @@ BEGIN
  RETURN v_id;
 END $$;
 
-CREATE OR REPLACE FUNCTION app.read_departure_insurance_scoped_v3(p_actor_legacy TEXT,p_departure UUID,p_scope TEXT,p_party UUID,p_traveler UUID)
+DROP FUNCTION IF EXISTS app.read_departure_insurance_scoped_v3(TEXT,UUID,TEXT,UUID,UUID);
+CREATE OR REPLACE FUNCTION app.read_departure_insurance_scoped_v3(p_actor_user_id UUID,p_departure UUID,p_scope TEXT,p_party UUID,p_traveler UUID)
 RETURNS TABLE(id UUID,agency_id UUID,provider_name VARCHAR,product_name VARCHAR,policy_number VARCHAR,assistance_phone VARCHAR,valid_from DATE,valid_to DATE,guarantees JSONB,document_id UUID,document_title TEXT)
 LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path=pg_catalog,app,iam,travel,ops SET row_security=off AS $$
- WITH actor AS (SELECT target_id id FROM ops.legacy_id_map WHERE source_system='public-v2' AND entity_type='user' AND legacy_id=p_actor_legacy LIMIT 1), allowed AS (
- SELECT departure.agency_id FROM travel.departures departure JOIN iam.agency_memberships member ON member.agency_id=departure.agency_id JOIN actor ON actor.id=member.user_id
+ WITH allowed AS (
+ SELECT departure.agency_id FROM travel.departures departure JOIN iam.agency_memberships member ON member.agency_id=departure.agency_id AND member.user_id=p_actor_user_id
  WHERE departure.id=p_departure AND member.status='active' AND member.role IN('owner','admin','editor'))
  SELECT policy.id,policy.agency_id,policy.provider_name,policy.product_name,policy.policy_number,policy.assistance_phone,policy.valid_from,policy.valid_to,policy.guarantees,policy.document_id,document.title
  FROM travel.departure_insurance_policies policy JOIN allowed ON allowed.agency_id=policy.agency_id LEFT JOIN ops.travel_documents document ON document.agency_id=policy.agency_id AND document.id=policy.document_id
@@ -163,13 +166,14 @@ SET search_path=pg_catalog,app,iam,travel,ops SET row_security=off AS $$
  ORDER BY CASE WHEN policy.traveler_id=allowed.traveler_id AND policy.traveler_id IS NOT NULL THEN 3 WHEN policy.party_id=allowed.party_id AND policy.party_id IS NOT NULL THEN 2 ELSE 1 END DESC LIMIT 1
 $$;
 
+DROP FUNCTION IF EXISTS app.register_departure_insurance_document_scoped_v3(TEXT,UUID,TEXT,UUID,UUID,UUID,UUID,TEXT,TEXT,TEXT,TEXT,TEXT,BIGINT);
 CREATE OR REPLACE FUNCTION app.register_departure_insurance_document_scoped_v3(
- p_actor_legacy TEXT,p_departure UUID,p_scope TEXT,p_party UUID,p_traveler UUID,p_media UUID,p_document UUID,p_provider TEXT,p_bucket TEXT,p_key TEXT,p_name TEXT,p_content_type TEXT,p_size BIGINT
+ p_actor_user_id UUID,p_departure UUID,p_scope TEXT,p_party UUID,p_traveler UUID,p_media UUID,p_document UUID,p_provider TEXT,p_bucket TEXT,p_key TEXT,p_name TEXT,p_content_type TEXT,p_size BIGINT
 ) RETURNS UUID LANGUAGE plpgsql SECURITY DEFINER
 SET search_path=pg_catalog,app,iam,travel,ops SET row_security=off AS $$
 DECLARE v_actor UUID;v_agency UUID;v_prefix TEXT;v_visibility TEXT;
 BEGIN
- SELECT target_id INTO v_actor FROM ops.legacy_id_map WHERE source_system='public-v2' AND entity_type='user' AND legacy_id=p_actor_legacy LIMIT 1;
+ v_actor:=p_actor_user_id;
  SELECT departure.agency_id INTO v_agency FROM travel.departures departure JOIN iam.agency_memberships membership ON membership.agency_id=departure.agency_id AND membership.user_id=v_actor AND membership.status='active' AND membership.role IN('owner','admin','editor') WHERE departure.id=p_departure LIMIT 1;
  IF v_agency IS NULL OR p_scope NOT IN('trip','group','traveler') OR p_provider NOT IN('r2','s3') OR p_content_type<>'application/pdf' OR p_size<=0 OR p_size>26214400 THEN RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='invalid insurance document'; END IF;
  IF p_scope='trip' AND (p_party IS NOT NULL OR p_traveler IS NOT NULL) THEN RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='invalid trip insurance audience'; END IF;
@@ -183,6 +187,6 @@ BEGIN
  RETURN p_document;
 END $$;
 
-REVOKE ALL ON FUNCTION app.read_journey_management(TEXT,UUID),app.set_departure_party_experience_profile_v3(TEXT,UUID,UUID,TEXT),app.read_departure_experience_profile_v3(TEXT,UUID),app.save_departure_insurance_scoped_v3(TEXT,UUID,TEXT,UUID,UUID,TEXT,TEXT,TEXT,TEXT,DATE,DATE,JSONB,UUID),app.read_departure_insurance_scoped_v3(TEXT,UUID,TEXT,UUID,UUID),app.read_departure_insurance_v3(TEXT,UUID),app.register_departure_insurance_document_scoped_v3(TEXT,UUID,TEXT,UUID,UUID,UUID,UUID,TEXT,TEXT,TEXT,TEXT,TEXT,BIGINT) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION app.read_journey_management(TEXT,UUID),app.set_departure_party_experience_profile_v3(TEXT,UUID,UUID,TEXT),app.read_departure_experience_profile_v3(TEXT,UUID),app.save_departure_insurance_scoped_v3(TEXT,UUID,TEXT,UUID,UUID,TEXT,TEXT,TEXT,TEXT,DATE,DATE,JSONB,UUID),app.read_departure_insurance_scoped_v3(TEXT,UUID,TEXT,UUID,UUID),app.read_departure_insurance_v3(TEXT,UUID),app.register_departure_insurance_document_scoped_v3(TEXT,UUID,TEXT,UUID,UUID,UUID,UUID,TEXT,TEXT,TEXT,TEXT,TEXT,BIGINT) TO smf_app;
+REVOKE ALL ON FUNCTION app.read_journey_management(TEXT,UUID),app.set_departure_party_experience_profile_v3(UUID,UUID,UUID,TEXT),app.read_departure_experience_profile_v3(TEXT,UUID),app.save_departure_insurance_scoped_v3(UUID,UUID,TEXT,UUID,UUID,TEXT,TEXT,TEXT,TEXT,DATE,DATE,JSONB,UUID),app.read_departure_insurance_scoped_v3(UUID,UUID,TEXT,UUID,UUID),app.read_departure_insurance_v3(TEXT,UUID),app.register_departure_insurance_document_scoped_v3(UUID,UUID,TEXT,UUID,UUID,UUID,UUID,TEXT,TEXT,TEXT,TEXT,TEXT,BIGINT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION app.read_journey_management(TEXT,UUID),app.set_departure_party_experience_profile_v3(UUID,UUID,UUID,TEXT),app.read_departure_experience_profile_v3(TEXT,UUID),app.save_departure_insurance_scoped_v3(UUID,UUID,TEXT,UUID,UUID,TEXT,TEXT,TEXT,TEXT,DATE,DATE,JSONB,UUID),app.read_departure_insurance_scoped_v3(UUID,UUID,TEXT,UUID,UUID),app.read_departure_insurance_v3(TEXT,UUID),app.register_departure_insurance_document_scoped_v3(UUID,UUID,TEXT,UUID,UUID,UUID,UUID,TEXT,TEXT,TEXT,TEXT,TEXT,BIGINT) TO smf_app;
 INSERT INTO public.platform_schema_migrations(version) VALUES('173_v3_group_experience_and_insurance_audience') ON CONFLICT(version) DO NOTHING;

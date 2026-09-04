@@ -45,7 +45,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
       audienceScope === "trip"
         ? await readDepartureInsurance(actor.id, id)
         : await readDepartureInsuranceScoped({
-            actorId: actor.id,
+            actorNativeId: actor.nativeId,
             departureId: id,
             audienceScope,
             partyId,
@@ -69,10 +69,16 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const travelerId = parsed.data.audienceScope === "traveler" ? parsed.data.travelerId : null;
     if ((parsed.data.audienceScope !== "trip" && !partyId) || (parsed.data.audienceScope === "traveler" && !travelerId))
       return NextResponse.json({ error: "Seleziona i destinatari della polizza" }, { status: 400 });
-    await saveDepartureInsurance({ actorId: actor.id, departureId: id, ...parsed.data, partyId, travelerId });
+    await saveDepartureInsurance({
+      actorNativeId: actor.nativeId,
+      departureId: id,
+      ...parsed.data,
+      partyId,
+      travelerId,
+    });
     return NextResponse.json({
       insurance: await readDepartureInsuranceScoped({
-        actorId: actor.id,
+        actorNativeId: actor.nativeId,
         departureId: id,
         audienceScope: parsed.data.audienceScope,
         partyId,

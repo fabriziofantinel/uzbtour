@@ -39,7 +39,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       return NextResponse.json({ error: "Il PDF caricato non è valido" }, { status: 400 });
     }
     const documentId = await registerDepartureInsuranceDocument({
-      actorId: actor.id,
+      actorNativeId: actor.nativeId,
       departureId: id,
       provider: storage.provider,
       bucket: storage.bucket,
