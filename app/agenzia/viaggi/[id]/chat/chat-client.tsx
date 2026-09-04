@@ -29,7 +29,7 @@ export default function AgencyOperationalChat({ data }: { data: Data }) {
         quoteImportId={data.journey.quoteImportId}
       />
       <section className="journeyManageHero">
-        <h1>Chat operativa</h1>
+        <h1>{data.journey.title}</h1>
         <p>Conversazioni distinte per viaggio, gruppo e singolo viaggiatore.</p>
       </section>
       <div className="journeyManageShell">
