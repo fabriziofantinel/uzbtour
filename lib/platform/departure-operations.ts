@@ -39,7 +39,7 @@ export async function readDepartureCommunicationRecipients(actorId: string, noti
 }
 
 export async function publishDepartureCommunication(input: {
-  actorNativeId: string;
+  actorId: string;
   departureId: string;
   title: string;
   summary: string;
