@@ -57,6 +57,29 @@ export default async function AgencyAnalyticsPage({
     const s = analytics.summary;
     const activation = percent(s.activatedTravelers, s.invitedTravelers);
     const adoption = percent(s.activeTravelers, s.invitedTravelers);
+    const summarizeFeedback = (key: "city" | "groupName") =>
+      [
+        ...analytics.feedback
+          .reduce((entries, item) => {
+            const label = item[key] || "Non specificato";
+            const current = entries.get(label) || { label, total: 0, responses: 0 };
+            current.total += item.average * item.responses;
+            current.responses += item.responses;
+            entries.set(label, current);
+            return entries;
+          }, new Map<string, { label: string; total: number; responses: number }>())
+          .values(),
+      ]
+        .map((item) => ({ ...item, average: item.responses ? item.total / item.responses : 0 }))
+        .sort((left, right) => right.average - left.average || right.responses - left.responses);
+    const cityFeedback = summarizeFeedback("city");
+    const groupFeedback = summarizeFeedback("groupName");
+    const bestPlace = [...analytics.feedback].sort(
+      (left, right) => right.average - left.average || right.responses - left.responses,
+    )[0];
+    const weakestPlace = [...analytics.feedback].sort(
+      (left, right) => left.average - right.average || right.responses - left.responses,
+    )[0];
     const allDepartures = agency.trips.flatMap((trip) =>
       trip.departures.map((item) => ({ id: item.id, title: item.title || trip.title })),
     );
@@ -378,27 +401,70 @@ export default async function AgencyAnalyticsPage({
               {analytics.feedback.length === 0 ? (
                 <div className="analyticsEmpty">Non sono ancora presenti valutazioni nel periodo selezionato.</div>
               ) : (
-                <div className="feedbackList">
-                  {analytics.feedback.map((item) => (
-                    <article key={item.itemId}>
-                      <div>
-                        <small>
-                          GIORNO {item.dayNumber} · {item.dayTitle}
-                        </small>
-                        <strong>{item.itemTitle}</strong>
-                        <span>
-                          {item.responses} {item.responses === 1 ? "risposta" : "risposte"}
-                        </span>
-                      </div>
-                      <div className="feedbackScore">
-                        <b className={item.average < 3 ? "needsAttention" : ""}>{item.average.toFixed(1)}</b>
-                        <span aria-label={`${item.average.toFixed(1)} stelle su 5`}>
-                          <i style={{ width: `${(item.average / 5) * 100}%` }} />
-                        </span>
-                      </div>
+                <>
+                  <div className="feedbackInsights" aria-label="Sintesi del gradimento">
+                    <article>
+                      <small>PIÙ APPREZZATO</small>
+                      <strong>{bestPlace?.itemTitle}</strong>
+                      <b>{bestPlace?.average.toFixed(1)} / 5</b>
                     </article>
-                  ))}
-                </div>
+                    <article>
+                      <small>DA MIGLIORARE</small>
+                      <strong>{weakestPlace?.itemTitle}</strong>
+                      <b>{weakestPlace?.average.toFixed(1)} / 5</b>
+                    </article>
+                    <article>
+                      <small>GRADIMENTO DEL VIAGGIO</small>
+                      <strong>{s.averageFeedback == null ? "In attesa di feedback" : "Media complessiva"}</strong>
+                      <b>{s.averageFeedback == null ? "—" : `${s.averageFeedback.toFixed(1)} / 5`}</b>
+                    </article>
+                  </div>
+                  <div className="feedbackBreakdowns">
+                    <section>
+                      <h4>Per città</h4>
+                      {cityFeedback.map((item) => (
+                        <p key={item.label}>
+                          <span>{item.label}</span>
+                          <b>
+                            {item.average.toFixed(1)} / 5 · {item.responses} valutazioni
+                          </b>
+                        </p>
+                      ))}
+                    </section>
+                    <section>
+                      <h4>Per gruppo</h4>
+                      {groupFeedback.map((item) => (
+                        <p key={item.label}>
+                          <span>{item.label}</span>
+                          <b>
+                            {item.average.toFixed(1)} / 5 · {item.responses} valutazioni
+                          </b>
+                        </p>
+                      ))}
+                    </section>
+                  </div>
+                  <div className="feedbackList">
+                    {analytics.feedback.map((item) => (
+                      <article key={`${item.itemId}-${item.groupName}`}>
+                        <div>
+                          <small>
+                            {item.departureTitle} · {item.city || `GIORNO ${item.dayNumber}`} · {item.groupName}
+                          </small>
+                          <strong>{item.itemTitle}</strong>
+                          <span>
+                            {item.responses} {item.responses === 1 ? "risposta" : "risposte"}
+                          </span>
+                        </div>
+                        <div className="feedbackScore">
+                          <b className={item.average < 3 ? "needsAttention" : ""}>{item.average.toFixed(1)}</b>
+                          <span aria-label={`${item.average.toFixed(1)} stelle su 5`}>
+                            <i style={{ width: `${(item.average / 5) * 100}%` }} />
+                          </span>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </>
               )}
             </section>
           </section>

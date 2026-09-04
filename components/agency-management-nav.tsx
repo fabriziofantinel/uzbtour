@@ -106,21 +106,25 @@ export default function AgencyManagementNav({
             <Settings2 /> Configurazione
           </Link>
         )}
-        {!!quoteImportId && (
-          <details className="programmeQuotes">
-            <summary>
-              <FileText /> Preventivi
-            </summary>
-            <div>
-              <a href={`/api/admin/platform/imports/${quoteImportId}/original`}>
-                <FileText /> Originale
-              </a>
-              <a href={`/api/admin/platform/imports/${quoteImportId}/normalized`}>
-                <Download /> Revisionato DOCX
-              </a>
-            </div>
-          </details>
-        )}
+        <details className="programmeQuotes">
+          <summary>
+            <FileText /> Preventivi
+          </summary>
+          <div>
+            {quoteImportId ? (
+              <>
+                <a href={`/api/admin/platform/imports/${quoteImportId}/original`}>
+                  <FileText /> Originale
+                </a>
+                <a href={`/api/admin/platform/imports/${quoteImportId}/normalized`}>
+                  <Download /> Revisionato DOCX
+                </a>
+              </>
+            ) : (
+              <span>Nessun preventivo disponibile per questa partenza.</span>
+            )}
+          </div>
+        </details>
       </nav>
       <span className="journeyAgencyName">{journeyTitle || rightSlot}</span>
     </header>

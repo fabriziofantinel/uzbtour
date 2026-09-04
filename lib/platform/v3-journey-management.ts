@@ -20,13 +20,6 @@ export async function readV3JourneyManagement(departureId: string, actorId: stri
   ]);
   const first = rows[0];
   if (!first) throw new PlatformRequestError("Viaggio non trovato");
-  const [, departureRows] = await sql.transaction(
-    (txn) => [
-      txn`SELECT set_config('app.agency_id',${String(first.agency_id)},true)`,
-      txn`SELECT quote_import_id::text FROM travel.departures WHERE id=${departureId}::uuid`,
-    ],
-    { readOnly: true },
-  );
   const brandingRow = brandingRows.find((row) => String(row.agency_id) === String(first.agency_id));
   const branding =
     brandingRow?.branding && typeof brandingRow.branding === "object" && !Array.isArray(brandingRow.branding)
@@ -45,7 +38,7 @@ export async function readV3JourneyManagement(departureId: string, actorId: stri
       agencyName: String(first.agency_name),
       agencyPrimaryColor: String(branding.primaryColor || "#247A6B"),
       destinationCountry: String(first.destination_country || ""),
-      quoteImportId: departureRows[0]?.quote_import_id ? String(departureRows[0].quote_import_id) : null,
+      quoteImportId: null,
     },
     groups: partyIds.map((id) => {
       const groupRows = rows.filter((row) => String(row.party_id) === id);

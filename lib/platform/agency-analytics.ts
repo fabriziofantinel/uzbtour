@@ -33,6 +33,10 @@ export type AgencyAnalytics = {
     dayNumber: number;
     dayTitle: string;
     itemTitle: string;
+    city: string;
+    groupName: string;
+    departureTitle: string;
+    targetType: string;
     average: number;
     responses: number;
   }>;
@@ -120,20 +124,34 @@ export async function getAgencyAnalytics(input: {
       GROUP BY departure.agency_id,departure.id,departure.title,departure.starts_on
       ORDER BY departure.starts_on DESC,departure.title`,
       txn`
-      SELECT item.id::text AS item_id,template_day.day_number,COALESCE(NULLIF(template_day.title,''),'Giornata '||template_day.day_number) AS day_title,
-        item.title AS item_title,avg(feedback.rating)::numeric(4,2) AS average,count(*) AS responses
+      SELECT COALESCE(item.id::text,stay.id::text,feedback.departure_day_id::text) AS item_id,
+        template_day.day_number,COALESCE(NULLIF(template_day.title,''),'Giornata '||template_day.day_number) AS day_title,
+        COALESCE(NULLIF(item.title,''),NULLIF(stay.name_snapshot,''),'Feedback della giornata') AS item_title,
+        COALESCE(city.name,'') AS city,COALESCE(party.name,'Gruppo non disponibile') AS group_name,
+        departure.title AS departure_title,feedback.target_type,
+        avg(feedback.rating)::numeric(4,2) AS average,count(*) AS responses
       FROM journey.programme_feedback feedback
-      JOIN travel.departure_itinerary_items item ON item.agency_id=feedback.agency_id
+      JOIN travel.departures departure ON departure.agency_id=feedback.agency_id AND departure.id=feedback.departure_id
+      LEFT JOIN travel.departure_itinerary_items item ON item.agency_id=feedback.agency_id
         AND item.departure_id=feedback.departure_id AND item.id=feedback.departure_item_id
-      JOIN travel.departure_days day ON day.agency_id=item.agency_id AND day.departure_id=item.departure_id
-        AND day.id=item.departure_day_id
+      LEFT JOIN travel.departure_accommodation_stays stay ON stay.agency_id=feedback.agency_id
+        AND stay.departure_id=feedback.departure_id AND stay.id=feedback.hotel_id
+      JOIN travel.departure_days day ON day.agency_id=feedback.agency_id AND day.departure_id=feedback.departure_id
+        AND day.id=feedback.departure_day_id
       JOIN travel.template_days template_day ON template_day.agency_id=day.agency_id
         AND template_day.template_version_id=day.template_version_id
         AND template_day.id=day.template_day_id
+      LEFT JOIN travel.template_day_cities day_city ON day_city.agency_id=day.agency_id
+        AND day_city.template_version_id=day.template_version_id AND day_city.template_day_id=day.template_day_id
+        AND day_city.sort_order=0
+      LEFT JOIN ref.cities city ON city.id=day_city.city_id
+      LEFT JOIN travel.travel_parties party ON party.agency_id=feedback.agency_id
+        AND party.departure_id=feedback.departure_id AND party.id=feedback.party_id
       WHERE feedback.agency_id=${input.agencyId} AND feedback.updated_at>=now()-make_interval(days=>${periodDays})
         AND (${departureId}::uuid IS NULL OR feedback.departure_id=${departureId}::uuid)
-      GROUP BY item.id,template_day.day_number,template_day.title,item.title
-      ORDER BY template_day.day_number,average ASC,item.title LIMIT 80`,
+      GROUP BY item.id,stay.id,feedback.departure_day_id,template_day.day_number,template_day.title,item.title,stay.name_snapshot,
+        city.name,party.name,departure.title,feedback.target_type
+      ORDER BY average ASC,template_day.day_number,item_title LIMIT 80`,
       txn`SELECT code,label,formula,numerator_definition,denominator_definition,
       GREATEST(1,extract(epoch FROM refresh_interval)/60)::int refresh_minutes,version
       FROM ops.analytics_kpi_definitions WHERE effective_to IS NULL ORDER BY code`,
@@ -173,6 +191,10 @@ export async function getAgencyAnalytics(input: {
       dayNumber: numberValue(row.day_number),
       dayTitle: String(row.day_title),
       itemTitle: String(row.item_title),
+      city: String(row.city || ""),
+      groupName: String(row.group_name || ""),
+      departureTitle: String(row.departure_title || ""),
+      targetType: String(row.target_type || "activity"),
       average: numberValue(row.average),
       responses: numberValue(row.responses),
     })),
