@@ -65,7 +65,9 @@ export async function registerV3DayDocument(
     userId: string;
     departureId: string;
     dayId: string;
-    partyId: string;
+    partyId?: string | null;
+    travelerId?: string | null;
+    audienceScope: "trip" | "group" | "traveler";
     mediaId: string;
     documentId: string;
     description: string;
@@ -75,7 +77,7 @@ export async function registerV3DayDocument(
   const rows = await sql`
     SELECT document_id::text,title,description,created_at::text
     FROM app.register_departure_day_document_v3(
-      ${input.userId}::uuid,${input.departureId}::uuid,${input.dayId}::uuid,${input.partyId}::uuid,
+      ${input.userId}::uuid,${input.departureId}::uuid,${input.dayId}::uuid,${input.audienceScope},${input.partyId ?? null}::uuid,${input.travelerId ?? null}::uuid,
       ${input.mediaId}::uuid,${input.documentId}::uuid,${input.provider},${input.bucket},
       ${input.objectKey},${input.originalName},${input.contentType},${input.sizeBytes}::bigint,
       ${input.description}

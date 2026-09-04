@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState, type CSSProperties } from "react";
+import { FormEvent, useMemo, useState, type CSSProperties } from "react";
 import {
   CalendarDays,
   CheckCircle2,
@@ -38,18 +38,28 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const departure = initialData.departure;
+  const groups = useMemo(() => initialData.groups, [initialData.groups]);
+  const [audienceScope, setAudienceScope] = useState<"trip" | "group" | "traveler">("trip");
+  const [partyId, setPartyId] = useState(groups[0]?.id || "");
+  const [travelerId, setTravelerId] = useState(groups[0]?.travelers[0]?.id || "");
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     const data = new FormData(form);
     const dayId = String(data.get("dayId") || "");
-    const partyId = String(data.get("partyId") || "");
     const description = String(data.get("description") || "").trim();
     const file = data.get("document");
-    if (!(file instanceof File) || !file.size || !dayId || !partyId || !description) {
+    if (
+      !(file instanceof File) ||
+      !file.size ||
+      !dayId ||
+      !description ||
+      (audienceScope !== "trip" && !partyId) ||
+      (audienceScope === "traveler" && !travelerId)
+    ) {
       setMessage({
         kind: "error",
-        text: "Seleziona giornata e gruppo, inserisci la descrizione e scegli un documento.",
+        text: "Seleziona giornata e destinatari, inserisci la descrizione e scegli un documento.",
       });
       return;
     }
@@ -59,7 +69,7 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
       const uploaded = await uploadPrivateFile({
         endpoint: `/api/admin/platform/departures/${departure.id}/day-documents/upload`,
         file,
-        payload: { dayId, partyId },
+        payload: { dayId, partyId, travelerId, audienceScope },
       });
       const response = await fetch(`/api/admin/platform/departures/${departure.id}/day-documents`, {
         method: "POST",
@@ -67,6 +77,8 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
         body: JSON.stringify({
           dayId,
           partyId,
+          travelerId,
+          audienceScope,
           description,
           objectKey: uploaded.key,
           originalName: file.name,
@@ -80,7 +92,7 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
       if (!response.ok || !result.document) throw new Error(result.error || "Caricamento non riuscito");
       setDocuments((current) => [result.document!, ...current]);
       form.reset();
-      setMessage({ kind: "success", text: "Documento associato alla giornata e al gruppo." });
+      setMessage({ kind: "success", text: "Documento associato alla giornata e ai destinatari selezionati." });
     } catch (error) {
       setMessage({ kind: "error", text: error instanceof Error ? error.message : "Caricamento non riuscito" });
     } finally {
@@ -137,15 +149,14 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
           <small>DOCUMENTI DEL VIAGGIO</small>
           <h1>{departure.title}</h1>
           <p>
-            <CalendarDays /> Associa ogni documento alla giornata e al gruppo corretti.
+            <CalendarDays /> Associa ogni documento alla giornata e ai destinatari corretti.
           </p>
         </section>
         <div className="journeyManageShell">
           <div className="journeyManageHead">
             <div>
-              <small>ARCHIVIO PRIVATO</small>
-              <h2>Documenti per giornata e gruppo</h2>
-              <p>Qui sono elencati anche i documenti già inviati ai gruppi della partenza.</p>
+              <h2>Documenti per giornata</h2>
+              <p>Invia ogni documento all’intero viaggio, a un gruppo o a un singolo viaggiatore.</p>
             </div>
           </div>
           {message && (
@@ -154,6 +165,71 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
               {message.text}
             </div>
           )}
+          <section className="documentAudience" aria-labelledby="document-audience-title">
+            <h2 id="document-audience-title" className="srOnly">
+              Destinatari del documento
+            </h2>
+            <div className="agencyChatScopes" role="tablist" aria-label="Destinatari del documento">
+              {(
+                [
+                  ["trip", "Viaggio"],
+                  ["group", "Gruppo"],
+                  ["traveler", "Viaggiatore"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="tab"
+                  aria-selected={audienceScope === value}
+                  className={audienceScope === value ? "active" : ""}
+                  onClick={() => setAudienceScope(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {audienceScope !== "trip" && (
+              <label className="agencyChatGroup">
+                Gruppo
+                <select
+                  value={partyId}
+                  onChange={(event) => {
+                    const next = event.target.value;
+                    setPartyId(next);
+                    setTravelerId(groups.find((group) => group.id === next)?.travelers[0]?.id || "");
+                  }}
+                >
+                  {groups.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name} · {group.code}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {audienceScope === "traveler" && (
+              <label className="agencyChatGroup">
+                Viaggiatore
+                <select value={travelerId} onChange={(event) => setTravelerId(event.target.value)}>
+                  {groups
+                    .find((group) => group.id === partyId)
+                    ?.travelers.map((traveler) => (
+                      <option key={traveler.id} value={traveler.id}>
+                        {traveler.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            )}
+            <p>
+              {audienceScope === "trip"
+                ? "Il documento sarà disponibile a tutti i viaggiatori della partenza."
+                : audienceScope === "group"
+                  ? "Il documento sarà disponibile solo ai viaggiatori del gruppo selezionato."
+                  : "Il documento sarà disponibile solo al viaggiatore selezionato."}
+            </p>
+          </section>
           <form className="dayDocumentForm" onSubmit={submit} aria-busy={busy}>
             <label>
               Giornata *
@@ -164,19 +240,6 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
                 {initialData.days.map((day) => (
                   <option key={day.id} value={day.id}>
                     Giorno {day.number} · {formatDay(departure.startsOn, day.offset)} · {day.city || day.title}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Gruppo *
-              <select name="partyId" required defaultValue="">
-                <option value="" disabled>
-                  Seleziona il gruppo
-                </option>
-                {initialData.groups.map((group) => (
-                  <option key={group.id} value={group.id}>
-                    {group.name} · {group.code}
                   </option>
                 ))}
               </select>
@@ -219,7 +282,7 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
                   <FileText />
                   <span>
                     <small>
-                      {document.partyName} · GIORNO {day?.number ?? "–"} ·{" "}
+                      {document.travelerName || document.partyName} · GIORNO {day?.number ?? "–"} ·{" "}
                       {day ? formatDay(departure.startsOn, day.offset) : "Giornata"}
                     </small>
                     <b>{document.description}</b>
@@ -245,7 +308,7 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
               <div className="agencyEmpty">
                 <FolderOpen />
                 <h3>Nessun documento</h3>
-                <p>I documenti caricati saranno visibili solo al gruppo selezionato.</p>
+                <p>I documenti caricati saranno visibili solo ai destinatari selezionati.</p>
               </div>
             )}
           </section>

@@ -59,3 +59,30 @@ export async function requireAgencyDepartureDayGroup(input: {
   if (!rows[0]) throw new PlatformRequestError("Gruppo non disponibile");
   return { agencyId };
 }
+
+export async function requireAgencyDepartureDayDocumentAudience(input: {
+  departureId: string;
+  dayId: string;
+  partyId?: string | null;
+  travelerId?: string | null;
+  actorId: string;
+}) {
+  const { agencyId } = await requireAgencyDepartureDay(input);
+  const sql = getSql();
+  const [, rows] = await sql.transaction(
+    (txn) => [
+      txn`SELECT set_config('app.agency_id',${agencyId},true)`,
+      txn`SELECT membership.traveler_id::text
+        FROM travel.party_memberships membership
+        WHERE membership.agency_id=${agencyId} AND membership.departure_id=${input.departureId}
+          AND membership.status='active'
+          AND (${input.partyId ?? null}::uuid IS NULL OR membership.party_id=${input.partyId ?? null}::uuid)
+          AND (${input.travelerId ?? null}::uuid IS NULL OR membership.traveler_id=${input.travelerId ?? null}::uuid)
+        LIMIT 1`,
+    ],
+    { readOnly: true },
+  );
+  if ((input.partyId || input.travelerId) && !rows[0]) throw new PlatformRequestError("Destinatario non disponibile");
+  if (input.travelerId && !input.partyId) throw new PlatformRequestError("Seleziona anche il gruppo del viaggiatore");
+  return { agencyId };
+}

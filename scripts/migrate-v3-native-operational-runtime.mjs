@@ -11,6 +11,7 @@ const migrations = [
   "169_v3_native_operational_control",
   "170_v3_native_operational_chat_column_ambiguity_fix",
   "171_v3_communication_audience_scope",
+  "172_v3_document_audience_scope",
 ];
 const sources = await Promise.all(
   migrations.map(async (name) => ({
@@ -41,7 +42,8 @@ try {
       EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='168_v3_native_operational_chat') chat_marker,
       EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='169_v3_native_operational_control') control_marker,
       EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='170_v3_native_operational_chat_column_ambiguity_fix') chat_ambiguity_fix_marker,
-      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='171_v3_communication_audience_scope') communication_audience_marker`)
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='171_v3_communication_audience_scope') communication_audience_marker,
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='172_v3_document_audience_scope') document_audience_marker`)
   ).rows[0];
   if (!gate || Object.values(gate).some((value) => value !== true))
     throw new Error(`Gate incompleti: ${JSON.stringify(gate)}`);

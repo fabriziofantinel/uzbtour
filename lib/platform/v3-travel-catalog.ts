@@ -161,9 +161,12 @@ export async function readV3TravelCatalog(input: {
         JOIN travel.departure_days day
           ON day.id=document.departure_day_id AND day.agency_id=document.agency_id
          AND day.departure_id=document.departure_id
+        JOIN travel.traveler_profiles requester
+          ON requester.agency_id=document.agency_id AND requester.user_id=${input.actorUserId}::uuid
         WHERE document.agency_id=${input.agencyId}
           AND document.departure_id=${input.departureId}
-          AND document.party_id=${input.partyId}
+          AND (document.party_id IS NULL OR document.party_id=${input.partyId})
+          AND (document.traveler_id IS NULL OR document.traveler_id=requester.id)
           AND document.departure_day_id IS NOT NULL
           AND document.status='ready' AND asset.status='ready' AND asset.deleted_at IS NULL
         ORDER BY document.created_at

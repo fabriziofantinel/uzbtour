@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requirePlatformAdmin } from "@/lib/platform/authorization";
 import { platformApiError } from "@/lib/platform/http";
 import { getObjectStorage } from "@/lib/platform/object-storage";
-import { requireAgencyDepartureDayGroup } from "@/lib/platform/programme-documents";
+import { requireAgencyDepartureDayDocumentAudience } from "@/lib/platform/programme-documents";
 import {
   DAY_DOCUMENT_CONTENT_TYPES,
   MAX_TICKET_SIZE_BYTES,
@@ -20,13 +20,27 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
     const dayId = String(body?.dayId || "");
     const partyId = String(body?.partyId || "");
+    const travelerId = String(body?.travelerId || "");
+    const audienceScope = String(body?.audienceScope || "group");
     const description = String(body?.description || "").trim();
     const objectKey = String(body?.objectKey || "");
     const file = dayDocumentFileDetails(body?.originalName, body?.contentType);
     if (!file || !description || description.length > 500)
       return NextResponse.json({ error: "Giornata, descrizione e documento sono obbligatori" }, { status: 400 });
-    const { agencyId } = await requireAgencyDepartureDayGroup({ departureId, dayId, partyId, actorId: actor.id });
-    const prefix = `agencies/${agencyId}/departures/${departureId}/parties/${partyId}/days/${dayId}/documents/`;
+    if (!["trip", "group", "traveler"].includes(audienceScope))
+      return NextResponse.json({ error: "Destinatari non validi" }, { status: 400 });
+    const targetPartyId = audienceScope === "trip" ? null : partyId;
+    const targetTravelerId = audienceScope === "traveler" ? travelerId : null;
+    const { agencyId } = await requireAgencyDepartureDayDocumentAudience({
+      departureId,
+      dayId,
+      actorId: actor.id,
+      partyId: targetPartyId,
+      travelerId: targetTravelerId,
+    });
+    const audienceKey =
+      audienceScope === "trip" ? "trip" : audienceScope === "group" ? `groups/${partyId}` : `travelers/${travelerId}`;
+    const prefix = `agencies/${agencyId}/departures/${departureId}/${audienceKey}/days/${dayId}/documents/`;
     if (!objectKey.startsWith(prefix))
       return NextResponse.json({ error: "Percorso documento non valido" }, { status: 400 });
     uploadedObjectKey = objectKey;
@@ -44,7 +58,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       userId: actor.nativeId,
       departureId,
       dayId,
-      partyId,
+      partyId: targetPartyId,
+      travelerId: targetTravelerId,
+      audienceScope: audienceScope as "trip" | "group" | "traveler",
       mediaId: crypto.randomUUID(),
       documentId: crypto.randomUUID(),
       provider: storage.provider,
