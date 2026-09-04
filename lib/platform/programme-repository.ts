@@ -222,6 +222,7 @@ export async function updateAgencyProgrammeDay(input: {
   departureId: string;
   dayId: string;
   actorId: string;
+  staffActorId?: string;
   label: string;
   title: string;
   city: string;
@@ -241,15 +242,17 @@ export async function updateAgencyProgrammeDay(input: {
   const sql = getSql();
   const previousRows = await sql`SELECT label,title,city,description FROM travel.departure_days
     WHERE departure_id=${input.departureId} AND id=${input.dayId} LIMIT 1`;
-  const rows = await sql`SELECT app.update_departure_programme_day_v3(
-    ${input.actorId},${input.departureId},${input.dayId},${input.label},${input.title},
-    ${input.city},${input.description},${JSON.stringify(input.items)}::jsonb,
-    ${JSON.stringify(input.hotels)}::jsonb
-  ) AS updated`;
+  const rows = input.staffActorId
+    ? await sql`SELECT app.update_departure_programme_day_staff_v3(
+        ${input.staffActorId}::uuid,${input.departureId}::uuid,${input.dayId}::uuid,${input.label},${input.title},
+        ${input.city},${input.description},${JSON.stringify(input.items)}::jsonb,${JSON.stringify(input.hotels)}::jsonb) AS updated`
+    : await sql`SELECT app.update_departure_programme_day_v3(
+        ${input.actorId},${input.departureId},${input.dayId},${input.label},${input.title},
+        ${input.city},${input.description},${JSON.stringify(input.items)}::jsonb,${JSON.stringify(input.hotels)}::jsonb) AS updated`;
   if (!Boolean(rows[0]?.updated)) throw new PlatformRequestError("Giornata non disponibile");
   const previous = previousRows[0] ?? {};
   const current = { label: input.label, title: input.title, city: input.city, description: input.description };
-  if (JSON.stringify(previous) !== JSON.stringify(current))
+  if (!input.staffActorId && JSON.stringify(previous) !== JSON.stringify(current))
     await sql`SELECT app.publish_traveler_change_notice_v3(
     ${input.actorId},${input.departureId}::uuid,${input.dayId}::uuid,'programme','important',
     ${`Programma aggiornato: ${input.title || input.label || "giornata"}`},

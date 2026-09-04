@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { after } from "next/server";
-import { requirePlatformAdmin } from "@/lib/platform/authorization";
+import { getCurrentUser } from "@/lib/current-user";
 import { cleanText, platformApiError } from "@/lib/platform/http";
 import { cancelAgencyProgrammeItem, updateAgencyProgrammeDay } from "@/lib/platform/programme-repository";
 import { sendDeparturePush } from "@/lib/platform/web-push";
@@ -12,11 +12,14 @@ const itemTypes = new Set(["visit", "transport", "flight", "train", "hotel", "me
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const actor = await requirePlatformAdmin();
+    const actor = await getCurrentUser();
+    if (!actor) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
     const { id } = await context.params;
     const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
     const dayId = cleanText(body?.dayId ?? body?.id, 64);
     if (body?.action === "cancelItem") {
+      if (!actor.isAgencyAdmin)
+        return NextResponse.json({ error: "L'annullamento attività è riservato all'agenzia." }, { status: 403 });
       const itemId = cleanText(body.itemId, 64);
       const reason = cleanText(body.reason, 1000);
       const clientOperationId = cleanText(body.clientOperationId, 64);
@@ -74,6 +77,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       departureId: id,
       dayId,
       actorId: actor.id,
+      staffActorId: actor.isAgencyAdmin ? undefined : actor.nativeId,
       label: cleanText(body?.label, 240),
       title: cleanText(body?.title, 240),
       city: cleanText(body?.city, 160),
