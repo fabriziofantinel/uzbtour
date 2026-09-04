@@ -6891,7 +6891,6 @@ body::-webkit-scrollbar-thumb {
   background: var(--smf-action);
 }
 .journeyManagePage .operationalChat,
-.journeyManagePage .communicationsShell,
 .journeyManagePage .settingsShell {
   width: min(1160px, calc(100% - 32px));
   margin: 0 auto 32px;
@@ -6967,22 +6966,18 @@ body::-webkit-scrollbar-thumb {
 .journeyManagePage .communicationComposer fieldset p {
   margin: 3px 0 10px;
 }
-.journeyManagePage .communicationComposer .communicationAudience {
-  display: grid;
-  gap: 12px;
+.journeyManagePage .communicationAudience {
+  margin-bottom: 14px;
 }
-.journeyManagePage .communicationComposer .communicationAudience .agencyChatScopes {
-  width: min(100%, 520px);
-  margin: 0;
+.journeyManagePage .communicationAudience .agencyChatScopes {
+  margin-bottom: 12px;
 }
-.journeyManagePage .communicationComposer .communicationAudienceSelect {
-  width: min(100%, 420px);
-  display: grid;
-  gap: 6px;
-}
-.journeyManagePage .communicationComposer .communicationAudience > p {
-  margin: 0;
+.journeyManagePage .communicationAudienceHint {
+  max-width: 520px;
+  margin: 0 0 14px;
   color: var(--smf-ink-soft);
+  font-size: 13px;
+  line-height: 1.45;
 }
 .journeyManagePage .communicationComposer .acknowledgement {
   min-height: 44px;
@@ -7101,7 +7096,6 @@ body::-webkit-scrollbar-thumb {
 }
 @media (max-width: 680px) {
   .journeyManagePage .operationalChat,
-  .journeyManagePage .communicationsShell,
   .journeyManagePage .settingsShell {
     width: min(100% - 24px, 1160px);
   }

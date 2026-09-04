@@ -220,7 +220,72 @@ export default function CommunicationsClient({
           <h1>{journey.journey.title}</h1>
           <p>Invia aggiornamenti al viaggio, a un gruppo o a un singolo viaggiatore e controlla le prese visione.</p>
         </section>
-        <div className="communicationsShell">
+        <div className="journeyManageShell communicationsShell">
+          <section className="communicationAudience" aria-labelledby="communication-audience-title">
+            <h2 id="communication-audience-title" className="srOnly">
+              Destinatari della comunicazione
+            </h2>
+            <div className="agencyChatScopes" role="tablist" aria-label="Destinatari della comunicazione">
+              {(
+                [
+                  ["trip", "Viaggio"],
+                  ["group", "Gruppo"],
+                  ["traveler", "Viaggiatore"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="tab"
+                  aria-selected={audienceScope === value}
+                  className={audienceScope === value ? "active" : ""}
+                  onClick={() => setAudienceScope(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {audienceScope !== "trip" && (
+              <label className="agencyChatGroup">
+                Gruppo
+                <select
+                  value={selectedGroupId}
+                  onChange={(event) => {
+                    const groupId = event.target.value;
+                    setSelectedGroupId(groupId);
+                    setSelectedTravelerId(groups.find((group) => group.id === groupId)?.travelers[0]?.id || "");
+                  }}
+                >
+                  {groups.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {audienceScope === "traveler" && (
+              <label className="agencyChatGroup">
+                Viaggiatore
+                <select value={selectedTravelerId} onChange={(event) => setSelectedTravelerId(event.target.value)}>
+                  {groups
+                    .find((group) => group.id === selectedGroupId)
+                    ?.travelers.map((traveler) => (
+                      <option key={traveler.id} value={traveler.id}>
+                        {traveler.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            )}
+            <p className="communicationAudienceHint">
+              {audienceScope === "trip"
+                ? "La comunicazione verrà inviata a tutti i viaggiatori della partenza."
+                : audienceScope === "group"
+                  ? "La comunicazione verrà inviata soltanto ai viaggiatori del gruppo selezionato."
+                  : "La comunicazione verrà inviata soltanto al viaggiatore selezionato."}
+            </p>
+          </section>
           {message && (
             <div className={`agencyMessage ${message.kind}`} role={message.kind === "error" ? "alert" : "status"}>
               {message.kind === "error" ? <CircleAlert /> : <CheckCircle2 />}
@@ -252,69 +317,6 @@ export default function CommunicationsClient({
               Scadenza presa visione
               <input name="acknowledgeBy" type="datetime-local" />
             </label>
-            <fieldset className="wide communicationAudience">
-              <legend>Destinatari</legend>
-              <div className="agencyChatScopes" role="tablist" aria-label="Destinatari della comunicazione">
-                {(
-                  [
-                    ["trip", "Viaggio"],
-                    ["group", "Gruppo"],
-                    ["traveler", "Viaggiatore"],
-                  ] as const
-                ).map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    role="tab"
-                    aria-selected={audienceScope === value}
-                    className={audienceScope === value ? "active" : ""}
-                    onClick={() => setAudienceScope(value)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              {audienceScope !== "trip" && (
-                <label className="communicationAudienceSelect">
-                  Gruppo
-                  <select
-                    value={selectedGroupId}
-                    onChange={(event) => {
-                      const groupId = event.target.value;
-                      setSelectedGroupId(groupId);
-                      setSelectedTravelerId(groups.find((group) => group.id === groupId)?.travelers[0]?.id || "");
-                    }}
-                  >
-                    {groups.map((group) => (
-                      <option key={group.id} value={group.id}>
-                        {group.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-              {audienceScope === "traveler" && (
-                <label className="communicationAudienceSelect">
-                  Viaggiatore
-                  <select value={selectedTravelerId} onChange={(event) => setSelectedTravelerId(event.target.value)}>
-                    {groups
-                      .find((group) => group.id === selectedGroupId)
-                      ?.travelers.map((traveler) => (
-                        <option key={traveler.id} value={traveler.id}>
-                          {traveler.name}
-                        </option>
-                      ))}
-                  </select>
-                </label>
-              )}
-              <p>
-                {audienceScope === "trip"
-                  ? "La comunicazione verrà inviata a tutti i viaggiatori della partenza."
-                  : audienceScope === "group"
-                    ? "La comunicazione verrà inviata soltanto ai viaggiatori del gruppo selezionato."
-                    : "La comunicazione verrà inviata soltanto al viaggiatore selezionato."}
-              </p>
-            </fieldset>
             <button type="submit" disabled={Boolean(busy)}>
               {busy === "publish" ? <LoaderCircle className="spin" /> : <Send />} Pubblica
             </button>
