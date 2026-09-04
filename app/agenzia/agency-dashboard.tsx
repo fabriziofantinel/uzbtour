@@ -590,9 +590,9 @@ export default function AgencyDashboard({ initialOverview }: Props) {
                   className="newTripButton"
                   aria-expanded={showNewTrip}
                   aria-controls="new-trip-form"
-                  onClick={() => setShowNewTrip(true)}
+                  onClick={() => setShowNewTrip((value) => !value)}
                 >
-                  <Plus size={17} /> Nuovo viaggio
+                  <Plus size={17} /> {showNewTrip ? "Chiudi inserimento" : "Nuovo viaggio"}
                 </button>
               </div>
             </div>

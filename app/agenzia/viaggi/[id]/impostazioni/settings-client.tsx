@@ -146,11 +146,7 @@ export default function DepartureSettingsClient({
 
   return (
     <main className="journeyManagePage" style={style}>
-      <AgencyManagementNav
-        departureId={journey.journey.id}
-        activeTab="configurazione"
-        quoteImportId={journey.journey.quoteImportId}
-      />
+      <AgencyManagementNav departureId={journey.journey.id} activeTab="configurazione" />
       <section className="journeyManageHero">
         <small>CONFIGURAZIONE PARTENZA</small>
         <h1>{journey.journey.title}</h1>

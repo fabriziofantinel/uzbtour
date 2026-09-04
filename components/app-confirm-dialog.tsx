@@ -88,37 +88,37 @@ export function useAppConfirm() {
   const dialog =
     pending && typeof document !== "undefined"
       ? createPortal(
-      <div className="appDecisionOverlay" onMouseDown={() => close(false)}>
-        <section
-          className="appDecisionDialog"
-          ref={dialogRef}
-          role="alertdialog"
-          aria-modal="true"
-          aria-labelledby={titleId}
-          aria-describedby={descriptionId}
-          tabIndex={-1}
-          onMouseDown={(event) => event.stopPropagation()}
-        >
-          <span className={`appDecisionIcon ${pending.tone === "danger" ? "danger" : ""}`} aria-hidden="true">
-            {pending.tone === "danger" ? <AlertTriangle /> : <Check />}
-          </span>
-          <h2 id={titleId}>{pending.title}</h2>
-          <p id={descriptionId}>{pending.message}</p>
-          <div className="appDecisionActions">
-            <button type="button" className="secondary" onClick={() => close(false)}>
-              Annulla
-            </button>
-            <button
-              ref={confirmButtonRef}
-              type="button"
-              className={pending.tone === "danger" ? "danger" : ""}
-              onClick={() => close(true)}
+          <div className="appDecisionOverlay" onMouseDown={() => close(false)}>
+            <section
+              className="appDecisionDialog"
+              ref={dialogRef}
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby={titleId}
+              aria-describedby={descriptionId}
+              tabIndex={-1}
+              onMouseDown={(event) => event.stopPropagation()}
             >
-              {pending.confirmLabel || "Conferma"}
-            </button>
-          </div>
-        </section>
-      </div>,
+              <span className={`appDecisionIcon ${pending.tone === "danger" ? "danger" : ""}`} aria-hidden="true">
+                {pending.tone === "danger" ? <AlertTriangle /> : <Check />}
+              </span>
+              <h2 id={titleId}>{pending.title}</h2>
+              <p id={descriptionId}>{pending.message}</p>
+              <div className="appDecisionActions">
+                <button type="button" className="secondary" onClick={() => close(false)}>
+                  Annulla
+                </button>
+                <button
+                  ref={confirmButtonRef}
+                  type="button"
+                  className={pending.tone === "danger" ? "danger" : ""}
+                  onClick={() => close(true)}
+                >
+                  {pending.confirmLabel || "Conferma"}
+                </button>
+              </div>
+            </section>
+          </div>,
           document.body,
         )
       : null;

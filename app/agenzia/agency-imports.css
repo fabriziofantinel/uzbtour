@@ -89,8 +89,8 @@
   justify-content: center;
   padding: 10px 13px;
   border-radius: 10px;
-  color: var(--on-brand);
-  background: var(--teal);
+  color: #111;
+  background: var(--agency-ui, var(--teal));
   font-size: var(--text-meta);
   font-weight: 850;
   text-decoration: none;

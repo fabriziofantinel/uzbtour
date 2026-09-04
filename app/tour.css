@@ -5745,13 +5745,13 @@
 .countryReviewHero h1 {
   margin: 6px 0;
   font-family: var(--font-serif);
-  font-size: clamp(34px, 5vw, 56px);
+  font-size: clamp(28px, 4vw, 42px);
 }
 .countryReviewHero p {
   max-width: 760px;
   margin: 0;
   color: var(--muted);
-  font-size: 17px;
+  font-size: 14px;
 }
 .countryReviewIntro,
 .countryReviewEmpty,
@@ -5811,7 +5811,7 @@
 .countryReviewList h2 {
   margin: 4px 0 0;
   font-family: var(--font-serif);
-  font-size: 28px;
+  font-size: 23px;
 }
 .countryReviewList header small {
   font-weight: 900;
@@ -5937,7 +5937,8 @@
 }
 .countryReviewInformation p {
   margin: 0 0 8px;
-  line-height: 1.5;
+  font-size: 14px;
+  line-height: 1.45;
 }
 .countryReviewInformation a {
   display: flex;

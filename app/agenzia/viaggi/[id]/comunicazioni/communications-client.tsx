@@ -3,15 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { CSSProperties } from "react";
-import {
-  CheckCircle2,
-  CircleAlert,
-  Clock3,
-  LoaderCircle,
-  Mail,
-  Send,
-  UsersRound,
-} from "lucide-react";
+import { CheckCircle2, CircleAlert, Clock3, LoaderCircle, Mail, Send, UsersRound } from "lucide-react";
 import { accessibleBrandColor, validBrandColor } from "@/lib/platform/branding-ui";
 import AgencyManagementNav from "@/components/agency-management-nav";
 import type { readDepartureCommunications } from "@/lib/platform/departure-operations";
@@ -200,11 +192,7 @@ export default function CommunicationsClient({
   return (
     <>
       <main className="journeyManagePage" style={style}>
-        <AgencyManagementNav
-          departureId={journey.journey.id}
-          activeTab="comunicazioni"
-          quoteImportId={journey.journey.quoteImportId}
-        />
+        <AgencyManagementNav departureId={journey.journey.id} activeTab="comunicazioni" />
         <section className="journeyManageHero">
           <h1>{journey.journey.title}</h1>
           <p>Invia aggiornamenti all’intera partenza o soltanto ai gruppi selezionati e controlla le prese visione.</p>
@@ -375,7 +363,9 @@ export default function CommunicationsClient({
               }}
             >
               <h2 id={closeDialogTitleId}>Chiudi il mancato riscontro</h2>
-              <p id={closeDialogDescriptionId}>Descrivi come è stato contattato o assistito il viaggiatore. La nota resterà nello storico di audit.</p>
+              <p id={closeDialogDescriptionId}>
+                Descrivi come è stato contattato o assistito il viaggiatore. La nota resterà nello storico di audit.
+              </p>
               <label className="appDecisionField">
                 Nota di chiusura
                 <textarea

@@ -465,13 +465,13 @@
   height: 36px;
   border-radius: 9px;
   background: var(--surface-brand);
-  color: var(--teal);
+  color: #111;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
 }
 .reviewDayNavigatorList > button.active > span:first-child {
   background: var(--teal);
-  color: var(--on-brand);
+  color: #111;
 }
 .reviewDayNavigatorList > button > span:nth-child(2) {
   min-width: 0;

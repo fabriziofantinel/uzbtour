@@ -1,7 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, BookOpen, ClipboardCheck, FileText, FolderOpen, MessageCircle, Send, Settings2, UsersRound, Download } from "lucide-react";
+import {
+  ArrowLeft,
+  BookOpen,
+  ClipboardCheck,
+  FileText,
+  FolderOpen,
+  MessageCircle,
+  Send,
+  Settings2,
+  UsersRound,
+  Download,
+} from "lucide-react";
 import type { ReactNode } from "react";
 
 type Tab = "programma" | "gruppi" | "documenti" | "chat" | "comunicazioni" | "operativita" | "configurazione";

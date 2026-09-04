@@ -4,9 +4,9 @@ import Link from "next/link";
 import {
   Accessibility,
   BarChart3,
-  Building2,
   CheckCircle2,
   CircleAlert,
+  Globe2,
   LoaderCircle,
   LogOut,
   Mail,
@@ -35,7 +35,7 @@ function field(form: FormData, name: string) {
 }
 
 export default function AgencyAgentsClient({ actor, agencies, initialAgents }: Props) {
-  const [agencyId, setAgencyId] = useState(agencies[0]?.id ?? "");
+  const [agencyId] = useState(agencies[0]?.id ?? "");
   const [agentsByAgency, setAgentsByAgency] = useState(initialAgents);
   const [showForm, setShowForm] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -186,26 +186,6 @@ export default function AgencyAgentsClient({ actor, agencies, initialAgents }: P
       </section>
       <div className="agencyShell">
         <aside className="agencySidebar">
-          <label htmlFor="active-agency">Agenzia attiva</label>
-          <div className="agencySelect agencySelectWithoutArrow">
-            <Building2 size={18} />
-            <select
-              id="active-agency"
-              value={agency?.id ?? ""}
-              onChange={(event) => {
-                setAgencyId(event.target.value);
-                setError("");
-                setNotice("");
-                setShowForm(false);
-              }}
-            >
-              {agencies.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </div>
           <nav>
             <Link href="/agenzia">
               <MapPinned size={18} /> Viaggi
@@ -213,8 +193,14 @@ export default function AgencyAgentsClient({ actor, agencies, initialAgents }: P
             <Link className="active" href="/agenzia/agenti" aria-current="page">
               <UsersRound size={18} /> Agenti
             </Link>
+            <Link href="/agenzia/informazioni-paese">
+              <Globe2 size={18} /> Informazioni Paesi
+            </Link>
             <Link href="/agenzia/analytics">
               <BarChart3 size={18} /> Analytics
+            </Link>
+            <Link href="/agenzia/login-come">
+              <UserPlus size={18} /> Login come
             </Link>
             <Link href="/accessibilita">
               <Accessibility size={18} /> Accessibilità
@@ -253,7 +239,7 @@ export default function AgencyAgentsClient({ actor, agencies, initialAgents }: P
                     setError("");
                   }}
                 >
-                  <Plus size={17} /> Nuovo agente
+                  <Plus size={17} /> {showForm ? "Chiudi inserimento" : "Nuovo agente"}
                 </button>
               </div>
             </div>

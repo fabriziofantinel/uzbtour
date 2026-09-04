@@ -360,6 +360,15 @@
   color: #637270;
   border: 1px solid #dbe4df;
 }
+
+/* Azioni coerenti con il marchio, ma sempre con testo leggibile. */
+.agencyPage .newTripButton,
+.agencyPage .agencyAgentForm footer > button:not(.secondary),
+.agencyPage .agencyAgentForm footer > button.secondary {
+  background: var(--agency-ui, #0b6462);
+  border-color: var(--agency-ui, #0b6462);
+  color: #111;
+}
 .newTripForm button svg {
   width: 15px;
   height: 15px;

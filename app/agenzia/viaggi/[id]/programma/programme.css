@@ -109,10 +109,18 @@
   background: #fff;
   color: #183c3c;
 }
+.programmeDays button small,
+.programmeDays button b,
+.programmeDays button span,
+.programmeDays .dayPager button,
+.programmeItem svg,
+.hotelFields svg {
+  color: #111;
+}
 .programmeDays button.active {
-  border-color: #0b6462;
-  background: #eaf4f1;
-  box-shadow: inset 4px 0 #0b6462;
+  border-color: var(--agency-ui, #0b6462);
+  background: color-mix(in srgb, var(--agency-ui, #0b6462) 16%, white);
+  box-shadow: inset 4px 0 var(--agency-ui, #0b6462);
 }
 .programmeDays small,
 .programmeDays b,
@@ -167,8 +175,8 @@
   border: 0;
   border-radius: 8px;
   padding: 10px 13px;
-  background: #0b6462;
-  color: #fff;
+  background: var(--agency-ui, #0b6462);
+  color: #111;
   font-size: 10px;
   font-weight: 800;
 }
@@ -268,8 +276,8 @@
   margin-top: 6px;
   padding: 10px;
   border-radius: 7px;
-  background: #e7f1ee;
-  color: #0b6462;
+  background: color-mix(in srgb, var(--agency-ui, #0b6462) 16%, white);
+  color: #111;
   text-transform: uppercase;
 }
 .timeFields {

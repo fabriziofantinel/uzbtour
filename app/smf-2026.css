@@ -3438,7 +3438,16 @@ body::-webkit-scrollbar-thumb {
   min-height: 44px;
   border-radius: 10px;
   background: var(--smf-action);
+  color: #111;
   font-size: 12px;
+}
+.journeyManagePage :is(.familyCreateForm, .travelerCreateForm) footer button:not(.secondary),
+.journeyManagePage .familyCards > article > header button {
+  background: var(--smf-action);
+  color: #111;
+}
+.journeyManagePage .familyCards :is(svg, .groupLeaderSummary svg) {
+  color: #111;
 }
 .journeyManagePage .agencyMessage {
   min-height: 46px;

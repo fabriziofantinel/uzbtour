@@ -22,7 +22,7 @@
 .analyticsBanner h1 {
   margin: 0;
   font:
-    700 clamp(28px, 3vw, 42px) / 1.05 var(--font-serif),
+    700 clamp(24px, 2.5vw, 34px) / 1.1 var(--font-serif),
     serif;
   letter-spacing: -0.025em;
 }
@@ -30,6 +30,7 @@
   max-width: 760px;
   margin: 7px 0 0;
   color: var(--smf-ink);
+  font-size: 14px;
   line-height: 1.45;
 }
 .analyticsContent {
@@ -48,7 +49,7 @@
 }
 .analyticsHeading h2 {
   font:
-    700 34px/1.1 var(--font-serif),
+    700 27px/1.15 var(--font-serif),
     serif;
 }
 .analyticsHeading p {
@@ -87,7 +88,7 @@
 }
 .analyticsSignalRail {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   border-block: 1px solid var(--smf-line);
   background: white;
 }
@@ -114,14 +115,14 @@
   width: 18px;
 }
 .analyticsSignalRail small {
-  font-size: 12px;
+  font-size: 10px;
   letter-spacing: 0.08em;
 }
 .analyticsSignalRail strong {
   display: block;
   margin: 2px 0;
   font:
-    700 28px/1 var(--font-serif),
+    700 24px/1 var(--font-serif),
     serif;
   font-variant-numeric: tabular-nums;
 }
@@ -327,10 +328,11 @@
   .analyticsSignalRail {
     grid-template-columns: repeat(3, 1fr);
   }
-  .analyticsSignalRail article:nth-child(3) {
+  .analyticsSignalRail article:nth-child(3),
+  .analyticsSignalRail article:nth-child(6) {
     border-right: 0;
   }
-  .analyticsSignalRail article:nth-child(-n + 3) {
+  .analyticsSignalRail article:nth-child(-n + 6) {
     border-bottom: 1px solid var(--smf-line);
   }
 }

@@ -1,24 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useState } from "react";
 import type { CSSProperties } from "react";
 import {
-  ArrowLeft,
-  BookOpen,
   CalendarDays,
   Check,
   CheckCircle2,
   CircleAlert,
   Copy,
   Crown,
-  FolderOpen,
   LoaderCircle,
   Mail,
-  MessageCircle,
-  Send,
-  Settings2,
-  ClipboardCheck,
   Plus,
   ShieldCheck,
   Trash2,
@@ -30,6 +22,7 @@ import {
 import type { getJourneyManagement } from "@/lib/platform/journey-repository";
 import { accessibleBrandColor, validBrandColor } from "@/lib/platform/branding-ui";
 import { useAppConfirm } from "@/components/app-confirm-dialog";
+import AgencyManagementNav from "@/components/agency-management-nav";
 
 type JourneyData = Awaited<ReturnType<typeof getJourneyManagement>>;
 async function json<T>(response: Response): Promise<T> {
@@ -318,35 +311,7 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
   return (
     <>
       <main className="journeyManagePage" style={agencyStyle}>
-        <header>
-          <Link href="/agenzia">
-            <ArrowLeft /> Tutti i viaggi
-          </Link>
-          <nav aria-label="Gestione del viaggio">
-            <Link href={`/agenzia/viaggi/${data.journey.id}/programma`}>
-              <BookOpen /> Programma
-            </Link>
-            <span aria-current="page">
-              <UsersRound /> Gruppi
-            </span>
-            <Link href={`/agenzia/viaggi/${data.journey.id}/documenti`}>
-              <FolderOpen /> Documenti
-            </Link>
-            <Link href={`/agenzia/viaggi/${data.journey.id}/chat`}>
-              <MessageCircle /> Chat
-            </Link>
-            <Link href={`/agenzia/viaggi/${data.journey.id}/comunicazioni`}>
-              <Send /> Comunicazioni
-            </Link>
-            <Link href={`/agenzia/viaggi/${data.journey.id}/operativita`}>
-              <ClipboardCheck /> Operatività
-            </Link>
-            <Link href={`/agenzia/viaggi/${data.journey.id}/impostazioni`}>
-              <Settings2 /> Configurazione
-            </Link>
-          </nav>
-          <span className="journeyAgencyName">{data.journey.agencyName}</span>
-        </header>
+        <AgencyManagementNav departureId={data.journey.id} activeTab="gruppi" journeyTitle={data.journey.agencyName} />
         <section className="journeyManageHero">
           <small>{data.journey.destinationCountry}</small>
           <h1>{data.journey.title}</h1>

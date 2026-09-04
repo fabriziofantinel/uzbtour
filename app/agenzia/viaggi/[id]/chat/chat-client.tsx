@@ -12,12 +12,7 @@ export default function AgencyOperationalChat({ data }: { data: Data }) {
     [traveler, setTraveler] = useState(groups[0]?.travelers[0]?.id || "");
   return (
     <main className="journeyManagePage">
-      <AgencyManagementNav
-        departureId={data.journey.id}
-        activeTab="chat"
-        quoteImportId={data.journey.quoteImportId}
-        journeyTitle={data.journey.agencyName}
-      />
+      <AgencyManagementNav departureId={data.journey.id} activeTab="chat" journeyTitle={data.journey.agencyName} />
       <section className="journeyManageHero">
         <h1>Chat operativa</h1>
         <p>Conversazioni distinte per viaggio, gruppo e singolo viaggiatore.</p>

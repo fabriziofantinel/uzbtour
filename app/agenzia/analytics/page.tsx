@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   Activity,
+  Accessibility,
   BarChart3,
   CalendarRange,
   FileText,
@@ -119,8 +120,19 @@ export default async function AgencyAnalyticsPage({
                   <UserPlus size={18} /> Agenti
                 </Link>
               )}
+              {agency.role === "owner" && (
+                <Link href="/agenzia/informazioni-paese">
+                  <MapPinned size={18} /> Informazioni Paesi
+                </Link>
+              )}
               <Link className="active" href="/agenzia/analytics" aria-current="page">
                 <BarChart3 size={18} /> Analytics
+              </Link>
+              <Link href="/agenzia/login-come">
+                <UserPlus size={18} /> Login come
+              </Link>
+              <Link href="/accessibilita">
+                <Accessibility size={18} /> Accessibilità
               </Link>
             </nav>
           </aside>
@@ -161,6 +173,16 @@ export default async function AgencyAnalyticsPage({
             </header>
 
             <section className="analyticsSignalRail" aria-label="Indicatori principali">
+              <article>
+                <span>
+                  <UsersRound />
+                </span>
+                <div>
+                  <small>ATTIVAZIONE</small>
+                  <strong>{activation}%</strong>
+                  <p>{s.activatedTravelers} account attivati</p>
+                </div>
+              </article>
               <article>
                 <span>
                   <UsersRound />
@@ -348,7 +370,7 @@ export default async function AgencyAnalyticsPage({
               <div className="analyticsSectionTitle">
                 <div>
                   <h3>Definizioni KPI</h3>
-                  <p>Formule versionate, aggiornate ogni 15 minuti e consolidate giornalmente.</p>
+                  <p>Definizioni chiare per leggere gli indicatori dell’agenzia.</p>
                 </div>
                 <BarChart3 />
               </div>
@@ -357,10 +379,8 @@ export default async function AgencyAnalyticsPage({
                   <thead>
                     <tr>
                       <th>KPI</th>
-                      <th>Formula</th>
                       <th>Numeratore</th>
                       <th>Denominatore</th>
-                      <th>Versione</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -368,14 +388,9 @@ export default async function AgencyAnalyticsPage({
                       <tr key={item.code}>
                         <td>
                           <strong>{item.label}</strong>
-                          <small>{item.code}</small>
                         </td>
-                        <td>{item.formula}</td>
                         <td>{item.numerator}</td>
                         <td>{item.denominator}</td>
-                        <td>
-                          v{item.version} · {item.refreshMinutes} min
-                        </td>
                       </tr>
                     ))}
                   </tbody>
