@@ -11,7 +11,7 @@ export default function OperationalChat({
   departureId: string;
   partyId?: string;
   travelerId?: string;
-  scope?: "trip" | "group" | "traveler";
+  scope?: "trip" | "group" | "traveler" | "accompagnatore" | "guida";
 }) {
   const [messages, setMessages] = useState<Message[]>([]),
     [body, setBody] = useState(""),
@@ -86,7 +86,15 @@ export default function OperationalChat({
         <MessageCircle />
         <div>
           <h2 id="chat-title">
-            {scope === "trip" ? "Chat del viaggio" : scope === "group" ? "Chat del gruppo" : "Chat personale"}
+            {scope === "trip"
+              ? "Chat del viaggio"
+              : scope === "group"
+                ? "Chat del gruppo"
+                : scope === "traveler"
+                  ? "Chat personale"
+                  : scope === "accompagnatore"
+                    ? "Chat accompagnatori"
+                    : "Chat guide"}
           </h2>
           <p>
             {scope === "trip"

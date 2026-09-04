@@ -17,7 +17,7 @@ export default function AgencyOperationalChat({ data }: { data: Data }) {
     "--smf-focus": accessibleBrandColor(color),
   } as CSSProperties;
   const groups = data.groups.map((group) => ({ id: group.id, name: group.name, travelers: group.travelers })),
-    [scope, setScope] = useState<"trip" | "group" | "traveler">("trip"),
+    [scope, setScope] = useState<"trip" | "group" | "traveler" | "accompagnatore" | "guida">("trip"),
     [selected, setSelected] = useState(groups[0]?.id || ""),
     [traveler, setTraveler] = useState(groups[0]?.travelers[0]?.id || "");
   return (
@@ -41,6 +41,8 @@ export default function AgencyOperationalChat({ data }: { data: Data }) {
                   ["trip", "Viaggio"],
                   ["group", "Gruppo"],
                   ["traveler", "Viaggiatore"],
+                  ["accompagnatore", "Accompagnatori"],
+                  ["guida", "Guide"],
                 ] as const
               ).map(([value, label]) => (
                 <button
@@ -55,7 +57,7 @@ export default function AgencyOperationalChat({ data }: { data: Data }) {
                 </button>
               ))}
             </div>
-            {scope !== "trip" && (
+            {["group", "traveler"].includes(scope) && (
               <label className="agencyChatGroup">
                 Gruppo
                 <select
@@ -89,7 +91,7 @@ export default function AgencyOperationalChat({ data }: { data: Data }) {
             )}
             <OperationalChat
               departureId={data.journey.id}
-              partyId={scope === "trip" ? undefined : selected}
+              partyId={["group", "traveler"].includes(scope) ? selected : undefined}
               travelerId={scope === "traveler" ? traveler : undefined}
               scope={scope}
             />

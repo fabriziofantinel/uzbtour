@@ -6,7 +6,7 @@ import { listOperationalMessages, sendOperationalMessage } from "@/lib/platform/
 import { sendDeparturePush, sendPartyPush } from "@/lib/platform/web-push";
 const scope = z.object({
   departureId: z.string().uuid(),
-  scope: z.enum(["trip", "group", "traveler"]).default("group"),
+  scope: z.enum(["trip", "group", "traveler", "accompagnatore", "guida"]).default("group"),
   partyId: z.string().uuid().nullish(),
   travelerId: z.string().uuid().nullish(),
 });

@@ -16,6 +16,7 @@ const migrations = [
   "174_v3_agency_staff_and_day_assignments",
   "175_v3_departure_presence_register",
   "176_v3_staff_document_audience",
+  "177_v3_staff_chat_scope",
 ];
 const sources = await Promise.all(
   migrations.map(async (name) => ({
@@ -55,7 +56,9 @@ try {
       to_regprocedure('app.set_departure_presence_v3(uuid,uuid,uuid,boolean)') IS NOT NULL presence_write,
       EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='174_v3_agency_staff_and_day_assignments') staff_day_assignment_marker,
       EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='175_v3_departure_presence_register') presence_marker,
-      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='176_v3_staff_document_audience') staff_document_marker`)
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='176_v3_staff_document_audience') staff_document_marker,
+      to_regprocedure('app.send_staff_operational_message_v3(uuid,uuid,text,text,uuid)') IS NOT NULL staff_chat_write,
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='177_v3_staff_chat_scope') staff_chat_marker`)
   ).rows[0];
   if (!gate || Object.values(gate).some((value) => value !== true))
     throw new Error(`Gate incompleti: ${JSON.stringify(gate)}`);
