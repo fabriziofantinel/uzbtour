@@ -18,6 +18,18 @@ CREATE TABLE IF NOT EXISTS iam.agency_staff_profiles (
 CREATE INDEX IF NOT EXISTS agency_staff_profiles_directory_idx
   ON iam.agency_staff_profiles(agency_id,status,staff_role,user_id);
 
+CREATE OR REPLACE FUNCTION app.require_agency_staff_manager_v3(p_actor_user_id UUID,p_agency_id UUID)
+RETURNS UUID LANGUAGE plpgsql STABLE SECURITY DEFINER
+SET search_path=pg_catalog,iam SET row_security=off AS $$
+BEGIN
+  IF NOT EXISTS(SELECT 1 FROM iam.agency_memberships membership JOIN iam.users account ON account.id=membership.user_id
+    WHERE membership.agency_id=p_agency_id AND membership.user_id=p_actor_user_id AND membership.status='active'
+      AND membership.role IN('owner','admin','editor') AND account.status='active') THEN
+    RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='agency staff management access denied';
+  END IF;
+  RETURN p_actor_user_id;
+END $$;
+
 -- Preserve the existing agency agents in the new personnel directory.
 INSERT INTO iam.agency_staff_profiles(agency_id,user_id,staff_role,status,created_by)
 SELECT membership.agency_id,membership.user_id,'agent','active',membership.user_id
@@ -67,7 +79,7 @@ RETURNS TABLE(legacy_user_id TEXT,user_id UUID,name TEXT,username TEXT,email TEX
 LANGUAGE plpgsql STABLE SECURITY DEFINER
 SET search_path=pg_catalog,app,iam,ops SET row_security=off AS $$
 BEGIN
-  PERFORM app.require_agency_owner_v3(p_actor_user_id,p_agency_id);
+  PERFORM app.require_agency_staff_manager_v3(p_actor_user_id,p_agency_id);
   RETURN QUERY
   SELECT legacy.legacy_id::text,staff.user_id,account.display_name::text,account.username::text,
     COALESCE(account.email,'')::text,COALESCE(account.phone,'')::text,staff.staff_role::text,
@@ -90,7 +102,7 @@ LANGUAGE plpgsql SECURITY DEFINER
 SET search_path=pg_catalog,app,iam,ops,public SET row_security=off AS $$
 DECLARE v_actor_legacy TEXT;v_user UUID;v_legacy TEXT;v_invitation UUID;v_membership_role TEXT;
 BEGIN
-  PERFORM app.require_agency_owner_v3(p_actor_user_id,p_agency_id);
+  PERFORM app.require_agency_staff_manager_v3(p_actor_user_id,p_agency_id);
   SELECT legacy_id INTO v_actor_legacy FROM ops.legacy_id_map
    WHERE source_system='public-v2' AND entity_type='user' AND target_id=p_actor_user_id ORDER BY created_at LIMIT 1;
   IF v_actor_legacy IS NULL OR p_staff_role NOT IN ('agent','accompagnatore','guida')
@@ -161,7 +173,7 @@ CREATE OR REPLACE FUNCTION app.remove_agency_staff_v3(
 SET search_path=pg_catalog,app,iam,ops,public SET row_security=off AS $$
 DECLARE v_user UUID;v_actor_legacy TEXT;
 BEGIN
-  PERFORM app.require_agency_owner_v3(p_actor_user_id,p_agency_id);
+  PERFORM app.require_agency_staff_manager_v3(p_actor_user_id,p_agency_id);
   SELECT mapping.target_id INTO v_user FROM ops.legacy_id_map mapping
   JOIN iam.agency_staff_profiles profile ON profile.agency_id=mapping.agency_id AND profile.user_id=mapping.target_id
   WHERE mapping.source_system='public-v2' AND mapping.entity_type='user' AND mapping.agency_id=p_agency_id
@@ -251,11 +263,11 @@ SET search_path=pg_catalog,iam,travel SET row_security=off AS $$
  ORDER BY departure.starts_on,departure.title;
 $$;
 
-REVOKE ALL ON FUNCTION app.read_agency_staff_v3(UUID,UUID),
+REVOKE ALL ON FUNCTION app.require_agency_staff_manager_v3(UUID,UUID),app.read_agency_staff_v3(UUID,UUID),
   app.provision_agency_staff_v3(UUID,UUID,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TIMESTAMPTZ),
   app.assign_departure_staff_days_v3(UUID,UUID,UUID,TEXT,UUID[]),app.remove_agency_staff_v3(UUID,UUID,TEXT),
   app.list_my_departure_staff_v3(UUID) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION app.read_agency_staff_v3(UUID,UUID),
+GRANT EXECUTE ON FUNCTION app.require_agency_staff_manager_v3(UUID,UUID),app.read_agency_staff_v3(UUID,UUID),
   app.provision_agency_staff_v3(UUID,UUID,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TEXT,TIMESTAMPTZ),
   app.assign_departure_staff_days_v3(UUID,UUID,UUID,TEXT,UUID[]),app.remove_agency_staff_v3(UUID,UUID,TEXT),
   app.list_my_departure_staff_v3(UUID) TO smf_app;
