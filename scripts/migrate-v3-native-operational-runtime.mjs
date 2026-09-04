@@ -19,6 +19,7 @@ const migrations = [
   "177_v3_staff_chat_scope",
   "178_v3_staff_communication_audience",
   "179_v3_staff_day_programme_authorization",
+  "180_v3_staff_programme_day_write",
 ];
 const sources = await Promise.all(
   migrations.map(async (name) => ({
@@ -64,7 +65,9 @@ try {
       to_regprocedure('app.publish_staff_departure_communication_v3(uuid,uuid,text,text,text,text,boolean,timestamp with time zone,uuid)') IS NOT NULL staff_communication_write,
       EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='178_v3_staff_communication_audience') staff_communication_marker,
       to_regprocedure('app.can_edit_departure_day_v3(uuid,uuid,uuid)') IS NOT NULL staff_day_programme_authorization,
-      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='179_v3_staff_day_programme_authorization') staff_day_programme_marker`)
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='179_v3_staff_day_programme_authorization') staff_day_programme_marker,
+      to_regprocedure('app.update_departure_programme_day_staff_v3(uuid,uuid,uuid,text,text,text,text,jsonb,jsonb)') IS NOT NULL staff_programme_write,
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='180_v3_staff_programme_day_write') staff_programme_write_marker`)
   ).rows[0];
   if (!gate || Object.values(gate).some((value) => value !== true))
     throw new Error(`Gate incompleti: ${JSON.stringify(gate)}`);
