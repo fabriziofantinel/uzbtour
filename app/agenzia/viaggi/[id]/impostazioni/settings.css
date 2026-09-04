@@ -24,35 +24,44 @@
 .profileCards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  margin-top: 20px;
+  gap: 10px;
+  margin-top: 16px;
 }
-.profileCards button {
+.journeyManagePage .settingsShell .profileCards button {
   position: relative;
-  min-height: 145px;
-  padding: 18px;
+  min-height: 104px;
+  padding: 13px 42px 13px 14px;
   text-align: left;
-  border: 1px solid #d5d0c6;
-  border-radius: 14px;
-  background: #faf9f6;
+  border: 1px solid color-mix(in srgb, var(--agency-ui) 58%, #d5d0c6);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--agency-ui) 8%, white);
   color: #111;
 }
-.profileCards button.selected {
-  border: 3px solid var(--agency-ui);
-  background: color-mix(in srgb, var(--agency-ui) 18%, white);
+.journeyManagePage .settingsShell .profileCards button.selected {
+  border-color: var(--agency-ui);
+  background: var(--agency-ui);
+  color: #111;
 }
 .profileCards b,
 .profileCards span {
   display: block;
 }
 .profileCards b {
-  font-size: 19px;
-  margin-bottom: 8px;
+  margin-bottom: 5px;
+  font-size: 15px;
+  line-height: 1.2;
+}
+.profileCards span {
+  font-size: 12px;
+  line-height: 1.35;
 }
 .profileCards svg {
   position: absolute;
-  right: 14px;
-  top: 14px;
+  top: 12px;
+  right: 12px;
+  width: 18px;
+  height: 18px;
+  color: #111;
 }
 .insuranceSettings {
   display: grid;
@@ -119,6 +128,14 @@
   background: var(--agency-ui);
   color: #111;
   font-weight: 800;
+}
+.journeyManagePage .settingsShell :is(.guarantees button, .saveInsurance, .uploadButton) {
+  border-color: var(--agency-ui);
+  background: var(--agency-ui);
+  color: #111;
+}
+.journeyManagePage .settingsShell :is(.guarantees button, .saveInsurance, .uploadButton) svg {
+  color: #111;
 }
 .guarantees > div {
   display: grid;

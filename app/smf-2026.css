@@ -6610,6 +6610,20 @@ body::-webkit-scrollbar-thumb {
 .travelerRedesign :is(.challengePanel, .quizPage, .gamesPage, .rankingsPage) {
   padding-inline: clamp(12px, 3vw, 24px);
 }
+.travelerRedesign .missionBoard {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: clamp(16px, 2.4vw, 24px);
+  overflow: hidden;
+}
+.travelerRedesign .missionList > article {
+  grid-template-columns: 42px minmax(0, 1fr) minmax(112px, 132px);
+  min-width: 0;
+}
+.travelerRedesign .missionList :is(.missionOutcome, .evidencePicker, .missionStatus) {
+  min-width: 0;
+  max-width: 100%;
+}
 .travelerRedesign .quizLayoutSingle {
   display: block;
 }
@@ -6744,11 +6758,68 @@ body::-webkit-scrollbar-thumb {
   font-weight: 800;
 }
 .travelerRedesign .expenseExchangeHighlight {
-  padding: 10px 12px;
+  display: grid;
+  gap: 4px;
+  margin-top: 14px;
+  padding: 14px;
   border-radius: 10px;
   color: var(--smf-ink);
   background: color-mix(in srgb, var(--trail-primary) 16%, white);
-  font-weight: 750;
+}
+.travelerRedesign .expenseExchangeHighlight > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #111;
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.travelerRedesign .expenseExchangeHighlight svg {
+  width: 17px;
+  height: 17px;
+  color: #111;
+}
+.travelerRedesign .expenseExchangeHighlight strong {
+  color: #111;
+  font-size: clamp(20px, 4vw, 25px);
+  line-height: 1.2;
+}
+.travelerRedesign .expenseExchangeHighlight small {
+  color: var(--smf-ink-soft);
+  font-size: 12px;
+}
+
+/* Informazioni utili: le icone seguono il marchio dell'agenzia senza perdere contrasto. */
+.travelerRedesign .usefulHero > span,
+.travelerRedesign .infoSectionHead > svg,
+.travelerRedesign .cultureGrid article > svg,
+.travelerRedesign .worldClockBar > div > svg {
+  color: #111;
+  background: var(--trail-primary);
+}
+.travelerRedesign .cultureGrid article > svg {
+  border-radius: 9px;
+}
+.travelerRedesign .usefulGovernance a svg {
+  color: var(--trail-primary);
+}
+
+/* Gruppi: statistiche e identità dei viaggiatori restano leggibili con ogni brand dell'agenzia. */
+.journeyManagePage .journeyPeopleSummary :is(svg, small, strong),
+.journeyManagePage .familyCards > article > header > span :is(svg, b, small),
+.journeyManagePage .familyTravelers :is(i, i svg, span b, span small, em, > div > strong),
+.journeyManagePage .groupLeaderSummary :is(svg, small, b) {
+  color: #111 !important;
+}
+.journeyManagePage .familyTravelers i {
+  background: color-mix(in srgb, var(--smf-brand) 22%, white);
+}
+.journeyManagePage .familyTravelers > div > strong,
+.journeyManagePage .familyTravelers .leaderBadge {
+  color: #111;
+  background: color-mix(in srgb, var(--smf-brand) 22%, white);
 }
 .travelerRedesign .financeEmptyCompact,
 .travelerRedesign .insuranceEmpty {
@@ -6795,6 +6866,30 @@ body::-webkit-scrollbar-thumb {
   background: var(--smf-surface);
   font: inherit;
 }
+.journeyManagePage .agencyChatScopes {
+  display: flex;
+  max-width: 520px;
+  gap: 7px;
+  margin: 0 0 14px;
+  padding: 5px;
+  border: 1px solid var(--smf-line);
+  border-radius: 12px;
+  background: var(--smf-surface);
+}
+.journeyManagePage .agencyChatScopes button {
+  min-height: 42px;
+  flex: 1;
+  border: 0;
+  border-radius: 8px;
+  color: var(--smf-ink);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 800;
+}
+.journeyManagePage .agencyChatScopes button.active {
+  color: #111;
+  background: var(--smf-action);
+}
 .journeyManagePage .operationalChat,
 .journeyManagePage .communicationsShell,
 .journeyManagePage .settingsShell {
@@ -6831,10 +6926,188 @@ body::-webkit-scrollbar-thumb {
   color: var(--smf-ink);
   background: var(--smf-surface);
 }
+
+/* Comunicazioni: stessa densità e gerarchia delle altre schede di gestione viaggio. */
+.journeyManagePage .communicationComposer {
+  gap: 14px;
+  padding: clamp(16px, 2.5vw, 22px);
+  background: var(--smf-surface);
+}
+.journeyManagePage .communicationComposer > h2,
+.journeyManagePage .communicationList > h2 {
+  margin: 0;
+  color: var(--smf-ink);
+  font-size: clamp(19px, 2vw, 23px);
+  font-family: var(--font-sans), Arial, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+.journeyManagePage .communicationComposer label,
+.journeyManagePage .communicationComposer fieldset,
+.journeyManagePage .communicationComposer legend {
+  color: var(--smf-ink);
+  font-size: 13px;
+  font-weight: 800;
+}
+.journeyManagePage .communicationComposer :is(input, textarea, select) {
+  min-height: 44px;
+  border-color: var(--smf-line);
+  border-radius: 10px;
+}
+.journeyManagePage .communicationComposer textarea {
+  min-height: 112px;
+}
+.journeyManagePage .communicationComposer fieldset {
+  padding: 12px;
+  border-color: var(--smf-line);
+  border-radius: 10px;
+  background: var(--smf-surface-soft);
+}
+.journeyManagePage .communicationComposer fieldset p {
+  margin: 3px 0 10px;
+}
+.journeyManagePage .communicationComposer .acknowledgement {
+  min-height: 44px;
+  padding-inline: 2px;
+}
+.journeyManagePage .communicationComposer > button,
+.journeyManagePage .communicationActions button,
+.journeyManagePage .recipientList button {
+  min-height: 44px;
+  border-color: var(--agency-ui);
+  background: var(--agency-ui);
+  color: #111;
+  font-size: 13px;
+}
+.journeyManagePage .communicationComposer > button svg,
+.journeyManagePage .communicationActions button svg,
+.journeyManagePage .recipientList button svg {
+  color: #111;
+}
+.journeyManagePage .communicationList {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+}
+.journeyManagePage .communicationList > article {
+  margin: 0;
+  padding: clamp(16px, 2.5vw, 20px);
+  border: 1px solid var(--smf-line);
+  border-left: 1px solid var(--smf-line);
+  border-radius: 14px;
+  background: var(--smf-surface);
+  box-shadow: none;
+}
+.journeyManagePage .communicationList > article.important {
+  border-color: color-mix(in srgb, var(--smf-warning) 55%, var(--smf-line));
+}
+.journeyManagePage .communicationList > article.urgent,
+.journeyManagePage .communicationList > article.overdue {
+  border-color: color-mix(in srgb, var(--smf-danger) 62%, var(--smf-line));
+  box-shadow: inset 3px 0 0 var(--smf-danger);
+}
+.journeyManagePage .communicationList article > header {
+  align-items: flex-start;
+  gap: 12px;
+}
+.journeyManagePage .communicationList article > header small {
+  color: var(--smf-ink-soft);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+}
+.journeyManagePage .communicationList h3 {
+  margin: 3px 0 0;
+  color: var(--smf-ink);
+  font-size: 17px;
+  line-height: 1.25;
+}
+.journeyManagePage .communicationList time {
+  color: var(--smf-ink-soft);
+  font-size: 12px;
+}
+.journeyManagePage .communicationList article > p {
+  margin: 12px 0 0;
+  color: var(--smf-ink);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.journeyManagePage .communicationStats {
+  gap: 8px;
+  margin: 14px 0;
+}
+.journeyManagePage .communicationStats span {
+  min-height: 32px;
+  padding: 5px 8px;
+  color: #111;
+  background: color-mix(in srgb, var(--agency-ui) 15%, white);
+  font-size: 12px;
+  font-weight: 750;
+}
+.journeyManagePage .communicationStats .unread {
+  background: color-mix(in srgb, var(--smf-warning) 22%, white);
+}
+.journeyManagePage .communicationStats svg {
+  width: 16px;
+  color: #111;
+}
+.journeyManagePage .communicationActions {
+  margin-top: 14px;
+}
+.journeyManagePage .recipientList {
+  border-color: var(--smf-line);
+}
+.journeyManagePage .recipientList > div {
+  border-color: var(--smf-line);
+}
+.journeyManagePage .recipientList :is(b, small) {
+  color: var(--smf-ink);
+  font-size: 13px;
+}
+.journeyManagePage .recipientList small {
+  color: var(--smf-ink-soft);
+  font-size: 12px;
+}
+.journeyManagePage .closedCase,
+.journeyManagePage .emptyCommunications {
+  color: var(--smf-ink);
+  background: var(--smf-surface-soft);
+}
+.journeyManagePage .emptyCommunications {
+  margin: 0;
+  padding: 22px;
+  border: 1px solid var(--smf-line);
+  border-radius: 14px;
+  text-align: left;
+  font-size: 13px;
+}
 @media (max-width: 680px) {
   .journeyManagePage .operationalChat,
   .journeyManagePage .communicationsShell,
   .journeyManagePage .settingsShell {
     width: min(100% - 24px, 1160px);
+  }
+  .journeyManagePage .communicationComposer {
+    grid-template-columns: 1fr;
+  }
+  .journeyManagePage .communicationComposer :is(h2, .wide) {
+    grid-column: auto;
+  }
+  .journeyManagePage .communicationList article > header,
+  .journeyManagePage .recipientList > div {
+    flex-direction: column;
+  }
+  .journeyManagePage .communicationList time {
+    white-space: normal;
+  }
+  .travelerRedesign .missionBoard {
+    padding: 16px;
+  }
+  .travelerRedesign .missionList > article {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+  .travelerRedesign .missionList :is(.missionOutcome, .evidencePicker, .missionStatus) {
+    grid-column: 2;
+    width: 100%;
   }
 }

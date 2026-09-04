@@ -1928,12 +1928,17 @@ export default function TravelExperience({
                     <strong>{totalSpentEuro == null ? "Calcolo…" : `€ ${totalSpentEuro.toFixed(2)}`}</strong>
                   </div>
                 </div>
-                <p className="expenseExchangeHighlight">
-                  Gruppo: {experience.journey.partyName}
-                  {appliedEurRate
-                    ? ` · Conversione: 1 € = ${localFormatter.format(appliedEurRate)} ${localCurrency}`
-                    : ""}
-                </p>
+                <section className="expenseExchangeHighlight" aria-label="Cambio valuta">
+                  <span>
+                    <ArrowRightLeft /> Cambio valuta
+                  </span>
+                  <strong>
+                    {appliedEurRate
+                      ? `1 € = ${localFormatter.format(appliedEurRate)} ${localCurrency}`
+                      : "Cambio non disponibile"}
+                  </strong>
+                  <small>Valuta di riferimento per il gruppo {experience.journey.partyName}</small>
+                </section>
               </div>
               <div className="financeActions">
                 <button type="button" onClick={() => setExpenseDayId(null)}>

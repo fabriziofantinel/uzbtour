@@ -72,6 +72,8 @@
     "db:migrate:v3:configurable-workload-limits": "node --env-file=.env.local scripts/migrate-v3-configurable-tenant-workload-limits.mjs --apply",
     "db:migrate:v3:tour-leader-operations:dry-run": "node --env-file=.env.local scripts/migrate-v3-tour-leader-operational-control.mjs",
     "db:migrate:v3:tour-leader-operations": "node --env-file=.env.local scripts/migrate-v3-tour-leader-operational-control.mjs --apply",
+    "db:migrate:v3:native-operational-runtime:dry-run": "node --env-file=.env.local scripts/migrate-v3-native-operational-runtime.mjs",
+    "db:migrate:v3:native-operational-runtime": "node --env-file=.env.local scripts/migrate-v3-native-operational-runtime.mjs --apply",
     "db:migrate:v3:job-trace-correlation:dry-run": "node --env-file=.env.local scripts/migrate-v3-job-trace-correlation.mjs",
     "db:migrate:v3:job-trace-correlation": "node --env-file=.env.local scripts/migrate-v3-job-trace-correlation.mjs --apply",
     "db:migrate:v3:tenant-workload-quotas:dry-run": "node --env-file=.env.local scripts/migrate-v3-tenant-workload-quotas.mjs",

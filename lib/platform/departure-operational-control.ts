@@ -20,9 +20,9 @@ export async function readMyTourLeaderDepartures(actorUserId: string) {
   }));
 }
 
-export async function readDepartureOperationalControl(actorId: string, departureId: string, actorUserId: string) {
+export async function readDepartureOperationalControl(actorUserId: string, departureId: string) {
   const [rows, alerts, staffRows] = await Promise.all([
-    getSql()`SELECT * FROM app.list_departure_operations_v3(${actorId},${departureId}::uuid)`,
+    getSql()`SELECT * FROM app.list_departure_operations_v3(${actorUserId}::uuid,${departureId}::uuid)`,
     getSql()`SELECT * FROM app.list_operational_alerts_v3(${actorUserId}::uuid,${departureId}::uuid)`,
     getSql()`SELECT * FROM app.list_departure_tour_leaders_v3(${actorUserId}::uuid,${departureId}::uuid)`,
   ]);
@@ -118,14 +118,14 @@ export async function revokeTourLeader(actorUserId: string, departureId: string,
 }
 
 export async function recordAttendance(input: {
-  actorId: string;
+  actorUserId: string;
   dayId: string;
   travelerId: string;
   status: "present" | "absent" | "excused";
   note: string;
 }) {
   const rows =
-    await getSql()`SELECT app.record_departure_attendance_v3(${input.actorId},${input.dayId}::uuid,${input.travelerId}::uuid,${input.status},${input.note})::text id`;
+    await getSql()`SELECT app.record_departure_attendance_v3(${input.actorUserId}::uuid,${input.dayId}::uuid,${input.travelerId}::uuid,${input.status},${input.note})::text id`;
   return String(rows[0]?.id || "");
 }
 

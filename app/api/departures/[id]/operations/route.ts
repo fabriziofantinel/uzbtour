@@ -59,7 +59,7 @@ export async function GET(_: Request, context: { params: Promise<{ id: string }>
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
     const { id } = await context.params;
-    return NextResponse.json(await readDepartureOperationalControl(user.id, id, user.nativeId));
+    return NextResponse.json(await readDepartureOperationalControl(user.nativeId, id));
   } catch (error) {
     return platformApiError(error, "Operatività non disponibile");
   }
@@ -92,7 +92,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       }
     } else if (parsed.data.action === "revokeTourLeader")
       await revokeTourLeader(user.nativeId, id, parsed.data.assignmentId, parsed.data.reason);
-    else if (parsed.data.action === "attendance") await recordAttendance({ actorId: user.id, ...parsed.data });
+    else if (parsed.data.action === "attendance")
+      await recordAttendance({ actorUserId: user.nativeId, ...parsed.data });
     else
       await saveOperationalAlert({
         actorId: user.id,

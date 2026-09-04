@@ -13,7 +13,7 @@ export default async function TourLeaderDeparturePage({ params }: { params: Prom
   return (
     <OperationalControlClient
       departureId={id}
-      initialData={await readDepartureOperationalControl(user.id, id, user.nativeId)}
+      initialData={await readDepartureOperationalControl(user.nativeId, id)}
       backHref="/tour-leader"
       backLabel="Le tue partenze"
     />

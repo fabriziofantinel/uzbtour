@@ -35,14 +35,26 @@ export default function AgencyOperationalChat({ data }: { data: Data }) {
       <div className="journeyManageShell">
         {groups.length ? (
           <>
-            <label className="agencyChatGroup">
-              Livello
-              <select value={scope} onChange={(event) => setScope(event.target.value as typeof scope)}>
-                <option value="trip">Viaggio</option>
-                <option value="group">Gruppo</option>
-                <option value="traveler">Viaggiatore</option>
-              </select>
-            </label>
+            <div className="agencyChatScopes" role="tablist" aria-label="Chat visualizzata">
+              {(
+                [
+                  ["trip", "Viaggio"],
+                  ["group", "Gruppo"],
+                  ["traveler", "Viaggiatore"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="tab"
+                  aria-selected={scope === value}
+                  className={scope === value ? "active" : ""}
+                  onClick={() => setScope(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             {scope !== "trip" && (
               <label className="agencyChatGroup">
                 Gruppo
