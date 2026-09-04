@@ -145,6 +145,7 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
             <div>
               <small>ARCHIVIO PRIVATO</small>
               <h2>Documenti per giornata e gruppo</h2>
+              <p>Qui sono elencati anche i documenti già inviati ai gruppi della partenza.</p>
             </div>
           </div>
           {message && (

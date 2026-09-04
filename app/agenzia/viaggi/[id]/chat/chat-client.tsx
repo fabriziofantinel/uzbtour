@@ -1,18 +1,33 @@
 "use client";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { MessageCircle } from "lucide-react";
 import OperationalChat from "@/components/operational-chat";
 import AgencyManagementNav from "@/components/agency-management-nav";
+import { accessibleBrandColor, validBrandColor } from "@/lib/platform/branding-ui";
 import type { getJourneyManagement } from "@/lib/platform/journey-repository";
 type Data = Awaited<ReturnType<typeof getJourneyManagement>>;
 export default function AgencyOperationalChat({ data }: { data: Data }) {
+  const color = validBrandColor(data.journey.agencyPrimaryColor);
+  const style = {
+    "--agency-ui": color,
+    "--agency-ui-ink": "#111111",
+    "--smf-brand": color,
+    "--smf-brand-deep": color,
+    "--smf-action": color,
+    "--smf-focus": accessibleBrandColor(color),
+  } as CSSProperties;
   const groups = data.groups.map((group) => ({ id: group.id, name: group.name, travelers: group.travelers })),
     [scope, setScope] = useState<"trip" | "group" | "traveler">("trip"),
     [selected, setSelected] = useState(groups[0]?.id || ""),
     [traveler, setTraveler] = useState(groups[0]?.travelers[0]?.id || "");
   return (
-    <main className="journeyManagePage">
-      <AgencyManagementNav departureId={data.journey.id} activeTab="chat" journeyTitle={data.journey.agencyName} />
+    <main className="journeyManagePage" style={style}>
+      <AgencyManagementNav
+        departureId={data.journey.id}
+        activeTab="chat"
+        journeyTitle={data.journey.title}
+        quoteImportId={data.journey.quoteImportId}
+      />
       <section className="journeyManageHero">
         <h1>Chat operativa</h1>
         <p>Conversazioni distinte per viaggio, gruppo e singolo viaggiatore.</p>

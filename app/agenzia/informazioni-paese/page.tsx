@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import type { CSSProperties } from "react";
 import { ArrowLeft, CheckCircle2, ExternalLink, Globe2, ShieldCheck, XCircle } from "lucide-react";
 import { PlatformAuthorizationError, requireAgencyOwnerActor } from "@/lib/platform/authorization";
 import { readCountryProfilesForReview, reviewCountryProfile } from "@/lib/platform/country-profile-admin";
+import { getPlatformOverview } from "@/lib/platform/repository";
+import { validBrandColor } from "@/lib/platform/branding-ui";
 
 export const dynamic = "force-dynamic";
 
@@ -55,9 +58,17 @@ async function reviewCountryProfileAction(formData: FormData) {
 export default async function CountryInformationReviewPage() {
   try {
     const actor = await requireAgencyOwnerActor();
-    const profiles = await readCountryProfilesForReview(actor.id);
+    const [profiles, overview] = await Promise.all([
+      readCountryProfilesForReview(actor.id),
+      getPlatformOverview(actor),
+    ]);
+    const agency = overview.agencies[0];
+    const color = validBrandColor(agency?.primaryColor || "#247A6B");
     return (
-      <main className="countryReviewPage">
+      <main
+        className="countryReviewPage"
+        style={{ "--agency-color": color, "--smf-brand": color, "--smf-action": color } as CSSProperties}
+      >
         <header className="countryReviewHero">
           <Link href="/agenzia">
             <ArrowLeft /> Torna ai viaggi

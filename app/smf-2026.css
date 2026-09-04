@@ -6700,3 +6700,75 @@ body::-webkit-scrollbar-thumb {
   color: var(--smf-ink);
   background: var(--smf-surface-soft);
 }
+
+/* Journey management: keep every tab on the same visual system and protect contrast on light agency colours. */
+.journeyManagePage :is(.familyCreateForm, .travelerCreateForm) footer button.secondary,
+.journeyManagePage :is(.familyCreateForm, .travelerCreateForm) footer button.secondary:hover {
+  border-color: var(--smf-action);
+  background: var(--smf-action);
+  color: #111;
+}
+.journeyManagePage .familyCards > article > header :is(svg, small, b),
+.journeyManagePage .groupLeaderSummary :is(svg, small, b) {
+  color: #111 !important;
+}
+.journeyManagePage .agencyChatGroup {
+  display: grid;
+  max-width: 360px;
+  gap: 6px;
+  margin-bottom: 12px;
+  color: var(--smf-ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+.journeyManagePage .agencyChatGroup select {
+  min-height: 44px;
+  border: 1px solid var(--smf-line);
+  border-radius: 10px;
+  color: var(--smf-ink);
+  background: var(--smf-surface);
+  font: inherit;
+}
+.journeyManagePage .operationalChat,
+.journeyManagePage .communicationsShell,
+.journeyManagePage .settingsShell {
+  width: min(1160px, calc(100% - 32px));
+  margin: 0 auto 32px;
+}
+.journeyManagePage .operationalChat,
+.journeyManagePage :is(.communicationComposer, .communicationList > article, .profileSettings, .insuranceSettings) {
+  border: 0;
+  border-radius: 14px;
+  color: var(--smf-ink);
+  box-shadow: 0 8px 24px rgb(20 43 53 / 7%);
+}
+.journeyManagePage :is(.operationalChat, .communicationComposer, .profileSettings, .insuranceSettings) :is(h2, h3) {
+  color: var(--smf-ink);
+  font-size: clamp(18px, 2vw, 22px);
+  line-height: 1.18;
+}
+.journeyManagePage
+  :is(.operationalChat, .communicationComposer, .profileSettings, .insuranceSettings)
+  :is(p, label, small) {
+  color: var(--smf-ink-soft);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.journeyManagePage
+  :is(.operationalChat, .communicationComposer, .profileSettings, .insuranceSettings)
+  button:not(.secondary) {
+  background: var(--smf-action);
+  color: #111;
+}
+.journeyManagePage .communicationsShell :is(input, textarea, select),
+.journeyManagePage .settingsShell :is(input, textarea, select) {
+  color: var(--smf-ink);
+  background: var(--smf-surface);
+}
+@media (max-width: 680px) {
+  .journeyManagePage .operationalChat,
+  .journeyManagePage .communicationsShell,
+  .journeyManagePage .settingsShell {
+    width: min(100% - 24px, 1160px);
+  }
+}

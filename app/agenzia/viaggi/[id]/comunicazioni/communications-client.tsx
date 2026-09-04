@@ -192,7 +192,12 @@ export default function CommunicationsClient({
   return (
     <>
       <main className="journeyManagePage" style={style}>
-        <AgencyManagementNav departureId={journey.journey.id} activeTab="comunicazioni" />
+        <AgencyManagementNav
+          departureId={journey.journey.id}
+          activeTab="comunicazioni"
+          journeyTitle={journey.journey.title}
+          quoteImportId={journey.journey.quoteImportId}
+        />
         <section className="journeyManageHero">
           <h1>{journey.journey.title}</h1>
           <p>Invia aggiornamenti all’intera partenza o soltanto ai gruppi selezionati e controlla le prese visione.</p>

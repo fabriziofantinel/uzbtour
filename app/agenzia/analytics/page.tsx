@@ -242,7 +242,7 @@ export default async function AgencyAnalyticsPage({
                 <div>
                   <small>FEEDBACK</small>
                   <strong>{s.averageFeedback == null ? "—" : s.averageFeedback.toFixed(1)}</strong>
-                  <p>{s.feedbackCount} valutazioni per tappa</p>
+                  <p>{s.feedbackCount} valutazioni raccolte</p>
                 </div>
               </article>
             </section>
@@ -332,40 +332,6 @@ export default async function AgencyAnalyticsPage({
               )}
             </section>
 
-            <section className="analyticsSection feedbackPanel">
-              <div className="analyticsSectionTitle">
-                <div>
-                  <h3>Feedback per tappa</h3>
-                  <p>Le valutazioni più basse compaiono per prime all’interno di ogni giornata.</p>
-                </div>
-                <Star />
-              </div>
-              {analytics.feedback.length === 0 ? (
-                <div className="analyticsEmpty">Non sono ancora presenti valutazioni nel periodo selezionato.</div>
-              ) : (
-                <div className="feedbackList">
-                  {analytics.feedback.map((item) => (
-                    <article key={item.itemId}>
-                      <div>
-                        <small>
-                          GIORNO {item.dayNumber} · {item.dayTitle}
-                        </small>
-                        <strong>{item.itemTitle}</strong>
-                        <span>
-                          {item.responses} {item.responses === 1 ? "risposta" : "risposte"}
-                        </span>
-                      </div>
-                      <div className="feedbackScore">
-                        <b className={item.average < 3 ? "needsAttention" : ""}>{item.average.toFixed(1)}</b>
-                        <span aria-label={`${item.average.toFixed(1)} stelle su 5`}>
-                          <i style={{ width: `${(item.average / 5) * 100}%` }} />
-                        </span>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </section>
             <section className="analyticsSection">
               <div className="analyticsSectionTitle">
                 <div>
@@ -396,6 +362,44 @@ export default async function AgencyAnalyticsPage({
                   </tbody>
                 </table>
               </div>
+            </section>
+            <section className="analyticsSection feedbackPanel">
+              <div className="analyticsSectionTitle">
+                <div>
+                  <h3>Feedback per tappa</h3>
+                  <p>
+                    {s.feedbackCount} valutazioni raccolte su {analytics.feedback.length}{" "}
+                    {analytics.feedback.length === 1 ? "tappa" : "tappe"}. Le risposte della stessa tappa sono
+                    raggruppate qui sotto.
+                  </p>
+                </div>
+                <Star />
+              </div>
+              {analytics.feedback.length === 0 ? (
+                <div className="analyticsEmpty">Non sono ancora presenti valutazioni nel periodo selezionato.</div>
+              ) : (
+                <div className="feedbackList">
+                  {analytics.feedback.map((item) => (
+                    <article key={item.itemId}>
+                      <div>
+                        <small>
+                          GIORNO {item.dayNumber} · {item.dayTitle}
+                        </small>
+                        <strong>{item.itemTitle}</strong>
+                        <span>
+                          {item.responses} {item.responses === 1 ? "risposta" : "risposte"}
+                        </span>
+                      </div>
+                      <div className="feedbackScore">
+                        <b className={item.average < 3 ? "needsAttention" : ""}>{item.average.toFixed(1)}</b>
+                        <span aria-label={`${item.average.toFixed(1)} stelle su 5`}>
+                          <i style={{ width: `${(item.average / 5) * 100}%` }} />
+                        </span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
             </section>
           </section>
         </div>
