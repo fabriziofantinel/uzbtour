@@ -188,6 +188,27 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
     }
   }
 
+  async function updateExperienceProfile(partyId: string, profile: "essential" | "standard" | "complete") {
+    setBusy(`experience-${partyId}`);
+    setError("");
+    setNotice("");
+    try {
+      const result = await json<{ data: JourneyData }>(
+        await fetch(`/api/admin/platform/trips/${data.journey.id}/groups/${partyId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "experienceProfile", agencyId: data.journey.agencyId, profile }),
+        }),
+      );
+      setData(result.data);
+      setNotice("Livello di coinvolgimento del gruppo aggiornato.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Aggiornamento non riuscito");
+    } finally {
+      setBusy("");
+    }
+  }
+
   async function setLeader(partyId: string, travelerId: string) {
     setBusy(`leader-${partyId}`);
     setError("");
@@ -450,6 +471,23 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
                         <small>Capogruppo</small>
                         <b>{leader?.name ?? "Da indicare"}</b>
                       </span>
+                      <label className="groupExperienceControl">
+                        <span>Coinvolgimento</span>
+                        <select
+                          value={family.experienceProfile}
+                          disabled={Boolean(busy)}
+                          onChange={(event) =>
+                            void updateExperienceProfile(
+                              family.id,
+                              event.currentTarget.value as "essential" | "standard" | "complete",
+                            )
+                          }
+                        >
+                          <option value="essential">Essenziale</option>
+                          <option value="standard">Standard</option>
+                          <option value="complete">Completo</option>
+                        </select>
+                      </label>
                       <button
                         type="button"
                         aria-expanded={travelerFamily === family.id}

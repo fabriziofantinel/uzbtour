@@ -99,11 +99,11 @@ export default function AgencyManagementNav({
           ))}
         {activeTab === "configurazione" ? (
           <span aria-current="page">
-            <Settings2 /> Configurazione
+            <Settings2 /> Assicurazione
           </span>
         ) : (
           <Link href={`/agenzia/viaggi/${departureId}/impostazioni`}>
-            <Settings2 /> Configurazione
+            <Settings2 /> Assicurazione
           </Link>
         )}
         <details className="programmeQuotes">

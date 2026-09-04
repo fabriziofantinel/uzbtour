@@ -8,6 +8,7 @@ import {
   removeJourneyTraveler,
   setJourneyGroupLeader,
   setMinorImageConsent,
+  updateJourneyGroupExperienceProfile,
   updateJourneyGroupCompetition,
 } from "@/lib/platform/journey-repository";
 
@@ -19,6 +20,11 @@ const schema = z.discriminatedUnion("action", [
     enabled: z.boolean(),
   }),
   z.object({ action: z.literal("leader"), agencyId: z.string().uuid(), travelerId: z.string().uuid() }),
+  z.object({
+    action: z.literal("experienceProfile"),
+    agencyId: z.string().uuid(),
+    profile: z.enum(["essential", "standard", "complete"]),
+  }),
   z.object({
     action: z.literal("minorConsent"),
     agencyId: z.string().uuid(),
@@ -37,7 +43,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (current.journey.agencyId !== input.agencyId || !group) {
       return NextResponse.json({ error: "Gruppo non valido" }, { status: 403 });
     }
-    if (input.action === "minorConsent") {
+    if (input.action === "experienceProfile") {
+      await updateJourneyGroupExperienceProfile({
+        actorId: actor.id,
+        departureId: id,
+        partyId,
+        profile: input.profile,
+      });
+    } else if (input.action === "minorConsent") {
       const traveler = group.travelers.find((item) => item.id === input.travelerId);
       if (!traveler || traveler.memberType !== "dependent_minor")
         return NextResponse.json({ error: "Il consenso è previsto solo per un minore del gruppo" }, { status: 400 });

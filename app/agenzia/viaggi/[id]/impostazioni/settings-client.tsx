@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import {
   CheckCircle2,
@@ -20,8 +20,8 @@ import type { readDepartureInsurance } from "@/lib/platform/departure-operations
 import type { getJourneyManagement } from "@/lib/platform/journey-repository";
 
 type Insurance = Awaited<ReturnType<typeof readDepartureInsurance>>;
-type Profile = "essential" | "standard" | "complete";
 type Guarantee = { label: string; status: "included" | "excluded" | "not_indicated"; notes: string };
+type AudienceScope = "trip" | "group" | "traveler";
 
 async function json<T>(response: Response) {
   const result = (await response.json().catch(() => ({}))) as T & { error?: string };
@@ -31,15 +31,16 @@ async function json<T>(response: Response) {
 
 export default function DepartureSettingsClient({
   journey,
-  initialProfile,
   initialInsurance,
 }: {
   journey: Awaited<ReturnType<typeof getJourneyManagement>>;
-  initialProfile: Profile;
   initialInsurance: Insurance;
 }) {
-  const [profile, setProfile] = useState(initialProfile);
   const [insurance, setInsurance] = useState(initialInsurance);
+  const groups = useMemo(() => journey.groups, [journey.groups]);
+  const [audienceScope, setAudienceScope] = useState<AudienceScope>("trip");
+  const [partyId, setPartyId] = useState(groups[0]?.id || "");
+  const [travelerId, setTravelerId] = useState(groups[0]?.travelers[0]?.id || "");
   const [document, setDocument] = useState<{ id: string | null; title: string | null }>({
     id: initialInsurance?.documentId ?? null,
     title: initialInsurance?.documentTitle ?? null,
@@ -58,30 +59,31 @@ export default function DepartureSettingsClient({
     "--smf-focus": accessibleBrandColor(color),
   } as CSSProperties;
 
-  async function updateProfile(nextProfile: Profile) {
-    setBusy("profile");
-    setMessage(null);
-    try {
-      const result = await json<{ profile: Profile; enrichmentJob: { id: string } | null }>(
-        await fetch(`/api/admin/platform/departures/${journey.journey.id}/settings`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "profile", profile: nextProfile }),
-        }),
-      );
-      setProfile(result.profile);
-      setMessage({
-        kind: "success",
-        text: result.enrichmentJob
-          ? "Profilo aggiornato. La generazione dei contenuti mancanti è stata avviata; i risultati esistenti sono conservati."
-          : "Profilo esperienza aggiornato. I risultati esistenti sono conservati.",
-      });
-    } catch (error) {
-      setMessage({ kind: "error", text: error instanceof Error ? error.message : "Aggiornamento non riuscito" });
-    } finally {
-      setBusy("");
+  useEffect(() => {
+    const controller = new AbortController();
+    async function loadInsurance() {
+      setBusy("load");
+      setMessage(null);
+      try {
+        const params = new URLSearchParams({ audienceScope, partyId, travelerId });
+        const result = await json<{ insurance: Insurance }>(
+          await fetch(`/api/admin/platform/departures/${journey.journey.id}/settings?${params}`, {
+            signal: controller.signal,
+          }),
+        );
+        setInsurance(result.insurance);
+        setDocument({ id: result.insurance?.documentId ?? null, title: result.insurance?.documentTitle ?? null });
+        setGuarantees((result.insurance?.guarantees as Guarantee[] | undefined) ?? []);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setMessage({ kind: "error", text: error instanceof Error ? error.message : "Polizza non disponibile" });
+      } finally {
+        setBusy("");
+      }
     }
-  }
+    void loadInsurance();
+    return () => controller.abort();
+  }, [audienceScope, journey.journey.id, partyId, travelerId]);
 
   async function uploadDocument(file: File) {
     setBusy("upload");
@@ -90,7 +92,7 @@ export default function DepartureSettingsClient({
       const uploaded = await uploadPrivateFile({
         endpoint: `/api/admin/platform/departures/${journey.journey.id}/insurance/upload`,
         file,
-        payload: {},
+        payload: { audienceScope, partyId, travelerId },
       });
       const result = await json<{ documentId: string; title: string }>(
         await fetch(`/api/admin/platform/departures/${journey.journey.id}/insurance/document`, {
@@ -100,6 +102,9 @@ export default function DepartureSettingsClient({
             objectKey: uploaded.key,
             originalName: file.name,
             contentType: uploaded.contentType,
+            audienceScope,
+            partyId,
+            travelerId,
           }),
         }),
       );
@@ -124,6 +129,9 @@ export default function DepartureSettingsClient({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action: "insurance",
+            audienceScope,
+            partyId,
+            travelerId,
             providerName: form.get("providerName"),
             productName: form.get("productName"),
             policyNumber: form.get("policyNumber"),
@@ -136,7 +144,7 @@ export default function DepartureSettingsClient({
         }),
       );
       setInsurance(result.insurance);
-      setMessage({ kind: "success", text: "Polizza salvata e resa disponibile ai viaggiatori." });
+      setMessage({ kind: "success", text: "Polizza salvata per i destinatari selezionati." });
     } catch (error) {
       setMessage({ kind: "error", text: error instanceof Error ? error.message : "Salvataggio non riuscito" });
     } finally {
@@ -153,9 +161,9 @@ export default function DepartureSettingsClient({
         quoteImportId={journey.journey.quoteImportId}
       />
       <section className="journeyManageHero">
-        <small>CONFIGURAZIONE PARTENZA</small>
+        <small>ASSICURAZIONE</small>
         <h1>{journey.journey.title}</h1>
-        <p>Definisci l’esperienza del viaggiatore e i riferimenti assicurativi reali della partenza.</p>
+        <p>Gestisci la polizza del viaggio, di un gruppo o di un singolo viaggiatore.</p>
       </section>
       <div className="settingsShell">
         {message && (
@@ -164,40 +172,85 @@ export default function DepartureSettingsClient({
             {message.text}
           </div>
         )}
-        <section className="profileSettings">
-          <div>
-            <small>ESPERIENZA</small>
-            <h2>Livello di coinvolgimento</h2>
-            <p>Riducendo il livello i risultati già ottenuti non vengono cancellati.</p>
-          </div>
-          <div className="profileCards">
+        <section className="documentAudience insuranceAudience" aria-label="Destinatari della polizza">
+          <div className="agencyChatScopes" role="tablist" aria-label="Destinatari della polizza">
             {(
               [
-                ["essential", "Essenziale", "Programma, mappa, documenti, informazioni utili, chat, SOS e spese."],
-                ["standard", "Standard", "Tutto Essenziale, più quiz e ricordi."],
-                ["complete", "Completo", "Tutto Standard, più missioni, bingo, giochi e contest."],
+                ["trip", "Viaggio"],
+                ["group", "Gruppo"],
+                ["traveler", "Viaggiatore"],
               ] as const
-            ).map(([value, label, description]) => (
+            ).map(([value, label]) => (
               <button
                 key={value}
                 type="button"
-                className={profile === value ? "selected" : ""}
-                disabled={Boolean(busy)}
-                onClick={() => void updateProfile(value)}
+                role="tab"
+                aria-selected={audienceScope === value}
+                className={audienceScope === value ? "active" : ""}
+                onClick={() => setAudienceScope(value)}
               >
-                <b>{label}</b>
-                <span>{description}</span>
-                {profile === value && <CheckCircle2 />}
+                {label}
               </button>
             ))}
           </div>
+          {audienceScope !== "trip" && (
+            <label className="agencyChatGroup">
+              Gruppo
+              <select
+                value={partyId}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  setPartyId(next);
+                  setTravelerId(groups.find((group) => group.id === next)?.travelers[0]?.id || "");
+                }}
+              >
+                {groups.map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.name} · {group.code}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {audienceScope === "traveler" && (
+            <label className="agencyChatGroup">
+              Viaggiatore
+              <select value={travelerId} onChange={(event) => setTravelerId(event.target.value)}>
+                {groups
+                  .find((group) => group.id === partyId)
+                  ?.travelers.map((traveler) => (
+                    <option key={traveler.id} value={traveler.id}>
+                      {traveler.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          )}
+          <p>
+            {audienceScope === "trip"
+              ? "La polizza sarà visibile a tutti i viaggiatori della partenza."
+              : audienceScope === "group"
+                ? "La polizza sarà visibile solo ai viaggiatori del gruppo selezionato."
+                : "La polizza sarà visibile solo al viaggiatore selezionato."}
+          </p>
         </section>
-        <form className="insuranceSettings" onSubmit={saveInsurance}>
+        <form
+          key={`${audienceScope}-${partyId}-${travelerId}-${insurance?.id ?? "new"}`}
+          className="insuranceSettings"
+          onSubmit={saveInsurance}
+        >
           <div className="sectionIntro">
             <ShieldCheck />
             <span>
               <small>ASSICURAZIONE</small>
-              <h2>Polizza della partenza</h2>
+              <h2>
+                Polizza{" "}
+                {audienceScope === "trip"
+                  ? "del viaggio"
+                  : audienceScope === "group"
+                    ? "del gruppo"
+                    : "del viaggiatore"}
+              </h2>
               <p>I dati non sono generati dall’intelligenza artificiale.</p>
             </span>
           </div>

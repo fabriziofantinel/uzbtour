@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { PlatformAuthorizationError, requirePlatformAdmin } from "@/lib/platform/authorization";
-import { readDepartureExperienceProfile, readDepartureInsurance } from "@/lib/platform/departure-operations";
+import { readDepartureInsurance } from "@/lib/platform/departure-operations";
 import { getJourneyManagement } from "@/lib/platform/journey-repository";
 import DepartureSettingsClient from "./settings-client";
 import "../comunicazioni/communications.css";
@@ -12,12 +12,11 @@ export default async function DepartureSettingsPage({ params }: { params: Promis
   try {
     const actor = await requirePlatformAdmin();
     const { id } = await params;
-    const [journey, profile, insurance] = await Promise.all([
+    const [journey, insurance] = await Promise.all([
       getJourneyManagement(id, actor.id, actor.nativeId),
-      readDepartureExperienceProfile(actor.id, id),
       readDepartureInsurance(actor.id, id),
     ]);
-    return <DepartureSettingsClient journey={journey} initialProfile={profile} initialInsurance={insurance} />;
+    return <DepartureSettingsClient journey={journey} initialInsurance={insurance} />;
   } catch (error) {
     if (error instanceof PlatformAuthorizationError) redirect("/");
     throw error;

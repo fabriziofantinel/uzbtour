@@ -48,6 +48,10 @@ export async function readV3JourneyManagement(departureId: string, actorId: stri
         name: String(group.party_name),
         code: String(group.party_code),
         status: String(group.party_status),
+        experienceProfile: String(group.party_experience_profile || "complete") as
+          | "essential"
+          | "standard"
+          | "complete",
         travelers: groupRows
           .filter((row) => row.traveler_id)
           .map((row) => ({

@@ -1,5 +1,6 @@
 ALTER TABLE ops.travel_documents ADD COLUMN IF NOT EXISTS traveler_id UUID REFERENCES travel.traveler_profiles(id) ON DELETE CASCADE;
 ALTER TABLE ops.travel_documents DROP CONSTRAINT IF EXISTS travel_documents_day_requires_party_ck;
+ALTER TABLE ops.travel_documents DROP CONSTRAINT IF EXISTS travel_documents_day_audience_ck;
 ALTER TABLE ops.travel_documents ADD CONSTRAINT travel_documents_day_audience_ck CHECK(
   departure_day_id IS NULL OR traveler_id IS NULL OR party_id IS NOT NULL
 ) NOT VALID;

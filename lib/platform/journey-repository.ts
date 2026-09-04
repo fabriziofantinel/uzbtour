@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { getSql } from "@/lib/db";
 import { createV3JourneyParty, provisionV3JourneyTraveler } from "./v3-journey-provisioning";
 import { readV3JourneyManagement } from "./v3-journey-management";
+import { setDeparturePartyExperienceProfile } from "./departure-operations";
 
 function initialsFor(name: string) {
   return name
@@ -128,4 +129,13 @@ export async function deleteJourneyGroup(input: {
   const rows =
     await getSql()`SELECT app.delete_empty_journey_party_v3(${input.actorId},${input.agencyId}::uuid,${input.departureId}::uuid,${input.partyId}::uuid) deleted`;
   return Boolean(rows[0]?.deleted);
+}
+
+export async function updateJourneyGroupExperienceProfile(input: {
+  actorId: string;
+  departureId: string;
+  partyId: string;
+  profile: "essential" | "standard" | "complete";
+}) {
+  await setDeparturePartyExperienceProfile(input);
 }

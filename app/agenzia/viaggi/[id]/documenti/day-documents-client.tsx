@@ -155,7 +155,7 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
         <div className="journeyManageShell">
           <div className="journeyManageHead">
             <div>
-              <h2>Documenti per giornata</h2>
+              <h2>Documenti di Viaggio</h2>
               <p>Invia ogni documento all’intero viaggio, a un gruppo o a un singolo viaggiatore.</p>
             </div>
           </div>

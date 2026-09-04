@@ -96,6 +96,32 @@ export async function readDepartureInsurance(actorId: string, departureId: strin
   };
 }
 
+export async function readDepartureInsuranceScoped(input: {
+  actorId: string;
+  departureId: string;
+  audienceScope: "trip" | "group" | "traveler";
+  partyId: string | null;
+  travelerId: string | null;
+}) {
+  const rows = await getSql()`SELECT * FROM app.read_departure_insurance_scoped_v3(
+    ${input.actorId},${input.departureId}::uuid,${input.audienceScope},${input.partyId}::uuid,${input.travelerId}::uuid)`;
+  const row = rows[0] as Row | undefined;
+  if (!row) return null;
+  return {
+    id: String(row.id),
+    agencyId: String(row.agency_id),
+    providerName: String(row.provider_name),
+    productName: String(row.product_name),
+    policyNumber: String(row.policy_number),
+    assistancePhone: String(row.assistance_phone),
+    validFrom: String(row.valid_from),
+    validTo: String(row.valid_to),
+    guarantees: Array.isArray(row.guarantees) ? row.guarantees : [],
+    documentId: row.document_id ? String(row.document_id) : null,
+    documentTitle: row.document_title ? String(row.document_title) : null,
+  };
+}
+
 export async function saveDepartureInsurance(input: {
   actorId: string;
   departureId: string;
@@ -107,9 +133,12 @@ export async function saveDepartureInsurance(input: {
   validTo: string;
   guarantees: Array<{ label: string; status: "included" | "excluded" | "not_indicated"; notes: string }>;
   documentId: string | null;
+  audienceScope: "trip" | "group" | "traveler";
+  partyId: string | null;
+  travelerId: string | null;
 }) {
-  const rows = await getSql()`SELECT app.save_departure_insurance_v3(
-    ${input.actorId},${input.departureId}::uuid,${input.providerName},${input.productName},${input.policyNumber},
+  const rows = await getSql()`SELECT app.save_departure_insurance_scoped_v3(
+    ${input.actorId},${input.departureId}::uuid,${input.audienceScope},${input.partyId}::uuid,${input.travelerId}::uuid,${input.providerName},${input.productName},${input.policyNumber},
     ${input.assistancePhone},${input.validFrom}::date,${input.validTo}::date,${JSON.stringify(input.guarantees)}::jsonb,
     ${input.documentId}::uuid)::text id`;
   return String(rows[0]?.id || "");
@@ -140,12 +169,26 @@ export async function registerDepartureInsuranceDocument(input: {
   originalName: string;
   contentType: string;
   sizeBytes: number;
+  audienceScope: "trip" | "group" | "traveler";
+  partyId: string | null;
+  travelerId: string | null;
 }) {
   const mediaId = crypto.randomUUID();
   const documentId = crypto.randomUUID();
-  const rows = await getSql()`SELECT app.register_departure_insurance_document_v3(
-    ${input.actorId},${input.departureId}::uuid,${mediaId}::uuid,${documentId}::uuid,${input.provider},${input.bucket},
+  const rows = await getSql()`SELECT app.register_departure_insurance_document_scoped_v3(
+    ${input.actorId},${input.departureId}::uuid,${input.audienceScope},${input.partyId}::uuid,${input.travelerId}::uuid,${mediaId}::uuid,${documentId}::uuid,${input.provider},${input.bucket},
     ${input.objectKey},${input.originalName},${input.contentType},${input.sizeBytes})::text id`;
   if (!rows[0]?.id) throw new PlatformRequestError("Documento assicurativo non registrato");
   return documentId;
+}
+
+export async function setDeparturePartyExperienceProfile(input: {
+  actorId: string;
+  departureId: string;
+  partyId: string;
+  profile: "essential" | "standard" | "complete";
+}) {
+  const rows =
+    await getSql()`SELECT app.set_departure_party_experience_profile_v3(${input.actorId},${input.departureId}::uuid,${input.partyId}::uuid,${input.profile}) updated`;
+  if (!Boolean(rows[0]?.updated)) throw new PlatformRequestError("Profilo esperienza del gruppo non aggiornato");
 }

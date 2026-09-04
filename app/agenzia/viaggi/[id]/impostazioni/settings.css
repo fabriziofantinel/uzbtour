@@ -170,6 +170,9 @@
 .settingsShell .agencyMessage {
   margin-bottom: 16px;
 }
+.insuranceAudience {
+  margin-bottom: 18px;
+}
 @media (max-width: 780px) {
   .profileCards,
   .insuranceSettings {
