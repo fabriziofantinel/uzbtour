@@ -58,6 +58,24 @@ export async function publishDepartureCommunication(input: {
   return String(rows[0].id);
 }
 
+export async function publishStaffDepartureCommunication(input: {
+  actorId: string;
+  departureId: string;
+  staffRole: "accompagnatore" | "guida";
+  title: string;
+  summary: string;
+  severity: "information" | "important" | "urgent";
+  requiresAcknowledgement: boolean;
+  acknowledgeBy: string | null;
+  clientOperationId: string;
+}) {
+  const rows = await getSql()`SELECT app.publish_staff_departure_communication_v3(
+    ${input.actorId}::uuid,${input.departureId}::uuid,${input.staffRole},${input.title},${input.summary},${input.severity},
+    ${input.requiresAcknowledgement},${input.acknowledgeBy}::timestamptz,${input.clientOperationId}::uuid)::text id`;
+  if (!rows[0]?.id) throw new PlatformRequestError("Comunicazione al personale non pubblicata");
+  return String(rows[0].id);
+}
+
 export async function closeDepartureCommunication(actorId: string, noticeId: string, note: string) {
   const rows = await getSql()`SELECT app.close_departure_communication_v3(${actorId},${noticeId}::uuid,${note}) closed`;
   if (!Boolean(rows[0]?.closed)) throw new PlatformRequestError("Comunicazione non chiusa");

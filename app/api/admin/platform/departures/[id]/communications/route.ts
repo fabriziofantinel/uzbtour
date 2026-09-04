@@ -4,6 +4,7 @@ import { requirePlatformAdmin } from "@/lib/platform/authorization";
 import {
   closeDepartureCommunication,
   publishDepartureCommunication,
+  publishStaffDepartureCommunication,
   readDepartureCommunicationRecipients,
   readDepartureCommunications,
 } from "@/lib/platform/departure-operations";
@@ -20,6 +21,7 @@ const publishSchema = z.object({
   acknowledgeBy: z.string().datetime().nullable(),
   audiencePartyIds: z.array(z.string().uuid()).max(100),
   audienceTravelerIds: z.array(z.string().uuid()).max(500),
+  audienceStaffRole: z.enum(["accompagnatore", "guida"]).nullable().optional(),
   clientOperationId: z.string().uuid(),
 });
 const closeSchema = z.object({ noticeId: z.string().uuid(), closureNote: z.string().trim().min(3).max(1000) });
@@ -45,15 +47,30 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     if (!parsed.success) return NextResponse.json({ error: "Comunicazione non valida" }, { status: 400 });
     if (parsed.data.requiresAcknowledgement && !parsed.data.acknowledgeBy)
       return NextResponse.json({ error: "Indica la scadenza della presa visione" }, { status: 400 });
-    const noticeId = await publishDepartureCommunication({ actorId: actor.id, departureId: id, ...parsed.data });
-    after(() =>
-      sendNoticePush({
-        noticeId,
-        departureId: id,
-        severity: parsed.data.severity,
-        title: parsed.data.title,
-      }).catch((error) => console.error("Communication push failed", error instanceof Error ? error.name : "unknown")),
-    );
+    const noticeId = parsed.data.audienceStaffRole
+      ? await publishStaffDepartureCommunication({
+          actorId: actor.nativeId,
+          departureId: id,
+          staffRole: parsed.data.audienceStaffRole,
+          title: parsed.data.title,
+          summary: parsed.data.summary,
+          severity: parsed.data.severity,
+          requiresAcknowledgement: parsed.data.requiresAcknowledgement,
+          acknowledgeBy: parsed.data.acknowledgeBy,
+          clientOperationId: parsed.data.clientOperationId,
+        })
+      : await publishDepartureCommunication({ actorId: actor.id, departureId: id, ...parsed.data });
+    if (!parsed.data.audienceStaffRole)
+      after(() =>
+        sendNoticePush({
+          noticeId,
+          departureId: id,
+          severity: parsed.data.severity,
+          title: parsed.data.title,
+        }).catch((error) =>
+          console.error("Communication push failed", error instanceof Error ? error.name : "unknown"),
+        ),
+      );
     return NextResponse.json({ noticeId, communications: await readDepartureCommunications(actor.id, id) });
   } catch (error) {
     return platformApiError(error, "Pubblicazione della comunicazione non riuscita");

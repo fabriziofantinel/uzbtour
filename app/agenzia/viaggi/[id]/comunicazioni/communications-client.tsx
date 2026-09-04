@@ -42,7 +42,9 @@ export default function CommunicationsClient({
     () => journey.groups.map((group) => ({ id: group.id, name: group.name, travelers: group.travelers })),
     [journey.groups],
   );
-  const [audienceScope, setAudienceScope] = useState<"trip" | "group" | "traveler">("trip");
+  const [audienceScope, setAudienceScope] = useState<"trip" | "group" | "traveler" | "accompagnatore" | "guida">(
+    "trip",
+  );
   const [selectedGroupId, setSelectedGroupId] = useState(groups[0]?.id || "");
   const [selectedTravelerId, setSelectedTravelerId] = useState(groups[0]?.travelers[0]?.id || "");
   const color = validBrandColor(journey.journey.agencyPrimaryColor);
@@ -57,7 +59,7 @@ export default function CommunicationsClient({
 
   async function publish(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (audienceScope !== "trip" && !selectedGroupId) {
+    if (["group", "traveler"].includes(audienceScope) && !selectedGroupId) {
       setMessage({ kind: "error", text: "Seleziona un gruppo destinatario." });
       return;
     }
@@ -83,6 +85,7 @@ export default function CommunicationsClient({
             acknowledgeBy: requiresAcknowledgement && localDeadline ? new Date(localDeadline).toISOString() : null,
             audiencePartyIds: audienceScope === "group" || audienceScope === "traveler" ? [selectedGroupId] : [],
             audienceTravelerIds: audienceScope === "traveler" ? [selectedTravelerId] : [],
+            audienceStaffRole: audienceScope === "accompagnatore" || audienceScope === "guida" ? audienceScope : null,
             clientOperationId: crypto.randomUUID(),
           }),
         }),
@@ -231,6 +234,8 @@ export default function CommunicationsClient({
                   ["trip", "Viaggio"],
                   ["group", "Gruppo"],
                   ["traveler", "Viaggiatore"],
+                  ["accompagnatore", "Accompagnatori"],
+                  ["guida", "Guide"],
                 ] as const
               ).map(([value, label]) => (
                 <button
@@ -245,7 +250,7 @@ export default function CommunicationsClient({
                 </button>
               ))}
             </div>
-            {audienceScope !== "trip" && (
+            {["group", "traveler"].includes(audienceScope) && (
               <label className="agencyChatGroup">
                 Gruppo
                 <select
@@ -283,7 +288,11 @@ export default function CommunicationsClient({
                 ? "La comunicazione verrà inviata a tutti i viaggiatori della partenza."
                 : audienceScope === "group"
                   ? "La comunicazione verrà inviata soltanto ai viaggiatori del gruppo selezionato."
-                  : "La comunicazione verrà inviata soltanto al viaggiatore selezionato."}
+                  : audienceScope === "traveler"
+                    ? "La comunicazione verrà inviata soltanto al viaggiatore selezionato."
+                    : audienceScope === "accompagnatore"
+                      ? "La comunicazione verrà inviata agli accompagnatori assegnati alla partenza."
+                      : "La comunicazione verrà inviata alle guide assegnate alla partenza."}
             </p>
           </section>
           {message && (
