@@ -6,7 +6,11 @@ const apply = process.argv.includes("--apply");
 const url = process.env.DATABASE_MIGRATION_URL ?? process.env.DATABASE_URL_UNPOOLED;
 if (!url) throw new Error("DATABASE_MIGRATION_URL non configurata");
 
-const migrations = ["168_v3_native_operational_chat", "169_v3_native_operational_control"];
+const migrations = [
+  "168_v3_native_operational_chat",
+  "169_v3_native_operational_control",
+  "170_v3_native_operational_chat_column_ambiguity_fix",
+];
 const sources = await Promise.all(
   migrations.map(async (name) => ({
     name,
@@ -34,7 +38,8 @@ try {
       to_regprocedure('app.list_departure_operations_v3(uuid,uuid)') IS NOT NULL native_operations_read,
       to_regprocedure('app.record_departure_attendance_v3(uuid,uuid,uuid,text,text)') IS NOT NULL native_attendance_write,
       EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='168_v3_native_operational_chat') chat_marker,
-      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='169_v3_native_operational_control') control_marker`)
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='169_v3_native_operational_control') control_marker,
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='170_v3_native_operational_chat_column_ambiguity_fix') chat_ambiguity_fix_marker`)
   ).rows[0];
   if (!gate || Object.values(gate).some((value) => value !== true))
     throw new Error(`Gate incompleti: ${JSON.stringify(gate)}`);
