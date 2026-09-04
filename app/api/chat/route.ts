@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
     const parsed = scope.safeParse(Object.fromEntries(new URL(request.url).searchParams));
     if (!parsed.success) return NextResponse.json({ error: "Conversazione non valida" }, { status: 400 });
-    return NextResponse.json({ messages: await listOperationalMessages({ userId: user.id, ...parsed.data }) });
+    return NextResponse.json({ messages: await listOperationalMessages({ userId: user.nativeId, ...parsed.data }) });
   } catch (error) {
     return platformApiError(error, "Chat non disponibile");
   }
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
     const parsed = message.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Messaggio non valido" }, { status: 400 });
-    const id = await sendOperationalMessage({ userId: user.id, ...parsed.data });
+    const id = await sendOperationalMessage({ userId: user.nativeId, ...parsed.data });
     if (user.isAgencyAdmin && parsed.data.scope === "group" && parsed.data.partyId)
       after(() =>
         sendPartyPush({
