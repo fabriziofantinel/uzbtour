@@ -32,7 +32,7 @@ import type { AgencyProgramme } from "@/lib/platform/programme-repository";
 import { useAppConfirm } from "@/components/app-confirm-dialog";
 import AgencyManagementNav from "@/components/agency-management-nav";
 
-type Props = { initialProgramme: AgencyProgramme };
+type Props = { initialProgramme: AgencyProgramme; editableDayIds?: string[] };
 type Day = AgencyProgramme["days"][number];
 type Item = Day["items"][number];
 
@@ -110,7 +110,7 @@ async function responseJson(response: Response) {
   if (!response.ok) throw new Error(result.error || "Salvataggio non riuscito");
 }
 
-export default function ProgrammeEditor({ initialProgramme }: Props) {
+export default function ProgrammeEditor({ initialProgramme, editableDayIds }: Props) {
   const { confirm: confirmAction, dialog: confirmDialog } = useAppConfirm();
   const [days, setDays] = useState(initialProgramme.days);
   const [openDayId, setOpenDayId] = useState(() =>
@@ -127,6 +127,7 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
   );
   const departure = initialProgramme.departure;
   const openDay = useMemo(() => days.find((day) => day.id === openDayId), [days, openDayId]);
+  const canEditDay = (dayId: string) => !editableDayIds || editableDayIds.includes(dayId);
   const openDayIndex = useMemo(() => days.findIndex((day) => day.id === openDayId), [days, openDayId]);
   const dirtyDayIds = useMemo(
     () => new Set(days.filter((day) => savedDays.get(day.id) !== JSON.stringify(day)).map((day) => day.id)),
@@ -150,6 +151,7 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
   }, [dirtyDayIds]);
 
   function updateDay(dayId: string, patch: Partial<Day>) {
+    if (!canEditDay(dayId)) return;
     setDays((current) => current.map((day) => (day.id === dayId ? { ...day, ...patch } : day)));
   }
 
@@ -242,6 +244,7 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
   }
 
   async function saveDay(day: Day) {
+    if (!canEditDay(day.id)) return;
     if (!day.title.trim()) {
       setMessage({ kind: "error", text: `Inserisci il titolo del giorno ${day.number} prima di salvare.` });
       return;
@@ -420,7 +423,7 @@ export default function ProgrammeEditor({ initialProgramme }: Props) {
                   <button
                     className="saveDayButton"
                     type="button"
-                    disabled={Boolean(busy) || !dirtyDayIds.has(openDay.id)}
+                    disabled={Boolean(busy) || !dirtyDayIds.has(openDay.id) || !canEditDay(openDay.id)}
                     onClick={() => void saveDay(openDay)}
                   >
                     {busy === openDay.id ? (
