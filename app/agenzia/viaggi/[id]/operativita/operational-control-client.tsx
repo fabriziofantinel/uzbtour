@@ -15,12 +15,14 @@ export default function OperationalControlClient({
   journey,
   backHref,
   backLabel,
+  staffRole,
 }: {
   departureId: string;
   initialData: Data;
   journey?: Journey;
   backHref?: string;
   backLabel?: string;
+  staffRole?: "agent" | "accompagnatore" | "guida";
 }) {
   const [data, setData] = useState(initialData),
     [day, setDay] = useState(initialData.days[0]?.id || ""),
@@ -92,7 +94,11 @@ export default function OperationalControlClient({
       <section className="journeyManageHero">
         <small>GESTIONE SUL CAMPO</small>
         <h1>{journey?.journey.title ?? "Operatività della partenza"}</h1>
-        <p>Tour Leader, presenze e sole segnalazioni essenziali autorizzate.</p>
+        <p>
+          {staffRole
+            ? "Presenze e segnalazioni operative essenziali autorizzate."
+            : "Personale, presenze e sole segnalazioni essenziali autorizzate."}
+        </p>
       </section>
       <div className="journeyManageShell">
         {notice && (
@@ -102,7 +108,7 @@ export default function OperationalControlClient({
           </p>
         )}
         {error && <p className="agencyMessage error">{error}</p>}
-        {data.eligibleStaff.length > 0 && (
+        {!staffRole && data.eligibleStaff.length > 0 && (
           <section className="agencyPanel">
             <h2>
               <UserRoundCog /> Personale assegnato alle giornate
@@ -167,60 +173,62 @@ export default function OperationalControlClient({
             </ul>
           </section>
         )}
-        <section className="agencyPanel">
-          <h2>
-            <UserPlus /> Invita Tour Leader esterno
-          </h2>
-          <p>
-            L’account sarà legato esclusivamente a questa partenza e non diventerà un utente permanente dell’agenzia.
-          </p>
-          <form
-            className="agencyFormGrid"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void post({ action: "inviteTourLeader", ...invite, ...isoPeriod() });
-            }}
-          >
-            <label>
-              Abilitato dal
-              <input
-                required
-                type="datetime-local"
-                value={period.validFrom}
-                onChange={(event) => setPeriod((value) => ({ ...value, validFrom: event.target.value }))}
-              />
-            </label>
-            <label>
-              Abilitato fino al
-              <input
-                required
-                type="datetime-local"
-                value={period.validUntil}
-                onChange={(event) => setPeriod((value) => ({ ...value, validUntil: event.target.value }))}
-              />
-            </label>
-            {(["name", "username", "email", "phone"] as const).map((field) => (
-              <label key={field}>
-                {field === "name"
-                  ? "Nome e cognome"
-                  : field === "username"
-                    ? "Username"
-                    : field === "email"
-                      ? "Email"
-                      : "Telefono"}
+        {!staffRole && (
+          <section className="agencyPanel">
+            <h2>
+              <UserPlus /> Invita Tour Leader esterno
+            </h2>
+            <p>
+              L’account sarà legato esclusivamente a questa partenza e non diventerà un utente permanente dell’agenzia.
+            </p>
+            <form
+              className="agencyFormGrid"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void post({ action: "inviteTourLeader", ...invite, ...isoPeriod() });
+              }}
+            >
+              <label>
+                Abilitato dal
                 <input
                   required
-                  type={field === "email" ? "email" : field === "phone" ? "tel" : "text"}
-                  value={invite[field]}
-                  onChange={(event) => setInvite((value) => ({ ...value, [field]: event.target.value }))}
+                  type="datetime-local"
+                  value={period.validFrom}
+                  onChange={(event) => setPeriod((value) => ({ ...value, validFrom: event.target.value }))}
                 />
               </label>
-            ))}
-            <button type="submit" disabled={busy}>
-              <UserPlus /> {busy ? "Invio…" : "Crea e invia invito"}
-            </button>
-          </form>
-        </section>
+              <label>
+                Abilitato fino al
+                <input
+                  required
+                  type="datetime-local"
+                  value={period.validUntil}
+                  onChange={(event) => setPeriod((value) => ({ ...value, validUntil: event.target.value }))}
+                />
+              </label>
+              {(["name", "username", "email", "phone"] as const).map((field) => (
+                <label key={field}>
+                  {field === "name"
+                    ? "Nome e cognome"
+                    : field === "username"
+                      ? "Username"
+                      : field === "email"
+                        ? "Email"
+                        : "Telefono"}
+                  <input
+                    required
+                    type={field === "email" ? "email" : field === "phone" ? "tel" : "text"}
+                    value={invite[field]}
+                    onChange={(event) => setInvite((value) => ({ ...value, [field]: event.target.value }))}
+                  />
+                </label>
+              ))}
+              <button type="submit" disabled={busy}>
+                <UserPlus /> {busy ? "Invio…" : "Crea e invia invito"}
+              </button>
+            </form>
+          </section>
+        )}
         <section className="agencyPanel">
           <h2>
             <ClipboardCheck /> Presenze

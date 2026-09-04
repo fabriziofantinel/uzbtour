@@ -20,6 +20,18 @@ export async function readMyTourLeaderDepartures(actorUserId: string) {
   }));
 }
 
+export async function readMyDepartureStaff(actorUserId: string) {
+  const rows = await getSql()`SELECT * FROM app.list_my_departure_staff_v3(${actorUserId}::uuid)`;
+  return rows.map((row) => ({
+    id: String(row.departure_id),
+    title: String(row.title),
+    agencyName: String(row.agency_name),
+    startsOn: String(row.starts_on),
+    endsOn: String(row.ends_on),
+    role: String(row.staff_role) as "agent" | "accompagnatore" | "guida",
+  }));
+}
+
 export async function readDepartureOperationalControl(actorUserId: string, departureId: string) {
   const [rows, alerts] = await Promise.all([
     getSql()`SELECT * FROM app.list_departure_operations_v3(${actorUserId}::uuid,${departureId}::uuid)`,

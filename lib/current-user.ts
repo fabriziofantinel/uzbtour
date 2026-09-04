@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { resolveV3CognitoAuthenticatedUser, resolveV3Impersonation } from "./platform/v3-identity-access";
 import { getAuthProvider } from "./auth/auth-provider";
 import { assertCurrentSchema } from "./platform/schema-readiness";
-import { readMyTourLeaderDepartures } from "./platform/departure-operational-control";
+import { readMyDepartureStaff } from "./platform/departure-operational-control";
 
 export const IMPERSONATION_COOKIE = "smf_impersonation";
 
@@ -17,6 +17,7 @@ export type CurrentUser = {
   isSuperAdmin: boolean;
   isAgencyAdmin: boolean;
   isTourLeader: boolean;
+  staffRoles: Array<"agent" | "accompagnatore" | "guida">;
   impersonation: {
     actorId: string;
     actorName: string;
@@ -40,7 +41,10 @@ export async function getAuthenticatedActor(): Promise<CurrentUser | null> {
   if (cognitoIdentity) {
     const platformUser = await resolveV3CognitoAuthenticatedUser(cognitoIdentity.subject);
     if (!platformUser) return null;
-    const isTourLeader = (await readMyTourLeaderDepartures(platformUser.nativeId)).length > 0;
+    const staffRoles = [
+      ...new Set((await readMyDepartureStaff(platformUser.nativeId)).map((assignment) => assignment.role)),
+    ];
+    const isTourLeader = staffRoles.length > 0;
     return {
       id: platformUser.id,
       nativeId: platformUser.nativeId,
@@ -51,6 +55,7 @@ export async function getAuthenticatedActor(): Promise<CurrentUser | null> {
       isSuperAdmin: platformUser.isSuperAdmin,
       isAgencyAdmin: platformUser.isAgencyAdmin,
       isTourLeader,
+      staffRoles,
       impersonation: null,
     };
   }
@@ -77,6 +82,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     isSuperAdmin: target.isSuperAdmin,
     isAgencyAdmin: target.isAgencyAdmin,
     isTourLeader: false,
+    staffRoles: [],
     impersonation: {
       actorId: actor.id,
       actorName: actor.name,

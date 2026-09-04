@@ -2,19 +2,19 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CalendarDays, LogOut, Route } from "lucide-react";
 import { getCurrentUser } from "@/lib/current-user";
-import { readMyTourLeaderDepartures } from "@/lib/platform/departure-operational-control";
+import { readMyDepartureStaff } from "@/lib/platform/departure-operational-control";
 
 export const dynamic = "force-dynamic";
 
 export default async function TourLeaderHome() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  const departures = await readMyTourLeaderDepartures(user.nativeId);
+  const departures = await readMyDepartureStaff(user.nativeId);
   if (!departures.length) redirect("/");
   return (
     <main className="journeyManagePage">
       <header>
-        <strong>Tour Leader · {user.name}</strong>
+        <strong>Personale operativo · {user.name}</strong>
         <a href="/api/auth/logout">
           <LogOut /> Esci
         </a>
@@ -35,12 +35,17 @@ export default async function TourLeaderHome() {
                 <span>
                   <strong>{departure.title}</strong>
                   <small>
-                    {departure.agencyName} · {new Date(departure.startsOn).toLocaleDateString("it-IT")} -{" "}
+                    {departure.role === "accompagnatore"
+                      ? "Accompagnatore"
+                      : departure.role === "guida"
+                        ? "Guida"
+                        : "Agente"}{" "}
+                    · {departure.agencyName} · {new Date(departure.startsOn).toLocaleDateString("it-IT")} -{" "}
                     {new Date(departure.endsOn).toLocaleDateString("it-IT")}
                   </small>
                 </span>
                 <Link href={`/tour-leader/${departure.id}`}>
-                  <CalendarDays /> Apri operatività
+                  <CalendarDays /> Apri viaggio
                 </Link>
               </li>
             ))}
