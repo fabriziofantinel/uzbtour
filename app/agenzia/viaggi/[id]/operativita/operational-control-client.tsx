@@ -25,7 +25,6 @@ export default function OperationalControlClient({
   staffRole?: "agent" | "accompagnatore" | "guida";
 }) {
   const [data, setData] = useState(initialData),
-    [day, setDay] = useState(initialData.days[0]?.id || ""),
     [notice, setNotice] = useState(""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
@@ -233,43 +232,32 @@ export default function OperationalControlClient({
           <h2>
             <ClipboardCheck /> Presenze
           </h2>
-          <label>
-            Giornata
-            <select value={day} onChange={(event) => setDay(event.target.value)}>
-              {data.days.map((item) => (
-                <option value={item.id} key={item.id}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <p>Rilevazione corrente, organizzata per gruppo e non collegata a una giornata del programma.</p>
+          <button
+            type="button"
+            className="secondary"
+            disabled={busy}
+            onClick={() => void post({ action: "clearPresence" })}
+          >
+            Annulla tutte le presenze
+          </button>
           <div className="attendanceGrid">
             {data.travelers.map((traveler) => {
-              const current = data.attendance.find((entry) => entry.dayId === day && entry.travelerId === traveler.id);
+              const current = data.presence.find((entry) => entry.travelerId === traveler.id);
               return (
                 <label key={traveler.id}>
                   <span>
                     {traveler.name}
                     <small>{traveler.group}</small>
                   </span>
-                  <select
-                    value={current?.status || ""}
+                  <input
+                    type="checkbox"
+                    checked={current?.isPresent ?? false}
                     onChange={(event) =>
-                      event.target.value &&
-                      void post({
-                        action: "attendance",
-                        dayId: day,
-                        travelerId: traveler.id,
-                        status: event.target.value,
-                        note: "",
-                      })
+                      void post({ action: "setPresence", travelerId: traveler.id, isPresent: event.target.checked })
                     }
-                  >
-                    <option value="">Da registrare</option>
-                    <option value="present">Presente</option>
-                    <option value="absent">Assente</option>
-                    <option value="excused">Giustificato</option>
-                  </select>
+                    aria-label={`Presente: ${traveler.name}`}
+                  />
                 </label>
               );
             })}

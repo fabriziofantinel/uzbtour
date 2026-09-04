@@ -33,9 +33,10 @@ export async function readMyDepartureStaff(actorUserId: string) {
 }
 
 export async function readDepartureOperationalControl(actorUserId: string, departureId: string) {
-  const [rows, alerts] = await Promise.all([
+  const [rows, alerts, presenceRows] = await Promise.all([
     getSql()`SELECT * FROM app.list_departure_operations_v3(${actorUserId}::uuid,${departureId}::uuid)`,
     getSql()`SELECT * FROM app.list_operational_alerts_v3(${actorUserId}::uuid,${departureId}::uuid)`,
+    getSql()`SELECT * FROM app.list_departure_presence_v3(${actorUserId}::uuid,${departureId}::uuid)`,
   ]);
   return {
     staff: rows
@@ -71,6 +72,7 @@ export async function readDepartureOperationalControl(actorUserId: string, depar
         status: String(row.status),
         note: String(row.detail || ""),
       })),
+    presence: presenceRows.map((row) => ({ travelerId: String(row.traveler_id), isPresent: Boolean(row.is_present) })),
     alerts: alerts.map((row) => ({
       id: String(row.id),
       travelerId: String(row.traveler_id),
@@ -80,6 +82,19 @@ export async function readDepartureOperationalControl(actorUserId: string, depar
       expiresAt: String(row.expires_at),
     })),
   };
+}
+
+export async function setDeparturePresence(
+  actorUserId: string,
+  departureId: string,
+  travelerId: string,
+  isPresent: boolean,
+) {
+  await getSql()`SELECT app.set_departure_presence_v3(${actorUserId}::uuid,${departureId}::uuid,${travelerId}::uuid,${isPresent})`;
+}
+
+export async function clearDeparturePresence(actorUserId: string, departureId: string) {
+  await getSql()`SELECT app.clear_departure_presence_v3(${actorUserId}::uuid,${departureId}::uuid)`;
 }
 
 export async function assignDepartureStaffDays(input: {

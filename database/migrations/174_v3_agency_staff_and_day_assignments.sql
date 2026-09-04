@@ -133,7 +133,7 @@ BEGIN
   SELECT departure.agency_id,departure.starts_on::timestamptz,(departure.ends_on+1)::timestamptz
   INTO v_agency,v_from,v_until FROM travel.departures departure
   JOIN iam.agency_memberships membership ON membership.agency_id=departure.agency_id
-    AND membership.user_id=p_actor_user_id AND membership.status='active' AND membership.role='owner'
+    AND membership.user_id=p_actor_user_id AND membership.status='active' AND membership.role IN ('owner','admin','editor')
   WHERE departure.id=p_departure;
   IF v_agency IS NULL OR p_role NOT IN ('agent','accompagnatore','guida')
     OR cardinality(p_day_ids) IS NULL OR cardinality(p_day_ids)=0
@@ -193,12 +193,12 @@ CREATE OR REPLACE FUNCTION app.list_departure_operations_v3(
 ) RETURNS TABLE(kind TEXT,id UUID,name TEXT,detail TEXT,status TEXT,day_id UUID,party_id UUID,traveler_id UUID)
 LANGUAGE plpgsql STABLE SECURITY DEFINER
 SET search_path=pg_catalog,app,iam,travel,journey SET row_security=off AS $$
-DECLARE v_agency UUID;v_owner BOOLEAN;
+DECLARE v_agency UUID;v_manager BOOLEAN;
 BEGIN
   SELECT departure.agency_id,EXISTS(SELECT 1 FROM iam.agency_memberships membership
     WHERE membership.agency_id=departure.agency_id AND membership.user_id=p_actor_user_id
-      AND membership.status='active' AND membership.role='owner')
-  INTO v_agency,v_owner FROM travel.departures departure WHERE departure.id=p_departure;
+      AND membership.status='active' AND membership.role IN ('owner','admin','editor'))
+  INTO v_agency,v_manager FROM travel.departures departure WHERE departure.id=p_departure;
   IF v_agency IS NULL OR NOT app.is_departure_operator_v3(p_actor_user_id,p_departure) THEN
     RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='departure operations not authorized';
   END IF;
@@ -212,7 +212,7 @@ BEGIN
     SELECT 'eligible_staff'::text,profile.user_id,account.display_name::text,profile.staff_role::text,
       'active'::text,NULL::uuid,NULL::uuid,NULL::uuid
     FROM iam.agency_staff_profiles profile JOIN iam.users account ON account.id=profile.user_id
-    WHERE v_owner AND profile.agency_id=v_agency AND profile.status='active' AND account.status IN ('active','invited')
+    WHERE v_manager AND profile.agency_id=v_agency AND profile.status='active' AND account.status IN ('active','invited')
     UNION ALL
     SELECT 'staff_day'::text,assignment.staff_assignment_id,day.service_date::text,'coverage'::text,
       'active'::text,assignment.departure_day_id,NULL::uuid,NULL::uuid
