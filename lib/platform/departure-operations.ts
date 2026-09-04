@@ -47,12 +47,13 @@ export async function publishDepartureCommunication(input: {
   requiresAcknowledgement: boolean;
   acknowledgeBy: string | null;
   audiencePartyIds: string[];
+  audienceTravelerIds: string[];
   clientOperationId: string;
 }) {
   const rows = await getSql()`SELECT app.publish_departure_communication_v3(
     ${input.actorId},${input.departureId}::uuid,${input.title},${input.summary},${input.severity},
     ${input.requiresAcknowledgement},${input.acknowledgeBy}::timestamptz,${input.audiencePartyIds}::uuid[],
-    ${input.clientOperationId}::uuid)::text id`;
+    ${input.audienceTravelerIds}::uuid[],${input.clientOperationId}::uuid)::text id`;
   if (!rows[0]?.id) throw new PlatformRequestError("Comunicazione non pubblicata");
   return String(rows[0].id);
 }

@@ -19,6 +19,7 @@ const publishSchema = z.object({
   requiresAcknowledgement: z.boolean(),
   acknowledgeBy: z.string().datetime().nullable(),
   audiencePartyIds: z.array(z.string().uuid()).max(100),
+  audienceTravelerIds: z.array(z.string().uuid()).max(500),
   clientOperationId: z.string().uuid(),
 });
 const closeSchema = z.object({ noticeId: z.string().uuid(), closureNote: z.string().trim().min(3).max(1000) });

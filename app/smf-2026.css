@@ -6967,6 +6967,23 @@ body::-webkit-scrollbar-thumb {
 .journeyManagePage .communicationComposer fieldset p {
   margin: 3px 0 10px;
 }
+.journeyManagePage .communicationComposer .communicationAudience {
+  display: grid;
+  gap: 12px;
+}
+.journeyManagePage .communicationComposer .communicationAudience .agencyChatScopes {
+  width: min(100%, 520px);
+  margin: 0;
+}
+.journeyManagePage .communicationComposer .communicationAudienceSelect {
+  width: min(100%, 420px);
+  display: grid;
+  gap: 6px;
+}
+.journeyManagePage .communicationComposer .communicationAudience > p {
+  margin: 0;
+  color: var(--smf-ink-soft);
+}
 .journeyManagePage .communicationComposer .acknowledgement {
   min-height: 44px;
   padding-inline: 2px;
