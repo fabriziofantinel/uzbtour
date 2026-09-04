@@ -9,6 +9,7 @@ import {
   useState,
   useSyncExternalStore,
   type CSSProperties,
+  type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent,
 } from "react";
@@ -280,6 +281,7 @@ export default function TravelExperience({
   const [isOnline, setIsOnline] = useState(true);
   const [now, setNow] = useState(() => new Date());
   const [offlinePackage, setOfflinePackage] = useState<OfflinePackageState>("idle");
+  const [offlineDocumentIds, setOfflineDocumentIds] = useState<Set<string>>(() => new Set());
   const [offlineProgress, setOfflineProgress] = useState({ done: 0, total: 0 });
   const largeText = useTravelerPreference("smf-large-text");
   const simpleMode = useTravelerPreference("smf-simple-mode");
@@ -351,8 +353,24 @@ export default function TravelExperience({
     travelDocuments,
   ]);
   const localCurrency = experience.journey.destinationCurrency || "EUR";
-  const hasValidatedLocalCurrency = Boolean(experience.journey.destinationCurrency);
+  // Se il preventivo non indica la valuta, EUR consente comunque di registrare prelievi e cambi senza bloccare il gruppo.
+  const hasValidatedLocalCurrency = Boolean(localCurrency);
   const localTimeZone = experience.journey.destinationTimeZone || experience.journey.timezone;
+  useEffect(() => {
+    let cancelled = false;
+    if (!("caches" in window)) return;
+    void Promise.all(
+      travelDocuments.map(async (document) => {
+        const request = new Request(new URL(document.downloadUrl, window.location.origin), { credentials: "include" });
+        return (await caches.match(request)) ? document.id : null;
+      }),
+    ).then((cached) => {
+      if (!cancelled) setOfflineDocumentIds(new Set(cached.filter((id): id is string => Boolean(id))));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [travelDocuments]);
   const displayedUsefulInfo = useMemo(
     () =>
       usefulSections.map((section) => {
@@ -953,6 +971,15 @@ export default function TravelExperience({
         setOfflineProgress({ done, total }),
       );
       setOfflinePackage("ready");
+      const cached = await Promise.all(
+        travelDocuments.map(async (document) => {
+          const request = new Request(new URL(document.downloadUrl, window.location.origin), {
+            credentials: "include",
+          });
+          return (await caches.match(request)) ? document.id : null;
+        }),
+      );
+      setOfflineDocumentIds(new Set(cached.filter((id): id is string => Boolean(id))));
       if (result.skipped > 0)
         setError(
           `Viaggio disponibile offline. ${result.skipped} ${result.skipped === 1 ? "allegato richiede" : "allegati richiedono"} la connessione.`,
@@ -960,6 +987,16 @@ export default function TravelExperience({
     } catch (caught) {
       setOfflinePackage("failed");
       setError(caught instanceof Error ? caught.message : "Download offline non riuscito");
+    }
+  }
+  async function logout(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    try {
+      await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin", redirect: "manual" });
+      const registration = await navigator.serviceWorker?.ready;
+      registration?.active?.postMessage({ type: "CLEAR_PRIVATE_CACHES" });
+    } finally {
+      window.location.replace("/login");
     }
   }
   async function openTravelDocument(event: MouseEvent<HTMLAnchorElement>, url: string, title: string) {
@@ -1111,7 +1148,7 @@ export default function TravelExperience({
                 <span>Agenzia</span>
               </a>
             )}
-            <form className="logoutForm" action="/api/auth/logout" method="post">
+            <form className="logoutForm" action="/api/auth/logout" method="post" onSubmit={logout}>
               <button className="logoutButton" type="submit">
                 <LogOut />
                 <span>Esci</span>
@@ -1799,7 +1836,7 @@ export default function TravelExperience({
                 <div className="offlinePackageAction">
                   <button
                     type="button"
-                    disabled={offlinePackage === "downloading" || offlinePackage === "ready" || !isOnline}
+                    disabled={offlinePackage === "downloading" || !isOnline}
                     onClick={() => void prepareOffline()}
                     aria-label={
                       offlinePackage === "downloading"
@@ -1811,13 +1848,15 @@ export default function TravelExperience({
                     {offlinePackage === "downloading"
                       ? "Preparazione offline…"
                       : offlinePackage === "ready"
-                        ? "Disponibile offline"
+                        ? "Aggiorna download"
                         : !isOnline
                           ? "Connettiti per scaricare"
                           : "Scarica il viaggio"}
                   </button>
                   <small>
-                    {travelDocuments.length} {travelDocuments.length === 1 ? "documento" : "documenti"}
+                    Scarica programma e biglietti sul dispositivo: {offlineDocumentIds.size} disponibili offline,{" "}
+                    {Math.max(0, travelDocuments.length - offlineDocumentIds.size)} da scaricare. Se l’agenzia aggiunge
+                    un documento, premi di nuovo “Aggiorna download”.
                   </small>
                 </div>
               </header>
@@ -1850,6 +1889,9 @@ export default function TravelExperience({
                           <p>
                             {ticket.itemTitle} · {ticket.dayTitle}
                           </p>
+                          {offlineDocumentIds.has(ticket.id) && (
+                            <em className="offlineDocumentBadge">Disponibile offline</em>
+                          )}
                         </span>
                         <a
                           href={ticket.downloadUrl}
@@ -1873,6 +1915,10 @@ export default function TravelExperience({
 
           {tab === "spese" && (
             <section className="collection expensesPage">
+              <header className="financeSectionHeading">
+                <span>SPESE DEL GRUPPO</span>
+                <h2>Spese</h2>
+              </header>
               <div className="expenseHero">
                 <span>SPESE, PRELIEVI E CAMBI</span>
                 <h2>Totali per valuta</h2>
@@ -1903,7 +1949,7 @@ export default function TravelExperience({
                 <button type="button" onClick={() => setExpenseDayId(null)}>
                   <ReceiptText />
                   <span>
-                    Aggiungi spesa<small>Spesa del gruppo</small>
+                    Nuova spesa<small>Spesa del gruppo</small>
                   </span>
                 </button>
                 <button
@@ -1913,8 +1959,8 @@ export default function TravelExperience({
                 >
                   <Banknote />
                   <span>
-                    Aggiungi prelievo
-                    <small>{hasValidatedLocalCurrency ? `Giorno ${day.number}` : "Valuta da validare"}</small>
+                    Nuovo prelievo
+                    <small>Giorno {day.number}</small>
                   </span>
                 </button>
                 <button
@@ -1924,21 +1970,18 @@ export default function TravelExperience({
                 >
                   <ArrowRightLeft />
                   <span>
-                    Aggiungi cambio
-                    <small>{hasValidatedLocalCurrency ? `Giorno ${day.number}` : "Valuta da validare"}</small>
+                    Nuovo cambio
+                    <small>Registra il cambio valuta</small>
                   </span>
                 </button>
               </div>
               {experience.expenses.length === 0 ? (
-                <div className="financeEmpty">
+                <div className="financeEmpty financeEmptyCompact">
                   <ReceiptText />
                   <div>
                     <h3>Nessuna spesa registrata</h3>
-                    <p>Aggiungi la prima spesa per iniziare il riepilogo del gruppo.</p>
+                    <p>Usa “Nuova spesa” per iniziare il riepilogo del gruppo.</p>
                   </div>
-                  <button type="button" onClick={() => setExpenseDayId(null)}>
-                    Aggiungi spesa
-                  </button>
                 </div>
               ) : (
                 <div className="expenseList">

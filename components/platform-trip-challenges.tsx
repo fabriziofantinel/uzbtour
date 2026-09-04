@@ -9,7 +9,6 @@ import {
   Camera,
   Check,
   CheckCircle2,
-  ChevronRight,
   Compass,
   Crown,
   Gamepad2,
@@ -1148,36 +1147,16 @@ export default function PlatformTripChallenges({
                 </div>
                 <Trophy />
               </div>
-              <div className="quizLayout">
-                <aside className="quizDays">
-                  <div className="quizSectionHead">
-                    <div>
-                      <span>LE SFIDE</span>
-                      <h3>Scegli la giornata</h3>
-                    </div>
-                  </div>
-                  <div className="quizDayList">
-                    {experience.days.map((entry) => (
-                      <button
-                        className={entry.id === day.id ? "active" : ""}
-                        aria-current={entry.id === day.id ? "date" : undefined}
-                        onClick={() => {
-                          setActiveDayId(entry.id);
-                          setAnswers({});
-                          setQuizResult(null);
-                        }}
-                        key={entry.id}
-                      >
-                        <span className="quizDayNumber">{entry.number}</span>
-                        <span>
-                          <small>{dateLabel(entry.date)}</small>
-                          <strong>{entry.city}</strong>
-                        </span>
-                        <ChevronRight />
-                      </button>
-                    ))}
-                  </div>
-                </aside>
+              <DayPicker
+                days={experience.days}
+                activeDayId={day.id}
+                onDay={(id) => {
+                  setActiveDayId(id);
+                  setAnswers({});
+                  setQuizResult(null);
+                }}
+              />
+              <div className="quizLayout quizLayoutSingle">
                 <div className="quizPlay">
                   <div className="quizPlayHead">
                     <div>

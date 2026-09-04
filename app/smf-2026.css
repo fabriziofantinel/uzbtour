@@ -503,6 +503,7 @@ body::-webkit-scrollbar-thumb {
 .travelerRedesign .programmeStepIcon svg {
   width: 21px;
   height: 21px;
+  color: #111;
 }
 .travelerRedesign .programmeStepBody {
   grid-column: 4;
@@ -2858,6 +2859,18 @@ body::-webkit-scrollbar-thumb {
 .travelerRedesign .documentIcon svg {
   width: 21px;
   height: 21px;
+}
+.travelerRedesign .offlineDocumentBadge {
+  display: inline-flex;
+  width: max-content;
+  margin-top: 6px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  color: #111;
+  background: color-mix(in srgb, var(--trail-primary) 25%, white);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
 }
 .travelerRedesign .documentCopy {
   min-width: 0;
@@ -6565,4 +6578,125 @@ body::-webkit-scrollbar-thumb {
   )
   svg {
   color: var(--agency-on-primary, #111111);
+}
+
+/* Companion: controlli white-label sempre leggibili, anche su brand chiari. */
+.travelerRedesign .financeSectionHeading {
+  margin-bottom: 14px;
+}
+.travelerRedesign .financeSectionHeading > span {
+  color: var(--smf-accent);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+}
+.travelerRedesign .financeSectionHeading h2 {
+  margin: 4px 0 0;
+  color: var(--smf-ink);
+  font:
+    700 28px/1.1 var(--font-serif),
+    serif;
+}
+.travelerRedesign .financeEmptyCompact {
+  grid-template-columns: 44px minmax(0, 1fr);
+}
+.travelerRedesign :is(.challengeTabs, .challengeDayPicker) button.active,
+.travelerRedesign :is(.challengeTabs, .challengeDayPicker) button.active :is(svg, span, small, strong, b),
+.travelerRedesign
+  :is(.missionNumber, .missionStatus, .gamesDayHead strong, .missionDayHeading strong)
+  :is(svg, span, small, strong) {
+  color: #111;
+}
+.travelerRedesign :is(.challengePanel, .quizPage, .gamesPage, .rankingsPage) {
+  padding-inline: clamp(12px, 3vw, 24px);
+}
+.travelerRedesign .quizLayoutSingle {
+  display: block;
+}
+.travelerRedesign .rankingScopeToggle,
+.travelerRedesign .travelerChatScopes > [role="tablist"] {
+  display: flex;
+  gap: 7px;
+  margin: 16px 0;
+  padding: 5px;
+  border: 1px solid var(--smf-line);
+  border-radius: 12px;
+  background: var(--smf-surface);
+}
+.travelerRedesign :is(.rankingScopeToggle, .travelerChatScopes > [role="tablist"]) button {
+  min-height: 44px;
+  flex: 1;
+  border: 0;
+  border-radius: 8px;
+  color: var(--smf-ink);
+  background: transparent;
+  font-weight: 800;
+}
+.travelerRedesign
+  :is(.rankingScopeToggle button.active, .travelerChatScopes > [role="tablist"] button[aria-selected="true"]),
+.travelerRedesign .operationalChat form button,
+.travelerRedesign .operationalAlertForm button {
+  color: #111;
+  background: var(--trail-primary);
+}
+.travelerRedesign .worldClockBar > div {
+  color: #111;
+  background: color-mix(in srgb, var(--trail-primary) 20%, white);
+}
+.travelerRedesign .infoSectionHead :is(h3, small),
+.travelerRedesign .cultureGrid :is(h4, p) {
+  color: var(--smf-ink);
+}
+.travelerRedesign .usefulGovernance :is(span, time, a, small) {
+  color: var(--smf-muted);
+  font-size: 11px;
+}
+.travelerRedesign .usefulGovernance .review-approved {
+  color: #111;
+}
+.travelerRedesign .travelerChatScopes {
+  display: grid;
+  gap: 14px;
+}
+.travelerRedesign .sosPage {
+  display: grid;
+  gap: 18px;
+  padding: clamp(18px, 4vw, 28px);
+  border: 1px solid var(--smf-line);
+  border-radius: 16px;
+  background: var(--smf-surface);
+}
+.travelerRedesign .operationalAlertForm {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--smf-line);
+  border-radius: 12px;
+  background: var(--smf-surface-soft);
+}
+.travelerRedesign .operationalAlertForm label {
+  display: grid;
+  gap: 6px;
+  color: var(--smf-ink);
+  font-weight: 800;
+}
+.travelerRedesign .operationalAlertForm .consentCheck {
+  grid-template-columns: 20px 1fr;
+  align-items: start;
+}
+.travelerRedesign .operationalAlertForm button {
+  min-height: 48px;
+  border: 0;
+  border-radius: 10px;
+  font-weight: 800;
+}
+.travelerRedesign .sosUnavailable {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--smf-line);
+  border-radius: 12px;
+  color: var(--smf-ink);
+  background: var(--smf-surface-soft);
 }
