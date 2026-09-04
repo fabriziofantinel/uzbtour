@@ -181,12 +181,6 @@ export default function PlatformTripRankings({ experience, userName }: { experie
           })}
         </div>
       )}
-      {scope === "group" && (
-        <p className="rankingRules">
-          Bingo: ambo 5 pt, terno 10 pt, quaterna 20 pt, cinquina 30 pt per riga; tombola 50 pt aggiuntivi. Missioni e
-          foto-prova entrano in classifica dopo la validazione.
-        </p>
-      )}
     </section>
   );
 }

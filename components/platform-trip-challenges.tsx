@@ -1332,7 +1332,6 @@ export default function PlatformTripChallenges({
                       <span>3</span>
                       <div>
                         <small>TROVA L’INTRUSO</small>
-                        <h3>{oddOneOutGame.title}</h3>
                       </div>
                       <b>
                         {gameFeedback[oddOneOutGame.id]?.score ??
@@ -1702,7 +1701,6 @@ function MemoryGame({
         </span>
         <div>
           <small>MEMORY DEL VIAGGIO</small>
-          <h3>{game.title}</h3>
         </div>
         <b>{score}/10</b>
       </header>

@@ -6701,6 +6701,72 @@ body::-webkit-scrollbar-thumb {
   background: var(--smf-surface-soft);
 }
 
+/* Traveler companion: document wallet and finance hierarchy. */
+.travelerRedesign .documentsHead {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 14px;
+}
+.travelerRedesign .documentsTitle {
+  align-items: center;
+}
+.travelerRedesign .offlinePackageAction {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.travelerRedesign .offlinePackageAction button {
+  flex: 0 0 auto;
+  color: #111;
+  background: var(--trail-primary);
+}
+.travelerRedesign .offlinePackageAction small {
+  margin: 0;
+  color: var(--smf-ink-soft);
+  font-size: 13px;
+  line-height: 1.4;
+}
+.travelerRedesign .documentIcon,
+.travelerRedesign .documentIcon svg {
+  color: #111;
+}
+.travelerRedesign .onlineDocumentBadge {
+  display: inline-flex;
+  width: max-content;
+  margin-top: 6px;
+  padding: 3px 7px;
+  border: 1px solid var(--smf-line);
+  border-radius: 999px;
+  color: var(--smf-ink);
+  background: var(--smf-surface);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
+}
+.travelerRedesign .expenseExchangeHighlight {
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--smf-ink);
+  background: color-mix(in srgb, var(--trail-primary) 16%, white);
+  font-weight: 750;
+}
+.travelerRedesign .financeEmptyCompact,
+.travelerRedesign .insuranceEmpty {
+  margin-top: 12px;
+}
+.travelerRedesign .challengesPage {
+  padding-inline: clamp(16px, 4vw, 28px);
+}
+@media (max-width: 680px) {
+  .travelerRedesign .offlinePackageAction {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .travelerRedesign .offlinePackageAction button {
+    width: 100%;
+  }
+}
+
 /* Journey management: keep every tab on the same visual system and protect contrast on light agency colours. */
 .journeyManagePage :is(.familyCreateForm, .travelerCreateForm) footer button.secondary,
 .journeyManagePage :is(.familyCreateForm, .travelerCreateForm) footer button.secondary:hover {

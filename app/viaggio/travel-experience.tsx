@@ -1825,12 +1825,10 @@ export default function TravelExperience({
           {tab === "documenti" && (
             <section className="collection documentsPage">
               <header className="documentsHead">
-                <div>
+                <div className="documentsTitle">
                   <Wallet />
                   <span>
-                    <small>DOCUMENT WALLET</small>
                     <h2>Voucher, biglietti e documenti</h2>
-                    <p>Archivio privato del tuo gruppo, consultabile anche offline dopo il download.</p>
                   </span>
                 </div>
                 <div className="offlinePackageAction">
@@ -1851,13 +1849,9 @@ export default function TravelExperience({
                         ? "Aggiorna download"
                         : !isOnline
                           ? "Connettiti per scaricare"
-                          : "Scarica il viaggio"}
+                          : "Scarica documenti sul dispositivo"}
                   </button>
-                  <small>
-                    Scarica programma e biglietti sul dispositivo: {offlineDocumentIds.size} disponibili offline,{" "}
-                    {Math.max(0, travelDocuments.length - offlineDocumentIds.size)} da scaricare. Se l’agenzia aggiunge
-                    un documento, premi di nuovo “Aggiorna download”.
-                  </small>
+                  <small>Scarica i documenti per averli a disposizione anche offline.</small>
                 </div>
               </header>
               {travelDocuments.length === 0 ? (
@@ -1892,6 +1886,7 @@ export default function TravelExperience({
                           {offlineDocumentIds.has(ticket.id) && (
                             <em className="offlineDocumentBadge">Disponibile offline</em>
                           )}
+                          {!offlineDocumentIds.has(ticket.id) && <em className="onlineDocumentBadge">Solo online</em>}
                         </span>
                         <a
                           href={ticket.downloadUrl}
@@ -1915,13 +1910,8 @@ export default function TravelExperience({
 
           {tab === "spese" && (
             <section className="collection expensesPage">
-              <header className="financeSectionHeading">
-                <span>SPESE DEL GRUPPO</span>
-                <h2>Spese</h2>
-              </header>
               <div className="expenseHero">
                 <span>SPESE, PRELIEVI E CAMBI</span>
-                <h2>Totali per valuta</h2>
                 <div className="expenseCurrencyTotals">
                   <div>
                     <small>EURO</small>
@@ -1938,7 +1928,7 @@ export default function TravelExperience({
                     <strong>{totalSpentEuro == null ? "Calcolo…" : `€ ${totalSpentEuro.toFixed(2)}`}</strong>
                   </div>
                 </div>
-                <p>
+                <p className="expenseExchangeHighlight">
                   Gruppo: {experience.journey.partyName}
                   {appliedEurRate
                     ? ` · Conversione: 1 € = ${localFormatter.format(appliedEurRate)} ${localCurrency}`
@@ -1975,14 +1965,12 @@ export default function TravelExperience({
                   </span>
                 </button>
               </div>
+              <header className="financeSectionHeading">
+                <span>SPESE DEL GRUPPO</span>
+                <h2>Spese</h2>
+              </header>
               {experience.expenses.length === 0 ? (
-                <div className="financeEmpty financeEmptyCompact">
-                  <ReceiptText />
-                  <div>
-                    <h3>Nessuna spesa registrata</h3>
-                    <p>Usa “Nuova spesa” per iniziare il riepilogo del gruppo.</p>
-                  </div>
-                </div>
+                <p className="cashEmpty financeEmptyCompact">Nessuna spesa registrata.</p>
               ) : (
                 <div className="expenseList">
                   {experience.expenses.map((expense) => (
@@ -2110,7 +2098,9 @@ export default function TravelExperience({
                       <Info />
                       <h4>{item.title}</h4>
                       <p>{item.body}</p>
-                      {item.phone && <a href={`tel:${item.phone}`}>{item.phone}</a>}
+                      {item.phone && !/(ambasciat|salute)/i.test(item.title) && (
+                        <a href={`tel:${item.phone}`}>{item.phone}</a>
+                      )}
                       <footer className="usefulGovernance">
                         <span className={`review-${item.reviewStatus}`}>
                           {item.reviewStatus === "approved" ? "Verificato" : "Da verificare"}
@@ -2215,13 +2205,7 @@ export default function TravelExperience({
                   )}
                 </>
               ) : (
-                <div className="sosUnavailable">
-                  <Info />
-                  <span>
-                    <strong>Polizza non ancora disponibile</strong>
-                    <small>L’agenzia non ha pubblicato una polizza per questa partenza.</small>
-                  </span>
-                </div>
+                <p className="cashEmpty insuranceEmpty">Polizza non disponibile.</p>
               )}
             </section>
           )}
