@@ -27,9 +27,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const file = dayDocumentFileDetails(body?.originalName, body?.contentType);
     if (!file || !description || description.length > 500)
       return NextResponse.json({ error: "Giornata, descrizione e documento sono obbligatori" }, { status: 400 });
-    if (!["trip", "group", "traveler"].includes(audienceScope))
+    if (!["trip", "group", "traveler", "accompagnatore", "guida"].includes(audienceScope))
       return NextResponse.json({ error: "Destinatari non validi" }, { status: 400 });
-    const targetPartyId = audienceScope === "trip" ? null : partyId;
+    const targetPartyId = ["trip", "accompagnatore", "guida"].includes(audienceScope) ? null : partyId;
     const targetTravelerId = audienceScope === "traveler" ? travelerId : null;
     const { agencyId } = await requireAgencyDepartureDayDocumentAudience({
       departureId,
@@ -39,7 +39,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       travelerId: targetTravelerId,
     });
     const audienceKey =
-      audienceScope === "trip" ? "trip" : audienceScope === "group" ? `groups/${partyId}` : `travelers/${travelerId}`;
+      audienceScope === "trip"
+        ? "trip"
+        : audienceScope === "group"
+          ? `groups/${partyId}`
+          : audienceScope === "traveler"
+            ? `travelers/${travelerId}`
+            : `staff/${audienceScope}`;
     const prefix = `agencies/${agencyId}/departures/${departureId}/${audienceKey}/days/${dayId}/documents/`;
     if (!objectKey.startsWith(prefix))
       return NextResponse.json({ error: "Percorso documento non valido" }, { status: 400 });
@@ -60,7 +66,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       dayId,
       partyId: targetPartyId,
       travelerId: targetTravelerId,
-      audienceScope: audienceScope as "trip" | "group" | "traveler",
+      audienceScope: audienceScope as "trip" | "group" | "traveler" | "accompagnatore" | "guida",
       mediaId: crypto.randomUUID(),
       documentId: crypto.randomUUID(),
       provider: storage.provider,

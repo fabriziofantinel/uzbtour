@@ -67,7 +67,7 @@ export async function registerV3DayDocument(
     dayId: string;
     partyId?: string | null;
     travelerId?: string | null;
-    audienceScope: "trip" | "group" | "traveler";
+    audienceScope: "trip" | "group" | "traveler" | "accompagnatore" | "guida";
     mediaId: string;
     documentId: string;
     description: string;

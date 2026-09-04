@@ -39,7 +39,9 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
   const [message, setMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const departure = initialData.departure;
   const groups = useMemo(() => initialData.groups, [initialData.groups]);
-  const [audienceScope, setAudienceScope] = useState<"trip" | "group" | "traveler">("trip");
+  const [audienceScope, setAudienceScope] = useState<"trip" | "group" | "traveler" | "accompagnatore" | "guida">(
+    "trip",
+  );
   const [partyId, setPartyId] = useState(groups[0]?.id || "");
   const [travelerId, setTravelerId] = useState(groups[0]?.travelers[0]?.id || "");
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -54,7 +56,7 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
       !file.size ||
       !dayId ||
       !description ||
-      (audienceScope !== "trip" && !partyId) ||
+      (["group", "traveler"].includes(audienceScope) && !partyId) ||
       (audienceScope === "traveler" && !travelerId)
     ) {
       setMessage({
@@ -169,6 +171,8 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
                   ["trip", "Viaggio"],
                   ["group", "Gruppo"],
                   ["traveler", "Viaggiatore"],
+                  ["accompagnatore", "Accompagnatori"],
+                  ["guida", "Guide"],
                 ] as const
               ).map(([value, label]) => (
                 <button
@@ -183,7 +187,7 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
                 </button>
               ))}
             </div>
-            {audienceScope !== "trip" && (
+            {["group", "traveler"].includes(audienceScope) && (
               <label className="agencyChatGroup">
                 Gruppo
                 <select
@@ -221,7 +225,11 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
                 ? "Il documento sarà disponibile a tutti i viaggiatori della partenza."
                 : audienceScope === "group"
                   ? "Il documento sarà disponibile solo ai viaggiatori del gruppo selezionato."
-                  : "Il documento sarà disponibile solo al viaggiatore selezionato."}
+                  : audienceScope === "traveler"
+                    ? "Il documento sarà disponibile solo al viaggiatore selezionato."
+                    : audienceScope === "accompagnatore"
+                      ? "Il documento sarà disponibile agli accompagnatori assegnati alla partenza."
+                      : "Il documento sarà disponibile alle guide assegnate alla partenza."}
             </p>
           </section>
           <form className="dayDocumentForm" onSubmit={submit} aria-busy={busy}>

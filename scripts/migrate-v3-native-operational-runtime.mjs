@@ -15,6 +15,7 @@ const migrations = [
   "173_v3_group_experience_and_insurance_audience",
   "174_v3_agency_staff_and_day_assignments",
   "175_v3_departure_presence_register",
+  "176_v3_staff_document_audience",
 ];
 const sources = await Promise.all(
   migrations.map(async (name) => ({
@@ -53,7 +54,8 @@ try {
       to_regprocedure('app.assign_departure_staff_days_v3(uuid,uuid,uuid,text,uuid[])') IS NOT NULL staff_day_assignment_write,
       to_regprocedure('app.set_departure_presence_v3(uuid,uuid,uuid,boolean)') IS NOT NULL presence_write,
       EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='174_v3_agency_staff_and_day_assignments') staff_day_assignment_marker,
-      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='175_v3_departure_presence_register') presence_marker`)
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='175_v3_departure_presence_register') presence_marker,
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='176_v3_staff_document_audience') staff_document_marker`)
   ).rows[0];
   if (!gate || Object.values(gate).some((value) => value !== true))
     throw new Error(`Gate incompleti: ${JSON.stringify(gate)}`);
