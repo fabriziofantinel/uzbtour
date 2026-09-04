@@ -8,14 +8,18 @@ function value(value: unknown) {
   return value == null ? "" : String(value);
 }
 
-export async function getAgencyProgramme(departureId: string, actorId: string, actorNativeId: string) {
+export async function getAgencyProgramme(
+  departureId: string,
+  actorId: string,
+  actorNativeId: string,
+  staffAccess = false,
+) {
   await assertProgrammeFeedbackSchema();
   const sql = getSql();
-  const scopeRows = await sql`
-    SELECT agency_id::text
-    FROM app.read_journey_management(${actorId}, ${departureId})
-    LIMIT 1
-  `;
+  const scopeRows = staffAccess
+    ? await sql`SELECT agency_id::text FROM travel.departures WHERE id=${departureId}::uuid
+      AND app.is_departure_operator_v3(${actorNativeId}::uuid,${departureId}::uuid) LIMIT 1`
+    : await sql`SELECT agency_id::text FROM app.read_journey_management(${actorId}, ${departureId}) LIMIT 1`;
   if (!scopeRows[0]) throw new PlatformRequestError("Partenza non trovata");
   const agencyId = String(scopeRows[0].agency_id);
   const [, departures, brandingRows] = await sql.transaction(
