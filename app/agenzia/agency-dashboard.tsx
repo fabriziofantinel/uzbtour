@@ -500,7 +500,7 @@ export default function AgencyDashboard({ initialOverview }: Props) {
             </a>
             {agency?.role === "owner" && (
               <Link href="/agenzia/agenti">
-                <UserPlus size={18} /> Agenti
+                <UserPlus size={18} /> Personale
               </Link>
             )}
             {agency?.role === "owner" && (

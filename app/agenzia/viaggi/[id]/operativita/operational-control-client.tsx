@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { CSSProperties } from "react";
-import { ArrowLeft, CheckCircle2, ClipboardCheck, HeartHandshake, UserRoundCog, UserPlus, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ClipboardCheck, HeartHandshake, UserRoundCog, UserPlus } from "lucide-react";
 import AgencyManagementNav from "@/components/agency-management-nav";
 import { accessibleBrandColor, validBrandColor } from "@/lib/platform/branding-ui";
 import type { readDepartureOperationalControl } from "@/lib/platform/departure-operational-control";
@@ -27,6 +27,8 @@ export default function OperationalControlClient({
     [notice, setNotice] = useState(""),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
+    [staffUserId, setStaffUserId] = useState(""),
+    [staffDayIds, setStaffDayIds] = useState<string[]>(initialData.days.map((item) => item.id)),
     [period, setPeriod] = useState(() => ({
       validFrom: new Date().toISOString().slice(0, 16),
       validUntil: new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 16),
@@ -103,70 +105,63 @@ export default function OperationalControlClient({
         {data.eligibleStaff.length > 0 && (
           <section className="agencyPanel">
             <h2>
-              <UserRoundCog /> Tour Leader
+              <UserRoundCog /> Personale assegnato alle giornate
             </h2>
-            <p>Il responsabile assegna una persona già censita nell’agenzia alla sola partenza.</p>
-            <div className="agencyFormGrid">
-              <label>
-                Abilitato dal
-                <input
-                  type="datetime-local"
-                  value={period.validFrom}
-                  onChange={(event) => setPeriod((value) => ({ ...value, validFrom: event.target.value }))}
-                />
-              </label>
-              <label>
-                Abilitato fino al
-                <input
-                  type="datetime-local"
-                  value={period.validUntil}
-                  onChange={(event) => setPeriod((value) => ({ ...value, validUntil: event.target.value }))}
-                />
-              </label>
-            </div>
+            <p>Associa agenti, accompagnatori e guide alle giornate in cui operano.</p>
             <select
               aria-label="Persona da assegnare"
-              onChange={(event) =>
-                event.target.value &&
-                void post({ action: "assignTourLeader", userId: event.target.value, ...isoPeriod() })
-              }
+              value={staffUserId}
+              onChange={(event) => setStaffUserId(event.target.value)}
               disabled={busy}
-              defaultValue=""
             >
               <option value="" disabled>
                 Seleziona persona
               </option>
               {data.eligibleStaff.map((person) => (
                 <option value={person.id} key={person.id}>
-                  {person.name} · {person.email}
+                  {person.name} ·{" "}
+                  {person.role === "accompagnatore" ? "Accompagnatore" : person.role === "guida" ? "Guida" : "Agente"}
                 </option>
               ))}
             </select>
+            <div className="attendanceGrid">
+              {data.days.map((item) => (
+                <label key={item.id}>
+                  <span>{item.label}</span>
+                  <input
+                    type="checkbox"
+                    checked={staffDayIds.includes(item.id)}
+                    onChange={(event) =>
+                      setStaffDayIds((current) =>
+                        event.target.checked ? [...current, item.id] : current.filter((value) => value !== item.id),
+                      )
+                    }
+                  />
+                </label>
+              ))}
+            </div>
+            <button
+              type="button"
+              disabled={busy || !staffUserId || staffDayIds.length === 0}
+              onClick={() => {
+                const person = data.eligibleStaff.find((item) => item.id === staffUserId);
+                if (person)
+                  void post({ action: "assignStaffDays", userId: person.id, role: person.role, dayIds: staffDayIds });
+              }}
+            >
+              <UserPlus /> Assegna alle giornate selezionate
+            </button>
             <ul className="agencyStackList">
               {data.staff.map((person) => (
                 <li key={person.id}>
                   <span>
-                    <strong>{person.name}</strong> · {person.email}
+                    <strong>{person.name}</strong> ·{" "}
+                    {person.role === "accompagnatore" ? "Accompagnatore" : person.role === "guida" ? "Guida" : "Agente"}
                     <small>
-                      {new Date(person.validFrom).toLocaleString("it-IT")} -{" "}
-                      {new Date(person.validUntil).toLocaleString("it-IT")}
+                      {data.staffDayAssignments.filter((assignment) => assignment.assignmentId === person.id).length}{" "}
+                      giornate assegnate
                     </small>
                   </span>
-                  {person.status === "active" && (
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() =>
-                        void post({
-                          action: "revokeTourLeader",
-                          assignmentId: person.id,
-                          reason: "Revoca manuale del responsabile agenzia",
-                        })
-                      }
-                    >
-                      <XCircle /> Revoca
-                    </button>
-                  )}
                 </li>
               ))}
             </ul>

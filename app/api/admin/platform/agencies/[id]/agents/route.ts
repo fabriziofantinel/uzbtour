@@ -23,6 +23,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           .regex(/^[A-Za-z0-9][A-Za-z0-9._-]{2,79}$/),
         email: z.email(),
         phone: z.string().trim().min(5).max(40),
+        staffRole: z.enum(["agent", "accompagnatore", "guida"]).default("agent"),
       })
       .safeParse(await request.json().catch(() => null));
     if (!parsed.success)

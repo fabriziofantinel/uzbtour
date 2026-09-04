@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/current-user";
 import { platformApiError } from "@/lib/platform/http";
 import {
   assignTourLeader,
+  assignDepartureStaffDays,
   inviteTourLeader,
   readDepartureOperationalControl,
   recordAttendance,
@@ -13,6 +14,12 @@ import {
 import { sendTravelerInvitation } from "@/lib/auth/invitation-email";
 
 const action = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("assignStaffDays"),
+    userId: z.string().uuid(),
+    role: z.enum(["agent", "accompagnatore", "guida"]),
+    dayIds: z.array(z.string().uuid()).min(1).max(120),
+  }),
   z.object({
     action: z.literal("assignTourLeader"),
     userId: z.string().min(1).max(200),
@@ -73,7 +80,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       parsed = action.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Dati operativi non validi" }, { status: 400 });
     let invitationEmailSent: boolean | undefined;
-    if (parsed.data.action === "assignTourLeader")
+    if (parsed.data.action === "assignStaffDays")
+      await assignDepartureStaffDays({ actorUserId: user.nativeId, departureId: id, ...parsed.data });
+    else if (parsed.data.action === "assignTourLeader")
       await assignTourLeader(user.nativeId, id, parsed.data.userId, parsed.data.validFrom, parsed.data.validUntil);
     else if (parsed.data.action === "inviteTourLeader") {
       const invited = await inviteTourLeader({ actorUserId: user.nativeId, departureId: id, ...parsed.data });

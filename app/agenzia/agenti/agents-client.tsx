@@ -94,6 +94,7 @@ export default function AgencyAgentsClient({ actor, agencies, initialAgents }: P
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            staffRole: field(form, "staffRole") || "agent",
             name: field(form, "name"),
             username: field(form, "username"),
             email: field(form, "email"),
@@ -107,8 +108,8 @@ export default function AgencyAgentsClient({ actor, agencies, initialAgents }: P
       setShowForm(false);
       setNotice(
         result.invitationEmailSent
-          ? "Agente inserito. L’invito personale è stato inviato via email."
-          : "Agente inserito. L’invito è stato creato, ma l’email non è stata inviata.",
+          ? "Componente del personale inserito. L’invito personale è stato inviato via email."
+          : "Componente del personale inserito. L’invito è stato creato, ma l’email non è stata inviata.",
       );
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Inserimento agente non riuscito");
@@ -180,8 +181,8 @@ export default function AgencyAgentsClient({ actor, agencies, initialAgents }: P
       </header>
       <section className="agencyHero">
         <div>
-          <h1>Agenti dell’agenzia</h1>
-          <span>Invita le persone che preparano e gestiscono i viaggi.</span>
+          <h1>Personale dell’agenzia</h1>
+          <span>Invita agenti, accompagnatori e guide e assegna il personale alle partenze.</span>
         </div>
       </section>
       <div className="agencyShell">
@@ -191,7 +192,7 @@ export default function AgencyAgentsClient({ actor, agencies, initialAgents }: P
               <MapPinned size={18} /> Viaggi
             </Link>
             <Link className="active" href="/agenzia/agenti" aria-current="page">
-              <UsersRound size={18} /> Agenti
+              <UsersRound size={18} /> Personale
             </Link>
             <Link href="/agenzia/informazioni-paese">
               <Globe2 size={18} /> Informazioni Paesi
@@ -223,9 +224,9 @@ export default function AgencyAgentsClient({ actor, agencies, initialAgents }: P
           <section className="agencySection agentManagementSection">
             <div className="agencySectionHead">
               <div>
-                <h2>Elenco agenti</h2>
+                <h2>Elenco personale</h2>
                 <p>
-                  {agents.length} {agents.length === 1 ? "agente censito" : "agenti censiti"}
+                  {agents.length} {agents.length === 1 ? "persona censita" : "persone censite"}
                 </p>
               </div>
               <div className="agencySectionActions">
@@ -239,17 +240,25 @@ export default function AgencyAgentsClient({ actor, agencies, initialAgents }: P
                     setError("");
                   }}
                 >
-                  <Plus size={17} /> {showForm ? "Chiudi inserimento" : "Nuovo agente"}
+                  <Plus size={17} /> {showForm ? "Chiudi inserimento" : "Nuovo componente"}
                 </button>
               </div>
             </div>
             {showForm && (
               <form id="new-agent-form" className="agencyAgentForm" onSubmit={createAgent}>
                 <div className="formIntro">
-                  <b>Invita un agente</b>
+                  <b>Invita un componente del personale</b>
                   <span>Riceverà un link personale e sceglierà la propria password.</span>
                 </div>
                 <div className="agencyAgentFields">
+                  <label>
+                    Ruolo operativo
+                    <select name="staffRole" defaultValue="agent">
+                      <option value="agent">Agente</option>
+                      <option value="accompagnatore">Accompagnatore</option>
+                      <option value="guida">Guida</option>
+                    </select>
+                  </label>
                   <label>
                     Nome e cognome
                     <input name="name" required minLength={2} maxLength={160} autoComplete="name" />
@@ -316,7 +325,14 @@ export default function AgencyAgentsClient({ actor, agencies, initialAgents }: P
                   </i>
                   <div>
                     <h3>{agent.name}</h3>
-                    <p>@{agent.username}</p>
+                    <p>
+                      {agent.staffRole === "accompagnatore"
+                        ? "Accompagnatore"
+                        : agent.staffRole === "guida"
+                          ? "Guida"
+                          : "Agente"}{" "}
+                      · @{agent.username}
+                    </p>
                     <span>
                       <a href={`mailto:${agent.email}`}>
                         <Mail /> {agent.email}

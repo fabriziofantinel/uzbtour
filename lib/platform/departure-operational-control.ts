@@ -21,25 +21,27 @@ export async function readMyTourLeaderDepartures(actorUserId: string) {
 }
 
 export async function readDepartureOperationalControl(actorUserId: string, departureId: string) {
-  const [rows, alerts, staffRows] = await Promise.all([
+  const [rows, alerts] = await Promise.all([
     getSql()`SELECT * FROM app.list_departure_operations_v3(${actorUserId}::uuid,${departureId}::uuid)`,
     getSql()`SELECT * FROM app.list_operational_alerts_v3(${actorUserId}::uuid,${departureId}::uuid)`,
-    getSql()`SELECT * FROM app.list_departure_tour_leaders_v3(${actorUserId}::uuid,${departureId}::uuid)`,
   ]);
   return {
-    staff: staffRows.map((row) => ({
-      id: String(row.id),
-      userId: String(row.user_id),
-      name: String(row.name),
-      email: String(row.email),
-      status: String(row.status),
-      validFrom: String(row.valid_from),
-      validUntil: String(row.valid_until),
-    })),
+    staff: rows
+      .filter((row) => row.kind === "staff")
+      .map((row) => ({
+        id: String(row.id),
+        userId: String(row.traveler_id),
+        name: String(row.name),
+        role: String(row.detail),
+        status: String(row.status),
+      })),
     eligibleStaff: rows
       .filter((row) => row.kind === "eligible_staff")
-      .map((row) => ({ id: String(row.id), name: String(row.name), email: String(row.detail) })),
+      .map((row) => ({ id: String(row.id), name: String(row.name), role: String(row.detail) })),
     days: rows.filter((row) => row.kind === "day").map((row) => ({ id: String(row.id), label: String(row.name) })),
+    staffDayAssignments: rows
+      .filter((row) => row.kind === "staff_day")
+      .map((row) => ({ assignmentId: String(row.id), dayId: String(row.day_id) })),
     travelers: rows
       .filter((row) => row.kind === "traveler")
       .map((row) => ({
@@ -66,6 +68,19 @@ export async function readDepartureOperationalControl(actorUserId: string, depar
       expiresAt: String(row.expires_at),
     })),
   };
+}
+
+export async function assignDepartureStaffDays(input: {
+  actorUserId: string;
+  departureId: string;
+  userId: string;
+  role: "agent" | "accompagnatore" | "guida";
+  dayIds: string[];
+}) {
+  const rows = await getSql()`SELECT app.assign_departure_staff_days_v3(
+    ${input.actorUserId}::uuid,${input.departureId}::uuid,${input.userId}::uuid,
+    ${input.role},${input.dayIds}::uuid[])::text id`;
+  return String(rows[0]?.id || "");
 }
 
 export async function assignTourLeader(

@@ -13,6 +13,7 @@ const migrations = [
   "171_v3_communication_audience_scope",
   "172_v3_document_audience_scope",
   "173_v3_group_experience_and_insurance_audience",
+  "174_v3_agency_staff_and_day_assignments",
 ];
 const sources = await Promise.all(
   migrations.map(async (name) => ({
@@ -45,7 +46,11 @@ try {
       EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='170_v3_native_operational_chat_column_ambiguity_fix') chat_ambiguity_fix_marker,
       EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='171_v3_communication_audience_scope') communication_audience_marker,
       EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='172_v3_document_audience_scope') document_audience_marker,
-      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='173_v3_group_experience_and_insurance_audience') group_experience_insurance_marker`)
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='173_v3_group_experience_and_insurance_audience') group_experience_insurance_marker,
+      to_regprocedure('app.read_agency_staff_v3(uuid,uuid)') IS NOT NULL agency_staff_read,
+      to_regprocedure('app.provision_agency_staff_v3(uuid,uuid,text,text,text,text,text,text,text,timestamp with time zone)') IS NOT NULL agency_staff_write,
+      to_regprocedure('app.assign_departure_staff_days_v3(uuid,uuid,uuid,text,uuid[])') IS NOT NULL staff_day_assignment_write,
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='174_v3_agency_staff_and_day_assignments') staff_day_assignment_marker`)
   ).rows[0];
   if (!gate || Object.values(gate).some((value) => value !== true))
     throw new Error(`Gate incompleti: ${JSON.stringify(gate)}`);

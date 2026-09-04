@@ -140,7 +140,7 @@ export default async function AgencyAnalyticsPage({
               </Link>
               {agency.role === "owner" && (
                 <Link href="/agenzia/agenti">
-                  <UserPlus size={18} /> Agenti
+                  <UserPlus size={18} /> Personale
                 </Link>
               )}
               {agency.role === "owner" && (
