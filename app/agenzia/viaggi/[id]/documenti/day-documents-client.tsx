@@ -153,12 +153,6 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
           </p>
         </section>
         <div className="journeyManageShell">
-          <div className="journeyManageHead">
-            <div>
-              <h2>Documenti di Viaggio</h2>
-              <p>Invia ogni documento all’intero viaggio, a un gruppo o a un singolo viaggiatore.</p>
-            </div>
-          </div>
           {message && (
             <div className={`agencyMessage ${message.kind}`} role={message.kind === "error" ? "alert" : "status"}>
               {message.kind === "error" ? <CircleAlert /> : <CheckCircle2 />}

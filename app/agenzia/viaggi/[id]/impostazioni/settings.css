@@ -173,6 +173,22 @@
 .insuranceAudience {
   margin-bottom: 18px;
 }
+.journeyManagePage .insuranceAudience .agencyChatScopes {
+  border-color: color-mix(in srgb, var(--agency-ui) 55%, #d5d0c6);
+  background: color-mix(in srgb, var(--agency-ui) 10%, white);
+}
+.journeyManagePage .insuranceAudience .agencyChatScopes button {
+  color: #111;
+}
+.journeyManagePage .insuranceAudience .agencyChatScopes button.active {
+  background: var(--agency-ui);
+  color: #111;
+}
+.journeyManagePage .insuranceAudience .agencyChatGroup select {
+  border-color: color-mix(in srgb, var(--agency-ui) 55%, #d5d0c6);
+  background: color-mix(in srgb, var(--agency-ui) 8%, white);
+  color: #111;
+}
 @media (max-width: 780px) {
   .profileCards,
   .insuranceSettings {
