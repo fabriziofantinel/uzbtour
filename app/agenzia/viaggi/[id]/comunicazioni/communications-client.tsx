@@ -38,7 +38,10 @@ export default function CommunicationsClient({
   const [message, setMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const [closingNoticeId, setClosingNoticeId] = useState<string | null>(null);
   const [closureNote, setClosureNote] = useState("");
-  const groups = useMemo(() => journey.groups.map((group) => ({ id: group.id, name: group.name, travelers: group.travelers })), [journey.groups]);
+  const groups = useMemo(
+    () => journey.groups.map((group) => ({ id: group.id, name: group.name, travelers: group.travelers })),
+    [journey.groups],
+  );
   const [audienceScope, setAudienceScope] = useState<"trip" | "group" | "traveler">("trip");
   const [selectedGroupId, setSelectedGroupId] = useState(groups[0]?.id || "");
   const [selectedTravelerId, setSelectedTravelerId] = useState(groups[0]?.travelers[0]?.id || "");
