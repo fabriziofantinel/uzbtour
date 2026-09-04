@@ -1,17 +1,24 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
+import type { CSSProperties } from "react";
 import { ArrowLeft, CheckCircle2, ClipboardCheck, HeartHandshake, UserRoundCog, UserPlus, XCircle } from "lucide-react";
+import AgencyManagementNav from "@/components/agency-management-nav";
+import { accessibleBrandColor, validBrandColor } from "@/lib/platform/branding-ui";
 import type { readDepartureOperationalControl } from "@/lib/platform/departure-operational-control";
+import type { getJourneyManagement } from "@/lib/platform/journey-repository";
 type Data = Awaited<ReturnType<typeof readDepartureOperationalControl>>;
+type Journey = Awaited<ReturnType<typeof getJourneyManagement>>;
 export default function OperationalControlClient({
   departureId,
   initialData,
+  journey,
   backHref,
   backLabel,
 }: {
   departureId: string;
   initialData: Data;
+  journey?: Journey;
   backHref?: string;
   backLabel?: string;
 }) {
@@ -25,6 +32,15 @@ export default function OperationalControlClient({
       validUntil: new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 16),
     })),
     [invite, setInvite] = useState({ name: "", username: "", email: "", phone: "" });
+  const agencyColor = validBrandColor(journey?.journey.agencyPrimaryColor);
+  const agencyStyle = {
+    "--agency-ui": agencyColor,
+    "--agency-ui-ink": "#111111",
+    "--smf-brand": agencyColor,
+    "--smf-brand-deep": agencyColor,
+    "--smf-action": agencyColor,
+    "--smf-focus": accessibleBrandColor(agencyColor),
+  } as CSSProperties;
   async function post(body: Record<string, unknown>) {
     setBusy(true);
     setError("");
@@ -56,15 +72,24 @@ export default function OperationalControlClient({
     validUntil: new Date(period.validUntil).toISOString(),
   });
   return (
-    <main className="journeyManagePage">
-      <header>
-        <Link href={backHref ?? `/agenzia/viaggi/${departureId}`}>
-          <ArrowLeft /> {backLabel ?? "Gruppi e viaggiatori"}
-        </Link>
-      </header>
+    <main className="journeyManagePage" style={agencyStyle}>
+      {journey ? (
+        <AgencyManagementNav
+          departureId={departureId}
+          activeTab="operativita"
+          journeyTitle={journey.journey.title}
+          quoteImportId={journey.journey.quoteImportId}
+        />
+      ) : (
+        <header>
+          <Link href={backHref ?? `/agenzia/viaggi/${departureId}`}>
+            <ArrowLeft /> {backLabel ?? "Gruppi e viaggiatori"}
+          </Link>
+        </header>
+      )}
       <section className="journeyManageHero">
         <small>GESTIONE SUL CAMPO</small>
-        <h1>Operatività della partenza</h1>
+        <h1>{journey?.journey.title ?? "Operatività della partenza"}</h1>
         <p>Tour Leader, presenze e sole segnalazioni essenziali autorizzate.</p>
       </section>
       <div className="journeyManageShell">

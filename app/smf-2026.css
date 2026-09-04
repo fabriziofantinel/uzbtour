@@ -3361,7 +3361,7 @@ body::-webkit-scrollbar-thumb {
   font-size: 12px !important;
 }
 .journeyManageHero {
-  padding-block: 32px;
+  padding: 32px clamp(16px, 4vw, 52px);
 }
 .journeyManageHero h1 {
   max-width: 960px;
@@ -6929,6 +6929,7 @@ body::-webkit-scrollbar-thumb {
 
 /* Comunicazioni: stessa densità e gerarchia delle altre schede di gestione viaggio. */
 .journeyManagePage .communicationComposer {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
   padding: clamp(16px, 2.5vw, 22px);
   background: var(--smf-surface);

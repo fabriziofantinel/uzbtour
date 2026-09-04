@@ -43,6 +43,8 @@ export default function CommunicationsClient({
     "--agency-ui": color,
     "--agency-ui-ink": "#111111",
     "--smf-brand": color,
+    "--smf-brand-deep": color,
+    "--smf-action": color,
     "--smf-focus": accessibleBrandColor(color),
   } as CSSProperties;
 
