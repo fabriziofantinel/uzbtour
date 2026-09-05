@@ -20,6 +20,7 @@ const migrations = [
   "178_v3_staff_communication_audience",
   "179_v3_staff_day_programme_authorization",
   "180_v3_staff_programme_day_write",
+  "181_v3_selected_staff_communications",
 ];
 const sources = await Promise.all(
   migrations.map(async (name) => ({
@@ -43,6 +44,7 @@ try {
   for (const { source } of sources) await client.query(source);
   const gate = (
     await client.query(`SELECT
+      to_regprocedure('app.publish_selected_staff_communication_v3(uuid,uuid,text,text,text,text,boolean,timestamp with time zone,uuid,uuid[])') IS NOT NULL selected_staff_communication_write,
       to_regprocedure('app.list_operational_messages_scoped_v3(uuid,uuid,text,uuid,uuid,integer)') IS NOT NULL native_chat_read,
       to_regprocedure('app.send_operational_message_scoped_v3(uuid,uuid,text,uuid,uuid,text,uuid)') IS NOT NULL native_chat_write,
       to_regprocedure('app.list_departure_operations_v3(uuid,uuid)') IS NOT NULL native_operations_read,

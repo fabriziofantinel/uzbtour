@@ -3,6 +3,35 @@
   background: #f7f5ef;
   color: #102b35;
 }
+.communicationAudience .agencyChatScopes {
+  display: flex;
+  flex-wrap: wrap;
+  width: fit-content;
+  max-width: 100%;
+}
+.communicationAudience .agencyChatScopes button {
+  flex: 1 0 auto;
+  white-space: nowrap;
+}
+.communicationStaffRecipients {
+  margin: 16px 0;
+  padding: 12px 16px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  display: grid;
+  gap: 8px;
+}
+.communicationStaffRecipients label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+.communicationStaffRecipients input {
+  accent-color: var(--agency-ui);
+  width: 20px;
+  height: 20px;
+}
 .journeyOpsHeader {
   min-height: 88px;
   display: flex;

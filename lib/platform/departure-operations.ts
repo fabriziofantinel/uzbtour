@@ -62,6 +62,7 @@ export async function publishStaffDepartureCommunication(input: {
   actorId: string;
   departureId: string;
   staffRole: "accompagnatore" | "guida";
+  staffUserIds: string[];
   title: string;
   summary: string;
   severity: "information" | "important" | "urgent";
@@ -69,9 +70,9 @@ export async function publishStaffDepartureCommunication(input: {
   acknowledgeBy: string | null;
   clientOperationId: string;
 }) {
-  const rows = await getSql()`SELECT app.publish_staff_departure_communication_v3(
+  const rows = await getSql()`SELECT app.publish_selected_staff_communication_v3(
     ${input.actorId}::uuid,${input.departureId}::uuid,${input.staffRole},${input.title},${input.summary},${input.severity},
-    ${input.requiresAcknowledgement},${input.acknowledgeBy}::timestamptz,${input.clientOperationId}::uuid)::text id`;
+    ${input.requiresAcknowledgement},${input.acknowledgeBy}::timestamptz,${input.clientOperationId}::uuid,${input.staffUserIds}::uuid[])::text id`;
   if (!rows[0]?.id) throw new PlatformRequestError("Comunicazione al personale non pubblicata");
   return String(rows[0].id);
 }

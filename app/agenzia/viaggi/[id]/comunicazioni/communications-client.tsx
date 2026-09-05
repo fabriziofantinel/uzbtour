@@ -28,9 +28,11 @@ async function json<T>(response: Response) {
 export default function CommunicationsClient({
   journey,
   initialCommunications,
+  staff,
 }: {
   journey: Awaited<ReturnType<typeof getJourneyManagement>>;
   initialCommunications: Communication[];
+  staff: { userId: string; name: string; role: string }[];
 }) {
   const [communications, setCommunications] = useState(initialCommunications);
   const [recipients, setRecipients] = useState<Record<string, Recipient[]>>({});
@@ -46,6 +48,11 @@ export default function CommunicationsClient({
     "trip",
   );
   const [selectedGroupId, setSelectedGroupId] = useState(groups[0]?.id || "");
+  const [selectedStaffIds, setSelectedStaffIds] = useState<string[]>([]);
+  const isStaffScope = audienceScope === "accompagnatore" || audienceScope === "guida";
+  const availableStaff = staff.filter(
+    (person) => person.role === audienceScope || (audienceScope === "accompagnatore" && person.role === "tour_leader"),
+  );
   const [selectedTravelerId, setSelectedTravelerId] = useState(groups[0]?.travelers[0]?.id || "");
   const color = validBrandColor(journey.journey.agencyPrimaryColor);
   const style = {
@@ -59,6 +66,10 @@ export default function CommunicationsClient({
 
   async function publish(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isStaffScope && !selectedStaffIds.length) {
+      setMessage({ kind: "error", text: "Seleziona almeno un destinatario associato al viaggio." });
+      return;
+    }
     if (["group", "traveler"].includes(audienceScope) && !selectedGroupId) {
       setMessage({ kind: "error", text: "Seleziona un gruppo destinatario." });
       return;
@@ -68,6 +79,7 @@ export default function CommunicationsClient({
       return;
     }
     const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
     setBusy("publish");
     setMessage(null);
     try {
@@ -86,12 +98,13 @@ export default function CommunicationsClient({
             audiencePartyIds: audienceScope === "group" || audienceScope === "traveler" ? [selectedGroupId] : [],
             audienceTravelerIds: audienceScope === "traveler" ? [selectedTravelerId] : [],
             audienceStaffRole: audienceScope === "accompagnatore" || audienceScope === "guida" ? audienceScope : null,
+            audienceStaffUserIds: isStaffScope ? selectedStaffIds : [],
             clientOperationId: crypto.randomUUID(),
           }),
         }),
       );
       setCommunications(result.communications);
-      event.currentTarget.reset();
+      formElement.reset();
       setMessage({ kind: "success", text: "Comunicazione pubblicata e notifiche accodate." });
     } catch (error) {
       setMessage({ kind: "error", text: error instanceof Error ? error.message : "Pubblicazione non riuscita" });
@@ -234,8 +247,8 @@ export default function CommunicationsClient({
                   ["trip", "Viaggio"],
                   ["group", "Gruppo"],
                   ["traveler", "Viaggiatore"],
-                  ["accompagnatore", "Accompagnatori"],
-                  ["guida", "Guide"],
+                  ["accompagnatore", "Accompagnatore"],
+                  ["guida", "Guida"],
                 ] as const
               ).map(([value, label]) => (
                 <button
@@ -244,7 +257,10 @@ export default function CommunicationsClient({
                   role="tab"
                   aria-selected={audienceScope === value}
                   className={audienceScope === value ? "active" : ""}
-                  onClick={() => setAudienceScope(value)}
+                  onClick={() => {
+                    setAudienceScope(value);
+                    setSelectedStaffIds([]);
+                  }}
                 >
                   {label}
                 </button>
@@ -283,6 +299,33 @@ export default function CommunicationsClient({
                 </select>
               </label>
             )}
+            {isStaffScope && (
+              <fieldset className="communicationStaffRecipients">
+                <legend>
+                  {audienceScope === "accompagnatore" ? "Seleziona gli accompagnatori" : "Seleziona le guide"}
+                </legend>
+                {availableStaff.map((person) => (
+                  <label key={person.userId}>
+                    <input
+                      type="checkbox"
+                      checked={selectedStaffIds.includes(person.userId)}
+                      onChange={(event) =>
+                        setSelectedStaffIds((ids) =>
+                          event.target.checked ? [...ids, person.userId] : ids.filter((id) => id !== person.userId),
+                        )
+                      }
+                    />
+                    {person.name}
+                  </label>
+                ))}
+                {!availableStaff.length && (
+                  <p>
+                    Nessun {audienceScope === "accompagnatore" ? "accompagnatore associato" : "guida associata"} al
+                    viaggio. Aggiungi le assegnazioni nella pagina Operatività.
+                  </p>
+                )}
+              </fieldset>
+            )}
             <p className="communicationAudienceHint">
               {audienceScope === "trip"
                 ? "La comunicazione verrà inviata a tutti i viaggiatori della partenza."
@@ -291,8 +334,8 @@ export default function CommunicationsClient({
                   : audienceScope === "traveler"
                     ? "La comunicazione verrà inviata soltanto al viaggiatore selezionato."
                     : audienceScope === "accompagnatore"
-                      ? "La comunicazione verrà inviata agli accompagnatori assegnati alla partenza."
-                      : "La comunicazione verrà inviata alle guide assegnate alla partenza."}
+                      ? "La comunicazione verrà inviata soltanto agli accompagnatori selezionati."
+                      : "La comunicazione verrà inviata soltanto alle guide selezionate."}
             </p>
           </section>
           {message && (
@@ -326,7 +369,7 @@ export default function CommunicationsClient({
               Scadenza presa visione
               <input name="acknowledgeBy" type="datetime-local" />
             </label>
-            <button type="submit" disabled={Boolean(busy)}>
+            <button type="submit" disabled={Boolean(busy) || (isStaffScope && !selectedStaffIds.length)}>
               {busy === "publish" ? <LoaderCircle className="spin" /> : <Send />} Pubblica
             </button>
           </form>

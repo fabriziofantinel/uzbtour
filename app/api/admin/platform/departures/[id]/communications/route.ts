@@ -22,6 +22,7 @@ const publishSchema = z.object({
   audiencePartyIds: z.array(z.string().uuid()).max(100),
   audienceTravelerIds: z.array(z.string().uuid()).max(500),
   audienceStaffRole: z.enum(["accompagnatore", "guida"]).nullable().optional(),
+  audienceStaffUserIds: z.array(z.string().uuid()).max(100).default([]),
   clientOperationId: z.string().uuid(),
 });
 const closeSchema = z.object({ noticeId: z.string().uuid(), closureNote: z.string().trim().min(3).max(1000) });
@@ -45,6 +46,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const { id } = await context.params;
     const parsed = publishSchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Comunicazione non valida" }, { status: 400 });
+    if (parsed.data.audienceStaffRole && !parsed.data.audienceStaffUserIds.length)
+      return NextResponse.json({ error: "Seleziona almeno un destinatario associato al viaggio" }, { status: 400 });
     if (parsed.data.requiresAcknowledgement && !parsed.data.acknowledgeBy)
       return NextResponse.json({ error: "Indica la scadenza della presa visione" }, { status: 400 });
     const noticeId = parsed.data.audienceStaffRole
@@ -52,6 +55,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           actorId: actor.nativeId,
           departureId: id,
           staffRole: parsed.data.audienceStaffRole,
+          staffUserIds: parsed.data.audienceStaffUserIds,
           title: parsed.data.title,
           summary: parsed.data.summary,
           severity: parsed.data.severity,
