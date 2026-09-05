@@ -7,21 +7,24 @@ export default function OperationalChat({
   partyId,
   travelerId,
   staffUserId,
+  awaitingRecipient = false,
   scope = "group",
 }: {
   departureId: string;
   partyId?: string;
   travelerId?: string;
   staffUserId?: string;
+  awaitingRecipient?: boolean;
   scope?: "trip" | "group" | "traveler" | "accompagnatore" | "guida";
 }) {
   const [messages, setMessages] = useState<Message[]>([]),
     [body, setBody] = useState(""),
-    [busy, setBusy] = useState(true),
+    [busy, setBusy] = useState(!awaitingRecipient),
     [error, setError] = useState("");
   const end = useRef<HTMLDivElement>(null);
   const load = useCallback(
     async (reportError = true) => {
+      if (awaitingRecipient) return;
       try {
         const parameters = new URLSearchParams({ departureId, scope });
         if (partyId) parameters.set("partyId", partyId);
@@ -36,16 +39,17 @@ export default function OperationalChat({
         if (reportError) setError(caught instanceof Error ? caught.message : "Chat non disponibile");
       }
     },
-    [departureId, partyId, scope, travelerId, staffUserId],
+    [departureId, partyId, scope, travelerId, staffUserId, awaitingRecipient],
   );
   useEffect(() => {
+    if (awaitingRecipient) return;
     const initialLoad = window.setTimeout(() => void load().finally(() => setBusy(false)), 0);
     const timer = window.setInterval(() => void load(false), 15000);
     return () => {
       window.clearTimeout(initialLoad);
       window.clearInterval(timer);
     };
-  }, [load]);
+  }, [load, awaitingRecipient]);
   useEffect(() => {
     end.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [messages]);
@@ -57,7 +61,7 @@ export default function OperationalChat({
   async function submit(event: FormEvent) {
     event.preventDefault();
     const text = body.trim();
-    if (!text || busy) return;
+    if (!text || busy || awaitingRecipient) return;
     setBusy(true);
     setError("");
     try {
@@ -108,7 +112,12 @@ export default function OperationalChat({
                 : "Conversazione privata con lo staff operativo."}
           </p>
         </div>
-        <button type="button" onClick={() => void refresh()} disabled={busy} aria-label="Aggiorna conversazione">
+        <button
+          type="button"
+          onClick={() => void refresh()}
+          disabled={busy || awaitingRecipient}
+          aria-label="Aggiorna conversazione"
+        >
           <RefreshCw />
         </button>
       </header>
@@ -118,7 +127,12 @@ export default function OperationalChat({
         </p>
       )}
       <div className="chatHistory" role="log" aria-live="polite" aria-relevant="additions">
-        {busy && messages.length === 0 ? (
+        {awaitingRecipient ? (
+          <p className="chatEmpty">
+            Seleziona {scope === "guida" ? "una guida" : "un accompagnatore"} associato al viaggio per aprire la
+            conversazione.
+          </p>
+        ) : busy && messages.length === 0 ? (
           <p className="chatEmpty">
             <LoaderCircle className="spin" />
             Caricamento…
@@ -150,13 +164,14 @@ export default function OperationalChat({
         <label htmlFor="chat-message">Messaggio</label>
         <textarea
           id="chat-message"
+          disabled={awaitingRecipient}
           value={body}
           onChange={(event) => setBody(event.target.value)}
           maxLength={2000}
           placeholder="Scrivi una domanda o un aggiornamento…"
           required
         />
-        <button type="submit" disabled={busy || !body.trim()}>
+        <button type="submit" disabled={busy || awaitingRecipient || !body.trim()}>
           {busy ? <LoaderCircle className="spin" /> : <Send />}
           <span>{busy ? "Invio…" : "Invia"}</span>
         </button>

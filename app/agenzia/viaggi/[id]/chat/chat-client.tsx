@@ -114,16 +114,15 @@ export default function AgencyOperationalChat({
               </select>
             </label>
           )}
-          {(!(scope === "accompagnatore" || scope === "guida") || staffUserId) && (
-            <OperationalChat
-              key={`${scope}-${selected}-${traveler}-${staffUserId}`}
-              staffUserId={staffUserId || undefined}
-              departureId={data.journey.id}
-              partyId={["group", "traveler"].includes(scope) ? selected : undefined}
-              travelerId={scope === "traveler" ? traveler : undefined}
-              scope={scope}
-            />
-          )}
+          <OperationalChat
+            awaitingRecipient={(scope === "accompagnatore" || scope === "guida") && !staffUserId}
+            key={`${scope}-${selected}-${traveler}-${staffUserId}`}
+            staffUserId={staffUserId || undefined}
+            departureId={data.journey.id}
+            partyId={["group", "traveler"].includes(scope) ? selected : undefined}
+            travelerId={scope === "traveler" ? traveler : undefined}
+            scope={scope}
+          />
         </>
       </div>
     </main>
