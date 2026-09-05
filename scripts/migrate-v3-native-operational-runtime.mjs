@@ -22,6 +22,7 @@ const migrations = [
   "180_v3_staff_programme_day_write",
   "181_v3_selected_staff_communications",
   "182_v3_selected_staff_chat_documents",
+  "183_v3_clear_departure_presence_fix",
 ];
 const sources = await Promise.all(
   migrations.map(async (name) => ({
@@ -45,6 +46,7 @@ try {
   for (const { source } of sources) await client.query(source);
   const gate = (
     await client.query(`SELECT
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='183_v3_clear_departure_presence_fix') clear_presence_fix_marker,
       to_regprocedure('app.list_selected_staff_messages_v3(uuid,uuid,text,uuid,integer)') IS NOT NULL selected_staff_chat_read,
       to_regprocedure('app.send_selected_staff_message_v3(uuid,uuid,text,text,uuid,uuid)') IS NOT NULL selected_staff_chat_write,
       to_regprocedure('app.register_selected_staff_day_document_v3(uuid,uuid,uuid,text,uuid,uuid,uuid,uuid,text,text,text,text,text,bigint,text,uuid[])') IS NOT NULL selected_staff_document_write,
