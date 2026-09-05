@@ -22,6 +22,8 @@ export default async function TourLeaderDeparturePage({ params }: { params: Prom
       backHref="/tour-leader"
       backLabel="Le tue partenze"
       staffRole={assignment.role}
+      departureTitle={assignment.title}
+      primaryColor={assignment.primaryColor}
     />
   );
 }

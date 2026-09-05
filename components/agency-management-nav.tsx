@@ -25,6 +25,7 @@ type Props = {
   showOperations?: boolean;
   journeyTitle?: string | null;
   rightSlot?: ReactNode;
+  staffView?: boolean;
 };
 
 export default function AgencyManagementNav({
@@ -35,7 +36,28 @@ export default function AgencyManagementNav({
   showOperations = true,
   journeyTitle,
   rightSlot,
+  staffView = false,
 }: Props) {
+  if (staffView)
+    return (
+      <header className={className}>
+        <Link href="/tour-leader">
+          <ArrowLeft /> Tutti i viaggi
+        </Link>
+        <nav aria-label="Gestione del viaggio">
+          <Link
+            href={`/agenzia/viaggi/${departureId}/programma`}
+            aria-current={activeTab === "programma" ? "page" : undefined}
+          >
+            <BookOpen /> Programma
+          </Link>
+          <Link href={`/tour-leader/${departureId}`} aria-current={activeTab === "operativita" ? "page" : undefined}>
+            <ClipboardCheck /> Presenze e Segnalazioni
+          </Link>
+        </nav>
+        <span className="journeyAgencyName">{journeyTitle || rightSlot}</span>
+      </header>
+    );
   return (
     <header className={className}>
       <Link href="/agenzia">

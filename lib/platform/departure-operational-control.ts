@@ -21,7 +21,7 @@ export async function readMyTourLeaderDepartures(actorUserId: string) {
 }
 
 export async function readMyDepartureStaff(actorUserId: string) {
-  const rows = await getSql()`SELECT * FROM app.list_my_departure_staff_v3(${actorUserId}::uuid)`;
+  const rows = await getSql()`SELECT * FROM app.read_staff_trip_cards_v3(${actorUserId}::uuid)`;
   return rows.map((row) => ({
     id: String(row.departure_id),
     title: String(row.title),
@@ -29,6 +29,10 @@ export async function readMyDepartureStaff(actorUserId: string) {
     startsOn: String(row.starts_on),
     endsOn: String(row.ends_on),
     role: String(row.staff_role) as "agent" | "accompagnatore" | "guida",
+    agencyId: String(row.agency_id),
+    primaryColor: String((row.branding as Record<string, unknown> | null)?.primaryColor || "#247A6B"),
+    logoUrl: String((row.branding as Record<string, unknown> | null)?.logoUrl || ""),
+    partyCount: Number(row.party_count || 0),
   }));
 }
 

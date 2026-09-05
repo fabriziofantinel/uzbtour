@@ -18,6 +18,8 @@ export default function OperationalControlClient({
   backHref,
   backLabel,
   staffRole,
+  departureTitle,
+  primaryColor,
 }: {
   departureId: string;
   initialData: Data;
@@ -25,6 +27,8 @@ export default function OperationalControlClient({
   backHref?: string;
   backLabel?: string;
   staffRole?: "agent" | "accompagnatore" | "guida";
+  departureTitle?: string;
+  primaryColor?: string;
 }) {
   const [data, setData] = useState(initialData),
     [notice, setNotice] = useState(""),
@@ -40,7 +44,7 @@ export default function OperationalControlClient({
     { id: "presence" as const, label: "Presenza" },
     { id: "alerts" as const, label: "Segnalazioni" },
   ];
-  const agencyColor = validBrandColor(journey?.journey.agencyPrimaryColor);
+  const agencyColor = validBrandColor(journey?.journey.agencyPrimaryColor || primaryColor);
   const agencyStyle = {
     "--agency-ui": agencyColor,
     "--agency-ui-ink": "#111111",
@@ -74,7 +78,14 @@ export default function OperationalControlClient({
   }
   return (
     <main className="journeyManagePage operationsPage" style={agencyStyle}>
-      {journey ? (
+      {staffRole ? (
+        <AgencyManagementNav
+          departureId={departureId}
+          activeTab="operativita"
+          staffView
+          journeyTitle={departureTitle}
+        />
+      ) : journey ? (
         <AgencyManagementNav
           departureId={departureId}
           activeTab="operativita"
@@ -89,7 +100,7 @@ export default function OperationalControlClient({
         </header>
       )}
       <section className="journeyManageHero">
-        <h1>{journey?.journey.title ?? "Operatività della partenza"}</h1>
+        <h1>{journey?.journey.title ?? departureTitle ?? "Operatività della partenza"}</h1>
         <p>Assegnazioni, presenze e segnalazioni del viaggio.</p>
       </section>
       <div className="journeyManageShell operationsShell">

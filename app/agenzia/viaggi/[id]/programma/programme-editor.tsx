@@ -334,6 +334,7 @@ export default function ProgrammeEditor({ initialProgramme, editableDayIds }: Pr
     <>
       <main className="programmePage" style={agencyStyle}>
         <AgencyManagementNav
+          staffView={editableDayIds !== undefined}
           className="programmeTopbar"
           departureId={departure.id}
           activeTab="programma"
