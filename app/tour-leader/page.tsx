@@ -1,17 +1,28 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { CSSProperties } from "react";
-import { BookOpen, LogOut, MapPinned } from "lucide-react";
+import { LogOut, MapPinned } from "lucide-react";
 import { getCurrentUser } from "@/lib/current-user";
-import { readMyDepartureStaff } from "@/lib/platform/departure-operational-control";
+import { readMyDepartureStaff, readStaffDashboard } from "@/lib/platform/departure-operational-control";
 import { agencyLogoSource, validBrandColor } from "@/lib/platform/branding-ui";
+
+import StaffTrips from "./staff-trips";
 
 export const dynamic = "force-dynamic";
 
 export default async function TourLeaderHome() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  const departures = await readMyDepartureStaff(user.nativeId);
+  const [departures, trips] = await Promise.all([
+    readMyDepartureStaff(user.nativeId),
+    readStaffDashboard(user.nativeId),
+  ]);
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Rome",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
   const agency = departures[0];
   const color = validBrandColor(agency?.primaryColor);
   const style = {
@@ -20,8 +31,6 @@ export default async function TourLeaderHome() {
     "--smf-brand-deep": color,
     "--smf-action": color,
   } as CSSProperties;
-  const formatDate = (date: string) =>
-    new Intl.DateTimeFormat("it-IT", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(date));
   const role = agency?.role === "guida" ? "Guida" : agency?.role === "agent" ? "Agente" : "Accompagnatore";
   return (
     <main className="agencyPage" style={style}>
@@ -68,57 +77,7 @@ export default async function TourLeaderHome() {
           </nav>
         </aside>
         <section id="main-content" className="agencyContent" tabIndex={-1}>
-          <div className="agencySectionHead">
-            <div>
-              <h2>Viaggi</h2>
-              <p>
-                {departures.length} {departures.length === 1 ? "viaggio assegnato" : "viaggi assegnati"}
-              </p>
-            </div>
-          </div>
-          <div className="tripTableWrap">
-            <table className="tripTable">
-              <caption>Elenco dei viaggi assegnati</caption>
-              <thead>
-                <tr>
-                  <th>Viaggio</th>
-                  <th>Periodo</th>
-                  <th>Gruppi</th>
-                  <th>Azioni</th>
-                </tr>
-              </thead>
-              <tbody>
-                {departures.map((departure) => (
-                  <tr key={`${departure.id}-${departure.role}`}>
-                    <td data-label="Viaggio" className="tripNameCell">
-                      <b>{departure.title}</b>
-                      <span>{departure.agencyName}</span>
-                    </td>
-                    <td data-label="Periodo" className="dateRangeCell">
-                      <b>{formatDate(departure.startsOn)}</b>
-                      <span aria-hidden="true">→</span>
-                      <b>{formatDate(departure.endsOn)}</b>
-                    </td>
-                    <td data-label="Gruppi" className="numberCell">
-                      {departure.partyCount}
-                    </td>
-                    <td data-label="Azioni">
-                      <div className="tableActions inline">
-                        <Link className="primary" href={`/agenzia/viaggi/${departure.id}/programma`}>
-                          <BookOpen /> Apri programma
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {!departures.length && (
-              <div className="agencyEmpty">
-                <p>Nessun viaggio assegnato disponibile.</p>
-              </div>
-            )}
-          </div>
+          <StaffTrips trips={trips} today={today} />
         </section>
       </div>
     </main>

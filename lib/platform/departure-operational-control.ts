@@ -36,6 +36,31 @@ export async function readMyDepartureStaff(actorUserId: string) {
   }));
 }
 
+export async function readStaffDashboard(actorUserId: string) {
+  const rows = await getSql()`SELECT payload FROM app.read_staff_dashboard_v3(${actorUserId}::uuid)`;
+  return [
+    ...new Map(
+      rows.map(({ payload }) => {
+        const row = payload as Record<string, unknown>;
+        return [
+          String(row.departure_id),
+          {
+            id: String(row.departure_id),
+            templateId: String(row.template_id),
+            title: String(row.title),
+            startsOn: String(row.starts_on),
+            endsOn: String(row.ends_on),
+            status: String(row.status),
+            destinationCountry: String(row.destination_country || ""),
+            partyCount: Number(row.party_count || 0),
+            travelerNames: Array.isArray(row.traveler_names) ? row.traveler_names.map(String) : [],
+          },
+        ] as const;
+      }),
+    ).values(),
+  ];
+}
+
 export async function readDepartureOperationalControl(actorUserId: string, departureId: string) {
   const [rows, alerts, presenceRows] = await Promise.all([
     getSql()`SELECT * FROM app.list_departure_operations_v3(${actorUserId}::uuid,${departureId}::uuid)`,
