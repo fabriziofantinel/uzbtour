@@ -1,0 +1,111 @@
+.operationsPage .operationsShell {
+  margin-inline: auto;
+  padding-bottom: 32px;
+}
+.operationsPage .operationsPanel {
+  background: var(--smf-surface, #fff);
+  border: 1px solid var(--smf-line, #ded8cc);
+  border-radius: 12px;
+  padding: 24px;
+  color: #111;
+  font-size: 14px;
+  line-height: 1.5;
+  min-width: 0;
+}
+.operationsPage .operationsPanel h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font: 700 18px/1.4 var(--font-manrope, sans-serif);
+}
+.operationsPage .operationsPanel p {
+  margin: 0 0 16px;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.operationsPage .operationsPanel svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: #111;
+}
+.operationsPage .operationsPanel button,
+.operationsPage .operationsPanel select {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 10px 16px;
+  border: 1px solid var(--smf-line, #ded8cc);
+  border-radius: 10px;
+  font: inherit;
+  color: #111;
+}
+.operationsPage .operationsPanel button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--smf-action);
+  font-weight: 700;
+  cursor: pointer;
+}
+.operationsPage .operationsPanel button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.operationsPage .operationsPanel select {
+  width: min(100%, 480px);
+  background: var(--smf-surface, #fff);
+}
+.operationsPage .attendanceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 24px;
+  margin-block: 16px;
+}
+.operationsPage .attendanceGrid label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-block: 12px;
+  min-height: 48px;
+  border-bottom: 1px solid var(--smf-line, #ded8cc);
+  overflow-wrap: anywhere;
+}
+.operationsPage .attendanceGrid input {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  accent-color: var(--smf-action);
+}
+.operationsPage .operationsPanel small {
+  display: block;
+  font-size: 12px;
+  color: var(--smf-ink);
+}
+.operationsPage .operationsPanel ul {
+  list-style: none;
+  padding: 0;
+  margin: 24px 0 0;
+}
+.operationsPage .operationsPanel li {
+  padding-block: 12px;
+  border-bottom: 1px solid var(--smf-line, #ded8cc);
+  overflow-wrap: anywhere;
+}
+.operationsPage :is(button, select, input):focus-visible {
+  outline: 2px solid var(--smf-focus);
+  outline-offset: 3px;
+}
+@media (max-width: 640px) {
+  .operationsPage .operationsPanel {
+    padding: 16px;
+  }
+  .operationsPage .attendanceGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .operationsPage .operationsPanel button {
+    width: 100%;
+  }
+}

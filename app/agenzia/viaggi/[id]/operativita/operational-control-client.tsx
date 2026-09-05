@@ -1,6 +1,8 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
+import "../../../../smf-2026.css";
+import "./operations.css";
 import type { CSSProperties } from "react";
 import { ArrowLeft, CheckCircle2, ClipboardCheck, HeartHandshake, UserRoundCog, UserPlus } from "lucide-react";
 import AgencyManagementNav from "@/components/agency-management-nav";
@@ -29,12 +31,15 @@ export default function OperationalControlClient({
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [staffUserId, setStaffUserId] = useState(""),
-    [staffDayIds, setStaffDayIds] = useState<string[]>(initialData.days.map((item) => item.id)),
-    [period, setPeriod] = useState(() => ({
-      validFrom: new Date().toISOString().slice(0, 16),
-      validUntil: new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 16),
-    })),
-    [invite, setInvite] = useState({ name: "", username: "", email: "", phone: "" });
+    [staffDayIds, setStaffDayIds] = useState<string[]>(initialData.days.map((item) => item.id));
+  const [activeTab, setActiveTab] = useState<"assignment" | "presence" | "alerts">(
+    staffRole ? "presence" : "assignment",
+  );
+  const tabs = [
+    ...(!staffRole ? [{ id: "assignment" as const, label: "Assegna personale" }] : []),
+    { id: "presence" as const, label: "Presenza" },
+    { id: "alerts" as const, label: "Segnalazioni" },
+  ];
   const agencyColor = validBrandColor(journey?.journey.agencyPrimaryColor);
   const agencyStyle = {
     "--agency-ui": agencyColor,
@@ -47,6 +52,7 @@ export default function OperationalControlClient({
   async function post(body: Record<string, unknown>) {
     setBusy(true);
     setError("");
+    setNotice("");
     try {
       const response = await fetch(`/api/departures/${departureId}/operations`, {
         method: "POST",
@@ -56,26 +62,18 @@ export default function OperationalControlClient({
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Operazione non riuscita");
       const refresh = await fetch(`/api/departures/${departureId}/operations`, { cache: "no-store" });
-      setData(await refresh.json());
-      setNotice(
-        result.invitationEmailSent === false
-          ? "Tour Leader creato, ma l’email di invito non è stata inviata."
-          : result.invitationEmailSent
-            ? "Tour Leader invitato via email e assegnato alla partenza."
-            : "Aggiornamento registrato.",
-      );
+      const refreshed = await refresh.json();
+      if (!refresh.ok) throw new Error(refreshed.error || "Impossibile aggiornare i dati. Ricarica la pagina.");
+      setData(refreshed);
+      setNotice("Aggiornamento registrato.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Operazione non riuscita");
     } finally {
       setBusy(false);
     }
   }
-  const isoPeriod = () => ({
-    validFrom: new Date(period.validFrom).toISOString(),
-    validUntil: new Date(period.validUntil).toISOString(),
-  });
   return (
-    <main className="journeyManagePage" style={agencyStyle}>
+    <main className="journeyManagePage operationsPage" style={agencyStyle}>
       {journey ? (
         <AgencyManagementNav
           departureId={departureId}
@@ -91,24 +89,61 @@ export default function OperationalControlClient({
         </header>
       )}
       <section className="journeyManageHero">
-        <small>GESTIONE SUL CAMPO</small>
         <h1>{journey?.journey.title ?? "Operatività della partenza"}</h1>
-        <p>
-          {staffRole
-            ? "Presenze e segnalazioni operative essenziali autorizzate."
-            : "Personale, presenze e sole segnalazioni essenziali autorizzate."}
-        </p>
+        <p>Assegnazioni, presenze e segnalazioni del viaggio.</p>
       </section>
-      <div className="journeyManageShell">
+      <div className="journeyManageShell operationsShell">
+        <div className="agencyChatScopes" role="tablist" aria-label="Operatività del viaggio">
+          {tabs.map((tab, index) => (
+            <button
+              key={tab.id}
+              id={`operations-tab-${tab.id}`}
+              type="button"
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              aria-controls={`operations-panel-${tab.id}`}
+              tabIndex={activeTab === tab.id ? 0 : -1}
+              className={activeTab === tab.id ? "active" : ""}
+              onClick={() => setActiveTab(tab.id)}
+              onKeyDown={(event) => {
+                const nextIndex =
+                  event.key === "ArrowRight"
+                    ? (index + 1) % tabs.length
+                    : event.key === "ArrowLeft"
+                      ? (index + tabs.length - 1) % tabs.length
+                      : event.key === "Home"
+                        ? 0
+                        : event.key === "End"
+                          ? tabs.length - 1
+                          : -1;
+                if (nextIndex < 0) return;
+                event.preventDefault();
+                setActiveTab(tabs[nextIndex].id);
+                document.getElementById(`operations-tab-${tabs[nextIndex].id}`)?.focus();
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
         {notice && (
-          <p className="agencyMessage success">
+          <p className="agencyMessage success" role="status">
             <CheckCircle2 />
             {notice}
           </p>
         )}
-        {error && <p className="agencyMessage error">{error}</p>}
-        {!staffRole && data.eligibleStaff.length > 0 && (
-          <section className="agencyPanel">
+        {error && (
+          <p className="agencyMessage error" role="alert">
+            {error}
+          </p>
+        )}
+        {!staffRole && activeTab === "assignment" && (
+          <section
+            className="operationsPanel"
+            role="tabpanel"
+            id="operations-panel-assignment"
+            aria-labelledby="operations-tab-assignment"
+          >
             <h2>
               <UserRoundCog /> Personale assegnato alle giornate
             </h2>
@@ -116,7 +151,18 @@ export default function OperationalControlClient({
             <select
               aria-label="Persona da assegnare"
               value={staffUserId}
-              onChange={(event) => setStaffUserId(event.target.value)}
+              onChange={(event) => {
+                const userId = event.target.value;
+                setStaffUserId(userId);
+                const assignment = data.staff.find((person) => person.userId === userId && person.status === "active");
+                setStaffDayIds(
+                  assignment
+                    ? data.staffDayAssignments
+                        .filter((day) => day.assignmentId === assignment.id)
+                        .map((day) => day.dayId)
+                    : data.days.map((day) => day.id),
+                );
+              }}
               disabled={busy}
             >
               <option value="" disabled>
@@ -129,12 +175,18 @@ export default function OperationalControlClient({
                 </option>
               ))}
             </select>
+            {!data.eligibleStaff.length && (
+              <p className="operationsEmpty">
+                Nessun personale disponibile. Aggiungi agenti, accompagnatori o guide nella pagina Personale.
+              </p>
+            )}
             <div className="attendanceGrid">
               {data.days.map((item) => (
                 <label key={item.id}>
                   <span>{item.label}</span>
                   <input
                     type="checkbox"
+                    disabled={busy}
                     checked={staffDayIds.includes(item.id)}
                     onChange={(event) =>
                       setStaffDayIds((current) =>
@@ -157,133 +209,97 @@ export default function OperationalControlClient({
               <UserPlus /> Assegna alle giornate selezionate
             </button>
             <ul className="agencyStackList">
-              {data.staff.map((person) => (
-                <li key={person.id}>
-                  <span>
-                    <strong>{person.name}</strong> ·{" "}
-                    {person.role === "accompagnatore" ? "Accompagnatore" : person.role === "guida" ? "Guida" : "Agente"}
-                    <small>
-                      {data.staffDayAssignments.filter((assignment) => assignment.assignmentId === person.id).length}{" "}
-                      giornate assegnate
-                    </small>
-                  </span>
-                </li>
-              ))}
+              {data.staff
+                .filter((person) => person.status === "active")
+                .map((person) => (
+                  <li key={person.id}>
+                    <span>
+                      <strong>{person.name}</strong> ·{" "}
+                      {person.role === "accompagnatore"
+                        ? "Accompagnatore"
+                        : person.role === "guida"
+                          ? "Guida"
+                          : "Agente"}
+                      <small>
+                        {data.staffDayAssignments.filter((assignment) => assignment.assignmentId === person.id).length}{" "}
+                        giornate assegnate
+                      </small>
+                    </span>
+                  </li>
+                ))}
             </ul>
           </section>
         )}
-        {!staffRole && (
-          <section className="agencyPanel">
-            <h2>
-              <UserPlus /> Invita Tour Leader esterno
-            </h2>
-            <p>
-              L’account sarà legato esclusivamente a questa partenza e non diventerà un utente permanente dell’agenzia.
-            </p>
-            <form
-              className="agencyFormGrid"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void post({ action: "inviteTourLeader", ...invite, ...isoPeriod() });
-              }}
-            >
-              <label>
-                Abilitato dal
-                <input
-                  required
-                  type="datetime-local"
-                  value={period.validFrom}
-                  onChange={(event) => setPeriod((value) => ({ ...value, validFrom: event.target.value }))}
-                />
-              </label>
-              <label>
-                Abilitato fino al
-                <input
-                  required
-                  type="datetime-local"
-                  value={period.validUntil}
-                  onChange={(event) => setPeriod((value) => ({ ...value, validUntil: event.target.value }))}
-                />
-              </label>
-              {(["name", "username", "email", "phone"] as const).map((field) => (
-                <label key={field}>
-                  {field === "name"
-                    ? "Nome e cognome"
-                    : field === "username"
-                      ? "Username"
-                      : field === "email"
-                        ? "Email"
-                        : "Telefono"}
-                  <input
-                    required
-                    type={field === "email" ? "email" : field === "phone" ? "tel" : "text"}
-                    value={invite[field]}
-                    onChange={(event) => setInvite((value) => ({ ...value, [field]: event.target.value }))}
-                  />
-                </label>
-              ))}
-              <button type="submit" disabled={busy}>
-                <UserPlus /> {busy ? "Invio…" : "Crea e invia invito"}
-              </button>
-            </form>
-          </section>
-        )}
-        <section className="agencyPanel">
-          <h2>
-            <ClipboardCheck /> Presenze
-          </h2>
-          <p>Rilevazione corrente, organizzata per gruppo e non collegata a una giornata del programma.</p>
-          <button
-            type="button"
-            className="secondary"
-            disabled={busy}
-            onClick={() => void post({ action: "clearPresence" })}
+        {activeTab === "presence" && (
+          <section
+            className="operationsPanel"
+            role="tabpanel"
+            id="operations-panel-presence"
+            aria-labelledby="operations-tab-presence"
           >
-            Annulla tutte le presenze
-          </button>
-          <div className="attendanceGrid">
-            {data.travelers.map((traveler) => {
-              const current = data.presence.find((entry) => entry.travelerId === traveler.id);
-              return (
-                <label key={traveler.id}>
-                  <span>
-                    {traveler.name}
-                    <small>{traveler.group}</small>
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={current?.isPresent ?? false}
-                    onChange={(event) =>
-                      void post({ action: "setPresence", travelerId: traveler.id, isPresent: event.target.checked })
-                    }
-                    aria-label={`Presente: ${traveler.name}`}
-                  />
-                </label>
-              );
-            })}
-          </div>
-        </section>
-        <section className="agencyPanel">
-          <h2>
-            <HeartHandshake /> Segnalazioni operative essenziali
-          </h2>
-          <p>
-            Visibili esclusivamente al responsabile e al Tour Leader. Nessun passaporto, documento sanitario, diagnosi o
-            posizione.
-          </p>
-          {data.alerts.length ? (
-            <ul>
-              {data.alerts.map((alert) => (
-                <li key={alert.id}>
-                  <strong>{alert.travelerName}</strong>: {alert.summary}
-                  {alert.instructions ? ` · ${alert.instructions}` : ""}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>Nessuna segnalazione autorizzata.</p>
-          )}
-        </section>
+            <h2>
+              <ClipboardCheck /> Presenza
+            </h2>
+            <p>Rilevazione corrente, organizzata per gruppo e non collegata a una giornata del programma.</p>
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={() => void post({ action: "clearPresence" })}
+            >
+              Annulla tutte le presenze
+            </button>
+            <div className="attendanceGrid">
+              {data.travelers.map((traveler) => {
+                const current = data.presence.find((entry) => entry.travelerId === traveler.id);
+                return (
+                  <label key={traveler.id}>
+                    <span>
+                      {traveler.name}
+                      <small>{traveler.group}</small>
+                    </span>
+                    <input
+                      type="checkbox"
+                      disabled={busy}
+                      checked={current?.isPresent ?? false}
+                      onChange={(event) =>
+                        void post({ action: "setPresence", travelerId: traveler.id, isPresent: event.target.checked })
+                      }
+                      aria-label={`Presente: ${traveler.name}`}
+                    />
+                  </label>
+                );
+              })}
+            </div>
+            {!data.travelers.length && <p className="operationsEmpty">Nessun viaggiatore presente nel viaggio.</p>}
+          </section>
+        )}
+        {activeTab === "alerts" && (
+          <section
+            className="operationsPanel"
+            role="tabpanel"
+            id="operations-panel-alerts"
+            aria-labelledby="operations-tab-alerts"
+          >
+            <h2>
+              <HeartHandshake /> Segnalazioni
+            </h2>
+            <p>Segnalazioni dei viaggiatori disponibili per il tuo ruolo.</p>
+            {data.alerts.length ? (
+              <ul>
+                {data.alerts.map((alert) => (
+                  <li key={alert.id}>
+                    <strong>{alert.travelerName}</strong>
+                    <p>{alert.summary}</p>
+                    {alert.instructions && <p>{alert.instructions}</p>}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>Nessuna segnalazione autorizzata.</p>
+            )}
+          </section>
+        )}
       </div>
     </main>
   );
