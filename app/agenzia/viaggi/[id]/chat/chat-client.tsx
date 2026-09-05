@@ -8,9 +8,13 @@ type Data = Awaited<ReturnType<typeof getJourneyManagement>>;
 export default function AgencyOperationalChat({
   data,
   staff,
+  actorUserId,
+  showOperations = true,
 }: {
   data: Data;
   staff: { userId: string; name: string; role: string }[];
+  actorUserId: string;
+  showOperations?: boolean;
 }) {
   const [staffUserId, setStaffUserId] = useState("");
   const color = validBrandColor(data.journey.agencyPrimaryColor);
@@ -33,6 +37,8 @@ export default function AgencyOperationalChat({
         activeTab="chat"
         journeyTitle={data.journey.title}
         quoteImportId={data.journey.quoteImportId}
+        showOperations={showOperations}
+        staffView
       />
       <section className="journeyManageHero">
         <h1>{data.journey.title}</h1>
@@ -103,10 +109,12 @@ export default function AgencyOperationalChat({
               <select value={staffUserId} onChange={(event) => setStaffUserId(event.target.value)}>
                 <option value="">Seleziona una persona associata al viaggio</option>
                 {staff
-                  .filter(
-                    (person) => person.role === scope || (scope === "accompagnatore" && person.role === "tour_leader"),
-                  )
-                  .map((person) => (
+                .filter(
+                  (person) =>
+                    person.userId !== actorUserId &&
+                    (person.role === scope || (scope === "accompagnatore" && person.role === "tour_leader")),
+                )
+                .map((person) => (
                     <option key={person.userId} value={person.userId}>
                       {person.name}
                     </option>

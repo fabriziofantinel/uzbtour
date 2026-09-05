@@ -51,9 +51,43 @@ export default function AgencyManagementNav({
           >
             <BookOpen /> Programma
           </Link>
-          <Link href={`/tour-leader/${departureId}`} aria-current={activeTab === "operativita" ? "page" : undefined}>
-            <ClipboardCheck /> Presenze e Segnalazioni
-          </Link>
+          {activeTab === "documenti" ? (
+            <span aria-current="page">
+              <FolderOpen /> Documenti
+            </span>
+          ) : (
+            <Link href={`/agenzia/viaggi/${departureId}/documenti`}>
+              <FolderOpen /> Documenti
+            </Link>
+          )}
+          {activeTab === "chat" ? (
+            <span aria-current="page">
+              <MessageCircle /> Chat
+            </span>
+          ) : (
+            <Link href={`/agenzia/viaggi/${departureId}/chat`}>
+              <MessageCircle /> Chat
+            </Link>
+          )}
+          {activeTab === "comunicazioni" ? (
+            <span aria-current="page">
+              <Send /> Comunicazioni
+            </span>
+          ) : (
+            <Link href={`/agenzia/viaggi/${departureId}/comunicazioni`}>
+              <Send /> Comunicazioni
+            </Link>
+          )}
+          {showOperations &&
+            (activeTab === "operativita" ? (
+              <span aria-current="page">
+                <ClipboardCheck /> Presenze e Segnalazioni
+              </span>
+            ) : (
+              <Link href={`/agenzia/viaggi/${departureId}/operativita`}>
+                <ClipboardCheck /> Presenze e Segnalazioni
+              </Link>
+            ))}
         </nav>
         <span className="journeyAgencyName">{journeyTitle || rightSlot}</span>
       </header>

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { sendCommunicationReminder } from "@/lib/auth/invitation-email";
-import { requirePlatformAdmin } from "@/lib/platform/authorization";
+import { requireDepartureOperator } from "@/lib/platform/authorization";
 import {
   readDepartureCommunicationRecipients,
   readDepartureCommunications,
@@ -15,8 +15,8 @@ const schema = z.object({ travelerId: z.string().uuid(), channel: z.enum(["push"
 
 export async function POST(request: Request, context: { params: Promise<{ id: string; noticeId: string }> }) {
   try {
-    const actor = await requirePlatformAdmin();
     const { id: departureId, noticeId } = await context.params;
+    const actor = await requireDepartureOperator(departureId);
     const parsed = schema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Sollecito non valido" }, { status: 400 });
     const recipients = await readDepartureCommunicationRecipients(actor.id, noticeId);

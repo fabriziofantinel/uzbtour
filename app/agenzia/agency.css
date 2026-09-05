@@ -199,6 +199,42 @@
   background: #edf5f2;
   color: #0b6462;
 }
+.tourLeaderActiveTrips {
+  display: grid;
+  gap: 4px;
+  margin-top: 6px;
+}
+.tourLeaderActiveTrip {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: #667775;
+  text-decoration: none;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+.tourLeaderActiveTrip:hover {
+  background: #edf5f2;
+  color: #0b6462;
+}
+.tourLeaderActiveTrip small {
+  font-size: 9px;
+  color: #7b8c88;
+}
+.tourLeaderActiveTripName {
+  color: #183c3c;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tourLeaderEmptyTrips {
+  display: block;
+  padding: 8px 12px;
+  color: #95a5a2;
+  font-size: 10px;
+}
 .providerCard {
   display: grid;
   gap: 8px;

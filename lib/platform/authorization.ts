@@ -1,5 +1,6 @@
 import { getAuthenticatedActor, getCurrentUser } from "@/lib/current-user";
 import { resolveV3UserAccess } from "./v3-identity-access";
+import { canOperateDeparture } from "./departure-operational-control";
 
 export class PlatformAuthorizationError extends Error {
   constructor(
@@ -63,5 +64,14 @@ export async function requireAgencyAdmin(agencyId: string) {
   if (!access?.isAgencyAdmin) {
     throw new PlatformAuthorizationError("Non puoi amministrare questa agenzia", 403);
   }
+  return user;
+}
+
+export async function requireDepartureOperator(departureId: string) {
+  const user = await getCurrentUser();
+  if (!user) throw new PlatformAuthorizationError("Autenticazione richiesta", 401);
+  if (user.isAgencyAdmin || user.isSuperAdmin) return user;
+  const allowed = await canOperateDeparture(user.nativeId, departureId);
+  if (!allowed) throw new PlatformAuthorizationError("Accesso riservato a operatori del viaggio", 403);
   return user;
 }

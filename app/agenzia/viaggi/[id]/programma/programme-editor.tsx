@@ -32,7 +32,11 @@ import type { AgencyProgramme } from "@/lib/platform/programme-repository";
 import { useAppConfirm } from "@/components/app-confirm-dialog";
 import AgencyManagementNav from "@/components/agency-management-nav";
 
-type Props = { initialProgramme: AgencyProgramme; editableDayIds?: string[] };
+type Props = {
+  initialProgramme: AgencyProgramme;
+  editableDayIds?: string[];
+  showOperations?: boolean;
+};
 type Day = AgencyProgramme["days"][number];
 type Item = Day["items"][number];
 
@@ -110,7 +114,11 @@ async function responseJson(response: Response) {
   if (!response.ok) throw new Error(result.error || "Salvataggio non riuscito");
 }
 
-export default function ProgrammeEditor({ initialProgramme, editableDayIds }: Props) {
+export default function ProgrammeEditor({
+  initialProgramme,
+  editableDayIds,
+  showOperations = true,
+}: Props) {
   const { confirm: confirmAction, dialog: confirmDialog } = useAppConfirm();
   const [days, setDays] = useState(initialProgramme.days);
   const [openDayId, setOpenDayId] = useState(() =>
@@ -335,6 +343,7 @@ export default function ProgrammeEditor({ initialProgramme, editableDayIds }: Pr
       <main className="programmePage" style={agencyStyle}>
         <AgencyManagementNav
           staffView={editableDayIds !== undefined}
+          showOperations={showOperations}
           className="programmeTopbar"
           departureId={departure.id}
           activeTab="programma"

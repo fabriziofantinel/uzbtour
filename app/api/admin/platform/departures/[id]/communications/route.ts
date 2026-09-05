@@ -1,6 +1,6 @@
 import { after, NextResponse } from "next/server";
 import { z } from "zod";
-import { requirePlatformAdmin } from "@/lib/platform/authorization";
+import { requireDepartureOperator } from "@/lib/platform/authorization";
 import {
   closeDepartureCommunication,
   publishDepartureCommunication,
@@ -29,8 +29,8 @@ const closeSchema = z.object({ noticeId: z.string().uuid(), closureNote: z.strin
 
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const actor = await requirePlatformAdmin();
     const { id } = await context.params;
+    const actor = await requireDepartureOperator(id);
     const noticeId = new URL(request.url).searchParams.get("noticeId");
     if (noticeId)
       return NextResponse.json({ recipients: await readDepartureCommunicationRecipients(actor.id, noticeId) });
@@ -42,8 +42,8 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const actor = await requirePlatformAdmin();
     const { id } = await context.params;
+    const actor = await requireDepartureOperator(id);
     const parsed = publishSchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Comunicazione non valida" }, { status: 400 });
     if (parsed.data.audienceStaffRole && !parsed.data.audienceStaffUserIds.length)
@@ -83,8 +83,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const actor = await requirePlatformAdmin();
     const { id } = await context.params;
+    const actor = await requireDepartureOperator(id);
     const parsed = closeSchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Nota di chiusura non valida" }, { status: 400 });
     await closeDepartureCommunication(actor.id, parsed.data.noticeId, parsed.data.closureNote);

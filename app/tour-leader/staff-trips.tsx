@@ -17,6 +17,13 @@ import {
 import type { readStaffDashboard } from "@/lib/platform/departure-operational-control";
 
 type Trip = Awaited<ReturnType<typeof readStaffDashboard>>[number];
+function tripPhase(trip: Trip, today: string) {
+  return trip.endsOn.slice(0, 10) < today
+    ? "past"
+    : trip.startsOn.slice(0, 10) > today
+      ? "future"
+      : "ongoing";
+}
 const dateLabel = (date: string) =>
   new Intl.DateTimeFormat("it-IT", {
     day: "2-digit",
@@ -33,11 +40,18 @@ function tripStatus(trip: Trip) {
 
 export default function StaffTrips({ trips, today }: { trips: Trip[]; today: string }) {
   const [view, setView] = useState<"list" | "cards">("list");
-  const [period, setPeriod] = useState("all");
+  const activeTripPhase = trips.reduce<"ongoing" | "future" | "none">((current, trip) => {
+    if (current === "ongoing") return "ongoing";
+    const phase = tripPhase(trip, today);
+    if (phase === "ongoing") return "ongoing";
+    if (phase === "future" && current === "none") return "future";
+    return current;
+  }, "none");
+  const defaultPeriod: "all" | "future" | "ongoing" | "past" =
+    activeTripPhase === "ongoing" ? "ongoing" : activeTripPhase === "future" ? "future" : "all";
+  const [period, setPeriod] = useState<"all" | "future" | "ongoing" | "past">(defaultPeriod);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("date-asc");
-  const phase = (trip: Trip) =>
-    trip.endsOn.slice(0, 10) < today ? "past" : trip.startsOn.slice(0, 10) > today ? "future" : "ongoing";
   const periods = [
     ["all", "Tutti"],
     ["future", "Da fare"],
@@ -47,7 +61,7 @@ export default function StaffTrips({ trips, today }: { trips: Trip[]; today: str
   const filtered = trips
     .filter(
       (trip) =>
-        (period === "all" || phase(trip) === period) &&
+      (period === "all" || tripPhase(trip, today) === period) &&
         [trip.title, trip.destinationCountry, ...trip.travelerNames]
           .join(" ")
           .toLocaleLowerCase("it")
@@ -55,13 +69,13 @@ export default function StaffTrips({ trips, today }: { trips: Trip[]; today: str
     )
     .sort((a, b) =>
       sort === "name"
-        ? a.title.localeCompare(b.title, "it")
-        : sort === "date-desc"
-          ? b.startsOn.localeCompare(a.startsOn)
+      ? a.title.localeCompare(b.title, "it")
+      : sort === "date-desc"
+        ? b.startsOn.localeCompare(a.startsOn)
           : a.startsOn.localeCompare(b.startsOn),
     );
   const clear = () => {
-    setPeriod("all");
+    setPeriod(defaultPeriod);
     setSearch("");
   };
   const open = (trip: Trip) => (
@@ -135,7 +149,7 @@ export default function StaffTrips({ trips, today }: { trips: Trip[]; today: str
               aria-pressed={period === value}
               onClick={() => setPeriod(value)}
             >
-              {label} <b>{value === "all" ? trips.length : trips.filter((trip) => phase(trip) === value).length}</b>
+              {label} <b>{value === "all" ? trips.length : trips.filter((trip) => tripPhase(trip, today) === value).length}</b>
             </button>
           ))}
           <div className="tripSearch">

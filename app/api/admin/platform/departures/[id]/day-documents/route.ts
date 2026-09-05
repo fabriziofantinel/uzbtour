@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requirePlatformAdmin } from "@/lib/platform/authorization";
+import { requireDepartureOperator } from "@/lib/platform/authorization";
 import { platformApiError } from "@/lib/platform/http";
 import { getObjectStorage } from "@/lib/platform/object-storage";
 import { requireAgencyDepartureDayDocumentAudience } from "@/lib/platform/programme-documents";
@@ -16,8 +16,8 @@ export const runtime = "nodejs";
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   let uploadedObjectKey = "";
   try {
-    const actor = await requirePlatformAdmin();
     const { id: departureId } = await context.params;
+    const actor = await requireDepartureOperator(departureId);
     const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
     const dayId = String(body?.dayId || "");
     const partyId = String(body?.partyId || "");
@@ -111,8 +111,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
 export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const actor = await requirePlatformAdmin();
     const { id: departureId } = await context.params;
+    const actor = await requireDepartureOperator(departureId);
     const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
     await archiveAgencyDayDocument({
       actorId: actor.id,
@@ -125,3 +125,4 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
     return platformApiError(error, "Eliminazione del documento non riuscita");
   }
 }
+

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { readDepartureOperationalControl } from "@/lib/platform/departure-operational-control";
-import { requirePlatformAdmin } from "@/lib/platform/authorization";
+import { requireDepartureOperator } from "@/lib/platform/authorization";
 import { platformApiError } from "@/lib/platform/http";
 import { getObjectStorage } from "@/lib/platform/object-storage";
 import { requireAgencyDepartureDayDocumentAudience } from "@/lib/platform/programme-documents";
@@ -12,14 +12,14 @@ import { assertTenantStorageCapacity } from "@/lib/platform/storage-quota";
 export const runtime = "nodejs";
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const actor = await requirePlatformAdmin();
+    const { id: departureId } = await context.params;
+    const actor = await requireDepartureOperator(departureId);
     const limited = await enforceApiRateLimit(
       request,
       { scope: "upload.day-document", limit: 30, windowSeconds: 600 },
       actor.id,
     );
     if (limited) return limited;
-    const { id: departureId } = await context.params;
     const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
     const dayId = String(body?.dayId || "");
     const partyId = String(body?.partyId || "");

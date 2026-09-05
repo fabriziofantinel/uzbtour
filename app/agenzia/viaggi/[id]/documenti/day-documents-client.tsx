@@ -35,9 +35,13 @@ function sizeLabel(size: number) {
 export default function DayDocumentsClient({
   initialData,
   staff,
+  actorUserId,
+  showOperations = true,
 }: {
   initialData: AgencyDayDocuments;
   staff: { userId: string; name: string; role: string }[];
+  actorUserId: string;
+  showOperations?: boolean;
 }) {
   const [staffUserIds, setStaffUserIds] = useState<string[]>([]);
   const { confirm: confirmAction, dialog: confirmDialog } = useAppConfirm();
@@ -153,8 +157,10 @@ export default function DayDocumentsClient({
         <AgencyManagementNav
           departureId={departure.id}
           activeTab="documenti"
+          showOperations={showOperations}
           quoteImportId={departure.quoteImportId}
           journeyTitle={departure.programmeTitle}
+          staffView
         />
         <section className="journeyManageHero">
           <small>DOCUMENTI DEL VIAGGIO</small>
@@ -238,8 +244,9 @@ export default function DayDocumentsClient({
                 {staff
                   .filter(
                     (person) =>
-                      person.role === audienceScope ||
-                      (audienceScope === "accompagnatore" && person.role === "tour_leader"),
+                      person.userId !== actorUserId &&
+                      (person.role === audienceScope ||
+                        (audienceScope === "accompagnatore" && person.role === "tour_leader")),
                   )
                   .map((person) => (
                     <label key={person.userId}>
@@ -257,8 +264,9 @@ export default function DayDocumentsClient({
                   ))}
                 {!staff.some(
                   (person) =>
-                    person.role === audienceScope ||
-                    (audienceScope === "accompagnatore" && person.role === "tour_leader"),
+                    person.userId !== actorUserId &&
+                    (person.role === audienceScope ||
+                      (audienceScope === "accompagnatore" && person.role === "tour_leader")),
                 ) && (
                   <p>Nessuna persona associata al viaggio per questo ruolo. Aggiungi le assegnazioni in Operatività.</p>
                 )}

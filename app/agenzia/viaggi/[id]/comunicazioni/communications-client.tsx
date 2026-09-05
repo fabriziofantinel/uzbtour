@@ -29,10 +29,14 @@ export default function CommunicationsClient({
   journey,
   initialCommunications,
   staff,
+  actorUserId,
+  showOperations = true,
 }: {
   journey: Awaited<ReturnType<typeof getJourneyManagement>>;
   initialCommunications: Communication[];
   staff: { userId: string; name: string; role: string }[];
+  actorUserId: string;
+  showOperations?: boolean;
 }) {
   const [communications, setCommunications] = useState(initialCommunications);
   const [recipients, setRecipients] = useState<Record<string, Recipient[]>>({});
@@ -51,7 +55,9 @@ export default function CommunicationsClient({
   const [selectedStaffIds, setSelectedStaffIds] = useState<string[]>([]);
   const isStaffScope = audienceScope === "accompagnatore" || audienceScope === "guida";
   const availableStaff = staff.filter(
-    (person) => person.role === audienceScope || (audienceScope === "accompagnatore" && person.role === "tour_leader"),
+    (person) =>
+      person.userId !== actorUserId &&
+      (person.role === audienceScope || (audienceScope === "accompagnatore" && person.role === "tour_leader")),
   );
   const [selectedTravelerId, setSelectedTravelerId] = useState(groups[0]?.travelers[0]?.id || "");
   const color = validBrandColor(journey.journey.agencyPrimaryColor);
@@ -230,7 +236,9 @@ export default function CommunicationsClient({
           departureId={journey.journey.id}
           activeTab="comunicazioni"
           journeyTitle={journey.journey.title}
+          showOperations={showOperations}
           quoteImportId={journey.journey.quoteImportId}
+          staffView
         />
         <section className="journeyManageHero">
           <h1>{journey.journey.title}</h1>
