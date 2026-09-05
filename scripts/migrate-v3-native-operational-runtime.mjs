@@ -23,6 +23,7 @@ const migrations = [
   "181_v3_selected_staff_communications",
   "182_v3_selected_staff_chat_documents",
   "183_v3_clear_departure_presence_fix",
+  "184_v3_staff_past_trip_test_access",
 ];
 const sources = await Promise.all(
   migrations.map(async (name) => ({
