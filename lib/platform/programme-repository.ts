@@ -17,8 +17,8 @@ export async function getAgencyProgramme(
   await assertProgrammeFeedbackSchema();
   const sql = getSql();
   const scopeRows = staffAccess
-    ? await sql`SELECT agency_id::text FROM travel.departures WHERE id=${departureId}::uuid
-      AND app.is_departure_operator_v3(${actorNativeId}::uuid,${departureId}::uuid) LIMIT 1`
+    ? await sql`SELECT agency_id::text FROM app.read_staff_trip_cards_v3(${actorNativeId}::uuid)
+      WHERE departure_id=${departureId}::uuid LIMIT 1`
     : await sql`SELECT agency_id::text FROM app.read_journey_management(${actorId}, ${departureId}) LIMIT 1`;
   if (!scopeRows[0]) throw new PlatformRequestError("Partenza non trovata");
   const agencyId = String(scopeRows[0].agency_id);
