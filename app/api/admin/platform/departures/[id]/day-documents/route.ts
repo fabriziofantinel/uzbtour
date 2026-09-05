@@ -125,4 +125,3 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
     return platformApiError(error, "Eliminazione del documento non riuscita");
   }
 }
-

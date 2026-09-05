@@ -21,12 +21,14 @@ export default async function ProgrammePage({
     if (!actor) redirect("/login");
     const { id } = await params;
     const scope = (await searchParams)?.scope;
-    const assignment = actor.isAgencyAdmin || actor.isSuperAdmin
-      ? null
-      : (await readMyDepartureStaff(actor.nativeId)).find((item) => item.id === id);
+    const assignment =
+      actor.isAgencyAdmin || actor.isSuperAdmin
+        ? null
+        : (await readMyDepartureStaff(actor.nativeId)).find((item) => item.id === id);
     const isTravelerStaff = scope === "traveler-staff";
     const isGuideOrAccompagnatore = assignment?.role === "guida" || assignment?.role === "accompagnatore";
-    const showOperations = actor.isAgencyAdmin || actor.isSuperAdmin ? true : !(isGuideOrAccompagnatore || isTravelerStaff);
+    const showOperations =
+      actor.isAgencyAdmin || actor.isSuperAdmin ? true : !(isGuideOrAccompagnatore || isTravelerStaff);
     const programme = await getAgencyProgramme(id, actor.id, actor.nativeId, !actor.isAgencyAdmin);
     const editableDayIds = actor.isAgencyAdmin
       ? undefined
@@ -35,7 +37,9 @@ export default async function ProgrammePage({
             FROM unnest(${programme.days.map((day) => day.id)}::uuid[]) AS days(day_id)
             WHERE app.can_edit_departure_day_v3(${actor.nativeId}::uuid,${id}::uuid,day_id)`
         ).map((row) => String(row.id));
-    return <ProgrammeEditor initialProgramme={programme} editableDayIds={editableDayIds} showOperations={showOperations} />;
+    return (
+      <ProgrammeEditor initialProgramme={programme} editableDayIds={editableDayIds} showOperations={showOperations} />
+    );
   } catch (error) {
     if (error instanceof Error && /Partenza non trovata/.test(error.message)) redirect("/");
     throw error;

@@ -18,11 +18,7 @@ import type { readStaffDashboard } from "@/lib/platform/departure-operational-co
 
 type Trip = Awaited<ReturnType<typeof readStaffDashboard>>[number];
 function tripPhase(trip: Trip, today: string) {
-  return trip.endsOn.slice(0, 10) < today
-    ? "past"
-    : trip.startsOn.slice(0, 10) > today
-      ? "future"
-      : "ongoing";
+  return trip.endsOn.slice(0, 10) < today ? "past" : trip.startsOn.slice(0, 10) > today ? "future" : "ongoing";
 }
 const dateLabel = (date: string) =>
   new Intl.DateTimeFormat("it-IT", {
@@ -61,7 +57,7 @@ export default function StaffTrips({ trips, today }: { trips: Trip[]; today: str
   const filtered = trips
     .filter(
       (trip) =>
-      (period === "all" || tripPhase(trip, today) === period) &&
+        (period === "all" || tripPhase(trip, today) === period) &&
         [trip.title, trip.destinationCountry, ...trip.travelerNames]
           .join(" ")
           .toLocaleLowerCase("it")
@@ -69,9 +65,9 @@ export default function StaffTrips({ trips, today }: { trips: Trip[]; today: str
     )
     .sort((a, b) =>
       sort === "name"
-      ? a.title.localeCompare(b.title, "it")
-      : sort === "date-desc"
-        ? b.startsOn.localeCompare(a.startsOn)
+        ? a.title.localeCompare(b.title, "it")
+        : sort === "date-desc"
+          ? b.startsOn.localeCompare(a.startsOn)
           : a.startsOn.localeCompare(b.startsOn),
     );
   const clear = () => {
@@ -149,7 +145,8 @@ export default function StaffTrips({ trips, today }: { trips: Trip[]; today: str
               aria-pressed={period === value}
               onClick={() => setPeriod(value)}
             >
-              {label} <b>{value === "all" ? trips.length : trips.filter((trip) => tripPhase(trip, today) === value).length}</b>
+              {label}{" "}
+              <b>{value === "all" ? trips.length : trips.filter((trip) => tripPhase(trip, today) === value).length}</b>
             </button>
           ))}
           <div className="tripSearch">

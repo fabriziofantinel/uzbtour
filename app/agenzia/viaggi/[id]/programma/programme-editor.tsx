@@ -114,11 +114,7 @@ async function responseJson(response: Response) {
   if (!response.ok) throw new Error(result.error || "Salvataggio non riuscito");
 }
 
-export default function ProgrammeEditor({
-  initialProgramme,
-  editableDayIds,
-  showOperations = true,
-}: Props) {
+export default function ProgrammeEditor({ initialProgramme, editableDayIds, showOperations = true }: Props) {
   const { confirm: confirmAction, dialog: confirmDialog } = useAppConfirm();
   const [days, setDays] = useState(initialProgramme.days);
   const [openDayId, setOpenDayId] = useState(() =>

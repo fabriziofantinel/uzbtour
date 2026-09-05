@@ -26,7 +26,8 @@ export default async function TourLeaderHome() {
   const agency = departures[0];
   const color = validBrandColor(agency?.primaryColor);
   const activeTrips = departures.filter(
-    (departure) => !(new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Rome" }).format(new Date(departure.endsOn)) < today),
+    (departure) =>
+      !(new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Rome" }).format(new Date(departure.endsOn)) < today),
   );
   const style = {
     "--agency-ui": color,

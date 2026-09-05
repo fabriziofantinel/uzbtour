@@ -109,12 +109,12 @@ export default function AgencyOperationalChat({
               <select value={staffUserId} onChange={(event) => setStaffUserId(event.target.value)}>
                 <option value="">Seleziona una persona associata al viaggio</option>
                 {staff
-                .filter(
-                  (person) =>
-                    person.userId !== actorUserId &&
-                    (person.role === scope || (scope === "accompagnatore" && person.role === "tour_leader")),
-                )
-                .map((person) => (
+                  .filter(
+                    (person) =>
+                      person.userId !== actorUserId &&
+                      (person.role === scope || (scope === "accompagnatore" && person.role === "tour_leader")),
+                  )
+                  .map((person) => (
                     <option key={person.userId} value={person.userId}>
                       {person.name}
                     </option>

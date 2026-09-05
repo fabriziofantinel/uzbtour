@@ -17,9 +17,10 @@ export default async function ChatPage({
     const { id } = await params;
     const actor = await requireDepartureOperator(id);
     const scope = (await searchParams)?.scope;
-    const assignment = actor.isAgencyAdmin || actor.isSuperAdmin
-      ? null
-      : (await readMyDepartureStaff(actor.nativeId)).find((item) => item.id === id);
+    const assignment =
+      actor.isAgencyAdmin || actor.isSuperAdmin
+        ? null
+        : (await readMyDepartureStaff(actor.nativeId)).find((item) => item.id === id);
     const isTravelerStaff = scope === "traveler-staff";
     const showOperations =
       actor.isAgencyAdmin || actor.isSuperAdmin

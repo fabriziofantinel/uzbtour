@@ -20,12 +20,14 @@ export default async function CommunicationsPage({
     const { id } = await params;
     const actor = await requireDepartureOperator(id);
     const scope = (await searchParams)?.scope;
-    const assignment = actor.isAgencyAdmin || actor.isSuperAdmin
-      ? null
-      : (await readMyDepartureStaff(actor.nativeId)).find((person) => person.id === id);
+    const assignment =
+      actor.isAgencyAdmin || actor.isSuperAdmin
+        ? null
+        : (await readMyDepartureStaff(actor.nativeId)).find((person) => person.id === id);
     const isTravelerStaff = scope === "traveler-staff";
     const isGuideOrAccompagnatore = assignment?.role === "guida" || assignment?.role === "accompagnatore";
-    const showOperations = actor.isAgencyAdmin || actor.isSuperAdmin ? true : !(isGuideOrAccompagnatore || isTravelerStaff);
+    const showOperations =
+      actor.isAgencyAdmin || actor.isSuperAdmin ? true : !(isGuideOrAccompagnatore || isTravelerStaff);
     const [journey, communications, operations] = await Promise.all([
       getJourneyManagement(id, actor.id, actor.nativeId),
       readDepartureCommunications(actor.id, id),
