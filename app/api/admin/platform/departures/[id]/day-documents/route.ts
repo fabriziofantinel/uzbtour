@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { requirePlatformAdmin } from "@/lib/platform/authorization";
 import { platformApiError } from "@/lib/platform/http";
 import { getObjectStorage } from "@/lib/platform/object-storage";
@@ -22,6 +23,12 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const partyId = String(body?.partyId || "");
     const travelerId = String(body?.travelerId || "");
     const audienceScope = String(body?.audienceScope || "group");
+    const selectedStaff = z
+      .array(z.string().uuid())
+      .max(100)
+      .safeParse(body?.staffUserIds ?? []);
+    if (!selectedStaff.success || (["accompagnatore", "guida"].includes(audienceScope) && !selectedStaff.data.length))
+      return NextResponse.json({ error: "Seleziona almeno una persona associata al viaggio" }, { status: 400 });
     const description = String(body?.description || "").trim();
     const objectKey = String(body?.objectKey || "");
     const file = dayDocumentFileDetails(body?.originalName, body?.contentType);
@@ -62,6 +69,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     }
     const document = await registerV3DayDocument({
       userId: actor.nativeId,
+      staffUserIds: selectedStaff.data,
       departureId,
       dayId,
       partyId: targetPartyId,
@@ -84,6 +92,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         sizeBytes: object.sizeBytes,
         dayId,
         partyId,
+        staffRole: ["accompagnatore", "guida"].includes(audienceScope) ? audienceScope : null,
+        staffUserIds: selectedStaff.data,
         downloadUrl: `/api/travel-documents/${document.id}/content?download=1`,
       },
     });

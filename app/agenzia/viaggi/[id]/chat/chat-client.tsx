@@ -1,12 +1,18 @@
 "use client";
 import { useState, type CSSProperties } from "react";
-import { MessageCircle } from "lucide-react";
 import OperationalChat from "@/components/operational-chat";
 import AgencyManagementNav from "@/components/agency-management-nav";
 import { accessibleBrandColor, validBrandColor } from "@/lib/platform/branding-ui";
 import type { getJourneyManagement } from "@/lib/platform/journey-repository";
 type Data = Awaited<ReturnType<typeof getJourneyManagement>>;
-export default function AgencyOperationalChat({ data }: { data: Data }) {
+export default function AgencyOperationalChat({
+  data,
+  staff,
+}: {
+  data: Data;
+  staff: { userId: string; name: string; role: string }[];
+}) {
+  const [staffUserId, setStaffUserId] = useState("");
   const color = validBrandColor(data.journey.agencyPrimaryColor);
   const style = {
     "--agency-ui": color,
@@ -33,76 +39,92 @@ export default function AgencyOperationalChat({ data }: { data: Data }) {
         <p>Conversazioni distinte per viaggio, gruppo e singolo viaggiatore.</p>
       </section>
       <div className="journeyManageShell">
-        {groups.length ? (
-          <>
-            <div className="agencyChatScopes" role="tablist" aria-label="Chat visualizzata">
-              {(
-                [
-                  ["trip", "Viaggio"],
-                  ["group", "Gruppo"],
-                  ["traveler", "Viaggiatore"],
-                  ["accompagnatore", "Accompagnatori"],
-                  ["guida", "Guide"],
-                ] as const
-              ).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  role="tab"
-                  aria-selected={scope === value}
-                  className={scope === value ? "active" : ""}
-                  onClick={() => setScope(value)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            {["group", "traveler"].includes(scope) && (
-              <label className="agencyChatGroup">
-                Gruppo
-                <select
-                  value={selected}
-                  onChange={(event) => {
-                    setSelected(event.target.value);
-                    setTraveler(groups.find((group) => group.id === event.target.value)?.travelers[0]?.id || "");
-                  }}
-                >
-                  {groups.map((group) => (
-                    <option key={group.id} value={group.id}>
-                      {group.name}
+        <>
+          <div className="agencyChatScopes" role="tablist" aria-label="Chat visualizzata">
+            {(
+              [
+                ["trip", "Viaggio"],
+                ["group", "Gruppo"],
+                ["traveler", "Viaggiatore"],
+                ["accompagnatore", "Accompagnatore"],
+                ["guida", "Guida"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                role="tab"
+                aria-selected={scope === value}
+                className={scope === value ? "active" : ""}
+                onClick={() => {
+                  setScope(value);
+                  setStaffUserId("");
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {["group", "traveler"].includes(scope) && (
+            <label className="agencyChatGroup">
+              Gruppo
+              <select
+                value={selected}
+                onChange={(event) => {
+                  setSelected(event.target.value);
+                  setTraveler(groups.find((group) => group.id === event.target.value)?.travelers[0]?.id || "");
+                }}
+              >
+                {groups.map((group) => (
+                  <option key={group.id} value={group.id}>
+                    {group.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {scope === "traveler" && (
+            <label className="agencyChatGroup">
+              Viaggiatore
+              <select value={traveler} onChange={(event) => setTraveler(event.target.value)}>
+                {groups
+                  .find((group) => group.id === selected)
+                  ?.travelers.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
                     </option>
                   ))}
-                </select>
-              </label>
-            )}
-            {scope === "traveler" && (
-              <label className="agencyChatGroup">
-                Viaggiatore
-                <select value={traveler} onChange={(event) => setTraveler(event.target.value)}>
-                  {groups
-                    .find((group) => group.id === selected)
-                    ?.travelers.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-            )}
+              </select>
+            </label>
+          )}
+          {(scope === "accompagnatore" || scope === "guida") && (
+            <label className="agencyChatGroup">
+              {scope === "guida" ? "Guida" : "Accompagnatore"}
+              <select value={staffUserId} onChange={(event) => setStaffUserId(event.target.value)}>
+                <option value="">Seleziona una persona associata al viaggio</option>
+                {staff
+                  .filter(
+                    (person) => person.role === scope || (scope === "accompagnatore" && person.role === "tour_leader"),
+                  )
+                  .map((person) => (
+                    <option key={person.userId} value={person.userId}>
+                      {person.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          )}
+          {(!(scope === "accompagnatore" || scope === "guida") || staffUserId) && (
             <OperationalChat
+              key={`${scope}-${selected}-${traveler}-${staffUserId}`}
+              staffUserId={staffUserId || undefined}
               departureId={data.journey.id}
               partyId={["group", "traveler"].includes(scope) ? selected : undefined}
               travelerId={scope === "traveler" ? traveler : undefined}
               scope={scope}
             />
-          </>
-        ) : (
-          <section className="agencyChatEmpty">
-            <MessageCircle />
-            <h2>Nessun gruppo disponibile</h2>
-            <p>Crea prima un gruppo per aprire una conversazione.</p>
-          </section>
-        )}
+          )}
+        </>
       </div>
     </main>
   );

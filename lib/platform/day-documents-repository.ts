@@ -12,6 +12,7 @@ export async function getAgencyDayDocuments(departureId: string, actorId: string
       txn`SELECT document.id::text,document.departure_day_id::text AS day_id,
       document.party_id::text AS party_id,COALESCE(party.name,'Intero viaggio') AS party_name,
       document.traveler_id::text AS traveler_id,COALESCE(traveler.display_name,'') AS traveler_name,
+      document.staff_role,document.staff_user_ids,
       document.title,document.description,asset.content_type,asset.size_bytes,document.created_at::text
       FROM ops.travel_documents document
       JOIN ops.media_assets asset ON asset.id=document.media_asset_id AND asset.agency_id=document.agency_id
@@ -36,6 +37,8 @@ export async function getAgencyDayDocuments(departureId: string, actorId: string
       partyName: String(row.party_name),
       travelerId: row.traveler_id ? String(row.traveler_id) : null,
       travelerName: String(row.traveler_name || ""),
+      staffRole: row.staff_role ? String(row.staff_role) : null,
+      staffUserIds: Array.isArray(row.staff_user_ids) ? row.staff_user_ids.map(String) : [],
       title: String(row.title),
       description: String(row.description || ""),
       contentType: String(row.content_type),

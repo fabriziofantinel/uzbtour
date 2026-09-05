@@ -9,6 +9,7 @@ const scope = z.object({
   scope: z.enum(["trip", "group", "traveler", "accompagnatore", "guida"]).default("group"),
   partyId: z.string().uuid().nullish(),
   travelerId: z.string().uuid().nullish(),
+  staffUserId: z.string().uuid().nullish(),
 });
 const message = scope.extend({ body: z.string().trim().min(1).max(2000), clientOperationId: z.string().uuid() });
 export async function GET(request: Request) {

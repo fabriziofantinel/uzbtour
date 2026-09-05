@@ -7,10 +7,11 @@ export async function listOperationalMessages(input: {
   scope: OperationalChatScope;
   partyId?: string | null;
   travelerId?: string | null;
+  staffUserId?: string | null;
 }) {
   const rows =
     input.scope === "accompagnatore" || input.scope === "guida"
-      ? await getSql()`SELECT id::text,sender_name,sender_role,body,created_at::text,is_mine FROM app.list_staff_operational_messages_v3(${input.userId}::uuid,${input.departureId}::uuid,${input.scope},100)`
+      ? await getSql()`SELECT id::text,sender_name,sender_role,body,created_at::text,is_mine FROM app.list_selected_staff_messages_v3(${input.userId}::uuid,${input.departureId}::uuid,${input.scope},${input.staffUserId ?? null}::uuid,100)`
       : await getSql()`SELECT id::text,sender_name,sender_role,body,created_at::text,is_mine FROM app.list_operational_messages_scoped_v3(${input.userId}::uuid,${input.departureId}::uuid,${input.scope},${input.partyId ?? null}::uuid,${input.travelerId ?? null}::uuid,100)`;
   return rows.reverse().map((row) => ({
     id: String(row.id),
@@ -27,12 +28,13 @@ export async function sendOperationalMessage(input: {
   scope: OperationalChatScope;
   partyId?: string | null;
   travelerId?: string | null;
+  staffUserId?: string | null;
   body: string;
   clientOperationId: string;
 }) {
   const rows =
     input.scope === "accompagnatore" || input.scope === "guida"
-      ? await getSql()`SELECT app.send_staff_operational_message_v3(${input.userId}::uuid,${input.departureId}::uuid,${input.scope},${input.body},${input.clientOperationId}::uuid) AS id`
+      ? await getSql()`SELECT app.send_selected_staff_message_v3(${input.userId}::uuid,${input.departureId}::uuid,${input.scope},${input.body},${input.clientOperationId}::uuid,${input.staffUserId ?? null}::uuid) AS id`
       : await getSql()`SELECT app.send_operational_message_scoped_v3(${input.userId}::uuid,${input.departureId}::uuid,${input.scope},${input.partyId ?? null}::uuid,${input.travelerId ?? null}::uuid,${input.body},${input.clientOperationId}::uuid) AS id`;
   return String(rows[0].id);
 }

@@ -32,7 +32,14 @@ function sizeLabel(size: number) {
   return size < 1024 * 1024 ? `${Math.max(1, Math.round(size / 1024))} KB` : `${(size / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export default function DayDocumentsClient({ initialData }: { initialData: AgencyDayDocuments }) {
+export default function DayDocumentsClient({
+  initialData,
+  staff,
+}: {
+  initialData: AgencyDayDocuments;
+  staff: { userId: string; name: string; role: string }[];
+}) {
+  const [staffUserIds, setStaffUserIds] = useState<string[]>([]);
   const { confirm: confirmAction, dialog: confirmDialog } = useAppConfirm();
   const [documents, setDocuments] = useState(initialData.documents);
   const [busy, setBusy] = useState(false);
@@ -57,7 +64,8 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
       !dayId ||
       !description ||
       (["group", "traveler"].includes(audienceScope) && !partyId) ||
-      (audienceScope === "traveler" && !travelerId)
+      (audienceScope === "traveler" && !travelerId) ||
+      (["accompagnatore", "guida"].includes(audienceScope) && !staffUserIds.length)
     ) {
       setMessage({
         kind: "error",
@@ -71,7 +79,7 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
       const uploaded = await uploadPrivateFile({
         endpoint: `/api/admin/platform/departures/${departure.id}/day-documents/upload`,
         file,
-        payload: { dayId, partyId, travelerId, audienceScope },
+        payload: { dayId, partyId, travelerId, audienceScope, staffUserIds },
       });
       const response = await fetch(`/api/admin/platform/departures/${departure.id}/day-documents`, {
         method: "POST",
@@ -81,6 +89,7 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
           partyId,
           travelerId,
           audienceScope,
+          staffUserIds,
           description,
           objectKey: uploaded.key,
           originalName: file.name,
@@ -171,8 +180,8 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
                   ["trip", "Viaggio"],
                   ["group", "Gruppo"],
                   ["traveler", "Viaggiatore"],
-                  ["accompagnatore", "Accompagnatori"],
-                  ["guida", "Guide"],
+                  ["accompagnatore", "Accompagnatore"],
+                  ["guida", "Guida"],
                 ] as const
               ).map(([value, label]) => (
                 <button
@@ -181,7 +190,10 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
                   role="tab"
                   aria-selected={audienceScope === value}
                   className={audienceScope === value ? "active" : ""}
-                  onClick={() => setAudienceScope(value)}
+                  onClick={() => {
+                    setAudienceScope(value);
+                    setStaffUserIds([]);
+                  }}
                 >
                   {label}
                 </button>
@@ -220,6 +232,38 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
                 </select>
               </label>
             )}
+            {["accompagnatore", "guida"].includes(audienceScope) && (
+              <fieldset className="staffRecipientChoices">
+                <legend>{audienceScope === "guida" ? "Seleziona le guide" : "Seleziona gli accompagnatori"}</legend>
+                {staff
+                  .filter(
+                    (person) =>
+                      person.role === audienceScope ||
+                      (audienceScope === "accompagnatore" && person.role === "tour_leader"),
+                  )
+                  .map((person) => (
+                    <label key={person.userId}>
+                      <input
+                        type="checkbox"
+                        checked={staffUserIds.includes(person.userId)}
+                        onChange={(event) =>
+                          setStaffUserIds((ids) =>
+                            event.target.checked ? [...ids, person.userId] : ids.filter((id) => id !== person.userId),
+                          )
+                        }
+                      />
+                      {person.name}
+                    </label>
+                  ))}
+                {!staff.some(
+                  (person) =>
+                    person.role === audienceScope ||
+                    (audienceScope === "accompagnatore" && person.role === "tour_leader"),
+                ) && (
+                  <p>Nessuna persona associata al viaggio per questo ruolo. Aggiungi le assegnazioni in Operatività.</p>
+                )}
+              </fieldset>
+            )}
             <p>
               {audienceScope === "trip"
                 ? "Il documento sarà disponibile a tutti i viaggiatori della partenza."
@@ -228,8 +272,8 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
                   : audienceScope === "traveler"
                     ? "Il documento sarà disponibile solo al viaggiatore selezionato."
                     : audienceScope === "accompagnatore"
-                      ? "Il documento sarà disponibile agli accompagnatori assegnati alla partenza."
-                      : "Il documento sarà disponibile alle guide assegnate alla partenza."}
+                      ? "Il documento sarà disponibile solo agli accompagnatori selezionati."
+                      : "Il documento sarà disponibile solo alle guide selezionate."}
             </p>
           </section>
           <form className="dayDocumentForm" onSubmit={submit} aria-busy={busy}>
@@ -284,8 +328,13 @@ export default function DayDocumentsClient({ initialData }: { initialData: Agenc
                   <FileText />
                   <span>
                     <small>
-                      {document.travelerName || document.partyName} · GIORNO {day?.number ?? "–"} ·{" "}
-                      {day ? formatDay(departure.startsOn, day.offset) : "Giornata"}
+                      {document.staffRole
+                        ? staff
+                            .filter((person) => document.staffUserIds?.includes(person.userId))
+                            .map((person) => person.name)
+                            .join(", ") || (document.staffRole === "guida" ? "Guide" : "Accompagnatori")
+                        : document.travelerName || document.partyName}{" "}
+                      · GIORNO {day?.number ?? "–"} · {day ? formatDay(departure.startsOn, day.offset) : "Giornata"}
                     </small>
                     <b>{document.description}</b>
                     <em>

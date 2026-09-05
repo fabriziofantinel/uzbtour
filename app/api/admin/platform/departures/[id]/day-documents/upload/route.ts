@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
+import { readDepartureOperationalControl } from "@/lib/platform/departure-operational-control";
 import { requirePlatformAdmin } from "@/lib/platform/authorization";
 import { platformApiError } from "@/lib/platform/http";
 import { getObjectStorage } from "@/lib/platform/object-storage";
@@ -23,6 +25,24 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const partyId = String(body?.partyId || "");
     const travelerId = String(body?.travelerId || "");
     const audienceScope = String(body?.audienceScope || "group");
+    if (["accompagnatore", "guida"].includes(audienceScope)) {
+      const recipients = z.array(z.string().uuid()).min(1).max(100).safeParse(body?.staffUserIds);
+      if (!recipients.success) return NextResponse.json({ error: "Seleziona almeno un destinatario" }, { status: 400 });
+      const { staff } = await readDepartureOperationalControl(actor.nativeId, departureId);
+      if (
+        recipients.data.some(
+          (id) =>
+            !staff.some(
+              (person) =>
+                person.userId === id &&
+                person.status === "active" &&
+                (person.role === audienceScope ||
+                  (audienceScope === "accompagnatore" && person.role === "tour_leader")),
+            ),
+        )
+      )
+        return NextResponse.json({ error: "Destinatario non associato al viaggio" }, { status: 400 });
+    }
     const sizeBytes = Number(body?.sizeBytes);
     const file = dayDocumentFileDetails(body?.originalName, body?.contentType);
     if (!file || !Number.isSafeInteger(sizeBytes) || sizeBytes <= 0 || sizeBytes > MAX_TICKET_SIZE_BYTES) {

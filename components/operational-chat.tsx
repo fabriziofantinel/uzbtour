@@ -6,11 +6,13 @@ export default function OperationalChat({
   departureId,
   partyId,
   travelerId,
+  staffUserId,
   scope = "group",
 }: {
   departureId: string;
   partyId?: string;
   travelerId?: string;
+  staffUserId?: string;
   scope?: "trip" | "group" | "traveler" | "accompagnatore" | "guida";
 }) {
   const [messages, setMessages] = useState<Message[]>([]),
@@ -24,6 +26,7 @@ export default function OperationalChat({
         const parameters = new URLSearchParams({ departureId, scope });
         if (partyId) parameters.set("partyId", partyId);
         if (travelerId) parameters.set("travelerId", travelerId);
+        if (staffUserId) parameters.set("staffUserId", staffUserId);
         const response = await fetch(`/api/chat?${parameters}`, { cache: "no-store" }),
           result = (await response.json()) as { messages?: Message[]; error?: string };
         if (!response.ok) throw new Error(result.error || "Chat non disponibile");
@@ -33,7 +36,7 @@ export default function OperationalChat({
         if (reportError) setError(caught instanceof Error ? caught.message : "Chat non disponibile");
       }
     },
-    [departureId, partyId, scope, travelerId],
+    [departureId, partyId, scope, travelerId, staffUserId],
   );
   useEffect(() => {
     const initialLoad = window.setTimeout(() => void load().finally(() => setBusy(false)), 0);
@@ -65,6 +68,7 @@ export default function OperationalChat({
             departureId,
             partyId,
             travelerId,
+            staffUserId,
             scope,
             body: text,
             clientOperationId: crypto.randomUUID(),
