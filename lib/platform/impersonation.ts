@@ -35,10 +35,10 @@ export async function startAgencyTravelerImpersonation(input: {
 }) {
   const token = randomBytes(32).toString("base64url");
   const expiresAt = new Date(Date.now() + IMPERSONATION_DURATION_SECONDS * 1000);
-  await startV3AgencyTravelerImpersonation({
+  const target = await startV3AgencyTravelerImpersonation({
     ...input,
     tokenHash: hashImpersonationToken(token),
     expiresAt: expiresAt.toISOString(),
   });
-  return { token, expiresAt, redirectUrl: "/viaggio" };
+  return { token, expiresAt, redirectUrl: target.userKind === "traveler" ? "/viaggio" : "/tour-leader" };
 }

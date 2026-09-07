@@ -5,9 +5,43 @@ import { PlatformRequestError } from "./errors";
 
 type Row = Record<string, unknown>;
 
-export async function readDepartureCommunications(actorId: string, departureId: string) {
-  const rows = await getSql()`SELECT * FROM app.read_departure_communications_v3(${actorId},${departureId}::uuid)`;
-  return rows.map((row) => ({
+export type DepartureCommunication = {
+  id: string;
+  title: string;
+  summary: string;
+  severity: "information" | "important" | "urgent";
+  requiresAcknowledgement: boolean;
+  acknowledgeBy: string | null;
+  audiencePartyIds: string[];
+  publishedAt: string;
+  recipientCount: number;
+  readCount: number;
+  unreachableCount: number;
+  overdue: boolean;
+  closedAt: string | null;
+  closureNote: string | null;
+  audienceKind: "traveler" | "staff";
+  staffRole: string | null;
+  isRecipient: boolean;
+  readAt: string | null;
+  canClose: boolean;
+};
+
+export async function readDepartureCommunications(
+  actorId: string,
+  departureId: string,
+  actorNativeId?: string,
+): Promise<DepartureCommunication[]> {
+  const sql = getSql();
+  const [travelerRows, staffRows] = await Promise.all([
+    actorNativeId
+      ? sql`SELECT * FROM app.read_departure_communications_native_v3(${actorNativeId}::uuid,${departureId}::uuid)`
+      : sql`SELECT * FROM app.read_departure_communications_v3(${actorId},${departureId}::uuid)`,
+    actorNativeId
+      ? sql`SELECT * FROM app.read_staff_departure_communications_v3(${actorNativeId}::uuid,${departureId}::uuid)`
+      : Promise.resolve([]),
+  ]);
+  const travelerCommunications = travelerRows.map((row) => ({
     id: String(row.id),
     title: String(row.title),
     summary: String(row.summary),
@@ -22,15 +56,52 @@ export async function readDepartureCommunications(actorId: string, departureId: 
     overdue: Boolean(row.overdue),
     closedAt: row.closed_at ? String(row.closed_at) : null,
     closureNote: row.closure_note ? String(row.closure_note) : null,
+    audienceKind: "traveler" as const,
+    staffRole: null,
+    isRecipient: false,
+    readAt: null,
+    canClose: true,
   }));
+  const staffCommunications = staffRows.map((row) => ({
+    id: String(row.id),
+    title: String(row.title),
+    summary: String(row.summary),
+    severity: String(row.severity) as "information" | "important" | "urgent",
+    requiresAcknowledgement: Boolean(row.requires_acknowledgement),
+    acknowledgeBy: row.acknowledge_by ? String(row.acknowledge_by) : null,
+    audiencePartyIds: [] as string[],
+    publishedAt: String(row.published_at),
+    recipientCount: Number(row.recipient_count),
+    readCount: Number(row.read_count),
+    unreachableCount: 0,
+    overdue: Boolean(row.overdue),
+    closedAt: row.closed_at ? String(row.closed_at) : null,
+    closureNote: row.closure_note ? String(row.closure_note) : null,
+    audienceKind: "staff" as const,
+    staffRole: String(row.staff_role),
+    isRecipient: Boolean(row.is_recipient),
+    readAt: row.read_at ? String(row.read_at) : null,
+    canClose: Boolean(row.can_close),
+  }));
+  return [...travelerCommunications, ...staffCommunications].sort(
+    (left, right) => Date.parse(right.publishedAt) - Date.parse(left.publishedAt),
+  );
 }
 
-export async function readDepartureCommunicationRecipients(actorId: string, noticeId: string) {
+export async function readDepartureCommunicationRecipients(
+  actorId: string,
+  actorNativeId: string,
+  noticeId: string,
+  audienceKind: "traveler" | "staff",
+) {
   const rows =
-    await getSql()`SELECT * FROM app.read_departure_communication_recipients_v3(${actorId},${noticeId}::uuid)`;
+    audienceKind === "staff"
+      ? await getSql()`SELECT * FROM app.read_staff_communication_recipients_v3(${actorNativeId}::uuid,${noticeId}::uuid)`
+      : await getSql()`SELECT * FROM app.read_departure_communication_recipients_native_v3(${actorNativeId}::uuid,${noticeId}::uuid)`;
   return rows.map((row) => ({
-    travelerId: String(row.traveler_id),
-    partyId: String(row.party_id),
+    recipientId: String(row.traveler_id ?? row.user_id),
+    travelerId: row.traveler_id ? String(row.traveler_id) : null,
+    partyId: row.party_id ? String(row.party_id) : null,
     name: String(row.display_name),
     email: String(row.email || ""),
     readAt: row.read_at ? String(row.read_at) : null,
@@ -40,6 +111,7 @@ export async function readDepartureCommunicationRecipients(actorId: string, noti
 
 export async function publishDepartureCommunication(input: {
   actorId: string;
+  actorNativeId: string;
   departureId: string;
   title: string;
   summary: string;
@@ -50,12 +122,18 @@ export async function publishDepartureCommunication(input: {
   audienceTravelerIds: string[];
   clientOperationId: string;
 }) {
-  const rows = await getSql()`SELECT app.publish_departure_communication_v3(
-    ${input.actorId},${input.departureId}::uuid,${input.title},${input.summary},${input.severity},
+  const rows = await getSql()`SELECT app.publish_departure_communication_native_v3(
+    ${input.actorNativeId}::uuid,${input.departureId}::uuid,${input.title},${input.summary},${input.severity},
     ${input.requiresAcknowledgement},${input.acknowledgeBy}::timestamptz,${input.audiencePartyIds}::uuid[],
     ${input.audienceTravelerIds}::uuid[],${input.clientOperationId}::uuid)::text id`;
   if (!rows[0]?.id) throw new PlatformRequestError("Comunicazione non pubblicata");
   return String(rows[0].id);
+}
+
+export async function acknowledgeStaffCommunication(actorNativeId: string, noticeId: string, operationId: string) {
+  const rows = await getSql()`SELECT app.acknowledge_staff_communication_v3(
+    ${actorNativeId}::uuid,${noticeId}::uuid,${operationId}::uuid) acknowledged`;
+  return Boolean(rows[0]?.acknowledged);
 }
 
 export async function publishStaffDepartureCommunication(input: {
@@ -77,21 +155,30 @@ export async function publishStaffDepartureCommunication(input: {
   return String(rows[0].id);
 }
 
-export async function closeDepartureCommunication(actorId: string, noticeId: string, note: string) {
-  const rows = await getSql()`SELECT app.close_departure_communication_v3(${actorId},${noticeId}::uuid,${note}) closed`;
+export async function closeDepartureCommunication(
+  actorNativeId: string,
+  noticeId: string,
+  note: string,
+  audienceKind: "traveler" | "staff",
+) {
+  const rows =
+    audienceKind === "staff"
+      ? await getSql()`SELECT app.close_staff_communication_v3(${actorNativeId}::uuid,${noticeId}::uuid,${note}) closed`
+      : await getSql()`SELECT app.close_departure_communication_native_v3(${actorNativeId}::uuid,${noticeId}::uuid,${note}) closed`;
   if (!Boolean(rows[0]?.closed)) throw new PlatformRequestError("Comunicazione non chiusa");
 }
 
 export async function recordCommunicationReminder(input: {
   actorId: string;
+  actorNativeId: string;
   noticeId: string;
   travelerId: string;
   channel: "push" | "email" | "group_leader";
   outcome: "sent" | "unreachable" | "failed" | "reported";
   details?: Record<string, unknown>;
 }) {
-  const rows = await getSql()`SELECT app.record_change_notice_reminder_v3(
-    ${input.actorId},${input.noticeId}::uuid,${input.travelerId}::uuid,${input.channel},${input.outcome},
+  const rows = await getSql()`SELECT app.record_change_notice_reminder_native_v3(
+    ${input.actorNativeId}::uuid,${input.noticeId}::uuid,${input.travelerId}::uuid,${input.channel},${input.outcome},
     ${JSON.stringify(input.details ?? {})}::jsonb)::text id`;
   return String(rows[0]?.id || "");
 }

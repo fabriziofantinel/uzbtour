@@ -14,14 +14,17 @@ import {
   FileText,
   LogOut,
   MessageCircle,
+  Send,
+  CheckCircle2,
 } from "lucide-react";
 import OperationalChat from "@/components/operational-chat";
 import { validBrandColor } from "@/lib/platform/branding-ui";
 import type { StaffTripDocument } from "@/lib/platform/day-documents-repository";
 import type { AgencyProgramme } from "@/lib/platform/programme-repository";
+import type { readDepartureCommunications } from "@/lib/platform/departure-operations";
 
 type StaffRole = "agent" | "accompagnatore" | "guida";
-type Tab = "programma" | "documenti" | "chat";
+type Tab = "programma" | "documenti" | "chat" | "comunicazioni";
 
 const dateLabel = (value: string) =>
   new Intl.DateTimeFormat("it-IT", {
@@ -40,6 +43,7 @@ export default function StaffTripExperience({
   staffRole,
   agencyName,
   agencyLogoUrl,
+  communications: initialCommunications,
 }: {
   programme: AgencyProgramme;
   documents: StaffTripDocument[];
@@ -48,10 +52,14 @@ export default function StaffTripExperience({
   staffRole: StaffRole;
   agencyName: string;
   agencyLogoUrl: string;
+  communications: Awaited<ReturnType<typeof readDepartureCommunications>>;
 }) {
   const [tab, setTab] = useState<Tab>("programma");
   const [activeDay, setActiveDay] = useState(0);
   const [chatScope, setChatScope] = useState<"trip" | "agency">("agency");
+  const [communications, setCommunications] =
+    useState<Awaited<ReturnType<typeof readDepartureCommunications>>>(initialCommunications);
+  const [communicationBusy, setCommunicationBusy] = useState("");
   const day = programme.days[activeDay] ?? programme.days[0];
   const agencyColor = validBrandColor(programme.departure.agencyPrimaryColor);
   const style = {
@@ -100,6 +108,13 @@ export default function StaffTripExperience({
         </button>
         <button type="button" className={tab === "chat" ? "active" : ""} onClick={() => setTab("chat")}>
           <MessageCircle /> Chat
+        </button>
+        <button
+          type="button"
+          className={tab === "comunicazioni" ? "active" : ""}
+          onClick={() => setTab("comunicazioni")}
+        >
+          <Send /> Comunicazioni
         </button>
       </nav>
 
@@ -221,15 +236,17 @@ export default function StaffTripExperience({
           <section className="staffPersonalChat" aria-labelledby="staff-chat-heading">
             <h2 id="staff-chat-heading">Chat</h2>
             <div className="staffChatScopes" role="tablist" aria-label="Conversazioni disponibili">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={chatScope === "trip"}
-                className={chatScope === "trip" ? "active" : ""}
-                onClick={() => setChatScope("trip")}
-              >
-                Viaggio
-              </button>
+              {staffRole !== "guida" && (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={chatScope === "trip"}
+                  className={chatScope === "trip" ? "active" : ""}
+                  onClick={() => setChatScope("trip")}
+                >
+                  Viaggio
+                </button>
+              )}
               <button
                 type="button"
                 role="tab"
@@ -246,6 +263,70 @@ export default function StaffTripExperience({
               <OperationalChat departureId={programme.departure.id} scope={staffRole} staffUserId={staffUserId} />
             ) : (
               <p className="staffTripEmpty">La chat personale con l’agenzia non è prevista per questo ruolo.</p>
+            )}
+          </section>
+        )}
+
+        {tab === "comunicazioni" && (
+          <section className="staffDocuments" aria-labelledby="staff-communications-title">
+            <header>
+              <Send />
+              <div>
+                <h2 id="staff-communications-title">Comunicazioni</h2>
+                <p>Avvisi operativi inviati direttamente a te dall’agenzia o dall’accompagnatore.</p>
+              </div>
+            </header>
+            {communications.length ? (
+              <div>
+                {communications.map((notice) => (
+                  <article key={notice.id}>
+                    <Send />
+                    <span>
+                      <small>
+                        {notice.severity === "urgent"
+                          ? "URGENTE"
+                          : notice.severity === "important"
+                            ? "IMPORTANTE"
+                            : "INFORMATIVA"}
+                      </small>
+                      <strong>{notice.title}</strong>
+                      <p>{notice.summary}</p>
+                      <small>{new Date(notice.publishedAt).toLocaleString("it-IT")}</small>
+                    </span>
+                    {notice.requiresAcknowledgement && !notice.readAt ? (
+                      <button
+                        type="button"
+                        disabled={communicationBusy === notice.id}
+                        onClick={async () => {
+                          setCommunicationBusy(notice.id);
+                          const response = await fetch("/api/staff/communications", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              departureId: programme.departure.id,
+                              noticeId: notice.id,
+                              clientOperationId: crypto.randomUUID(),
+                            }),
+                          });
+                          if (response.ok)
+                            setCommunications((current) =>
+                              current.map((item) =>
+                                item.id === notice.id ? { ...item, readAt: new Date().toISOString() } : item,
+                              ),
+                            );
+                          setCommunicationBusy("");
+                        }}
+                      >
+                        <CheckCircle2 /> Ho letto
+                      </button>
+                    ) : notice.readAt ? (
+                      <small>Letta</small>
+                    ) : null}
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="staffTripEmpty">Nessuna comunicazione ricevuta.</p>
             )}
           </section>
         )}

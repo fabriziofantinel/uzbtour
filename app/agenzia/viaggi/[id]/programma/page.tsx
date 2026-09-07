@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/current-user";
 import { getSql } from "@/lib/db";
 import { getAgencyProgramme } from "@/lib/platform/programme-repository";
 import ProgrammeEditor from "./programme-editor";
+import { readDepartureStaffRole } from "@/lib/platform/departure-operational-control";
 import "./programme.css";
 import "../../../../smf-2026.css";
 
@@ -21,7 +22,15 @@ export default async function ProgrammePage({ params }: { params: Promise<{ id: 
             FROM unnest(${programme.days.map((day) => day.id)}::uuid[]) AS days(day_id)
             WHERE app.can_edit_departure_day_v3(${actor.nativeId}::uuid,${id}::uuid,day_id)`
         ).map((row) => String(row.id));
-    return <ProgrammeEditor initialProgramme={programme} editableDayIds={editableDayIds} showOperations />;
+    const staffRole = actor.isAgencyAdmin ? null : await readDepartureStaffRole(actor.nativeId, id);
+    return (
+      <ProgrammeEditor
+        initialProgramme={programme}
+        editableDayIds={editableDayIds}
+        staffRole={staffRole}
+        showOperations
+      />
+    );
   } catch (error) {
     if (error instanceof Error && /Partenza non trovata/.test(error.message)) redirect("/");
     throw error;

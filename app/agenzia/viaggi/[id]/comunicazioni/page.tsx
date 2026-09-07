@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
-import { requireDepartureOperator, PlatformAuthorizationError } from "@/lib/platform/authorization";
+import { requireDepartureCollaborator, PlatformAuthorizationError } from "@/lib/platform/authorization";
 import { readDepartureCommunications } from "@/lib/platform/departure-operations";
 import { getJourneyManagement } from "@/lib/platform/journey-repository";
 import CommunicationsClient from "./communications-client";
-import { readDepartureOperationalControl } from "@/lib/platform/departure-operational-control";
+import { readDepartureOperationalControl, readDepartureStaffRole } from "@/lib/platform/departure-operational-control";
 import "./communications.css";
 import "../../../../smf-2026.css";
 
@@ -12,12 +12,13 @@ export const dynamic = "force-dynamic";
 export default async function CommunicationsPage({ params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const actor = await requireDepartureOperator(id);
+    const actor = await requireDepartureCollaborator(id);
     const staffAccess = !actor.isAgencyAdmin && !actor.isSuperAdmin;
-    const [journey, communications, operations] = await Promise.all([
+    const [journey, communications, operations, staffRole] = await Promise.all([
       getJourneyManagement(id, actor.id, actor.nativeId, staffAccess),
-      readDepartureCommunications(actor.id, id),
+      readDepartureCommunications(actor.id, id, actor.nativeId),
       readDepartureOperationalControl(actor.nativeId, id),
+      staffAccess ? readDepartureStaffRole(actor.nativeId, id) : Promise.resolve(null),
     ]);
     return (
       <CommunicationsClient
@@ -27,6 +28,7 @@ export default async function CommunicationsPage({ params }: { params: Promise<{
         staff={operations.staff.filter((person) => person.status === "active")}
         showOperations
         staffView={staffAccess}
+        staffRole={staffRole}
       />
     );
   } catch (error) {

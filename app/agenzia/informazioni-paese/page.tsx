@@ -3,8 +3,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { CSSProperties } from "react";
 import { ArrowLeft, CheckCircle2, ExternalLink, Globe2, ShieldCheck, XCircle } from "lucide-react";
-import { PlatformAuthorizationError, requireAgencyOwnerActor } from "@/lib/platform/authorization";
-import { readCountryProfilesForReview, reviewCountryProfile } from "@/lib/platform/country-profile-admin";
+import { PlatformAuthorizationError, requireAgencyAdminActor } from "@/lib/platform/authorization";
+import {
+  readCountryProfilesForReview,
+  reviewCountryProfile,
+  saveCountryProfileOverride,
+} from "@/lib/platform/country-profile-admin";
 import { getPlatformOverview } from "@/lib/platform/repository";
 import { validBrandColor } from "@/lib/platform/branding-ui";
 
@@ -29,7 +33,8 @@ function usefulInformation(value: unknown) {
   if (!Array.isArray(items)) return [];
   return items
     .map((item) => (item && typeof item === "object" && !Array.isArray(item) ? (item as Record<string, unknown>) : {}))
-    .map((item) => ({
+    .map((item, index) => ({
+      index,
       title: String(item.title || item.category || "Informazione"),
       category: String(item.category || ""),
       criticality: criticality.get(String(item.category || "")) || "low",
@@ -42,7 +47,7 @@ function usefulInformation(value: unknown) {
 
 async function reviewCountryProfileAction(formData: FormData) {
   "use server";
-  const actor = await requireAgencyOwnerActor();
+  const actor = await requireAgencyAdminActor();
   const agencyId = String(formData.get("agencyId") || "");
   const countryId = String(formData.get("countryId") || "");
   const decision = String(formData.get("decision") || "");
@@ -55,9 +60,43 @@ async function reviewCountryProfileAction(formData: FormData) {
   revalidatePath("/agenzia/informazioni-paese");
 }
 
+async function saveCountryProfileAction(formData: FormData) {
+  "use server";
+  const actor = await requireAgencyAdminActor();
+  const agencyId = String(formData.get("agencyId") || "");
+  const countryId = String(formData.get("countryId") || "");
+  if (![agencyId, countryId].every((value) => /^[0-9a-f-]{36}$/i.test(value))) return;
+  const profiles = await readCountryProfilesForReview(actor.id);
+  const selected = profiles.find((profile) => profile.agencyId === agencyId && profile.countryId === countryId);
+  if (!selected?.profile || typeof selected.profile !== "object" || Array.isArray(selected.profile)) return;
+  const profile = structuredClone(selected.profile) as Record<string, unknown>;
+  const items = Array.isArray(profile.usefulInfo) ? profile.usefulInfo : [];
+  profile.usefulInfo = items.map((item, index) => {
+    const current = item && typeof item === "object" && !Array.isArray(item) ? (item as Record<string, unknown>) : {};
+    return {
+      ...current,
+      title: String(formData.get(`title-${index}`) || current.title || current.category || "Informazione").slice(
+        0,
+        160,
+      ),
+      body: String(formData.get(`body-${index}`) || "")
+        .trim()
+        .slice(0, 8000),
+      phone: String(formData.get(`phone-${index}`) || "")
+        .trim()
+        .slice(0, 200),
+      url: String(formData.get(`url-${index}`) || "")
+        .trim()
+        .slice(0, 2000),
+    };
+  });
+  await saveCountryProfileOverride(actor.nativeId, agencyId, countryId, profile);
+  revalidatePath("/agenzia/informazioni-paese");
+}
+
 export default async function CountryInformationReviewPage() {
   try {
-    const actor = await requireAgencyOwnerActor();
+    const actor = await requireAgencyAdminActor();
     const [profiles, overview] = await Promise.all([
       readCountryProfilesForReview(actor.id),
       getPlatformOverview(actor),
@@ -76,7 +115,7 @@ export default async function CountryInformationReviewPage() {
           <div>
             <small>CONTROLLO CONTENUTI</small>
             <h1>Informazioni dei Paesi</h1>
-            <p>Il responsabile dell’agenzia verifica fonti e informazioni prima che siano pubblicate ai viaggiatori.</p>
+            <p>Responsabile e agenti verificano e personalizzano le informazioni pubblicate ai viaggiatori.</p>
           </div>
         </header>
         <section className="countryReviewIntro">
@@ -131,27 +170,51 @@ export default async function CountryInformationReviewPage() {
                     approvare.
                   </p>
                 )}
-                <section
-                  className="countryReviewInformation"
-                  aria-label={`Informazioni da verificare per ${profile.countryName}`}
-                >
-                  {usefulInformation(profile.profile).map((item) => (
-                    <div key={item.title}>
-                      <span className={`countryCriticality criticality-${item.criticality}`}>
-                        Criticità{" "}
-                        {item.criticality === "high" ? "alta" : item.criticality === "medium" ? "media" : "bassa"}
-                      </span>
-                      <h3>{item.title}</h3>
-                      <p>{item.body}</p>
-                      {item.phone ? <a href={`tel:${item.phone}`}>{item.phone}</a> : null}
-                      {item.url ? (
-                        <a href={item.url} target="_blank" rel="noreferrer">
-                          Fonte specifica <ExternalLink />
-                        </a>
-                      ) : null}
-                    </div>
-                  ))}
-                </section>
+                <form action={saveCountryProfileAction}>
+                  <input type="hidden" name="agencyId" value={profile.agencyId} />
+                  <input type="hidden" name="countryId" value={profile.countryId} />
+                  <section
+                    className="countryReviewInformation"
+                    aria-label={`Informazioni modificabili per ${profile.countryName}`}
+                  >
+                    {usefulInformation(profile.profile).map((item) => (
+                      <div key={`${item.title}-${item.index}`}>
+                        <span className={`countryCriticality criticality-${item.criticality}`}>
+                          Criticità{" "}
+                          {item.criticality === "high" ? "alta" : item.criticality === "medium" ? "media" : "bassa"}
+                        </span>
+                        <label>
+                          Titolo
+                          <input name={`title-${item.index}`} defaultValue={item.title} maxLength={160} />
+                        </label>
+                        <label>
+                          Informazione
+                          <textarea
+                            name={`body-${item.index}`}
+                            defaultValue={item.body}
+                            rows={5}
+                            required
+                            maxLength={8000}
+                          />
+                        </label>
+                        <label>
+                          Recapito (facoltativo)
+                          <input name={`phone-${item.index}`} defaultValue={item.phone} maxLength={200} />
+                        </label>
+                        <label>
+                          Fonte specifica (facoltativa)
+                          <input name={`url-${item.index}`} type="url" defaultValue={item.url} maxLength={2000} />
+                        </label>
+                      </div>
+                    ))}
+                  </section>
+                  <button type="submit">
+                    <CheckCircle2 /> Salva modifiche dell’agenzia
+                  </button>
+                  {profile.updatedAt ? (
+                    <small>Ultima modifica: {new Date(profile.updatedAt).toLocaleString("it-IT")}</small>
+                  ) : null}
+                </form>
                 <details>
                   <summary>Controlla le fonti ({profile.sources.length})</summary>
                   <ul>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireDepartureOperator } from "@/lib/platform/authorization";
+import { requireDepartureCollaborator, requireDepartureOperator } from "@/lib/platform/authorization";
 import { platformApiError } from "@/lib/platform/http";
 import { getObjectStorage } from "@/lib/platform/object-storage";
 import { requireAgencyDepartureDayDocumentAudience } from "@/lib/platform/programme-documents";
@@ -17,7 +17,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   let uploadedObjectKey = "";
   try {
     const { id: departureId } = await context.params;
-    const actor = await requireDepartureOperator(departureId);
+    await requireDepartureOperator(departureId);
+    const actor = await requireDepartureCollaborator(departureId);
     const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
     const dayId = String(body?.dayId || "");
     const partyId = String(body?.partyId || "");
@@ -42,6 +43,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       departureId,
       dayId,
       actorId: actor.id,
+      actorNativeId: actor.nativeId,
       partyId: targetPartyId,
       travelerId: targetTravelerId,
     });
@@ -112,7 +114,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const { id: departureId } = await context.params;
-    const actor = await requireDepartureOperator(departureId);
+    await requireDepartureOperator(departureId);
+    const actor = await requireDepartureCollaborator(departureId);
     const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
     await archiveAgencyDayDocument({
       actorId: actor.id,

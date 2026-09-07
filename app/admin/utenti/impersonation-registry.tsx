@@ -226,11 +226,11 @@ export default function ImpersonationRegistry({ initialUsers }: { initialUsers: 
                 setError("");
                 setSelectedUser(user);
               }}
-              disabled={Boolean(busy) || user.status !== "active"}
-              title={user.status !== "active" ? "L’utente deve prima accettare l’invito" : undefined}
-              aria-label={user.status === "active" ? `Accedi come ${user.name}` : `${user.name} non ancora attivo`}
+              disabled={Boolean(busy)}
+              title={user.status === "invited" ? "Accedi al profilo prima dell’attivazione" : undefined}
+              aria-label={`Accedi come ${user.name}`}
             >
-              <LogIn /> {user.status === "active" ? "Accedi come" : "Da attivare"}
+              <LogIn /> Accedi come
             </button>
           </article>
         ))}

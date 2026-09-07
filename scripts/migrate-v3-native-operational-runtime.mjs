@@ -28,6 +28,11 @@ const migrations = [
   "186_v3_staff_dashboard_details",
   "187_v3_staff_journey_management_read",
   "188_v3_staff_personal_trip_documents",
+  "189_v3_role_parity_impersonation_country_overrides",
+  "190_v3_staff_collaboration_permissions",
+  "191_v3_staff_communication_lifecycle",
+  "192_v3_staff_recipient_integrity",
+  "193_v3_guide_chat_boundary",
 ];
 const sources = await Promise.all(
   migrations.map(async (name) => ({
@@ -84,7 +89,14 @@ try {
       to_regprocedure('app.read_staff_journey_management_v3(uuid,uuid)') IS NOT NULL staff_journey_management_read,
       EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='187_v3_staff_journey_management_read') staff_journey_management_marker,
       to_regprocedure('app.list_staff_personal_trip_documents_v3(uuid,uuid)') IS NOT NULL staff_personal_documents_read,
-      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='188_v3_staff_personal_trip_documents') staff_personal_documents_marker`)
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='188_v3_staff_personal_trip_documents') staff_personal_documents_marker,
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='189_v3_role_parity_impersonation_country_overrides') role_parity_marker,
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='190_v3_staff_collaboration_permissions') staff_collaboration_marker,
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='191_v3_staff_communication_lifecycle') staff_communication_lifecycle_marker,
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='192_v3_staff_recipient_integrity') staff_recipient_integrity_marker,
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='193_v3_guide_chat_boundary') guide_chat_boundary_marker,
+      to_regprocedure('app.save_country_profile_override_v3(uuid,uuid,uuid,jsonb)') IS NOT NULL country_profile_override_write,
+      to_regprocedure('app.acknowledge_staff_communication_v3(uuid,uuid,uuid)') IS NOT NULL staff_communication_ack`)
   ).rows[0];
   if (!gate || Object.values(gate).some((value) => value !== true))
     throw new Error(`Gate incompleti: ${JSON.stringify(gate)}`);
@@ -92,7 +104,7 @@ try {
     await client.query(
       `INSERT INTO ops.schema_migrations(version,checksum_sha256) VALUES($1,$2)
        ON CONFLICT(version) DO UPDATE SET applied_at=clock_timestamp(),checksum_sha256=EXCLUDED.checksum_sha256`,
-      ["3.116.0-native-operational-runtime", checksum],
+      ["3.121.0-native-operational-runtime", checksum],
     );
     await client.query("COMMIT");
   } else {

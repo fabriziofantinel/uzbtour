@@ -11,12 +11,14 @@ export default function AgencyOperationalChat({
   actorUserId,
   showOperations = true,
   staffView = false,
+  staffRole = null,
 }: {
   data: Data;
   staff: { userId: string; name: string; role: string }[];
   actorUserId: string;
   showOperations?: boolean;
   staffView?: boolean;
+  staffRole?: "agent" | "accompagnatore" | "guida" | null;
 }) {
   const [staffUserId, setStaffUserId] = useState("");
   const color = validBrandColor(data.journey.agencyPrimaryColor);
@@ -41,6 +43,7 @@ export default function AgencyOperationalChat({
         quoteImportId={data.journey.quoteImportId}
         showOperations={showOperations}
         staffView={staffView}
+        staffRole={staffRole}
       />
       <section className="journeyManageHero">
         <h1>{data.journey.title}</h1>
@@ -57,21 +60,23 @@ export default function AgencyOperationalChat({
                 ["accompagnatore", "Accompagnatore"],
                 ["guida", "Guida"],
               ] as const
-            ).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                role="tab"
-                aria-selected={scope === value}
-                className={scope === value ? "active" : ""}
-                onClick={() => {
-                  setScope(value);
-                  setStaffUserId("");
-                }}
-              >
-                {label}
-              </button>
-            ))}
+            )
+              .filter(([value]) => staffRole !== "accompagnatore" || value !== "accompagnatore")
+              .map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="tab"
+                  aria-selected={scope === value}
+                  className={scope === value ? "active" : ""}
+                  onClick={() => {
+                    setScope(value);
+                    setStaffUserId("");
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
           </div>
           {["group", "traveler"].includes(scope) && (
             <label className="agencyChatGroup">

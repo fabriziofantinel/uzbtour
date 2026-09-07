@@ -12,12 +12,27 @@ export async function readCountryProfilesForReview(actorId: string) {
     status: String(row.status),
     version: Number(row.version),
     profile: row.profile,
+    baseProfile: row.base_profile,
     sources: Array.isArray(row.sources) ? row.sources : [],
     validationErrors: Array.isArray(row.validation_errors) ? row.validation_errors.map(String) : [],
     groundedAt: String(row.grounded_at),
     refreshAfter: String(row.refresh_after),
     reviewedAt: row.reviewed_at ? String(row.reviewed_at) : null,
+    updatedAt: row.updated_at ? String(row.updated_at) : null,
   }));
+}
+
+export async function saveCountryProfileOverride(
+  actorNativeId: string,
+  agencyId: string,
+  countryId: string,
+  profile: unknown,
+) {
+  const sql = getSql();
+  const rows = await sql`SELECT app.save_country_profile_override_v3(
+    ${actorNativeId}::uuid,${agencyId}::uuid,${countryId}::uuid,${JSON.stringify(profile)}::jsonb
+  ) AS updated`;
+  return Boolean(rows[0]?.updated);
 }
 
 export async function reviewCountryProfile(actorId: string, agencyId: string, countryId: string, approve: boolean) {

@@ -10,7 +10,7 @@ export default async function AgencyAgentsPage() {
   try {
     const actor = await requirePlatformAdmin();
     const overview = await getPlatformOverview(actor);
-    const agencies = overview.agencies.filter((agency) => agency.role === "owner");
+    const agencies = overview.agencies;
     if (!agencies.length) redirect("/agenzia");
     const agentsByAgency = Object.fromEntries(
       await Promise.all(agencies.map(async (agency) => [agency.id, await readAgencyAgents(actor.nativeId, agency.id)])),

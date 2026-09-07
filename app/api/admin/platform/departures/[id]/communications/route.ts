@@ -1,6 +1,6 @@
 import { after, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireDepartureOperator } from "@/lib/platform/authorization";
+import { requireDepartureCollaborator, requireDepartureOperator } from "@/lib/platform/authorization";
 import {
   closeDepartureCommunication,
   publishDepartureCommunication,
@@ -30,11 +30,18 @@ const closeSchema = z.object({ noticeId: z.string().uuid(), closureNote: z.strin
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params;
-    const actor = await requireDepartureOperator(id);
+    await requireDepartureOperator(id);
+    const actor = await requireDepartureCollaborator(id);
     const noticeId = new URL(request.url).searchParams.get("noticeId");
-    if (noticeId)
-      return NextResponse.json({ recipients: await readDepartureCommunicationRecipients(actor.id, noticeId) });
-    return NextResponse.json({ communications: await readDepartureCommunications(actor.id, id) });
+    if (noticeId) {
+      const communications = await readDepartureCommunications(actor.id, id, actor.nativeId);
+      const notice = communications.find((item) => item.id === noticeId);
+      if (!notice) return NextResponse.json({ error: "Comunicazione non disponibile" }, { status: 404 });
+      return NextResponse.json({
+        recipients: await readDepartureCommunicationRecipients(actor.id, actor.nativeId, noticeId, notice.audienceKind),
+      });
+    }
+    return NextResponse.json({ communications: await readDepartureCommunications(actor.id, id, actor.nativeId) });
   } catch (error) {
     return platformApiError(error, "Lettura delle comunicazioni non riuscita");
   }
@@ -43,7 +50,8 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params;
-    const actor = await requireDepartureOperator(id);
+    await requireDepartureOperator(id);
+    const actor = await requireDepartureCollaborator(id);
     const parsed = publishSchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Comunicazione non valida" }, { status: 400 });
     if (parsed.data.audienceStaffRole && !parsed.data.audienceStaffUserIds.length)
@@ -63,7 +71,12 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           acknowledgeBy: parsed.data.acknowledgeBy,
           clientOperationId: parsed.data.clientOperationId,
         })
-      : await publishDepartureCommunication({ actorId: actor.id, departureId: id, ...parsed.data });
+      : await publishDepartureCommunication({
+          actorId: actor.id,
+          actorNativeId: actor.nativeId,
+          departureId: id,
+          ...parsed.data,
+        });
     if (!parsed.data.audienceStaffRole)
       after(() =>
         sendNoticePush({
@@ -75,7 +88,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
           console.error("Communication push failed", error instanceof Error ? error.name : "unknown"),
         ),
       );
-    return NextResponse.json({ noticeId, communications: await readDepartureCommunications(actor.id, id) });
+    return NextResponse.json({
+      noticeId,
+      communications: await readDepartureCommunications(actor.id, id, actor.nativeId),
+    });
   } catch (error) {
     return platformApiError(error, "Pubblicazione della comunicazione non riuscita");
   }
@@ -84,11 +100,21 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params;
-    const actor = await requireDepartureOperator(id);
+    await requireDepartureOperator(id);
+    const actor = await requireDepartureCollaborator(id);
     const parsed = closeSchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Nota di chiusura non valida" }, { status: 400 });
-    await closeDepartureCommunication(actor.id, parsed.data.noticeId, parsed.data.closureNote);
-    return NextResponse.json({ communications: await readDepartureCommunications(actor.id, id) });
+    const notice = (await readDepartureCommunications(actor.id, id, actor.nativeId)).find(
+      (item) => item.id === parsed.data.noticeId,
+    );
+    if (!notice) return NextResponse.json({ error: "Comunicazione non disponibile" }, { status: 404 });
+    await closeDepartureCommunication(
+      actor.nativeId,
+      parsed.data.noticeId,
+      parsed.data.closureNote,
+      notice.audienceKind,
+    );
+    return NextResponse.json({ communications: await readDepartureCommunications(actor.id, id, actor.nativeId) });
   } catch (error) {
     return platformApiError(error, "Chiusura della comunicazione non riuscita");
   }

@@ -21,10 +21,19 @@ export async function requireAgencyTicketItem(input: { departureId: string; item
   return { agencyId, itemType: String(rows[0].item_type) };
 }
 
-export async function requireAgencyDepartureDay(input: { departureId: string; dayId: string; actorId: string }) {
+export async function requireAgencyDepartureDay(input: {
+  departureId: string;
+  dayId: string;
+  actorId: string;
+  actorNativeId?: string;
+}) {
   const sql = getSql();
-  const scope = await sql`SELECT agency_id::text FROM app.read_journey_management(
-    ${input.actorId},${input.departureId}) LIMIT 1`;
+  const scope = input.actorNativeId
+    ? await sql`SELECT departure.agency_id::text FROM travel.departures departure
+        WHERE departure.id=${input.departureId}::uuid
+          AND app.is_departure_operator_v3(${input.actorNativeId}::uuid,departure.id) LIMIT 1`
+    : await sql`SELECT agency_id::text FROM app.read_journey_management(
+        ${input.actorId},${input.departureId}) LIMIT 1`;
   if (!scope[0]) throw new PlatformRequestError("Partenza non disponibile");
   const agencyId = String(scope[0].agency_id);
   const [, rows] = await sql.transaction(
@@ -44,6 +53,7 @@ export async function requireAgencyDepartureDayGroup(input: {
   dayId: string;
   partyId: string;
   actorId: string;
+  actorNativeId?: string;
 }) {
   const { agencyId } = await requireAgencyDepartureDay(input);
   const sql = getSql();
@@ -66,6 +76,7 @@ export async function requireAgencyDepartureDayDocumentAudience(input: {
   partyId?: string | null;
   travelerId?: string | null;
   actorId: string;
+  actorNativeId?: string;
 }) {
   const { agencyId } = await requireAgencyDepartureDay(input);
   const sql = getSql();

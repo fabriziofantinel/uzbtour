@@ -498,16 +498,12 @@ export default function AgencyDashboard({ initialOverview }: Props) {
             <a className="active" href="#viaggi">
               <MapPinned size={18} /> Viaggi
             </a>
-            {agency?.role === "owner" && (
-              <Link href="/agenzia/agenti">
-                <UserPlus size={18} /> Personale
-              </Link>
-            )}
-            {agency?.role === "owner" && (
-              <Link href="/agenzia/informazioni-paese">
-                <Globe2 size={18} /> Informazioni Paesi
-              </Link>
-            )}
+            <Link href="/agenzia/agenti">
+              <UserPlus size={18} /> Personale
+            </Link>
+            <Link href="/agenzia/informazioni-paese">
+              <Globe2 size={18} /> Informazioni Paesi
+            </Link>
             <Link href="/agenzia/analytics">
               <BarChart3 size={18} /> Analytics
             </Link>

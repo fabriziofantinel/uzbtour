@@ -5,6 +5,7 @@ import { canOperateDeparture, readMyDepartureStaff } from "@/lib/platform/depart
 import { getStaffTripDocuments } from "@/lib/platform/day-documents-repository";
 import { getAgencyProgramme } from "@/lib/platform/programme-repository";
 import StaffTripExperience from "./staff-trip-experience";
+import { readDepartureCommunications } from "@/lib/platform/departure-operations";
 import "./staff-trip-experience.css";
 
 export const dynamic = "force-dynamic";
@@ -20,9 +21,10 @@ export default async function TourLeaderDeparturePage({ params }: { params: Prom
   const assignment = assignments.find((item) => item.id === id);
   if (!assignment || !allowed) redirect("/tour-leader");
 
-  const [programme, documents] = await Promise.all([
+  const [programme, documents, communications] = await Promise.all([
     getAgencyProgramme(id, user.id, user.nativeId, true),
     getStaffTripDocuments(user.nativeId, id),
+    readDepartureCommunications(user.id, id, user.nativeId),
   ]);
 
   return (
@@ -34,6 +36,7 @@ export default async function TourLeaderDeparturePage({ params }: { params: Prom
       staffRole={assignment.role}
       agencyName={assignment.agencyName}
       agencyLogoUrl={agencyLogoSource(assignment.logoUrl, assignment.agencyId)}
+      communications={communications.filter((notice) => notice.audienceKind === "staff" && notice.isRecipient)}
     />
   );
 }

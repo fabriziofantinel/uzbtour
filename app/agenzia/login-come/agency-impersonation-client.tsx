@@ -5,13 +5,14 @@ import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { accessibleBrandColor, validBrandColor } from "@/lib/platform/branding-ui";
 
-type Traveler = {
+type ImpersonationUser = {
   id: string;
   name: string;
   username: string;
   email: string;
   status: string;
   agencyName: string;
+  userKind: "traveler" | "accompagnatore" | "guida";
   departureTitles: string[];
 };
 
@@ -19,11 +20,11 @@ export default function AgencyImpersonationClient({
   users,
   primaryColor,
 }: {
-  users: Traveler[];
+  users: ImpersonationUser[];
   primaryColor: string;
 }) {
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<Traveler | null>(null);
+  const [selected, setSelected] = useState<ImpersonationUser | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const filtered = useMemo(
@@ -63,14 +64,14 @@ export default function AgencyImpersonationClient({
         </a>
         <div>
           <small>SESSIONE DI ASSISTENZA</small>
-          <h1>Login come viaggiatore</h1>
-          <p>Puoi accedere solo come viaggiatore associato ai viaggi della tua agenzia.</p>
+          <h1>Login come utente</h1>
+          <p>Accedi come viaggiatore, accompagnatore o guida della tua agenzia, anche prima dell’attivazione.</p>
         </div>
       </header>
       <section>
         <label className="agencyLoginSearch">
           <Search />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cerca viaggiatore o viaggio" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cerca utente o viaggio" />
         </label>
         {error && (
           <p className="agencyLoginError" role="alert">
@@ -83,15 +84,22 @@ export default function AgencyImpersonationClient({
               <div>
                 <b>{user.name}</b>
                 <span>{user.username || user.email}</span>
+                <span>
+                  {user.userKind === "traveler"
+                    ? "Viaggiatore"
+                    : user.userKind === "guida"
+                      ? "Guida"
+                      : "Accompagnatore"}
+                </span>
                 <small>{user.departureTitles.join(" · ")}</small>
               </div>
-              <button disabled={user.status !== "active"} onClick={() => setSelected(user)}>
+              <button onClick={() => setSelected(user)}>
                 <LogIn /> Accedi come
               </button>
             </article>
           ))}
         </div>
-        {!filtered.length && <p>Nessun viaggiatore disponibile.</p>}
+        {!filtered.length && <p>Nessun utente disponibile.</p>}
       </section>
       {selected && (
         <div
@@ -105,7 +113,7 @@ export default function AgencyImpersonationClient({
               <X />
             </button>
             <h2>Accedere come {selected.name}?</h2>
-            <p>La sessione avrà esattamente le autorizzazioni del viaggiatore.</p>
+            <p>La sessione avrà esattamente le autorizzazioni previste per questo ruolo.</p>
             <footer>
               <button onClick={() => setSelected(null)}>Annulla</button>
               <button onClick={loginAs} disabled={busy}>

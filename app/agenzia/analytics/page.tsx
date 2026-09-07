@@ -138,16 +138,12 @@ export default async function AgencyAnalyticsPage({
               <Link href="/agenzia">
                 <MapPinned size={18} /> Viaggi
               </Link>
-              {agency.role === "owner" && (
-                <Link href="/agenzia/agenti">
-                  <UserPlus size={18} /> Personale
-                </Link>
-              )}
-              {agency.role === "owner" && (
-                <Link href="/agenzia/informazioni-paese">
-                  <MapPinned size={18} /> Informazioni Paesi
-                </Link>
-              )}
+              <Link href="/agenzia/agenti">
+                <UserPlus size={18} /> Personale
+              </Link>
+              <Link href="/agenzia/informazioni-paese">
+                <MapPinned size={18} /> Informazioni Paesi
+              </Link>
               <Link className="active" href="/agenzia/analytics" aria-current="page">
                 <BarChart3 size={18} /> Analytics
               </Link>

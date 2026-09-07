@@ -72,6 +72,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   const tokenHash = createHash("sha256").update(token).digest("hex");
   const target = await resolveV3Impersonation(actor.nativeId, tokenHash);
   if (!target) return actor;
+  const staffRoles = [...new Set((await readMyDepartureStaff(target.nativeId)).map((assignment) => assignment.role))];
   return {
     id: target.id,
     nativeId: target.nativeId,
@@ -81,8 +82,8 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     email: target.email,
     isSuperAdmin: target.isSuperAdmin,
     isAgencyAdmin: target.isAgencyAdmin,
-    isTourLeader: false,
-    staffRoles: [],
+    isTourLeader: staffRoles.length > 0,
+    staffRoles,
     impersonation: {
       actorId: actor.id,
       actorName: actor.name,

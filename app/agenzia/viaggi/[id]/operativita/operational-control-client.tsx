@@ -83,6 +83,7 @@ export default function OperationalControlClient({
           departureId={departureId}
           activeTab="operativita"
           staffView
+          staffRole={staffRole}
           journeyTitle={departureTitle}
         />
       ) : journey ? (

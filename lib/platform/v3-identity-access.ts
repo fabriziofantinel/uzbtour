@@ -76,6 +76,7 @@ export async function readV3AgencyImpersonationTravelers(actorId: string) {
     status: String(row.user_status),
     agencyId: String(row.agency_id),
     agencyName: String(row.agency_name),
+    userKind: String(row.user_kind) as "traveler" | "accompagnatore" | "guida",
     departureTitles: Array.isArray(row.departure_titles) ? row.departure_titles.map(String) : [],
   }));
 }
@@ -89,14 +90,17 @@ export async function startV3AgencyTravelerImpersonation(input: {
 }) {
   const sql = getSql();
   const rows = await sql`
-    SELECT target_user_id::text,target_legacy_user_id,display_name,email,platform_role,is_agency_admin
+    SELECT target_user_id::text,target_legacy_user_id,display_name,email,platform_role,is_agency_admin,target_kind
     FROM app.start_agency_traveler_impersonation(
       ${input.actorId}::uuid,${input.targetId}::uuid,${input.tokenHash},${input.expiresAt}::timestamptz,
       ${input.userAgent?.slice(0, 500) ?? ""}
     )
   `;
-  if (!rows[0]) throw new Error("Viaggiatore non disponibile");
-  return { id: String(rows[0].target_legacy_user_id) };
+  if (!rows[0]) throw new Error("Utente non disponibile");
+  return {
+    id: String(rows[0].target_legacy_user_id),
+    userKind: String(rows[0].target_kind) as "traveler" | "accompagnatore" | "guida",
+  };
 }
 
 export async function resolveV3Impersonation(actorUserId: string, tokenHash: string) {

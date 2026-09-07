@@ -226,6 +226,7 @@ export async function updateAgencyProgrammeDay(input: {
   departureId: string;
   dayId: string;
   actorId: string;
+  actorNativeId: string;
   staffActorId?: string;
   label: string;
   title: string;
@@ -244,8 +245,16 @@ export async function updateAgencyProgrammeDay(input: {
   hotels: Array<{ id: string; name: string; notes: string; sortOrder: number }>;
 }) {
   const sql = getSql();
-  const previousRows = await sql`SELECT label,title,city,description FROM travel.departure_days
-    WHERE departure_id=${input.departureId} AND id=${input.dayId} LIMIT 1`;
+  const previousRows = await sql`SELECT day.label,day.title,day.city,day.description,
+    COALESCE((SELECT jsonb_agg(jsonb_build_object('id',item.id,'type',item.item_type,'title',item.title,
+      'description',item.description,'startsAt',item.scheduled_start_at,'endsAt',item.scheduled_end_at,'sortOrder',item.sort_order)
+      ORDER BY item.sort_order,item.id) FROM travel.departure_itinerary_items item
+      WHERE item.departure_day_id=day.id), '[]'::jsonb) items,
+    COALESCE((SELECT jsonb_agg(jsonb_build_object('id',stay.id,'name',stay.name_snapshot,'notes',stay.notes,
+      'sortOrder',stay.sort_order) ORDER BY stay.sort_order,stay.id) FROM travel.departure_accommodation_stays stay
+      WHERE stay.departure_day_id=day.id), '[]'::jsonb) hotels
+    FROM travel.departure_days day
+    WHERE day.departure_id=${input.departureId} AND day.id=${input.dayId} LIMIT 1`;
   const rows = input.staffActorId
     ? await sql`SELECT app.update_departure_programme_day_staff_v3(
         ${input.staffActorId}::uuid,${input.departureId}::uuid,${input.dayId}::uuid,${input.label},${input.title},
@@ -255,12 +264,19 @@ export async function updateAgencyProgrammeDay(input: {
         ${input.city},${input.description},${JSON.stringify(input.items)}::jsonb,${JSON.stringify(input.hotels)}::jsonb) AS updated`;
   if (!Boolean(rows[0]?.updated)) throw new PlatformRequestError("Giornata non disponibile");
   const previous = previousRows[0] ?? {};
-  const current = { label: input.label, title: input.title, city: input.city, description: input.description };
-  if (!input.staffActorId && JSON.stringify(previous) !== JSON.stringify(current))
-    await sql`SELECT app.publish_traveler_change_notice_v3(
-    ${input.actorId},${input.departureId}::uuid,${input.dayId}::uuid,'programme','important',
+  const current = {
+    label: input.label,
+    title: input.title,
+    city: input.city,
+    description: input.description,
+    items: input.items,
+    hotels: input.hotels,
+  };
+  if (JSON.stringify(previous) !== JSON.stringify(current))
+    await sql`SELECT app.publish_traveler_change_notice_native_v3(
+    ${input.actorNativeId}::uuid,${input.departureId}::uuid,${input.dayId}::uuid,'programme','important',
     ${`Programma aggiornato: ${input.title || input.label || "giornata"}`},
-    ${`L’agenzia ha aggiornato il programma della giornata. Apri la giornata per consultare i dettagli.`},
+    ${`${input.staffActorId ? "Il personale operativo" : "L’agenzia"} ha aggiornato il programma della giornata. Apri la giornata per consultare i dettagli.`},
     ${JSON.stringify(previous)}::jsonb,${JSON.stringify(current)}::jsonb)`;
 }
 

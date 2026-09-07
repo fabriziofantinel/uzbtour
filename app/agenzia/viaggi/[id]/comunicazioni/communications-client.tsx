@@ -11,8 +11,9 @@ import type { getJourneyManagement } from "@/lib/platform/journey-repository";
 
 type Communication = Awaited<ReturnType<typeof readDepartureCommunications>>[number];
 type Recipient = {
-  travelerId: string;
-  partyId: string;
+  recipientId: string;
+  travelerId: string | null;
+  partyId: string | null;
   name: string;
   email: string;
   readAt: string | null;
@@ -32,6 +33,7 @@ export default function CommunicationsClient({
   actorUserId,
   showOperations = true,
   staffView = false,
+  staffRole = null,
 }: {
   journey: Awaited<ReturnType<typeof getJourneyManagement>>;
   initialCommunications: Communication[];
@@ -39,6 +41,7 @@ export default function CommunicationsClient({
   actorUserId: string;
   showOperations?: boolean;
   staffView?: boolean;
+  staffRole?: "agent" | "accompagnatore" | "guida" | null;
 }) {
   const [communications, setCommunications] = useState(initialCommunications);
   const [recipients, setRecipients] = useState<Record<string, Recipient[]>>({});
@@ -241,6 +244,7 @@ export default function CommunicationsClient({
           showOperations={showOperations}
           quoteImportId={journey.journey.quoteImportId}
           staffView={staffView}
+          staffRole={staffRole}
         />
         <section className="journeyManageHero">
           <h1>{journey.journey.title}</h1>
@@ -260,21 +264,23 @@ export default function CommunicationsClient({
                   ["accompagnatore", "Accompagnatore"],
                   ["guida", "Guida"],
                 ] as const
-              ).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  role="tab"
-                  aria-selected={audienceScope === value}
-                  className={audienceScope === value ? "active" : ""}
-                  onClick={() => {
-                    setAudienceScope(value);
-                    setSelectedStaffIds([]);
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
+              )
+                .filter(([value]) => staffRole !== "accompagnatore" || value !== "accompagnatore")
+                .map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="tab"
+                    aria-selected={audienceScope === value}
+                    className={audienceScope === value ? "active" : ""}
+                    onClick={() => {
+                      setAudienceScope(value);
+                      setSelectedStaffIds([]);
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
             </div>
             {["group", "traveler"].includes(audienceScope) && (
               <label className="agencyChatGroup">
@@ -399,6 +405,9 @@ export default function CommunicationsClient({
                             : "INFORMATIVA"}
                       </small>
                       <h3>{notice.title}</h3>
+                      {notice.audienceKind === "staff" ? (
+                        <span>Destinatari: {notice.staffRole === "guida" ? "guide" : "accompagnatori"}</span>
+                      ) : null}
                     </div>
                     <time>{new Date(notice.publishedAt).toLocaleString("it-IT")}</time>
                   </header>
@@ -427,7 +436,7 @@ export default function CommunicationsClient({
                       <button type="button" onClick={() => void loadRecipients(notice.id)}>
                         Vedi destinatari
                       </button>
-                      {notice.overdue && (
+                      {notice.overdue && notice.canClose && (
                         <button
                           type="button"
                           onClick={() => {
@@ -443,7 +452,7 @@ export default function CommunicationsClient({
                   {recipients[notice.id] && (
                     <div className="recipientList">
                       {recipients[notice.id].map((recipient) => (
-                        <div key={recipient.travelerId}>
+                        <div key={recipient.recipientId}>
                           <span>
                             <b>{recipient.name}</b>
                             <small>
@@ -454,19 +463,19 @@ export default function CommunicationsClient({
                                   : "Non raggiungibile via push"}
                             </small>
                           </span>
-                          {!recipient.readAt && (
+                          {!recipient.readAt && notice.audienceKind === "traveler" && recipient.travelerId && (
                             <span>
                               <button
                                 type="button"
                                 disabled={Boolean(busy) || !recipient.reachableByPush}
-                                onClick={() => void remind(notice.id, recipient.travelerId, "push")}
+                                onClick={() => void remind(notice.id, recipient.travelerId!, "push")}
                               >
                                 Push
                               </button>
                               <button
                                 type="button"
                                 disabled={Boolean(busy) || !recipient.email}
-                                onClick={() => void remind(notice.id, recipient.travelerId, "email")}
+                                onClick={() => void remind(notice.id, recipient.travelerId!, "email")}
                               >
                                 Email
                               </button>

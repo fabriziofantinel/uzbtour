@@ -1,6 +1,6 @@
 import { getAuthenticatedActor, getCurrentUser } from "@/lib/current-user";
 import { resolveV3UserAccess } from "./v3-identity-access";
-import { canOperateDeparture } from "./departure-operational-control";
+import { canOperateDeparture, readDepartureStaffRole } from "./departure-operational-control";
 
 export class PlatformAuthorizationError extends Error {
   constructor(
@@ -73,5 +73,15 @@ export async function requireDepartureOperator(departureId: string) {
   if (user.isAgencyAdmin || user.isSuperAdmin) return user;
   const allowed = await canOperateDeparture(user.nativeId, departureId);
   if (!allowed) throw new PlatformAuthorizationError("Accesso riservato a operatori del viaggio", 403);
+  return user;
+}
+
+export async function requireDepartureCollaborator(departureId: string) {
+  const user = await requireDepartureOperator(departureId);
+  if (user.isAgencyAdmin || user.isSuperAdmin) return user;
+  const role = await readDepartureStaffRole(user.nativeId, departureId);
+  if (role !== "accompagnatore" && role !== "agent") {
+    throw new PlatformAuthorizationError("Funzione non disponibile per la guida", 403);
+  }
   return user;
 }

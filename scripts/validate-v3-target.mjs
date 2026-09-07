@@ -64,33 +64,35 @@ try {
   const shadowCoreInstalled = result.table_count >= 62;
   const shadowOperationalInstalled = result.table_count >= 65;
   const expectedRlsTableCounts =
-    result.table_count >= 85
-      ? [68]
-      : result.table_count >= 82
-        ? [65]
-        : result.table_count >= 80
-          ? [62]
-          : result.table_count >= 79
-            ? [61, 62]
-            : result.table_count >= 75
-              ? [61]
-              : result.table_count >= 74
-                ? [60]
-                : result.table_count >= 71
-                  ? [58]
-                  : result.table_count >= 70
-                    ? [57]
-                    : result.table_count >= 69
-                      ? [56]
-                      : result.table_count >= 68
-                        ? [55]
-                        : result.table_count >= 67
-                          ? [54]
-                          : shadowOperationalInstalled
-                            ? [52]
-                            : shadowCoreInstalled
-                              ? [49]
-                              : [47];
+    result.table_count >= 96
+      ? [70]
+      : result.table_count >= 85
+        ? [68]
+        : result.table_count >= 82
+          ? [65]
+          : result.table_count >= 80
+            ? [62]
+            : result.table_count >= 79
+              ? [61, 62]
+              : result.table_count >= 75
+                ? [61]
+                : result.table_count >= 74
+                  ? [60]
+                  : result.table_count >= 71
+                    ? [58]
+                    : result.table_count >= 70
+                      ? [57]
+                      : result.table_count >= 69
+                        ? [56]
+                        : result.table_count >= 68
+                          ? [55]
+                          : result.table_count >= 67
+                            ? [54]
+                            : shadowOperationalInstalled
+                              ? [52]
+                              : shadowCoreInstalled
+                                ? [49]
+                                : [47];
   let shadowCore = null;
   if (shadowCoreInstalled) {
     shadowCore = (
@@ -126,7 +128,7 @@ try {
     ).rows[0];
   }
   if (
-    ![60, 62, 65, 67, 68, 69, 70, 71, 74, 75, 77, 78, 79, 80, 82, 83, 85, 86, 87, 88, 89].includes(
+    ![60, 62, 65, 67, 68, 69, 70, 71, 74, 75, 77, 78, 79, 80, 82, 83, 85, 86, 87, 88, 89, 96].includes(
       result.table_count,
     ) ||
     !expectedRlsTableCounts.includes(result.rls_table_count) ||

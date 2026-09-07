@@ -26,6 +26,7 @@ type Props = {
   journeyTitle?: string | null;
   rightSlot?: ReactNode;
   staffView?: boolean;
+  staffRole?: "agent" | "accompagnatore" | "guida" | null;
 };
 
 export default function AgencyManagementNav({
@@ -37,6 +38,7 @@ export default function AgencyManagementNav({
   journeyTitle,
   rightSlot,
   staffView = false,
+  staffRole = null,
 }: Props) {
   if (staffView) {
     const staffHref = (path: string) => `${path}?scope=traveler-staff`;
@@ -52,33 +54,36 @@ export default function AgencyManagementNav({
           >
             <BookOpen /> Programma
           </Link>
-          {activeTab === "documenti" ? (
-            <span aria-current="page">
-              <FolderOpen /> Documenti
-            </span>
-          ) : (
-            <Link href={staffHref(`/agenzia/viaggi/${departureId}/documenti`)}>
-              <FolderOpen /> Documenti
-            </Link>
-          )}
-          {activeTab === "chat" ? (
-            <span aria-current="page">
-              <MessageCircle /> Chat
-            </span>
-          ) : (
-            <Link href={staffHref(`/agenzia/viaggi/${departureId}/chat`)}>
-              <MessageCircle /> Chat
-            </Link>
-          )}
-          {activeTab === "comunicazioni" ? (
-            <span aria-current="page">
-              <Send /> Comunicazioni
-            </span>
-          ) : (
-            <Link href={staffHref(`/agenzia/viaggi/${departureId}/comunicazioni`)}>
-              <Send /> Comunicazioni
-            </Link>
-          )}
+          {staffRole !== "guida" &&
+            (activeTab === "documenti" ? (
+              <span aria-current="page">
+                <FolderOpen /> Documenti
+              </span>
+            ) : (
+              <Link href={staffHref(`/agenzia/viaggi/${departureId}/documenti`)}>
+                <FolderOpen /> Documenti
+              </Link>
+            ))}
+          {staffRole !== "guida" &&
+            (activeTab === "chat" ? (
+              <span aria-current="page">
+                <MessageCircle /> Chat
+              </span>
+            ) : (
+              <Link href={staffHref(`/agenzia/viaggi/${departureId}/chat`)}>
+                <MessageCircle /> Chat
+              </Link>
+            ))}
+          {staffRole !== "guida" &&
+            (activeTab === "comunicazioni" ? (
+              <span aria-current="page">
+                <Send /> Comunicazioni
+              </span>
+            ) : (
+              <Link href={staffHref(`/agenzia/viaggi/${departureId}/comunicazioni`)}>
+                <Send /> Comunicazioni
+              </Link>
+            ))}
           {showOperations &&
             (activeTab === "operativita" ? (
               <span aria-current="page">

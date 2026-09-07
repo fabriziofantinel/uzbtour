@@ -7,6 +7,12 @@ export async function canOperateDeparture(actorId: string, departureId: string) 
   return Boolean(rows[0]?.allowed);
 }
 
+export async function readDepartureStaffRole(actorId: string, departureId: string) {
+  const rows = await getSql()`SELECT app.departure_staff_role_v3(${actorId}::uuid,${departureId}::uuid) role`;
+  const role = rows[0]?.role ? String(rows[0].role) : null;
+  return role === "agent" || role === "accompagnatore" || role === "guida" ? role : null;
+}
+
 export async function readMyTourLeaderDepartures(actorUserId: string) {
   const rows = await getSql()`SELECT * FROM app.list_my_tour_leader_departures_v3(${actorUserId}::uuid)`;
   return rows.map((row) => ({

@@ -19,17 +19,19 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const actor = await requireDepartureOperator(departureId);
     const parsed = schema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Sollecito non valido" }, { status: 400 });
-    const recipients = await readDepartureCommunicationRecipients(actor.id, noticeId);
+    const recipients = await readDepartureCommunicationRecipients(actor.id, actor.nativeId, noticeId, "traveler");
     const recipient = recipients.find((item) => item.travelerId === parsed.data.travelerId && !item.readAt);
     if (!recipient) return NextResponse.json({ error: "Destinatario già letto o non disponibile" }, { status: 409 });
-    const notice = (await readDepartureCommunications(actor.id, departureId)).find((item) => item.id === noticeId);
+    const notice = (await readDepartureCommunications(actor.id, departureId, actor.nativeId)).find(
+      (item) => item.id === noticeId,
+    );
     if (!notice) return NextResponse.json({ error: "Comunicazione non disponibile" }, { status: 404 });
     let sent = false;
     if (parsed.data.channel === "push") {
       const result = await sendNoticePush({
         noticeId,
         departureId,
-        travelerId: recipient.travelerId,
+        travelerId: recipient.travelerId!,
         severity: notice.severity,
         title: notice.title,
       });
@@ -44,8 +46,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     }
     await recordCommunicationReminder({
       actorId: actor.id,
+      actorNativeId: actor.nativeId,
       noticeId,
-      travelerId: recipient.travelerId,
+      travelerId: recipient.travelerId!,
       channel: parsed.data.channel,
       outcome: sent ? "sent" : "unreachable",
     });

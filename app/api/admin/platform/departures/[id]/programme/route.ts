@@ -77,6 +77,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       departureId: id,
       dayId,
       actorId: actor.id,
+      actorNativeId: actor.nativeId,
       staffActorId: actor.isAgencyAdmin ? undefined : actor.nativeId,
       label: cleanText(body?.label, 240),
       title: cleanText(body?.title, 240),
@@ -85,6 +86,11 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       items,
       hotels,
     });
+    after(() =>
+      sendDeparturePush({ departureId: id, kind: "disruption" }).catch((error) =>
+        console.error("Programme update push failed", error instanceof Error ? error.name : "unknown"),
+      ),
+    );
     return NextResponse.json({ ok: true });
   } catch (error) {
     return platformApiError(error, "Aggiornamento della giornata non riuscito");

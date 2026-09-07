@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { readDepartureOperationalControl } from "@/lib/platform/departure-operational-control";
-import { requireDepartureOperator } from "@/lib/platform/authorization";
+import { requireDepartureCollaborator, requireDepartureOperator } from "@/lib/platform/authorization";
 import { platformApiError } from "@/lib/platform/http";
 import { getObjectStorage } from "@/lib/platform/object-storage";
 import { requireAgencyDepartureDayDocumentAudience } from "@/lib/platform/programme-documents";
@@ -13,7 +13,8 @@ export const runtime = "nodejs";
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const { id: departureId } = await context.params;
-    const actor = await requireDepartureOperator(departureId);
+    await requireDepartureOperator(departureId);
+    const actor = await requireDepartureCollaborator(departureId);
     const limited = await enforceApiRateLimit(
       request,
       { scope: "upload.day-document", limit: 30, windowSeconds: 600 },
@@ -54,6 +55,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       departureId,
       dayId,
       actorId: actor.id,
+      actorNativeId: actor.nativeId,
       partyId: ["trip", "accompagnatore", "guida"].includes(audienceScope) ? null : partyId,
       travelerId: audienceScope === "traveler" ? travelerId : null,
     });

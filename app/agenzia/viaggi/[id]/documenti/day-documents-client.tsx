@@ -38,12 +38,14 @@ export default function DayDocumentsClient({
   actorUserId,
   showOperations = true,
   staffView = false,
+  staffRole = null,
 }: {
   initialData: AgencyDayDocuments;
   staff: { userId: string; name: string; role: string }[];
   actorUserId: string;
   showOperations?: boolean;
   staffView?: boolean;
+  staffRole?: "agent" | "accompagnatore" | "guida" | null;
 }) {
   const [staffUserIds, setStaffUserIds] = useState<string[]>([]);
   const { confirm: confirmAction, dialog: confirmDialog } = useAppConfirm();
@@ -163,6 +165,7 @@ export default function DayDocumentsClient({
           quoteImportId={departure.quoteImportId}
           journeyTitle={departure.programmeTitle}
           staffView={staffView}
+          staffRole={staffRole}
         />
         <section className="journeyManageHero">
           <small>DOCUMENTI DEL VIAGGIO</small>
@@ -191,21 +194,23 @@ export default function DayDocumentsClient({
                   ["accompagnatore", "Accompagnatore"],
                   ["guida", "Guida"],
                 ] as const
-              ).map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  role="tab"
-                  aria-selected={audienceScope === value}
-                  className={audienceScope === value ? "active" : ""}
-                  onClick={() => {
-                    setAudienceScope(value);
-                    setStaffUserIds([]);
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
+              )
+                .filter(([value]) => staffRole !== "accompagnatore" || value !== "accompagnatore")
+                .map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="tab"
+                    aria-selected={audienceScope === value}
+                    className={audienceScope === value ? "active" : ""}
+                    onClick={() => {
+                      setAudienceScope(value);
+                      setStaffUserIds([]);
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
             </div>
             {["group", "traveler"].includes(audienceScope) && (
               <label className="agencyChatGroup">
