@@ -77,7 +77,21 @@ try {
       AND pg_get_function_identity_arguments(procedure.oid)~'p_actor_legacy'
     ORDER BY procedure.proname,procedure.oid::regprocedure::text
   `);
-    console.log(JSON.stringify({ count: result.rowCount, signatures: result.rows }, null, 2));
+    const references = await client.query(`
+      SELECT count(*)::integer AS count
+      FROM pg_proc procedure
+      JOIN pg_namespace namespace ON namespace.oid=procedure.pronamespace
+      WHERE namespace.nspname='app'
+        AND procedure.prokind='f'
+        AND pg_get_functiondef(procedure.oid)~'p_actor_legacy'
+    `);
+    console.log(
+      JSON.stringify(
+        { count: result.rowCount, definitionReferences: references.rows[0]?.count ?? 0, signatures: result.rows },
+        null,
+        2,
+      ),
+    );
   }
 } finally {
   await client.end().catch(() => undefined);

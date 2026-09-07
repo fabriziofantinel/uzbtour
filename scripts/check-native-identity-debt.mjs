@@ -56,6 +56,12 @@ for (const file of migrationFiles.sort()) {
   for (const match of source.matchAll(definition)) {
     effectiveFunctions.set(match[1].toLowerCase(), match[2]);
   }
+  const dropBlock = /DROP\s+FUNCTION\s+([\s\S]*?);/gi;
+  for (const block of source.matchAll(dropBlock)) {
+    for (const dropped of block[1].matchAll(/app\.([a-z0-9_]+)\s*\(/gi)) {
+      effectiveFunctions.delete(`app.${dropped[1].toLowerCase()}`);
+    }
+  }
 }
 const sqlLegacyFunctions = [...effectiveFunctions.entries()]
   .filter(([, parameters]) => /p_actor_legacy(?:_user_id)?\s+(?:text|varchar)/i.test(parameters))
