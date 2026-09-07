@@ -94,3 +94,5 @@ Audit statico Impeccable 4.2.2 completato il 7 settembre 2026: 14/20, nessuna an
 ### 8. Release
 
 Checklist go-live, rollback, backup/restore, dati demo, documentazione operativa e accettazione finale.
+
+Checklist predisposta in `docs/operations/GO_LIVE_CHECKLIST.md`. Il punto resta aperto finché non sono disponibili: commit candidato distribuito, capacità Vercel con margine, UAT ruoli/dispositivi, almeno un restore Neon dimostrato, rollback Vercel provato e accettazione dell'operatore pilota. Lo script storico dei dati demo richiede revisione prima di qualsiasi esecuzione perché usa ancora strutture legacy e identificativi fissi.
