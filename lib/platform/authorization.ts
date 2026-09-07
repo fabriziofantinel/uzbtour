@@ -46,6 +46,15 @@ export async function requireAgencyAdminActor() {
   return user;
 }
 
+export async function requireCurrentAgencyAdmin() {
+  const user = await getCurrentUser();
+  if (!user) throw new PlatformAuthorizationError("Autenticazione richiesta", 401);
+  if (user.isSuperAdmin || !user.isAgencyAdmin) {
+    throw new PlatformAuthorizationError("Accesso riservato all'agenzia", 403);
+  }
+  return user;
+}
+
 export async function requireAgencyOwnerActor() {
   const user = await getAuthenticatedActor();
   if (!user) throw new PlatformAuthorizationError("Autenticazione richiesta", 401);

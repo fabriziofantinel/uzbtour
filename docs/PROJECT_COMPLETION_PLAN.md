@@ -40,6 +40,7 @@ Aggiornato al 7 settembre 2026.
 - Ruoli accompagnatore e guida verificati in transazione: viaggio assegnato, programma completo, modifica della sola giornata assegnata, presenze, chat consentita/negata, scadenza e revoca.
 - Isolamento agenzia verificato in transazione: rifiuto cross-tenant e invalidazione sessione/impersonazione dopo sospensione.
 - Smoke runtime V3 riallineati alle identità native e superati: accesso e mutazioni superuser, dashboard agenzia e analytics, gestione viaggio e partecipanti, chat nativa, catalogo, spese, engagement, gamification, KPI, media e isolamento cross-tenant.
+- UAT di produzione superuser avviato sul commit `5b17fda`: riepilogo, elenco e dettaglio agenzie, branding, disponibilità della gestione responsabile, accessibilità, login come responsabile invitato e ritorno al superuser superati senza modificare dati reali. Evidenze in `docs/testing/SMF_Travel_UAT_Produzione_2026-09-07.md`.
 
 ### Correzioni emerse dal collaudo
 
@@ -49,12 +50,13 @@ Aggiornato al 7 settembre 2026.
 - Corretta con la migrazione 196 l'ambiguità SQL che bloccava la lettura della chat operativa nativa.
 - Corretta con la migrazione 197 la mancata invalidazione di sessioni Cognito e impersonazioni per un'agenzia sospesa.
 - Rimossi dai collaudi residui gli identificativi attore e le firme funzione legacy; gli script possono assumere localmente il ruolo `smf_app` tramite la DSN owner senza richiedere o leggere una seconda password runtime.
+- Individuata in produzione l'anomalia `1090945064` nella pagina Informazioni Paesi durante il login come responsabile: il controllo usava l'identità Cognito del superuser anziché il profilo corrente impersonato. La correzione locale separa esplicitamente identità corrente e attore autenticato ed è coperta da tre test unitari; attende refresh approvato della baseline e distribuzione.
 
 ### Limiti di verifica non bloccanti
 
 - La password della DSN Neon runtime non è stata letta: i privilegi sono verificati assumendo realmente `smf_app` e il funzionamento della produzione autenticata prova il collegamento applicativo senza esporre il segreto.
 - Il collaudo browser autenticato corrente non può essere ripetuto automaticamente perché nell'ambiente non sono configurati gli account E2E dedicati.
-- Restano da provare con un operatore reale i percorsi UI autenticati per tutti i ruoli, l'isolamento visivo fra due tenant e due gruppi, iOS Safari e Android Fold chiuso.
+- Restano da provare con un operatore reale i percorsi UI autenticati per responsabile, agente, accompagnatore, guida e viaggiatore, l'isolamento visivo fra due tenant e due gruppi, iOS Safari e Android Fold chiuso. Il percorso superuser non distruttivo è completato.
 - Lettura errori runtime Vercel tramite connettore: non disponibile per autorizzazione insufficiente (HTTP 403); non è un errore applicativo.
 
 ## Criterio di chiusura del punto 1

@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { CSSProperties } from "react";
 import { ArrowLeft, CheckCircle2, ExternalLink, Globe2, ShieldCheck, XCircle } from "lucide-react";
-import { PlatformAuthorizationError, requireAgencyAdminActor } from "@/lib/platform/authorization";
+import { PlatformAuthorizationError, requireCurrentAgencyAdmin } from "@/lib/platform/authorization";
 import {
   readCountryProfilesForReview,
   reviewCountryProfile,
@@ -47,7 +47,7 @@ function usefulInformation(value: unknown) {
 
 async function reviewCountryProfileAction(formData: FormData) {
   "use server";
-  const actor = await requireAgencyAdminActor();
+  const actor = await requireCurrentAgencyAdmin();
   const agencyId = String(formData.get("agencyId") || "");
   const countryId = String(formData.get("countryId") || "");
   const decision = String(formData.get("decision") || "");
@@ -62,7 +62,7 @@ async function reviewCountryProfileAction(formData: FormData) {
 
 async function saveCountryProfileAction(formData: FormData) {
   "use server";
-  const actor = await requireAgencyAdminActor();
+  const actor = await requireCurrentAgencyAdmin();
   const agencyId = String(formData.get("agencyId") || "");
   const countryId = String(formData.get("countryId") || "");
   if (![agencyId, countryId].every((value) => /^[0-9a-f-]{36}$/i.test(value))) return;
@@ -96,7 +96,7 @@ async function saveCountryProfileAction(formData: FormData) {
 
 export default async function CountryInformationReviewPage() {
   try {
-    const actor = await requireAgencyAdminActor();
+    const actor = await requireCurrentAgencyAdmin();
     const [profiles, overview] = await Promise.all([
       readCountryProfilesForReview(actor.id),
       getPlatformOverview(actor),
