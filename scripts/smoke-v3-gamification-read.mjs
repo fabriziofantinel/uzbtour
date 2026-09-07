@@ -40,6 +40,11 @@ try {
     await client.query(`SELECT party.agency_id,party.departure_id,party.id party_id,
     departure.template_version_id FROM public.travel_parties party
     JOIN public.departures departure ON departure.id=party.departure_id AND departure.agency_id=party.agency_id
+    JOIN travel.departures canonical_departure ON canonical_departure.id=departure.id
+      AND canonical_departure.agency_id=departure.agency_id
+    JOIN travel.travel_parties canonical_party ON canonical_party.id=party.id
+      AND canonical_party.agency_id=party.agency_id
+      AND canonical_party.departure_id=party.departure_id
     ORDER BY (SELECT count(*) FROM public.generated_content content
       WHERE content.agency_id=party.agency_id AND content.template_version_id=departure.template_version_id) DESC
     LIMIT 1`)
