@@ -89,6 +89,8 @@ Completato per il controllo tecnico: quote di job attivi per agenzia e workload,
 
 Controlli finali responsive, accessibilità, offline, branding agenzia e coerenza dei feedback utente.
 
+Audit statico Impeccable 4.2.2 completato il 7 settembre 2026: 14/20, nessuna anomalia P0 e un solo anti-pattern effettivo. Restano due temi P1 prima del go-live: collaudo autenticato su iOS/Android Fold/zoom 200% e progressivo consolidamento dei token di colore e tipografia white-label. Dettaglio in `docs/testing/SMF_Travel_Frontend_Audit_2026-09-07.md`.
+
 ### 8. Release
 
 Checklist go-live, rollback, backup/restore, dati demo, documentazione operativa e accettazione finale.
