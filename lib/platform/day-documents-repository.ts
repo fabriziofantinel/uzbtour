@@ -56,6 +56,26 @@ export async function getAgencyDayDocuments(
 
 export type AgencyDayDocuments = Awaited<ReturnType<typeof getAgencyDayDocuments>>;
 
+export async function getStaffTripDocuments(actorUserId: string, departureId: string) {
+  const rows = await getSql()`SELECT id::text,day_id::text,staff_role,staff_user_ids,title,description,
+    content_type,size_bytes,created_at::text
+    FROM app.list_staff_personal_trip_documents_v3(${actorUserId}::uuid,${departureId}::uuid)`;
+  return rows.map((row) => ({
+    id: String(row.id),
+    dayId: String(row.day_id),
+    staffRole: row.staff_role ? String(row.staff_role) : null,
+    staffUserIds: Array.isArray(row.staff_user_ids) ? row.staff_user_ids.map(String) : [],
+    title: String(row.title),
+    description: String(row.description || ""),
+    contentType: String(row.content_type),
+    sizeBytes: Number(row.size_bytes || 0),
+    createdAt: String(row.created_at),
+    downloadUrl: `/api/travel-documents/${String(row.id)}/content?download=1`,
+  }));
+}
+
+export type StaffTripDocument = Awaited<ReturnType<typeof getStaffTripDocuments>>[number];
+
 export async function archiveAgencyDayDocument(input: {
   actorId: string;
   agencyId: string;

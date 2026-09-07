@@ -2,6 +2,13 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { LoaderCircle, MessageCircle, RefreshCw, Send } from "lucide-react";
 type Message = { id: string; senderName: string; senderRole: string; body: string; createdAt: string; isMine: boolean };
+function senderRoleLabel(role: string) {
+  if (role === "agency") return "Agenzia";
+  if (role === "accompagnatore" || role === "tour_leader") return "Accompagnatore";
+  if (role === "guida") return "Guida";
+  if (role === "agent") return "Agente";
+  return "Viaggiatore";
+}
 export default function OperationalChat({
   departureId,
   partyId,
@@ -145,7 +152,7 @@ export default function OperationalChat({
               <span>
                 <strong>{item.senderName}</strong>
                 <small>
-                  {item.senderRole === "agency" ? "Agenzia" : "Viaggiatore"} ·{" "}
+                  {senderRoleLabel(item.senderRole)} ·{" "}
                   {new Intl.DateTimeFormat("it-IT", {
                     day: "2-digit",
                     month: "2-digit",
