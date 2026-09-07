@@ -26,6 +26,7 @@ const migrations = [
   "184_v3_staff_past_trip_test_access",
   "185_v3_staff_trip_presentation",
   "186_v3_staff_dashboard_details",
+  "187_v3_staff_journey_management_read",
 ];
 const sources = await Promise.all(
   migrations.map(async (name) => ({
@@ -78,7 +79,9 @@ try {
       to_regprocedure('app.can_edit_departure_day_v3(uuid,uuid,uuid)') IS NOT NULL staff_day_programme_authorization,
       EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='179_v3_staff_day_programme_authorization') staff_day_programme_marker,
       to_regprocedure('app.update_departure_programme_day_staff_v3(uuid,uuid,uuid,text,text,text,text,jsonb,jsonb)') IS NOT NULL staff_programme_write,
-      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='180_v3_staff_programme_day_write') staff_programme_write_marker`)
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='180_v3_staff_programme_day_write') staff_programme_write_marker,
+      to_regprocedure('app.read_staff_journey_management_v3(uuid,uuid)') IS NOT NULL staff_journey_management_read,
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='187_v3_staff_journey_management_read') staff_journey_management_marker`)
   ).rows[0];
   if (!gate || Object.values(gate).some((value) => value !== true))
     throw new Error(`Gate incompleti: ${JSON.stringify(gate)}`);
