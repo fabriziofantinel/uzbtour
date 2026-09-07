@@ -10,10 +10,5 @@ export default async function TourLeaderDeparturePage({ params }: { params: Prom
   const { id } = await params;
   const assignment = (await readMyDepartureStaff(user.nativeId)).find((item) => item.id === id);
   if (!assignment || !(await canOperateDeparture(user.nativeId, id))) redirect("/tour-leader");
-  const rolePath = `/agenzia/viaggi/${id}/programma`;
-  const roleHint = assignment.role === "accompagnatore" || assignment.role === "guida" ? "?scope=traveler-staff" : "";
-  if (roleHint) {
-    return redirect(`${rolePath}${roleHint}`);
-  }
-  return redirect(rolePath);
+  return redirect(`/agenzia/viaggi/${id}/operativita?scope=traveler-staff`);
 }

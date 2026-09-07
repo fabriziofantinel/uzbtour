@@ -40,7 +40,7 @@ export default function OperationalControlClient({
     staffRole ? "presence" : "assignment",
   );
   const tabs = [
-    ...(!staffRole ? [{ id: "assignment" as const, label: "Assegna personale" }] : []),
+    { id: "assignment" as const, label: "Assegna personale" },
     { id: "presence" as const, label: "Presenza" },
     { id: "alerts" as const, label: "Segnalazioni" },
   ];
@@ -101,42 +101,46 @@ export default function OperationalControlClient({
       )}
       <section className="journeyManageHero">
         <h1>{journey?.journey.title ?? departureTitle ?? "Operatività della partenza"}</h1>
-        <p>Assegnazioni, presenze e segnalazioni del viaggio.</p>
+        <p>
+          {staffRole ? "Segnalazioni e presenze del viaggio." : "Assegnazioni, presenze e segnalazioni del viaggio."}
+        </p>
       </section>
       <div className="journeyManageShell operationsShell">
-        <div className="agencyChatScopes" role="tablist" aria-label="Operatività del viaggio">
-          {tabs.map((tab, index) => (
-            <button
-              key={tab.id}
-              id={`operations-tab-${tab.id}`}
-              type="button"
-              role="tab"
-              aria-selected={activeTab === tab.id}
-              aria-controls={`operations-panel-${tab.id}`}
-              tabIndex={activeTab === tab.id ? 0 : -1}
-              className={activeTab === tab.id ? "active" : ""}
-              onClick={() => setActiveTab(tab.id)}
-              onKeyDown={(event) => {
-                const nextIndex =
-                  event.key === "ArrowRight"
-                    ? (index + 1) % tabs.length
-                    : event.key === "ArrowLeft"
-                      ? (index + tabs.length - 1) % tabs.length
-                      : event.key === "Home"
-                        ? 0
-                        : event.key === "End"
-                          ? tabs.length - 1
-                          : -1;
-                if (nextIndex < 0) return;
-                event.preventDefault();
-                setActiveTab(tabs[nextIndex].id);
-                document.getElementById(`operations-tab-${tabs[nextIndex].id}`)?.focus();
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        {!staffRole && (
+          <div className="agencyChatScopes" role="tablist" aria-label="Operatività del viaggio">
+            {tabs.map((tab, index) => (
+              <button
+                key={tab.id}
+                id={`operations-tab-${tab.id}`}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                aria-controls={`operations-panel-${tab.id}`}
+                tabIndex={activeTab === tab.id ? 0 : -1}
+                className={activeTab === tab.id ? "active" : ""}
+                onClick={() => setActiveTab(tab.id)}
+                onKeyDown={(event) => {
+                  const nextIndex =
+                    event.key === "ArrowRight"
+                      ? (index + 1) % tabs.length
+                      : event.key === "ArrowLeft"
+                        ? (index + tabs.length - 1) % tabs.length
+                        : event.key === "Home"
+                          ? 0
+                          : event.key === "End"
+                            ? tabs.length - 1
+                            : -1;
+                  if (nextIndex < 0) return;
+                  event.preventDefault();
+                  setActiveTab(tabs[nextIndex].id);
+                  document.getElementById(`operations-tab-${tabs[nextIndex].id}`)?.focus();
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
         {notice && (
           <p className="agencyMessage success" role="status">
             <CheckCircle2 />
@@ -241,12 +245,38 @@ export default function OperationalControlClient({
             </ul>
           </section>
         )}
-        {activeTab === "presence" && (
+        {(staffRole || activeTab === "alerts") && (
           <section
             className="operationsPanel"
-            role="tabpanel"
+            role={staffRole ? undefined : "tabpanel"}
+            id="operations-panel-alerts"
+            aria-labelledby={staffRole ? undefined : "operations-tab-alerts"}
+          >
+            <h2>
+              <HeartHandshake /> Segnalazioni
+            </h2>
+            <p>Segnalazioni dei viaggiatori disponibili per il tuo ruolo.</p>
+            {data.alerts.length ? (
+              <ul>
+                {data.alerts.map((alert) => (
+                  <li key={alert.id}>
+                    <strong>{alert.travelerName}</strong>
+                    <p>{alert.summary}</p>
+                    {alert.instructions && <p>{alert.instructions}</p>}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>Nessuna segnalazione autorizzata.</p>
+            )}
+          </section>
+        )}
+        {(staffRole || activeTab === "presence") && (
+          <section
+            className="operationsPanel"
+            role={staffRole ? undefined : "tabpanel"}
             id="operations-panel-presence"
-            aria-labelledby="operations-tab-presence"
+            aria-labelledby={staffRole ? undefined : "operations-tab-presence"}
           >
             <h2>
               <ClipboardCheck /> Presenza
@@ -283,32 +313,6 @@ export default function OperationalControlClient({
               })}
             </div>
             {!data.travelers.length && <p className="operationsEmpty">Nessun viaggiatore presente nel viaggio.</p>}
-          </section>
-        )}
-        {activeTab === "alerts" && (
-          <section
-            className="operationsPanel"
-            role="tabpanel"
-            id="operations-panel-alerts"
-            aria-labelledby="operations-tab-alerts"
-          >
-            <h2>
-              <HeartHandshake /> Segnalazioni
-            </h2>
-            <p>Segnalazioni dei viaggiatori disponibili per il tuo ruolo.</p>
-            {data.alerts.length ? (
-              <ul>
-                {data.alerts.map((alert) => (
-                  <li key={alert.id}>
-                    <strong>{alert.travelerName}</strong>
-                    <p>{alert.summary}</p>
-                    {alert.instructions && <p>{alert.instructions}</p>}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>Nessuna segnalazione autorizzata.</p>
-            )}
           </section>
         )}
       </div>

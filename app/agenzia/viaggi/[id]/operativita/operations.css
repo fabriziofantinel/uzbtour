@@ -1,4 +1,6 @@
 .operationsPage .operationsShell {
+  display: grid;
+  gap: 24px;
   margin-inline: auto;
   padding-bottom: 32px;
 }
@@ -99,6 +101,9 @@
   outline-offset: 3px;
 }
 @media (max-width: 640px) {
+  .operationsPage .operationsShell {
+    gap: 16px;
+  }
   .operationsPage .operationsPanel {
     padding: 16px;
   }
