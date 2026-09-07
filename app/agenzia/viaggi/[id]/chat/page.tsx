@@ -21,13 +21,14 @@ export default async function ChatPage({
       actor.isAgencyAdmin || actor.isSuperAdmin
         ? null
         : (await readMyDepartureStaff(actor.nativeId)).find((item) => item.id === id);
+    const staffAccess = !actor.isAgencyAdmin && !actor.isSuperAdmin;
     const isTravelerStaff = scope === "traveler-staff";
     const showOperations =
       actor.isAgencyAdmin || actor.isSuperAdmin
         ? true
         : !(isTravelerStaff || assignment?.role === "guida" || assignment?.role === "accompagnatore");
     const [data, operations] = await Promise.all([
-      getJourneyManagement(id, actor.id, actor.nativeId),
+      getJourneyManagement(id, actor.id, actor.nativeId, staffAccess),
       readDepartureOperationalControl(actor.nativeId, id),
     ]);
     return (

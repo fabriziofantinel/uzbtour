@@ -25,10 +25,6 @@ export default async function TourLeaderHome() {
   }).format(new Date());
   const agency = departures[0];
   const color = validBrandColor(agency?.primaryColor);
-  const activeTrips = departures.filter(
-    (departure) =>
-      !(new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Rome" }).format(new Date(departure.endsOn)) < today),
-  );
   const style = {
     "--agency-ui": color,
     "--smf-brand": color,
@@ -79,8 +75,8 @@ export default async function TourLeaderHome() {
               <MapPinned size={18} /> Viaggi
             </Link>
             <div className="tourLeaderActiveTrips">
-              {activeTrips.length ? (
-                activeTrips.map((departure) => (
+              {departures.length ? (
+                departures.map((departure) => (
                   <Link
                     key={departure.id}
                     className="tourLeaderActiveTrip"
@@ -92,7 +88,7 @@ export default async function TourLeaderHome() {
                   </Link>
                 ))
               ) : (
-                <span className="tourLeaderEmptyTrips">Nessun viaggio attivo</span>
+                <span className="tourLeaderEmptyTrips">Nessun viaggio assegnato</span>
               )}
             </div>
           </nav>

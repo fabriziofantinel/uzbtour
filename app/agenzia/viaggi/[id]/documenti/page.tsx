@@ -21,13 +21,14 @@ export default async function DayDocumentsPage({
       actor.isAgencyAdmin || actor.isSuperAdmin
         ? null
         : (await readMyDepartureStaff(actor.nativeId)).find((person) => person.id === id);
+    const staffAccess = !actor.isAgencyAdmin && !actor.isSuperAdmin;
     const isTravelerStaff = scope === "traveler-staff";
     const showOperations =
       actor.isAgencyAdmin || actor.isSuperAdmin
         ? true
         : !(isTravelerStaff || assignment?.role === "guida" || assignment?.role === "accompagnatore");
     const [data, operations] = await Promise.all([
-      getAgencyDayDocuments(id, actor.id, actor.nativeId),
+      getAgencyDayDocuments(id, actor.id, actor.nativeId, staffAccess),
       readDepartureOperationalControl(actor.nativeId, id),
     ]);
     return (
