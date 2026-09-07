@@ -9,6 +9,11 @@ if (!migrationUrl) {
 
 const smokeUrl = new URL("../database/schema-v3-smoke.sql", import.meta.url);
 const smokeSql = await readFile(smokeUrl, "utf8");
+const tableInventory = JSON.parse(
+  await readFile(new URL("../database/v3-table-inventory.json", import.meta.url), "utf8"),
+);
+const expectedApplicationTables = [...tableInventory.applicationTables].sort();
+const optionalBootstrapTables = new Set(tableInventory.optionalBootstrapTables);
 const client = new Client(migrationUrl);
 
 try {
@@ -61,6 +66,17 @@ try {
   `);
 
   const result = inventory.rows[0];
+  const actualTables = (
+    await client.query(`
+      SELECT table_schema || '.' || table_name AS name
+        FROM information_schema.tables
+       WHERE table_schema IN ('iam','ref','travel','content','ops','journey','privacy')
+       ORDER BY name
+    `)
+  ).rows.map((row) => row.name);
+  const actualApplicationTables = actualTables.filter((name) => !optionalBootstrapTables.has(name));
+  const missingTables = expectedApplicationTables.filter((name) => !actualApplicationTables.includes(name));
+  const unexpectedTables = actualApplicationTables.filter((name) => !expectedApplicationTables.includes(name));
   const shadowCoreInstalled = result.table_count >= 62;
   const shadowOperationalInstalled = result.table_count >= 65;
   const expectedRlsTableCounts =
@@ -130,9 +146,8 @@ try {
     ).rows[0];
   }
   if (
-    ![60, 62, 65, 67, 68, 69, 70, 71, 74, 75, 77, 78, 79, 80, 82, 83, 85, 86, 87, 88, 89, 96, 99, 100].includes(
-      result.table_count,
-    ) ||
+    missingTables.length !== 0 ||
+    unexpectedTables.length !== 0 ||
     !expectedRlsTableCounts.includes(result.rls_table_count) ||
     result.unvalidated_constraints !== 0 ||
     result.invalid_indexes !== 0 ||
@@ -143,11 +158,24 @@ try {
         shadowOperational?.duplicate_legacy_content_ids !== 0 ||
         shadowOperational?.duplicate_activity_item_ids !== 0))
   ) {
-    throw new Error(`Validazione catalogo fallita: ${JSON.stringify({ ...result, shadowCore, shadowOperational })}`);
+    throw new Error(
+      `Validazione catalogo fallita: ${JSON.stringify({ ...result, missingTables, unexpectedTables, shadowCore, shadowOperational })}`,
+    );
   }
 
   await client.query(smokeSql);
-  console.log(JSON.stringify({ status: "passed", ...result, shadowCore, shadowOperational }));
+  console.log(
+    JSON.stringify({
+      status: "passed",
+      ...result,
+      application_table_count: actualApplicationTables.length,
+      bootstrap_ledger_present: actualTables.includes("ops.repository_migrations"),
+      missing_tables: missingTables,
+      unexpected_tables: unexpectedTables,
+      shadowCore,
+      shadowOperational,
+    }),
+  );
 } finally {
   await client.end().catch(() => undefined);
 }

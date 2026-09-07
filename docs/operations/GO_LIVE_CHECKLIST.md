@@ -4,12 +4,12 @@ Questa checklist definisce le prove necessarie per dichiarare una release pronta
 
 ## 1. Identificazione della release
 
-- [x] Commit candidato presente su `smftravel/main`: `ec5feee`.
-- [x] Deployment Vercel di produzione `dpl_9Us1pR3SbnTC7woR3w4GeYNKcw5v` completato sul commit `ec5feee` il 7 settembre 2026.
+- [x] Commit applicativo candidato presente su `smftravel/main`: `25228b7`; i commit successivi consolidano esclusivamente gate e documentazione.
+- [x] Deployment Vercel di produzione completato sul commit `25228b7` l'8 settembre 2026.
 - [x] Health check pubblico, login e manifest PWA validi su `https://smf-travel.vercel.app`; smoke Playwright mobile 5/5.
 - [x] Schema Neon dichiarato dall'app uguale all'ultima migrazione applicata (`200_v3_rooming_and_post_trip_reviews`).
 - [x] `npm run quality:guard`, `npm run build` e test pubblici Playwright verdi sul commit candidato, come attestato anche dai log di build Vercel.
-- [ ] Nessun file locale non versionato necessario alla release.
+- [x] Documentazione e materiali di collaudo necessari alla release versionati nel repository.
 
 ## 2. Capacità e piattaforme
 
@@ -72,7 +72,7 @@ Questa checklist definisce le prove necessarie per dichiarare una release pronta
 
 - [ ] Tenant demo dedicato, privo di dati personali reali e chiaramente identificato.
 - [ ] Lo script storico `scripts/seed-platform-demo.mjs` non viene eseguito in produzione senza revisione: usa tabelle e identità legacy e UUID fissi.
-- [ ] Documentazione funzionale, architetturale, logica, fisica, casi d'uso e rapporto test corrispondono al commit candidato.
+- [x] Documentazione funzionale, architetturale, logica, fisica, casi d'uso e rapporto test sono allineati alla migrazione 200, inclusi rooming list e post-viaggio.
 - [ ] Manuale operativo, matrice ruoli, gestione incidenti e contatti di supporto consegnati all'operatore.
 - [ ] Formazione dell'operatore completata su un viaggio campione non produttivo.
 

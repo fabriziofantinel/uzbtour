@@ -32,3 +32,8 @@
 Thumbs.db
 .idea
 .vscode
+
+# manual test-run artifacts (screenshots, reports, results)
+/tests/manual-run/**/.artifacts
+/tests/manual-run/**/report
+/tests/manual-run/**/results.json

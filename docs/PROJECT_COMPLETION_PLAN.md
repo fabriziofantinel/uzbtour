@@ -1,6 +1,6 @@
 # Piano di completamento SMF Travel
 
-Aggiornato al 7 settembre 2026.
+Aggiornato all'8 settembre 2026.
 
 ## Stato sintetico
 
@@ -19,7 +19,7 @@ Aggiornato al 7 settembre 2026.
 
 - Quality guard, TypeScript, sicurezza migrazioni e confini runtime.
 - Build Next.js 16.3.2 di produzione completato con 33 pagine statiche e dinamiche, oltre alle route API.
-- Schema Neon portato alla migrazione 200 con 99 tabelle, 73 protette da RLS, nessun vincolo o indice invalido e nessuna tabella tenant priva di indice leading.
+- Schema Neon portato alla migrazione 200 con 99 tabelle applicative nominalmente verificate, 73 protette da RLS, nessun vincolo o indice invalido e nessuna tabella tenant priva di indice leading. La ricostruzione pulita contiene inoltre il solo registro tecnico `ops.repository_migrations`.
 - Flussi database: profili Paese, gruppi, inviti, utenti, analytics, cancellazioni, engagement e write cutover.
 - PWA: installabilità, manifest dinamico, service worker, offline e sincronizzazione finanziaria.
 - Push: sottoscrizione, invio pianificato e contratti applicativi.
@@ -54,6 +54,7 @@ Aggiornato al 7 settembre 2026.
 - Completata la bonifica delle firme attore legacy: il censimento live ha individuato 51 firme testuali (una in più della baseline statica), sono stati creati e distribuiti i sostituti UUID prima del cutover e la migrazione 199 le ha eliminate tutte senza `CASCADE`. Gate finale: 0 firme legacy e 195 firme native UUID.
 - Aggiunte la rooming list per pernottamento e gruppo, con autorizzazioni di responsabile, agente e accompagnatore, controlli di capienza e tutela dei minori, ed esportazione DOCX priva di dati documentali sensibili.
 - Aggiunto il ciclo post-viaggio a costo AI zero: valutazione 0-10 dal secondo giorno dopo il rientro, push idempotente, percorso differenziato per promotori e detrattori, codice passaparola e analisi per partenza incrociata con i feedback di tappa.
+- Sostituita la validazione basata sul solo conteggio 99/100 con il manifesto nominale `database/v3-table-inventory.json`: produzione e ricostruzione pulita hanno le stesse 99 tabelle applicative; la centesima tabella del bootstrap è esclusivamente il registro checksum opzionale.
 
 ### Limiti di verifica non bloccanti
 

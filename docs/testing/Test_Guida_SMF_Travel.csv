@@ -1,0 +1,26 @@
+ID;Area;Titolo del test;Precondizioni;Passi da eseguire;Risultato atteso;Priorita;Esito (OK / KO / Bloccato / Non testabile);Gravita problema (Bloccante / Grave / Media / Lieve);Descrizione problema riscontrato;Riproducibile (Sempre / A volte / No);Dispositivo e browser;Data test;Tester;Note
+GUI-ACC-01;Accesso;Attivazione invito guida;Guida invitata dall agenzia;1. Ricevi l invito 2. Apri il link 3. Scegli una password valida 4. Accedi;Accede e vede solo i viaggi e le giornate a lei assegnate;Alta;;;;;;;;
+GUI-ACC-02;Accesso;Login guida;Account attivo;1. Accedi con username e password;Vede l elenco dei viaggi assegnati e le funzioni consentite;Alta;;;;;;;;
+GUI-ACC-03;Accesso;Vede solo i viaggi assegnati;Assegnata al viaggio A ma non al B;1. Prova ad aprire il viaggio B (anche via URL);Il viaggio non assegnato non e visibile ne raggiungibile;Alta;;;;;;;;
+GUI-ACC-04;Accesso;Nessun accesso ad altra agenzia;Guida agenzia A;1. Prova a raggiungere dati dell agenzia B;Accesso negato;Alta;;;;;;;;
+GUI-ACC-05;Accesso;Fuori dalla finestra temporale;Assegnazione con validita definita;1. Prova ad accedere prima o dopo il periodo di validita;Accesso al viaggio negato;Alta;;;;;;;;
+GUI-ACC-06;Accesso;Dopo la revoca;Assegnazione revocata;1. Con sessione aperta, esegui un azione dopo la revoca;L accesso cessa alla richiesta successiva;Alta;;;;;;;;
+GUI-ACC-07;Accesso;Guida assegnata solo ad alcune giornate;Assegnazione parziale;1. Prova ad agire su una giornata non assegnata;Le giornate non assegnate sono negate;Alta;;;;;;;;
+GUI-CHT-01;Chat - confine specifico;Solo conversazione diretta con l agenzia;Guida assegnata a un viaggio;1. Apri la chat 2. Verifica quali conversazioni sono disponibili;La guida puo usare solo la conversazione diretta con l agenzia;Alta;;;;;;;;
+GUI-CHT-02;Chat - confine specifico;Chat di viaggio negata;Guida assegnata;1. Prova ad accedere alla chat generale di viaggio;Negata alla guida;Alta;;;;;;;;
+GUI-CHT-03;Chat - confine specifico;Chat di gruppo negata;Guida assegnata;1. Prova ad accedere alla chat di un gruppo;Negata alla guida;Alta;;;;;;;;
+GUI-CHT-04;Chat - confine specifico;Chat individuale con un viaggiatore negata;Guida assegnata;1. Prova ad aprire la conversazione individuale con un viaggiatore;Negata alla guida;Alta;;;;;;;;
+GUI-PRM-01;Permessi - cosa NON vede;Spese e cassa dei gruppi;Viaggio con spese;1. Cerca spese, cassa e pareggio;Non deve vederli;Alta;;;;;;;;
+GUI-PRM-02;Permessi - cosa NON vede;Ricordi e foto private;Viaggio con ricordi;1. Cerca ricordi e foto personali dei viaggiatori;Non deve vederli;Alta;;;;;;;;
+GUI-PRM-03;Permessi - cosa NON vede;Dati dell agenzia e altri viaggi;Guida connessa;1. Cerca anagrafica agenzia e altri viaggi;Non deve vederli;Alta;;;;;;;;
+GUI-PRM-04;Permessi - cosa PUO fare;Programma delle giornate assegnate;Assegnata ad alcune giornate;1. Modifica una giornata assegnata 2. Prova una non assegnata;Modifica solo le giornate assegnate;Alta;;;;;;;;
+GUI-PRE-01;Presenze;Appello del giorno;Viaggio assegnato in corso;1. Apri Presenza 2. Segna presenti, assenti, giustificati 3. Aggiungi nota;Registro salvato correttamente;Media;;;;;;;;
+GUI-PRE-02;Presenze;Presenze offline;Modalita aereo;1. Segna presenze senza rete 2. Riattiva la rete;Sincronizzazione senza duplicati;Media;;;;;;;;
+GUI-ALR-01;Segnalazioni;Consultazione segnalazioni operative;Viaggiatori con segnalazioni;1. Apri Segnalazioni;Vede le segnalazioni essenziali del viaggio assegnato, nel rispetto del consenso;Media;;;;;;;;
+GUI-DOC-01;Documenti;Consultazione documenti;Viaggio assegnato;1. Apri Documenti e consultane uno;Puo consultare i documenti del viaggio assegnato secondo i permessi;Media;;;;;;;;
+GUI-DBG-01;Dashboard;Dashboard operativa della guida;Guida con viaggi assegnati;1. Apri la dashboard;Mostra solo i viaggi assegnati con riepiloghi coerenti;Media;;;;;;;;
+GUI-DBG-02;Dashboard;Cambio tra viaggi assegnati;Piu viaggi assegnati;1. Passa da un viaggio all altro;Dati coerenti senza contaminazione;Media;;;;;;;;
+GUI-ROB-01;Robustezza;Accesso via URL a viaggio non assegnato;Guida connessa;1. Copia l URL di un viaggio non assegnato e aprilo;Accesso negato;Alta;;;;;;;;
+GUI-ROB-02;Robustezza;Tentativo di scrittura in chat non consentita via richiesta diretta;Guida connessa;1. Prova a inviare un messaggio in un ambito non consentito forzando la richiesta;L operazione e rifiutata dal server;Alta;;;;;;;;
+GUI-ACX-01;Accessibilita;Uso su smartphone in movimento;Guida su smartphone;1. Usa presenze e documenti dal telefono all aperto;Testi leggibili; comandi facili da toccare;;;;;;;;
+GUI-ACX-02;Accessibilita;Navigazione da tastiera;Su desktop;1. Naviga solo da tastiera;Comandi raggiungibili; focus visibile;;;;;;;;

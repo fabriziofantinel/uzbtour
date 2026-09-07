@@ -1,6 +1,6 @@
 # SMF Travel - Stato consolidamento architetturale
 
-Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migrazioni 001-167.
+Data di riferimento: 2026-09-08. Revisione allineata al modello V3 e alle migrazioni 001-200.
 
 ## Componenti e connessioni as-built
 
@@ -50,7 +50,8 @@ Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migraz
 | Error correlation web | Chiuso | `instrumentation.ts`, `onRequestError`, risposta con `errorId` e header `x-smf-error-id` |
 | Nomenclatura gruppi | Chiuso | URL, payload e consumer usano `groups`; il gate impedisce la reintroduzione di `families` |
 | DR e isolamento Neon | Chiuso | Ogni gate crea un branch effimero, verifica letture/RLS, ricostruisce lo schema da vuoto e rimuove il branch |
-| Dizionario e documenti architetturali | Chiuso | Architettura v1.3 e modelli logico/fisico v1.5; lo schema operativo validato contiene 89 tabelle |
+| Dizionario e documenti architetturali | Chiuso | Architettura v1.6, modelli logico/fisico v1.8, analisi funzionale v2.2, catalogo v1.4 e casi d'uso v1.5 allineati alla migrazione 200 |
+| Inventario nominale schema | Chiuso | Manifesto versionato di 99 tabelle applicative; confronto per nome, 73 RLS e registro checksum del bootstrap esplicitamente separato |
 | Dati per biglietteria | Fuori perimetro deciso | Non vengono archiviati passaporti o documenti sanitari; le sole segnalazioni operative essenziali hanno consenso e scadenza |
 | WAF perimetrale | Bloccato esternamente | Richiede un dominio personalizzato e una zona DNS; il dominio condiviso Vercel non è configurabile nella WAF Cloudflare |
 | Staging applicativo | Predisposto, non attivo | Branch Neon effimero e test sono pronti; manca un deployment Vercel staging isolato con configurazione e dati sintetici |
@@ -63,7 +64,7 @@ Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migraz
 - `npm run quality:release` esegue il build, che richiama il guard non aggirabile: baseline, migrazioni, confini runtime, sicurezza API, nomenclatura, debito identità, baseline test, formato, lint, TypeScript e unit test.
 - Playwright verifica i percorsi pubblici a ogni push. I test autenticati read-only sono eseguiti su `main` quando `E2E_BASE_URL` e le credenziali dedicate sono configurati.
 - Il job Neon crea un branch effimero, esegue smoke test sulla copia isolata, ricostruisce lo schema da vuoto e verifica RLS, rate limit, timezone e budget tenant.
-- La validazione del 2026-09-03 ha verificato 89 tabelle, 68 tabelle RLS, zero vincoli non validati, zero indici invalidi e zero tabelle tenant prive di indice leading.
+- La validazione dell'8 settembre 2026 ha verificato per nome 99 tabelle applicative, 73 tabelle RLS, zero tabelle mancanti o inattese, zero vincoli non validati, zero indici invalidi e zero tabelle tenant prive di indice leading. Il branch ricostruito contiene anche `ops.repository_migrations`, registro tecnico dei checksum.
 - Le migrazioni applicate restano immutabili; ogni evoluzione usa una nuova migrazione. Il deploy Vercel non sostituisce il deploy SAM.
 
 ## Residui necessari prima della chiusura operativa
