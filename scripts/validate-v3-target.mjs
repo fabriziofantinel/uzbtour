@@ -130,7 +130,7 @@ try {
     ).rows[0];
   }
   if (
-    ![60, 62, 65, 67, 68, 69, 70, 71, 74, 75, 77, 78, 79, 80, 82, 83, 85, 86, 87, 88, 89, 96, 99].includes(
+    ![60, 62, 65, 67, 68, 69, 70, 71, 74, 75, 77, 78, 79, 80, 82, 83, 85, 86, 87, 88, 89, 96, 99, 100].includes(
       result.table_count,
     ) ||
     !expectedRlsTableCounts.includes(result.rls_table_count) ||
