@@ -38,7 +38,8 @@ export default function AgencyManagementNav({
   rightSlot,
   staffView = false,
 }: Props) {
-  if (staffView)
+  if (staffView) {
+    const staffHref = (path: string) => `${path}?scope=traveler-staff`;
     return (
       <header className={className}>
         <Link href="/tour-leader">
@@ -46,7 +47,7 @@ export default function AgencyManagementNav({
         </Link>
         <nav aria-label="Gestione del viaggio">
           <Link
-            href={`/agenzia/viaggi/${departureId}/programma`}
+            href={staffHref(`/agenzia/viaggi/${departureId}/programma`)}
             aria-current={activeTab === "programma" ? "page" : undefined}
           >
             <BookOpen /> Programma
@@ -56,7 +57,7 @@ export default function AgencyManagementNav({
               <FolderOpen /> Documenti
             </span>
           ) : (
-            <Link href={`/agenzia/viaggi/${departureId}/documenti`}>
+            <Link href={staffHref(`/agenzia/viaggi/${departureId}/documenti`)}>
               <FolderOpen /> Documenti
             </Link>
           )}
@@ -65,7 +66,7 @@ export default function AgencyManagementNav({
               <MessageCircle /> Chat
             </span>
           ) : (
-            <Link href={`/agenzia/viaggi/${departureId}/chat`}>
+            <Link href={staffHref(`/agenzia/viaggi/${departureId}/chat`)}>
               <MessageCircle /> Chat
             </Link>
           )}
@@ -74,7 +75,7 @@ export default function AgencyManagementNav({
               <Send /> Comunicazioni
             </span>
           ) : (
-            <Link href={`/agenzia/viaggi/${departureId}/comunicazioni`}>
+            <Link href={staffHref(`/agenzia/viaggi/${departureId}/comunicazioni`)}>
               <Send /> Comunicazioni
             </Link>
           )}
@@ -84,7 +85,7 @@ export default function AgencyManagementNav({
                 <ClipboardCheck /> Presenze e Segnalazioni
               </span>
             ) : (
-              <Link href={`/agenzia/viaggi/${departureId}/operativita`}>
+              <Link href={staffHref(`/agenzia/viaggi/${departureId}/operativita`)}>
                 <ClipboardCheck /> Presenze e Segnalazioni
               </Link>
             ))}
@@ -92,6 +93,7 @@ export default function AgencyManagementNav({
         <span className="journeyAgencyName">{journeyTitle || rightSlot}</span>
       </header>
     );
+  }
   return (
     <header className={className}>
       <Link href="/agenzia">

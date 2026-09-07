@@ -21,26 +21,27 @@ export async function readV3JourneyManagement(
   const sql = getSql();
   const rows = staffAccess
     ? await (async () => {
-        const scopeRows = await sql`SELECT agency_id::text FROM app.read_staff_trip_cards_v3(${actorNativeId}::uuid)
+        const scopeRows =
+          await sql`SELECT agency_id::text,agency_name FROM app.read_staff_trip_cards_v3(${actorNativeId}::uuid)
           WHERE departure_id=${departureId}::uuid LIMIT 1`;
         if (!scopeRows[0]) return [];
         const agencyId = String(scopeRows[0].agency_id);
+        const agencyName = String(scopeRows[0].agency_name);
         const [, journeyRows] = await sql.transaction(
           (transaction) => [
             transaction`SELECT set_config('app.agency_id',${agencyId},true)`,
             transaction`SELECT departure.id AS departure_id,departure.agency_id,departure.title,departure.code,
-              departure.starts_on,departure.ends_on,departure.status AS departure_status,agency.name AS agency_name,
+              departure.starts_on,departure.ends_on,departure.status AS departure_status,${agencyName} AS agency_name,
               COALESCE(country.name,'') AS destination_country,party.id AS party_id,party.name AS party_name,
               party.code AS party_code,party.status AS party_status,
               COALESCE(experience.profile,departure.experience_profile) AS party_experience_profile,
               traveler.id AS traveler_id,traveler.display_name AS traveler_name,
-              COALESCE(account.username,'') AS traveler_username,COALESCE(traveler.email,'') AS traveler_email,
+              '' AS traveler_username,COALESCE(traveler.email,'') AS traveler_email,
               COALESCE(traveler.phone,'') AS traveler_phone,membership.role AS membership_role,
-              membership.status AS membership_status,account.status AS user_status,membership.member_type,
+              membership.status AS membership_status,membership.status AS user_status,membership.member_type,
               COALESCE(consent.decision,'missing') AS minor_image_consent,
               COALESCE(membership.participates_in_trip_games,false) AS traveler_participates_in_trip_games
             FROM travel.departures departure
-            JOIN iam.agencies agency ON agency.id=departure.agency_id
             JOIN travel.trip_templates template ON template.id=departure.template_id AND template.agency_id=departure.agency_id
             LEFT JOIN ref.countries country ON country.id=template.primary_country_id
             LEFT JOIN travel.travel_parties party ON party.departure_id=departure.id AND party.agency_id=departure.agency_id
@@ -50,7 +51,6 @@ export async function readV3JourneyManagement(
               AND membership.agency_id=departure.agency_id AND membership.status<>'removed'
             LEFT JOIN travel.traveler_profiles traveler ON traveler.id=membership.traveler_id
               AND traveler.agency_id=departure.agency_id
-            LEFT JOIN iam.users account ON account.id=traveler.user_id
             LEFT JOIN LATERAL (
               SELECT record.decision FROM privacy.consent_records record
               WHERE record.agency_id=departure.agency_id AND record.departure_id=departure.id

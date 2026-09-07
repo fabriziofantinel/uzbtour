@@ -75,7 +75,7 @@ export default function StaffTrips({ trips, today }: { trips: Trip[]; today: str
     setSearch("");
   };
   const open = (trip: Trip) => (
-    <Link className="primary" href={`/agenzia/viaggi/${trip.id}/programma`}>
+    <Link className="primary" href={`/agenzia/viaggi/${trip.id}/programma?scope=traveler-staff`}>
       <BookOpen /> Apri programma
     </Link>
   );
