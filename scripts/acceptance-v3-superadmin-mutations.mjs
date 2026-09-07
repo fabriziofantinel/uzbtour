@@ -10,38 +10,30 @@ try {
   open = true;
   const actor = (
     await client.query(
-      "SELECT id FROM public.platform_users WHERE platform_role='superadmin' AND status='active' ORDER BY created_at LIMIT 1",
+      "SELECT id FROM iam.users WHERE platform_role='superadmin' AND status='active' ORDER BY created_at LIMIT 1",
     )
   ).rows[0];
   if (!actor) throw new Error("Superadmin attivo non disponibile");
   const suffix = randomUUID(),
     slug = `acceptance-${suffix}`,
     email = `agent-${suffix}@invalid.example`;
+  const ownerUsername = `owner_${suffix.replaceAll("-", "").slice(0, 20)}`;
+  const agencyPayload = {
+    slug,
+    name: "Agenzia collaudo",
+    referenceName: "Responsabile collaudo",
+    referenceInitials: "RC",
+    referenceUsername: ownerUsername,
+    referenceEmail: `owner-${suffix}@invalid.example`,
+    referencePhone: "+39000000001",
+    registeredCountry: "IT",
+    branding: { primaryColor: "#247A6B", logoUrl: "" },
+  };
   const agencyId = (
     await client.query(
-      `SELECT app.create_platform_agency($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)::text id`,
-      [
-        actor.id,
-        slug,
-        "Agenzia collaudo",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "IT",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "Referente collaudo",
-        email,
-        "+39000000000",
-        JSON.stringify({ primaryColor: "#247A6B", logoUrl: "" }),
-      ],
+      `SELECT agency_id::text id FROM app.create_platform_agency_with_owner(
+        $1,$2::jsonb,$3,clock_timestamp()+interval '1 hour')`,
+      [actor.id, JSON.stringify(agencyPayload), randomBytes(32).toString("hex")],
     )
   ).rows[0]?.id;
   const branding = (

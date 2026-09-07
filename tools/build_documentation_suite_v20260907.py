@@ -665,6 +665,7 @@ def build_test_report(path: Path) -> None:
         ["Profilo Paese", "Responsabile autorizzato, superuser negato e override isolato per agenzia", "Superato con rollback"],
         ["Offline", "Installazione, cache programma/documenti, esclusione back-office e coda finanziaria idempotente", "Superato"],
         ["Guida di prova", "Guida rimossa non visibile; guida attiva con accesso test vede la partenza assegnata", "Superato su dato di prova"],
+        ["Collaudi V3 transazionali", "Accesso agenzia, owner e agenti; gruppi e partecipanti; budget tenant; gamification e contest; notifiche; engagement; scritture programma, partenze e riferimenti; cancellazione BR-019; mutazioni superuser", "Superati con rollback"],
         ["Ruoli e audience 174-197", "Contratti database verificati; resta la conferma UI su dispositivi e account reali", "Parziale: collaudo operatore"],
         ["AI live", "Harness disponibile ma nessuna pianificazione automatica", "Sospeso per decisione costi"],
         ["WAF e dominio", "Non configurabile sul dominio condiviso attuale", "Rinviato e non bloccante"],
@@ -689,7 +690,7 @@ def build_test_report(path: Path) -> None:
     ]:
         add_bullet(doc, text)
     doc.add_heading("Criterio per dichiarare chiuso il collaudo", level=2)
-    doc.add_paragraph("Tutti i casi prioritari e i casi della versione 1.3 devono avere esito registrato. Le anomalie bloccanti e gravi devono essere pari a zero. Le anomalie medie o lievi eventualmente rinviate devono avere responsabile, motivazione e data obiettivo. Nessun test AI live deve essere avviato senza autorizzazione esplicita.")
+    doc.add_paragraph("Tutti i casi prioritari e i casi della versione 1.4 devono avere esito registrato. Le anomalie bloccanti e gravi devono essere pari a zero. Le anomalie medie o lievi eventualmente rinviate devono avere responsabile, motivazione e data obiettivo. Nessun test AI live deve essere avviato senza autorizzazione esplicita.")
     doc.save(path)
 
 

@@ -42,11 +42,14 @@ try {
   const functionDefinition = (
     await client.query(
       `SELECT pg_get_functiondef(
-         'app.enqueue_platform_job_v3(text,uuid,text,text,jsonb,text,timestamptz)'::regprocedure
+         'app.enqueue_platform_job_v3(uuid,uuid,text,text,jsonb,text,timestamptz)'::regprocedure
        ) AS definition`,
     )
   ).rows[0]?.definition;
-  assert.match(functionDefinition, /agency_id = p_agency_id\) DESC NULLS LAST/);
+  assert.match(
+    functionDefinition,
+    /ORDER BY\s+\(limits\.agency_id\s*=\s*p_agency_id\)\s+DESC(?:\s+NULLS LAST)?,\s*\(limits\.job_type\s*=\s*p_job_type\)\s+DESC/i,
+  );
 
   assert.deepEqual(await resolvedLimits("travel-programme.import"), {
     active_limit: 1,

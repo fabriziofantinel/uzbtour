@@ -49,7 +49,7 @@ try {
   const trip = (
     await client.query(
       `SELECT * FROM app.create_trip_template_v3($1,$2,$3,$4,'acceptance-trip','Acceptance trip','Europe/Rome')`,
-      [actor.legacy_id, agencyId, templateId, versionId],
+      [actor.target_id, agencyId, templateId, versionId],
     )
   ).rows[0];
   if (!trip || trip.id !== templateId) throw new Error("Creazione viaggio V3 non riuscita");
@@ -66,7 +66,7 @@ try {
   );
   const deleted = (
     await client.query(`SELECT app.delete_trip_template_v3($1,$2,$3,ARRAY[]::uuid[]) deleted`, [
-      actor.legacy_id,
+      actor.target_id,
       agencyId,
       templateId,
     ])
@@ -74,7 +74,7 @@ try {
   if (!deleted?.deleted) throw new Error("Eliminazione viaggio V3 non riuscita");
   const deletion = (
     await client.query(`SELECT * FROM app.request_agency_deletion_v3($1,$2,'Acceptance rollback BR-019')`, [
-      actor.legacy_id,
+      actor.target_id,
       agencyId,
     ])
   ).rows[0];

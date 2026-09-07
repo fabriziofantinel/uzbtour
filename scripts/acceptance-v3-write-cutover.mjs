@@ -13,7 +13,8 @@ try {
   const scope = (
     await owner.query(`
     SELECT departure.agency_id,departure.id AS departure_id,departure.template_id,
-      departure.starts_on,departure.ends_on,actor_map.legacy_id AS actor_id,
+      departure.starts_on,departure.ends_on,actor.id AS actor_user_id,
+      actor_map.legacy_id AS actor_legacy_id,
       day.id AS day_id,
       coalesce(day.label_override,template_day.metadata->>'legacyLabel','') AS label,
       coalesce(day.title_override,template_day.title) AS title,
@@ -78,7 +79,7 @@ try {
       `SELECT app.update_departure_programme_day_v3(
     $1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9::jsonb) AS ok`,
       [
-        scope.actor_id,
+        scope.actor_legacy_id,
         scope.departure_id,
         scope.day_id,
         scope.label,
@@ -97,7 +98,7 @@ try {
     `SELECT app.create_departure_from_programme_v3(
     $1,$2,$3,$4,$5,$6,$7)`,
     [
-      scope.actor_id,
+      scope.actor_user_id,
       scope.template_id,
       newDepartureId,
       `ACCEPT-${crypto.randomUUID().slice(0, 8)}`,
@@ -125,7 +126,7 @@ try {
       `SELECT id FROM app.enqueue_platform_job_v3(
     $1,$2,'travel-reference.enrich','database',$3::jsonb,$4,clock_timestamp())`,
       [
-        scope.actor_id,
+        scope.actor_user_id,
         scope.agency_id,
         JSON.stringify({ templateId: String(scope.template_id) }),
         `acceptance:${crypto.randomUUID()}`,

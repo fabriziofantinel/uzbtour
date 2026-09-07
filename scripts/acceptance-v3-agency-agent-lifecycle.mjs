@@ -7,9 +7,8 @@ let open = false;
 try {
   await client.connect();
   const owner = (
-    await client.query(`SELECT membership.agency_id,map.legacy_id actor_id FROM iam.agency_memberships membership
+    await client.query(`SELECT membership.agency_id,users.id actor_id FROM iam.agency_memberships membership
  JOIN iam.users users ON users.id=membership.user_id AND users.status='active'
- JOIN ops.legacy_id_map map ON map.target_id=users.id AND map.source_system='public-v2' AND map.entity_type='user'
  WHERE membership.role='owner' AND membership.status='active' LIMIT 1`)
   ).rows[0];
   if (!owner) throw new Error("Owner agenzia non disponibile");

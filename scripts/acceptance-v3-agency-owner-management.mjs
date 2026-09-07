@@ -10,8 +10,8 @@ try {
   await client.query("BEGIN");
   open = true;
   const actor = (
-    await client.query(`SELECT map.legacy_id FROM iam.users users JOIN ops.legacy_id_map map ON map.target_id=users.id
-    WHERE users.platform_role='superadmin' AND users.status='active' AND map.source_system='public-v2' AND map.entity_type='user' LIMIT 1`)
+    await client.query(`SELECT users.id FROM iam.users users
+    WHERE users.platform_role='superadmin' AND users.status='active' LIMIT 1`)
   ).rows[0];
   if (!actor) throw new Error("Superadmin di collaudo non trovato");
   const suffix = randomBytes(5).toString("hex"),
@@ -30,7 +30,7 @@ try {
   const created = (
     await client.query(
       `SELECT * FROM app.create_platform_agency_with_owner($1,$2::jsonb,$3,clock_timestamp()+interval '1 day')`,
-      [actor.legacy_id, JSON.stringify(payload), "a".repeat(64)],
+      [actor.id, JSON.stringify(payload), "a".repeat(64)],
     )
   ).rows[0];
   const oldIdentity = (
@@ -40,19 +40,18 @@ try {
     )
   ).rows[0];
   await client.query(`SELECT app.update_platform_agency_owner_contact($1,$2,$3,$4)`, [
-    actor.legacy_id,
+    actor.id,
     created.agency_id,
     `updated.${suffix}@example.invalid`,
     "3331111111",
   ]);
-  const availableBefore = (
-    await client.query(`SELECT app.is_username_available($1,$2) value`, [actor.legacy_id, newUsername])
-  ).rows[0].value;
+  const availableBefore = (await client.query(`SELECT app.is_username_available($1,$2) value`, [actor.id, newUsername]))
+    .rows[0].value;
   const replaced = (
     await client.query(
       `SELECT * FROM app.replace_platform_agency_owner($1,$2,$3,$4,$5,$6,$7,$8,clock_timestamp()+interval '1 day')`,
       [
-        actor.legacy_id,
+        actor.id,
         created.agency_id,
         "Nuovo Responsabile",
         "NR",
@@ -70,7 +69,7 @@ try {
     EXISTS(SELECT 1 FROM public.platform_users WHERE id=$2) old_legacy_exists,
     (SELECT reference_email FROM iam.agencies WHERE id=$3) reference_email,
     app.is_username_available($4,$5) new_username_available`,
-      [oldIdentity.target_id, oldIdentity.legacy_id, created.agency_id, actor.legacy_id, newUsername],
+      [oldIdentity.target_id, oldIdentity.legacy_id, created.agency_id, actor.id, newUsername],
     )
   ).rows[0];
   if (
