@@ -26,6 +26,7 @@ export default async function CommunicationsPage({ params }: { params: Promise<{
         initialCommunications={communications}
         staff={operations.staff.filter((person) => person.status === "active")}
         showOperations
+        staffView={staffAccess}
       />
     );
   } catch (error) {

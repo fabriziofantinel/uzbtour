@@ -21,6 +21,7 @@ export default async function DayDocumentsPage({ params }: { params: Promise<{ i
         initialData={data}
         staff={operations.staff.filter((person) => person.status === "active")}
         showOperations
+        staffView={staffAccess}
       />
     );
   } catch (error) {

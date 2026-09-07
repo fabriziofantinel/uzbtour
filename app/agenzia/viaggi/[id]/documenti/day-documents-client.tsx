@@ -37,11 +37,13 @@ export default function DayDocumentsClient({
   staff,
   actorUserId,
   showOperations = true,
+  staffView = false,
 }: {
   initialData: AgencyDayDocuments;
   staff: { userId: string; name: string; role: string }[];
   actorUserId: string;
   showOperations?: boolean;
+  staffView?: boolean;
 }) {
   const [staffUserIds, setStaffUserIds] = useState<string[]>([]);
   const { confirm: confirmAction, dialog: confirmDialog } = useAppConfirm();
@@ -160,7 +162,7 @@ export default function DayDocumentsClient({
           showOperations={showOperations}
           quoteImportId={departure.quoteImportId}
           journeyTitle={departure.programmeTitle}
-          staffView
+          staffView={staffView}
         />
         <section className="journeyManageHero">
           <small>DOCUMENTI DEL VIAGGIO</small>

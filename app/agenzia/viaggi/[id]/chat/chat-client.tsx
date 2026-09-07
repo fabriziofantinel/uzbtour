@@ -10,11 +10,13 @@ export default function AgencyOperationalChat({
   staff,
   actorUserId,
   showOperations = true,
+  staffView = false,
 }: {
   data: Data;
   staff: { userId: string; name: string; role: string }[];
   actorUserId: string;
   showOperations?: boolean;
+  staffView?: boolean;
 }) {
   const [staffUserId, setStaffUserId] = useState("");
   const color = validBrandColor(data.journey.agencyPrimaryColor);
@@ -38,7 +40,7 @@ export default function AgencyOperationalChat({
         journeyTitle={data.journey.title}
         quoteImportId={data.journey.quoteImportId}
         showOperations={showOperations}
-        staffView
+        staffView={staffView}
       />
       <section className="journeyManageHero">
         <h1>{data.journey.title}</h1>

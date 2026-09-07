@@ -20,6 +20,7 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
         data={data}
         staff={operations.staff.filter((person) => person.status === "active")}
         showOperations
+        staffView={staffAccess}
       />
     );
   } catch (error) {

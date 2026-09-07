@@ -31,12 +31,14 @@ export default function CommunicationsClient({
   staff,
   actorUserId,
   showOperations = true,
+  staffView = false,
 }: {
   journey: Awaited<ReturnType<typeof getJourneyManagement>>;
   initialCommunications: Communication[];
   staff: { userId: string; name: string; role: string }[];
   actorUserId: string;
   showOperations?: boolean;
+  staffView?: boolean;
 }) {
   const [communications, setCommunications] = useState(initialCommunications);
   const [recipients, setRecipients] = useState<Record<string, Recipient[]>>({});
@@ -238,7 +240,7 @@ export default function CommunicationsClient({
           journeyTitle={journey.journey.title}
           showOperations={showOperations}
           quoteImportId={journey.journey.quoteImportId}
-          staffView
+          staffView={staffView}
         />
         <section className="journeyManageHero">
           <h1>{journey.journey.title}</h1>
