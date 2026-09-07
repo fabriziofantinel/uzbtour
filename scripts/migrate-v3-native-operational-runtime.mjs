@@ -33,6 +33,8 @@ const migrations = [
   "191_v3_staff_communication_lifecycle",
   "192_v3_staff_recipient_integrity",
   "193_v3_guide_chat_boundary",
+  "194_v3_hide_revoked_agency_staff",
+  "195_v3_staff_temporal_access_fix",
 ];
 const sources = await Promise.all(
   migrations.map(async (name) => ({
@@ -95,6 +97,8 @@ try {
       EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='191_v3_staff_communication_lifecycle') staff_communication_lifecycle_marker,
       EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='192_v3_staff_recipient_integrity') staff_recipient_integrity_marker,
       EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='193_v3_guide_chat_boundary') guide_chat_boundary_marker,
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='194_v3_hide_revoked_agency_staff') hide_revoked_staff_marker,
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='195_v3_staff_temporal_access_fix') staff_temporal_access_fix_marker,
       to_regprocedure('app.save_country_profile_override_v3(uuid,uuid,uuid,jsonb)') IS NOT NULL country_profile_override_write,
       to_regprocedure('app.acknowledge_staff_communication_v3(uuid,uuid,uuid)') IS NOT NULL staff_communication_ack`)
   ).rows[0];
@@ -104,7 +108,7 @@ try {
     await client.query(
       `INSERT INTO ops.schema_migrations(version,checksum_sha256) VALUES($1,$2)
        ON CONFLICT(version) DO UPDATE SET applied_at=clock_timestamp(),checksum_sha256=EXCLUDED.checksum_sha256`,
-      ["3.121.0-native-operational-runtime", checksum],
+      ["3.123.0-native-operational-runtime", checksum],
     );
     await client.query("COMMIT");
   } else {
