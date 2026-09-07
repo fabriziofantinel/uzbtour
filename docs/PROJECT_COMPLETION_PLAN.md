@@ -33,7 +33,7 @@ Aggiornato al 7 settembre 2026.
 - Cancellazione agenzia SQS-Lambda-Neon: agenzia temporanea eliminata con fase finale `completed`.
 - Produzione autenticata come responsabile: dashboard, programma, gruppi, documenti, chat, agenti, analytics, revisione Paese e login-come verificati.
 - Layout mobile del programma corretto a 360 px: la voce Preventivi usa lo stesso controllo compatto delle altre schede e non forza più la barra oltre il viewport.
-- Percorsi pubblici di produzione verificati con Playwright mobile: 5/5 superati.
+- Percorsi pubblici di produzione verificati con Playwright mobile: 5/5 superati sul commit `ec5feee` distribuito il 7 settembre 2026. L'alias pubblico verificato è `https://smf-travel.vercel.app`; l'alias tecnico di team è protetto da Vercel SSO e non deve essere usato come base dei test anonimi.
 - Installabilità e offline verificati: manifest, icone, service worker, programma e documenti offline, esclusione back-office e pulizia cache privata.
 - Sincronizzazione finanziaria offline verificata: coda IndexedDB, retry, conflitti e idempotenza.
 - Profili Paese verificati: responsabile autorizzato, superuser negato e dati isolati per agenzia.
@@ -95,4 +95,4 @@ Audit statico Impeccable 4.2.2 completato il 7 settembre 2026: 14/20, nessuna an
 
 Checklist go-live, rollback, backup/restore, dati demo, documentazione operativa e accettazione finale.
 
-Checklist predisposta in `docs/operations/GO_LIVE_CHECKLIST.md`. Il punto resta aperto finché non sono disponibili: commit candidato distribuito, capacità Vercel con margine, UAT ruoli/dispositivi, almeno un restore Neon dimostrato, rollback Vercel provato e accettazione dell'operatore pilota. Lo script storico dei dati demo richiede revisione prima di qualsiasi esecuzione perché usa ancora strutture legacy e identificativi fissi.
+Checklist predisposta in `docs/operations/GO_LIVE_CHECKLIST.md`. Il commit candidato `ec5feee` è distribuito e ha superato build e smoke pubblici. Il punto resta aperto finché non sono disponibili: capacità Vercel con margine, UAT ruoli/dispositivi, almeno un restore Neon dimostrato, rollback Vercel provato e accettazione dell'operatore pilota. Lo script storico dei dati demo richiede revisione prima di qualsiasi esecuzione perché usa ancora strutture legacy e identificativi fissi.
