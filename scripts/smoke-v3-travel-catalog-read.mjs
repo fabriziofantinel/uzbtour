@@ -2,7 +2,11 @@ import { randomUUID } from "node:crypto";
 
 import { Client } from "@neondatabase/serverless";
 
-const runtimeUrl = process.env.DATABASE_URL;
+const runtimeUrl =
+  process.env.DATABASE_RUNTIME_URL ??
+  process.env.DATABASE_URL ??
+  process.env.DATABASE_MIGRATION_URL ??
+  process.env.DATABASE_URL_UNPOOLED;
 if (!runtimeUrl) throw new Error("DATABASE_URL runtime non configurata");
 
 const client = new Client(runtimeUrl);

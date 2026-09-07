@@ -8,7 +8,7 @@ try {
   await client.query("BEGIN");
   open = true;
   const fixture = (
-    await client.query(`SELECT map.legacy_id,party.agency_id,party.departure_id,party.id party_id,day.id day_id
+    await client.query(`SELECT map.legacy_id,profile.user_id actor_user_id,party.agency_id,party.departure_id,party.id party_id,day.id day_id
   FROM travel.party_memberships membership JOIN travel.travel_parties party ON party.agency_id=membership.agency_id AND party.departure_id=membership.departure_id AND party.id=membership.party_id
   JOIN travel.traveler_profiles profile ON profile.agency_id=membership.agency_id AND profile.id=membership.traveler_id AND profile.user_id IS NOT NULL
   JOIN ops.legacy_id_map map ON map.source_system='public-v2' AND map.entity_type='user' AND map.target_id=profile.user_id
@@ -54,12 +54,10 @@ try {
     )
   ).rows[0].id;
   const chatId = (
-    await client.query("SELECT app.send_operational_message_v3($1,$2,$3,'Richiesta assistenza smoke',$4)::text id", [
-      fixture.legacy_id,
-      fixture.departure_id,
-      fixture.party_id,
-      crypto.randomUUID(),
-    ])
+    await client.query(
+      "SELECT app.send_operational_message_scoped_v3($1::uuid,$2::uuid,'group',$3::uuid,NULL,'Richiesta assistenza smoke',$4::uuid)::text id",
+      [fixture.actor_user_id, fixture.departure_id, fixture.party_id, crypto.randomUUID()],
+    )
   ).rows[0].id;
   await client.query(`SELECT set_config('app.agency_id',$1,true)`, [fixture.agency_id]);
   const event = (

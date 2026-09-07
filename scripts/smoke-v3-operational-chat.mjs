@@ -9,22 +9,19 @@ try {
   open = true;
   const candidate = (
     await client.query(
-      `SELECT map.legacy_id,member.departure_id::text,member.party_id::text FROM ops.legacy_id_map map JOIN travel.traveler_profiles profile ON profile.user_id=map.target_id AND map.entity_type='user' JOIN travel.party_memberships member ON member.agency_id=profile.agency_id AND member.traveler_id=profile.id AND member.status='active' LIMIT 1`,
+      `SELECT profile.user_id actor_user_id,member.departure_id::text,member.party_id::text FROM travel.traveler_profiles profile JOIN travel.party_memberships member ON member.agency_id=profile.agency_id AND member.traveler_id=profile.id AND member.status='active' WHERE profile.user_id IS NOT NULL LIMIT 1`,
     )
   ).rows[0];
   if (!candidate) throw new Error("Nessun viaggiatore attivo disponibile per lo smoke test");
   const operation = crypto.randomUUID(),
     body = `smoke-chat-${operation}`;
-  const sent = await client.query(`SELECT app.send_operational_message_v3($1,$2::uuid,$3::uuid,$4,$5::uuid)::text id`, [
-    candidate.legacy_id,
-    candidate.departure_id,
-    candidate.party_id,
-    body,
-    operation,
-  ]);
+  const sent = await client.query(
+    `SELECT app.send_operational_message_scoped_v3($1::uuid,$2::uuid,'group',$3::uuid,NULL,$4,$5::uuid)::text id`,
+    [candidate.actor_user_id, candidate.departure_id, candidate.party_id, body, operation],
+  );
   const listed = await client.query(
-    `SELECT body,is_mine FROM app.list_operational_messages_v3($1,$2::uuid,$3::uuid,10) WHERE body=$4`,
-    [candidate.legacy_id, candidate.departure_id, candidate.party_id, body],
+    `SELECT body,is_mine FROM app.list_operational_messages_scoped_v3($1::uuid,$2::uuid,'group',$3::uuid,NULL,10) WHERE body=$4`,
+    [candidate.actor_user_id, candidate.departure_id, candidate.party_id, body],
   );
   if (sent.rowCount !== 1 || listed.rowCount !== 1 || listed.rows[0].is_mine !== true)
     throw new Error("Contratto chat non verificato");

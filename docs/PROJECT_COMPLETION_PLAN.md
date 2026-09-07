@@ -39,6 +39,7 @@ Aggiornato al 7 settembre 2026.
 - Profili Paese verificati: responsabile autorizzato, superuser negato e dati isolati per agenzia.
 - Ruoli accompagnatore e guida verificati in transazione: viaggio assegnato, programma completo, modifica della sola giornata assegnata, presenze, chat consentita/negata, scadenza e revoca.
 - Isolamento agenzia verificato in transazione: rifiuto cross-tenant e invalidazione sessione/impersonazione dopo sospensione.
+- Smoke runtime V3 riallineati alle identità native e superati: accesso e mutazioni superuser, dashboard agenzia e analytics, gestione viaggio e partecipanti, chat nativa, catalogo, spese, engagement, gamification, KPI, media e isolamento cross-tenant.
 
 ### Correzioni emerse dal collaudo
 
@@ -47,6 +48,7 @@ Aggiornato al 7 settembre 2026.
 - Eliminato l'overflow orizzontale della testata Programma sui dispositivi Android compatti.
 - Corretta con la migrazione 196 l'ambiguità SQL che bloccava la lettura della chat operativa nativa.
 - Corretta con la migrazione 197 la mancata invalidazione di sessioni Cognito e impersonazioni per un'agenzia sospesa.
+- Rimossi dai collaudi residui gli identificativi attore e le firme funzione legacy; gli script possono assumere localmente il ruolo `smf_app` tramite la DSN owner senza richiedere o leggere una seconda password runtime.
 
 ### Limiti di verifica non bloccanti
 

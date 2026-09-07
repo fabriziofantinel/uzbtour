@@ -17,30 +17,24 @@ try {
   const role = (await client.query("SELECT current_user role_name")).rows[0]?.role_name;
   const gates = (
     await client.query(`SELECT
-    has_function_privilege(current_user,'app.resolve_neon_authenticated_user(text,text,text)','EXECUTE') authenticated,
-    has_function_privilege(current_user,'app.resolve_legacy_user_access(text,uuid)','EXECUTE') access,
-    has_function_privilege(current_user,'app.start_legacy_impersonation(text,text,text,timestamptz,text)','EXECUTE') start_impersonation,
-    has_function_privilege(current_user,'app.resolve_legacy_impersonation(text,text)','EXECUTE') resolve_impersonation,
-    has_function_privilege(current_user,'app.end_legacy_impersonation(text,text)','EXECUTE') end_impersonation,
+    has_function_privilege(current_user,'app.resolve_cognito_authenticated_user(text)','EXECUTE') authenticated,
+    has_function_privilege(current_user,'app.resolve_user_access_v3(uuid,uuid)','EXECUTE') access,
+    has_function_privilege(current_user,'app.start_impersonation_v3(uuid,uuid,text,timestamptz,text)','EXECUTE') start_impersonation,
+    has_function_privilege(current_user,'app.resolve_impersonation_v3(uuid,text)','EXECUTE') resolve_impersonation,
+    has_function_privilege(current_user,'app.end_impersonation_v3(uuid,text)','EXECUTE') end_impersonation,
     NOT has_table_privilege(current_user,'ops.legacy_id_map','SELECT') identity_map_private`)
   ).rows[0];
   if (!gates || Object.values(gates).some((value) => value !== true))
     throw new Error(`Gate runtime incompleti: ${JSON.stringify(gates)}`);
 
   const unknownAccess =
-    (await client.query("SELECT * FROM app.resolve_legacy_user_access($1,NULL)", [randomUUID()])).rowCount === 0;
+    (await client.query("SELECT * FROM app.resolve_user_access_v3($1,NULL)", [randomUUID()])).rowCount === 0;
   const unknownAuth =
-    (
-      await client.query("SELECT * FROM app.resolve_neon_authenticated_user($1,$2,$3)", [
-        randomUUID(),
-        `${randomUUID()}@invalid.example`,
-        `Smoke ${randomUUID()}`,
-      ])
-    ).rowCount === 0;
+    (await client.query("SELECT * FROM app.resolve_cognito_authenticated_user($1)", [randomUUID()])).rowCount === 0;
   let impersonationDenied = false;
   try {
     await client.query(
-      `SELECT * FROM app.start_legacy_impersonation(
+      `SELECT * FROM app.start_impersonation_v3(
       $1,$2,$3,clock_timestamp()+interval '1 hour','smoke')`,
       [randomUUID(), randomUUID(), randomBytes(32).toString("hex")],
     );
@@ -53,13 +47,13 @@ try {
   const candidates = (
     await owner.query(`SELECT users.id,
     users.platform_role='superadmin' AS expected_superadmin,
-    EXISTS(SELECT 1 FROM public.agency_memberships membership
-      WHERE membership.user_id=users.id AND membership.role IN ('owner','admin','editor')) AS expected_agency_admin
-    FROM public.platform_users users WHERE users.status='active' ORDER BY users.id LIMIT 20`)
+    EXISTS(SELECT 1 FROM iam.agency_memberships membership
+      WHERE membership.user_id=users.id AND membership.status='active'
+        AND membership.role IN ('owner','admin','editor')) AS expected_agency_admin
+    FROM iam.users users WHERE users.status='active' ORDER BY users.id LIMIT 20`)
   ).rows;
   for (const candidate of candidates) {
-    const access = (await client.query("SELECT * FROM app.resolve_legacy_user_access($1,NULL)", [candidate.id]))
-      .rows[0];
+    const access = (await client.query("SELECT * FROM app.resolve_user_access_v3($1,NULL)", [candidate.id])).rows[0];
     if (
       !access?.is_active ||
       access.is_superadmin !== candidate.expected_superadmin ||

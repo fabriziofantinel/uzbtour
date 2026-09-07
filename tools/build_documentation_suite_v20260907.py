@@ -666,6 +666,7 @@ def build_test_report(path: Path) -> None:
         ["Offline", "Installazione, cache programma/documenti, esclusione back-office e coda finanziaria idempotente", "Superato"],
         ["Guida di prova", "Guida rimossa non visibile; guida attiva con accesso test vede la partenza assegnata", "Superato su dato di prova"],
         ["Collaudi V3 transazionali", "Accesso agenzia, owner e agenti; gruppi e partecipanti; budget tenant; gamification e contest; notifiche; engagement; scritture programma, partenze e riferimenti; cancellazione BR-019; mutazioni superuser", "Superati con rollback"],
+        ["Smoke runtime V3", "Identità e impersonazione native; superuser; dashboard e analytics; viaggi e partecipanti; chat; spese; catalogo; KPI; media e isolamento cross-tenant", "Superati"],
         ["Ruoli e audience 174-197", "Contratti database verificati; resta la conferma UI su dispositivi e account reali", "Parziale: collaudo operatore"],
         ["AI live", "Harness disponibile ma nessuna pianificazione automatica", "Sospeso per decisione costi"],
         ["WAF e dominio", "Non configurabile sul dominio condiviso attuale", "Rinviato e non bloccante"],
