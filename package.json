@@ -381,6 +381,7 @@
     "acceptance:country-profiles": "tsx scripts/acceptance-verified-country-profile.ts",
     "acceptance:bedrock:import-matrix": "tsx scripts/acceptance-bedrock-travel-import-matrix.ts",
     "acceptance:v3:agency-country-profile-review": "node --env-file=.env.local scripts/acceptance-v3-agency-country-profile-review.mjs",
+    "acceptance:v3:staff-role-boundaries": "node --env-file=.env.local scripts/acceptance-v3-staff-role-boundaries.mjs",
     "acceptance:travel-import-quality": "tsx scripts/acceptance-travel-import-quality.ts",
     "check:v3:runtime-boundaries": "node scripts/check-v3-runtime-boundaries.mjs",
     "check:api-security": "node scripts/check-api-security-boundaries.mjs",

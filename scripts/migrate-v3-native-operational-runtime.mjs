@@ -35,6 +35,8 @@ const migrations = [
   "193_v3_guide_chat_boundary",
   "194_v3_hide_revoked_agency_staff",
   "195_v3_staff_temporal_access_fix",
+  "196_v3_native_operational_chat_read_ambiguity_fix",
+  "197_v3_suspended_agency_session_boundary",
 ];
 const sources = await Promise.all(
   migrations.map(async (name) => ({
@@ -99,6 +101,8 @@ try {
       EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='193_v3_guide_chat_boundary') guide_chat_boundary_marker,
       EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='194_v3_hide_revoked_agency_staff') hide_revoked_staff_marker,
       EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='195_v3_staff_temporal_access_fix') staff_temporal_access_fix_marker,
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='196_v3_native_operational_chat_read_ambiguity_fix') native_chat_read_ambiguity_fix_marker,
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='197_v3_suspended_agency_session_boundary') suspended_agency_session_boundary_marker,
       to_regprocedure('app.save_country_profile_override_v3(uuid,uuid,uuid,jsonb)') IS NOT NULL country_profile_override_write,
       to_regprocedure('app.acknowledge_staff_communication_v3(uuid,uuid,uuid)') IS NOT NULL staff_communication_ack`)
   ).rows[0];

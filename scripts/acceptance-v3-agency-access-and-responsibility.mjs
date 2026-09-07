@@ -10,11 +10,11 @@ try {
   await client.query("BEGIN");
   open = true;
   const actorRow = (
-    await client.query(`SELECT map.legacy_id,users.email FROM ops.legacy_id_map map
+    await client.query(`SELECT users.id,map.legacy_id,users.email FROM ops.legacy_id_map map
     JOIN iam.users users ON users.id=map.target_id
     WHERE users.platform_role='superadmin' AND users.status='active' LIMIT 1`)
   ).rows[0];
-  const actor = actorRow?.legacy_id;
+  const actor = actorRow?.id;
   if (!actor || !actorRow.email) throw new Error("Superadmin di collaudo non disponibile");
   const suffix = randomUUID().replaceAll("-", "").slice(0, 10),
     username = `accept.${suffix}`;
@@ -96,6 +96,14 @@ try {
   ).rows[0];
   if (!replacement?.legacy_user_id || !replacement.activation_required)
     throw new Error("Sostituzione responsabile non completata");
+  const replacementTarget = (
+    await client.query(
+      `SELECT target_id FROM ops.legacy_id_map
+       WHERE source_system='public-v2' AND entity_type='user' AND legacy_id=$1`,
+      [replacement.legacy_user_id],
+    )
+  ).rows[0]?.target_id;
+  if (!replacementTarget) throw new Error("Identità nativa del responsabile sostitutivo non disponibile");
   const currentOwners = Number(
     (
       await client.query(
@@ -141,9 +149,9 @@ try {
   const impersonationToken = createHash("sha256").update(randomUUID()).digest("hex");
   const impersonated = (
     await client.query(
-      `SELECT * FROM app.start_legacy_impersonation(
+      `SELECT * FROM app.start_impersonation_v3(
     $1,$2,$3,clock_timestamp()+interval '1 hour',$4)`,
-      [actor, replacement.legacy_user_id, impersonationToken, "acceptance-test"],
+      [actor, replacementTarget, impersonationToken, "acceptance-test"],
     )
   ).rows[0];
   if (!impersonated?.is_agency_admin) throw new Error("Impersonazione responsabile priva dei permessi agenzia");
@@ -151,7 +159,7 @@ try {
     (
       await client.query(
         `SELECT count(*) total
-    FROM app.resolve_legacy_impersonation($1,$2)`,
+    FROM app.resolve_impersonation_v3($1,$2)`,
         [actor, impersonationToken],
       )
     ).rows[0].total,
@@ -161,14 +169,7 @@ try {
     FROM ops.audit_events WHERE entity_type='impersonation_session' AND action='impersonation_started'
     ORDER BY id DESC LIMIT 1`)
   ).rows[0];
-  const actorTarget = (
-    await client.query(
-      `SELECT actor_map.target_id::text actor_id,target_map.target_id::text target_id
-    FROM ops.legacy_id_map actor_map CROSS JOIN ops.legacy_id_map target_map
-    WHERE actor_map.legacy_id=$1 AND target_map.legacy_id=$2 LIMIT 1`,
-      [actor, replacement.legacy_user_id],
-    )
-  ).rows[0];
+  const actorTarget = { actor_id: String(actor), target_id: String(replacementTarget) };
   if (
     resolvedImpersonation !== 1 ||
     impersonationAudit?.actor_user_id !== actorTarget?.actor_id ||
@@ -179,7 +180,7 @@ try {
     );
   const outsideTraveler = (
     await client.query(
-      `SELECT map.legacy_id FROM travel.traveler_profiles profile
+      `SELECT map.legacy_id,map.target_id user_id FROM travel.traveler_profiles profile
     JOIN travel.party_memberships membership ON membership.agency_id=profile.agency_id
       AND membership.traveler_id=profile.id AND membership.status='active'
     JOIN ops.legacy_id_map map ON map.target_id=profile.user_id
@@ -194,10 +195,10 @@ try {
   try {
     await client.query(
       `SELECT * FROM app.start_agency_traveler_impersonation(
-    $1,$2,$3,clock_timestamp()+interval '30 minutes',$4)`,
+    $1::uuid,$2::uuid,$3,clock_timestamp()+interval '30 minutes',$4)`,
       [
-        replacement.legacy_user_id,
-        outsideTraveler.legacy_id,
+        replacementTarget,
+        outsideTraveler.user_id,
         createHash("sha256").update(randomUUID()).digest("hex"),
         "acceptance-cross-tenant",
       ],
@@ -220,7 +221,7 @@ try {
     (
       await client.query(
         `SELECT count(*) total
-    FROM app.resolve_legacy_impersonation($1,$2)`,
+    FROM app.resolve_impersonation_v3($1,$2)`,
         [actor, impersonationToken],
       )
     ).rows[0].total,

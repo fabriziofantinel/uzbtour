@@ -1,10 +1,10 @@
 # Piano di completamento SMF Travel
 
-Aggiornato al 2 settembre 2026.
+Aggiornato al 7 settembre 2026.
 
 ## Stato sintetico
 
-- [x] 1. Collaudo end-to-end e chiusura dei casi d'uso
+- [ ] 1. Collaudo end-to-end e chiusura dei casi d'uso (in corso: automazione completata, UAT operatore da eseguire)
 - [x] 2. Validazione sistematica della qualità AI
 - [x] 3. Consolidamento della governance delle informazioni Paese
 - [x] 4. Osservabilità e procedure operative
@@ -18,8 +18,8 @@ Aggiornato al 2 settembre 2026.
 ### Completato
 
 - Quality guard, TypeScript, sicurezza migrazioni e confini runtime.
-- Build Next.js di produzione: 43 pagine statiche/dinamiche e route API compilate.
-- Validazione schema Neon: 78 tabelle, 61 con RLS, nessun vincolo o indice invalido.
+- Build Next.js 16.3.2 di produzione completato con 33 pagine statiche e dinamiche, oltre alle route API.
+- Validazione schema Neon 197: 96 tabelle, 70 con RLS, nessun vincolo o indice invalido e nessuna tabella tenant priva di indice leading.
 - Flussi database: profili Paese, gruppi, inviti, utenti, analytics, cancellazioni, engagement e write cutover.
 - PWA: installabilità, manifest dinamico, service worker, offline e sincronizzazione finanziaria.
 - Push: sottoscrizione, invio pianificato e contratti applicativi.
@@ -33,22 +33,31 @@ Aggiornato al 2 settembre 2026.
 - Cancellazione agenzia SQS-Lambda-Neon: agenzia temporanea eliminata con fase finale `completed`.
 - Produzione autenticata come responsabile: dashboard, programma, gruppi, documenti, chat, agenti, analytics, revisione Paese e login-come verificati.
 - Layout mobile del programma corretto a 360 px: la voce Preventivi usa lo stesso controllo compatto delle altre schede e non forza più la barra oltre il viewport.
+- Percorsi pubblici di produzione verificati con Playwright mobile: 5/5 superati.
+- Installabilità e offline verificati: manifest, icone, service worker, programma e documenti offline, esclusione back-office e pulizia cache privata.
+- Sincronizzazione finanziaria offline verificata: coda IndexedDB, retry, conflitti e idempotenza.
+- Profili Paese verificati: responsabile autorizzato, superuser negato e dati isolati per agenzia.
+- Ruoli accompagnatore e guida verificati in transazione: viaggio assegnato, programma completo, modifica della sola giornata assegnata, presenze, chat consentita/negata, scadenza e revoca.
+- Isolamento agenzia verificato in transazione: rifiuto cross-tenant e invalidazione sessione/impersonazione dopo sospensione.
 
 ### Correzioni emerse dal collaudo
 
 - Aggiornata la validazione schema per accettare il nuovo totale reale di 78 tabelle.
 - Rese relative alla data di esecuzione le fixture del quiz giornaliero, evitando falsi errori dopo il 1 settembre 2026.
 - Eliminato l'overflow orizzontale della testata Programma sui dispositivi Android compatti.
+- Corretta con la migrazione 196 l'ambiguità SQL che bloccava la lettura della chat operativa nativa.
+- Corretta con la migrazione 197 la mancata invalidazione di sessioni Cognito e impersonazioni per un'agenzia sospesa.
 
 ### Limiti di verifica non bloccanti
 
 - La password della DSN Neon runtime non è stata letta: i privilegi sono verificati assumendo realmente `smf_app` e il funzionamento della produzione autenticata prova il collegamento applicativo senza esporre il segreto.
-- Il collaudo browser corrente copre il responsabile; superuser e viaggiatore sono coperti dagli smoke test automatici e dalle evidenze manuali precedenti.
+- Il collaudo browser autenticato corrente non può essere ripetuto automaticamente perché nell'ambiente non sono configurati gli account E2E dedicati.
+- Restano da provare con un operatore reale i percorsi UI autenticati per tutti i ruoli, l'isolamento visivo fra due tenant e due gruppi, iOS Safari e Android Fold chiuso.
 - Lettura errori runtime Vercel tramite connettore: non disponibile per autorizzazione insufficiente (HTTP 403); non è un errore applicativo.
 
 ## Criterio di chiusura del punto 1
 
-Il punto è chiuso: i flussi critici sono coperti da test automatici, verifiche Neon/AWS/Bedrock e collaudo autenticato in produzione. La lettura diretta dei segreti runtime resta deliberatamente esclusa e demandata al monitoraggio operativo.
+Il punto sarà chiuso quando il collaudo manuale con operatore avrà registrato l'esito di tutti i casi prioritari della versione 1.4, con zero anomalie bloccanti o gravi. I controlli tecnici e i test gratuiti disponibili sono attualmente superati; i test Bedrock live restano disattivati e richiedono un comando esplicito del proprietario.
 
 ## Punti successivi
 

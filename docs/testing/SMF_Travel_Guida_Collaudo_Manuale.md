@@ -1,6 +1,7 @@
 # SMF Travel - Guida al collaudo manuale
 
-Versione 1.0 - Documento per il tester incaricato del collaudo funzionale reale.
+Versione 1.1 - Documento per il tester incaricato del collaudo funzionale reale.
+Aggiornata con il ruolo del personale operativo (accompagnatori, guide, agenti).
 
 Questo documento ti permette di usare l'applicazione come la userebbero un'agenzia
 di viaggio e i suoi viaggiatori, di provare tutti i flussi in condizioni normali e
@@ -74,7 +75,8 @@ essere unico in tutta l'applicazione.
 | Viaggiatori agenzia A, gruppo 1 | 3 adulti + 1 minore | almeno uno con la tua email |
 | Viaggiatori agenzia A, gruppo 2 | 2 adulti | serve per i test di separazione |
 | Viaggiatori agenzia B | 2 adulti | serve per i test cross-agenzia |
-| Accompagnatore / Tour Leader agenzia A | 1 | assegnato al viaggio A |
+| Accompagnatore agenzia A | 1 | anche esterno; assegnato al viaggio A |
+| Guida agenzia A | 1 | assegnata solo ad alcune giornate del viaggio A |
 
 ---
 
@@ -487,29 +489,63 @@ caratteri internazionali e le foto grandi. Su iPhone prova la condivisione nativ
 Dai una valutazione a una giornata o attivita. Prova online e offline. Prova valori
 limite e il doppio invio.
 
-### 6.10 Operativita in viaggio e accompagnatore
+### 6.10 Personale operativo (accompagnatori, guide, agenti)
 
-**TEST-TLD-01 - Assegnazione dell'accompagnatore**
-Come responsabile, assegna un Tour Leader al viaggio (anche una persona esterna,
-non un agente). Deve ricevere un invito personale e vedere **solo** quel viaggio.
-Verifica la finestra temporale: fuori dal periodo di validita non deve avere
-accesso. Revoca l'assegnazione e verifica che l'accesso cessi.
+L'app distingue tre figure di personale, oltre al responsabile dell'agenzia:
+**agente** (opera dall'ufficio), **accompagnatore** e **guida** (operano in
+destinazione). Il personale operativo si crea nella pagina Personale e si assegna
+poi al singolo viaggio, per le giornate in cui lavora. La pagina di gestione del
+viaggio ha una sezione **Operativita** con tre schede: Assegna personale, Presenza,
+Segnalazioni.
 
-**TEST-TLD-02 - Cosa puo e non puo fare l'accompagnatore**
-Accedi come Tour Leader e verifica i confini:
-- Puo leggere e modificare il programma, comunicare, fare l'appello, caricare documenti.
-- **Non** deve vedere le spese, la cassa, i ricordi privati e le foto personali dei gruppi.
-- **Non** deve vedere altri viaggi o i dati dell'agenzia.
-- Prova ad accedere a un altro viaggio o a un'altra agenzia: deve essere negato.
+**TEST-STF-01 - Creazione del personale**
+Come responsabile (o agente autorizzato), crea nella pagina Personale un
+accompagnatore e una guida, anche persone esterne all'agenzia (freelance).
+Ciascuno deve ricevere un invito personale con il proprio username. Verifica che
+username duplicati siano rifiutati e che l'invito attivi solo quella persona.
 
-**TEST-TLD-03 - Appello e presenze**
-Dal giorno del viaggio, segna presenti e assenti, aggiungi una nota. Prova
-l'operazione **offline** e verifica che si sincronizzi al ritorno della rete.
+**TEST-STF-02 - Assegnazione al viaggio e alle giornate**
+Nella sezione Operativita del viaggio, scheda "Assegna personale", associa
+l'accompagnatore e la guida alle giornate in cui operano. Verifica:
+- Chi non e assegnato a un viaggio non lo vede.
+- La guida assegnata solo ad alcune giornate deve poter agire solo su quelle.
+- Prova la **finestra temporale**: fuori dal periodo di validita l'accesso al
+  viaggio deve essere negato, anche se l'assegnazione risulta attiva.
+
+**TEST-STF-03 - Revoca dell'assegnazione**
+Revoca l'assegnazione di un accompagnatore. L'accesso deve cessare alla richiesta
+successiva e la persona revocata non deve piu comparire tra il personale del
+viaggio. Verifica che una sessione gia aperta non continui a funzionare.
+
+**TEST-STF-04 - Confini di cosa puo e non puo fare il personale**
+Accedi come accompagnatore e come guida e verifica i limiti. Questa e una delle
+verifiche piu importanti, perche il ruolo e recente:
+- Puo leggere e modificare il programma delle giornate assegnate, comunicare, fare
+  le presenze, gestire i documenti e le segnalazioni operative del viaggio.
+- **Non** deve vedere spese, cassa, ricordi privati e foto personali dei gruppi.
+- **Non** deve vedere altri viaggi ne i dati dell'agenzia (anagrafica, altri clienti).
+- La **guida** deve avere confini piu stretti dell'accompagnatore sulla chat: prova
+  a scrivere in ambiti che non le competono e verifica che siano negati.
+- Prova ad aprire un altro viaggio o un viaggio di un'altra agenzia: deve essere negato.
+- Prova a modificare una giornata **non** assegnata a te: deve essere negato.
+
+**TEST-STF-05 - Appello e presenze**
+Dalla scheda Presenza, per il giorno del viaggio, segna presenti, assenti e
+giustificati, aggiungi una nota. Prova l'operazione **offline** e verifica che si
+sincronizzi al ritorno della rete. Prova ad azzerare e reinserire il registro:
+non deve creare doppioni ne cancellare piu del previsto.
+
+**TEST-STF-06 - Segnalazioni operative**
+Dalla scheda Segnalazioni, consulta le segnalazioni dei viaggiatori (es. esigenze
+di assistenza). Verifica che siano leggibili solo dal responsabile e dal personale
+assegnato, che rispettino il consenso e che scadano dopo il periodo previsto.
 
 **TEST-COM-01 - Comunicazione di partenza**
-Come agenzia o accompagnatore, componi una comunicazione a tutta la partenza o a un
-gruppo, con richiesta di conferma di lettura entro una scadenza. I viaggiatori
-destinatari devono riceverla; gli altri no.
+Come agenzia, accompagnatore o guida (secondo i permessi), componi una
+comunicazione a tutta la partenza, a uno o piu gruppi, oppure a personale
+selezionato, con richiesta di conferma di lettura entro una scadenza. I destinatari
+indicati devono riceverla; gli altri no. Verifica in particolare la selezione dei
+destinatari: cambia la selezione e controlla che chi resta fuori non veda nulla.
 
 **TEST-COM-02 - Controllo dei non letti**
 Verifica di poter vedere chi ha letto, chi non ha letto e chi non e raggiungibile.
@@ -519,7 +555,14 @@ una nota.
 **TEST-CHAT-01 - Chat ai tre livelli**
 Prova la chat di viaggio (tutti), di gruppo (solo il gruppo) e individuale (un
 singolo viaggiatore). Verifica che i messaggi non escano dal loro ambito: un membro
-del gruppo 2 non deve leggere la chat del gruppo 1.
+del gruppo 2 non deve leggere la chat del gruppo 1. Prova anche la chat con il
+personale operativo selezionato come destinatario e verifica che una guida non
+acceda ad ambiti che non le competono.
+
+**TEST-CHAT-02 - Documenti a destinatari selezionati**
+Nella sezione Documenti, prova ad allegare un documento indirizzato a uno o piu
+gruppi o a personale selezionato. Verifica che solo i destinatari indicati lo
+vedano e che gli altri, anche copiando un eventuale link, non vi accedano.
 
 ### 6.11 PWA, offline e notifiche
 
@@ -627,8 +670,11 @@ Se il tempo e limitato, concentrati prima su queste, perche un problema qui e gr
    orari o dettagli assenti.
 4. **Consenso e privacy dei minori**: senza consenso, le foto del minore devono essere
    bloccate ovunque.
-5. **Permessi dell'accompagnatore**: non deve vedere denaro e contenuti privati dei
-   gruppi, ne altri viaggi.
+5. **Permessi del personale operativo** (accompagnatore, guida, agente): non deve
+   vedere denaro e contenuti privati dei gruppi, ne altri viaggi; deve rispettare la
+   finestra temporale e la revoca; la guida deve avere confini piu stretti sulla
+   chat; e deve poter modificare solo le giornate a lui assegnate. E l'area piu
+   recente dell'app: provala a fondo.
 6. **Offline e sincronizzazione**: nessuna spesa o ricordo deve andare perso o
    duplicato quando la rete va e viene.
 7. **Sblocchi a orario nel fuso della destinazione**: quiz alle 20:00 locali, contest
