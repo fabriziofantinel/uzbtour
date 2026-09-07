@@ -25,7 +25,7 @@ export async function saveV3ActivityItemResult(input: {
   const [, rows] = await sql.transaction((txn) => [
     txn`SELECT set_config('app.agency_id',${input.agencyId},true)`,
     txn`SELECT * FROM app.save_activity_item_result_v3(
-      ${input.userId},${input.agencyId},${input.departureId},${input.partyId},${input.dayId},
+      ${input.userId}::uuid,${input.agencyId},${input.departureId},${input.partyId},${input.dayId},
       ${input.itemId},${resultId},${input.score},${input.maxScore},${input.status},
       ${JSON.stringify(input.result)}::jsonb,${input.mediaId ?? null}::uuid)`,
   ]);
@@ -46,7 +46,7 @@ export async function submitV3PhotoEvidence(input: {
   const [, rows] = await sql.transaction((txn) => [
     txn`SELECT set_config('app.agency_id',${input.agencyId},true)`,
     txn`SELECT * FROM app.submit_photo_evidence_v3(
-      ${input.userId},${input.agencyId},${input.departureId},${input.partyId},${input.dayId},
+      ${input.userId}::uuid,${input.agencyId},${input.departureId},${input.partyId},${input.dayId},
       ${input.itemId},${resultId},${input.mediaId})`,
   ]);
   return rows[0] as Record<string, unknown>;
@@ -66,7 +66,7 @@ export async function addV3PhotoContestEntry(input: {
   const [, rows] = await sql.transaction((txn) => [
     txn`SELECT set_config('app.agency_id',${input.agencyId},true)`,
     txn`SELECT * FROM app.upsert_photo_contest_draft_v3(
-      ${input.userId},${input.agencyId},${input.departureId},${input.partyId},${input.dayId},
+      ${input.userId}::uuid,${input.agencyId},${input.departureId},${input.partyId},${input.dayId},
       ${input.itemId},${input.mediaId},${randomUUID()},${input.participantSlot ?? null}::smallint)`,
   ]);
   return rows[0] as Record<string, unknown>;
@@ -82,7 +82,7 @@ export async function confirmV3PhotoContest(input: {
   const sql = getSql();
   const [, rows] = await sql.transaction((txn) => [
     txn`SELECT set_config('app.agency_id',${input.agencyId},true)`,
-    txn`SELECT * FROM app.confirm_photo_contest_v3(${input.userId},${input.agencyId},${input.departureId},${input.partyId},${input.itemId})`,
+    txn`SELECT * FROM app.confirm_photo_contest_v3(${input.userId}::uuid,${input.agencyId},${input.departureId},${input.partyId},${input.itemId})`,
   ]);
   return rows[0] as Record<string, unknown>;
 }
@@ -98,7 +98,7 @@ export async function reviewV3ActivityEvidence(input: {
   const [, rows] = await sql.transaction((txn) => [
     txn`SELECT set_config('app.agency_id',${input.agencyId},true)`,
     txn`SELECT * FROM app.review_activity_evidence_v3(
-      ${input.userId},${input.agencyId},${input.partyId},${input.resultId},${input.approved})`,
+      ${input.userId}::uuid,${input.agencyId},${input.partyId},${input.resultId},${input.approved})`,
   ]);
   return rows[0] as Record<string, unknown>;
 }

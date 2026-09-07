@@ -76,7 +76,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     await updateAgencyProgrammeDay({
       departureId: id,
       dayId,
-      actorId: actor.id,
+      actorId: actor.nativeId,
       actorNativeId: actor.nativeId,
       staffActorId: actor.isAgencyAdmin ? undefined : actor.nativeId,
       label: cleanText(body?.label, 240),

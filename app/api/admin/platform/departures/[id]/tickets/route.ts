@@ -20,7 +20,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const objectKey = String(body?.objectKey || "");
     const file = ticketFileDetails(body?.originalName, body?.contentType);
     if (!file) return NextResponse.json({ error: "Formato biglietto non valido" }, { status: 400 });
-    const { agencyId } = await requireAgencyTicketItem({ departureId, itemId, actorId: actor.id });
+    const { agencyId } = await requireAgencyTicketItem({ departureId, itemId, actorId: actor.nativeId });
     const prefix = `agencies/${agencyId}/departures/${departureId}/tickets/${itemId}/`;
     if (!objectKey.startsWith(prefix))
       return NextResponse.json({ error: "Percorso biglietto non valido" }, { status: 400 });

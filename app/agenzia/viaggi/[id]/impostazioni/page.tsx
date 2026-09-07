@@ -14,7 +14,7 @@ export default async function DepartureSettingsPage({ params }: { params: Promis
     const { id } = await params;
     const [journey, insurance] = await Promise.all([
       getJourneyManagement(id, actor.id, actor.nativeId),
-      readDepartureInsurance(actor.id, id),
+      readDepartureInsurance(actor.nativeId, id),
     ]);
     return <DepartureSettingsClient journey={journey} initialInsurance={insurance} />;
   } catch (error) {

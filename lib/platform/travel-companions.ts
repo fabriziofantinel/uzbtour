@@ -8,7 +8,7 @@ export type TravelCompanion = {
 
 export async function getTravelCompanions(userId: string): Promise<TravelCompanion[]> {
   const rows = await getSql()`
-    SELECT * FROM app.read_travel_companions_v3(${userId})
+    SELECT * FROM app.read_travel_companions_v3(${userId}::uuid)
   `;
 
   return rows.map((row) => ({

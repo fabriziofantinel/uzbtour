@@ -1,7 +1,7 @@
 # SMF Travel UAT di produzione
 
 Data: 7 settembre 2026  
-Release: `5b17fda`  
+Release verificata: `ec0f43b`
 Ambiente: `https://smf-travel.vercel.app`  
 Browser iniziale: Chrome desktop, sessione reale fornita dall'utente
 
@@ -12,9 +12,11 @@ Browser iniziale: Chrome desktop, sessione reale fornita dall'utente
 | Deployment e percorsi pubblici | Superato | Deployment Vercel `dpl_ASjaqwin3ptFqYzPuSNc9UJaeADP` Ready; Playwright mobile 5/5 |
 | Superuser, percorsi non distruttivi | Superato | Sessione reale, riepilogo, agenzie, branding, utenti e accessibilità |
 | Login come utente invitato | Superato | Sessione avviata come responsabile invitato e ritorno al superuser |
-| Responsabile agenzia | In corso | Dashboard e personale superati; anomalia Informazioni Paesi riprodotta e corretta localmente |
+| Responsabile agenzia | Superato per i percorsi non mutativi | Dashboard, personale, Analytics e tutte le sezioni del viaggio aperte; correzione Informazioni Paesi verificata in produzione |
+| Agente | In corso | Dashboard e isolamento sul tenant Golden Terra Travel verificati |
+| Accompagnatore | Anomalia riprodotta | Il login assistito indirizza erroneamente a `/viaggio`; correzione preparata e coperta da test |
 | Operazioni distruttive superuser | Copertura automatica | Sospensione e cancellazione non ripetute su tenant reali; coperte dai test transazionali |
-| Altri ruoli e dispositivi reali | Da eseguire | Responsabile, agente, accompagnatore, guida, viaggiatore, Android Fold e iOS |
+| Altri ruoli e dispositivi reali | Da eseguire | Completare agente, accompagnatore, guida, viaggiatore, Android Fold e iOS |
 
 ## UAT superuser
 
@@ -44,7 +46,16 @@ Browser iniziale: Chrome desktop, sessione reale fornita dall'utente
 | --- | --- | --- | --- |
 | UAT-RA-01 | Dashboard e viaggi dell'agenzia | Superato | Profilo Silvia Rossi, tenant Golden Terra Travel, 3 viaggi, 2 partenze e 3 gruppi |
 | UAT-RA-02 | Elenco personale | Superato | Agente, accompagnatore e guida attivi visibili; nessuna mutazione eseguita |
-| UAT-RA-03 | Informazioni Paesi | Anomalia riprodotta, correzione locale pronta | Produzione: errore `1090945064`; log Neon `country profile review reserved to agency`. La pagina usava l'attore Cognito superuser anziché l'identità impersonata |
-| UAT-RA-04 | Correzione del confine identità | Verifica tecnica superata | Introdotto controllo sull'utente corrente; TypeScript, lint, formato e 26 test unitari superati, inclusi 3 test dedicati |
+| UAT-RA-03 | Informazioni Paesi | Superato dopo correzione | L'errore `1090945064` è stato corretto e la pagina si apre in produzione con il profilo responsabile impersonato |
+| UAT-RA-04 | Correzione del confine identità | Superato | Distribuita con `ec0f43b`; quality guard e 26 test unitari superati, inclusi 3 test dedicati |
+| UAT-RA-05 | Contenuti Paese da validare | Da eseguire quando disponibili | La pagina mostra correttamente lo stato vuoto: Golden Terra Travel non ha profili centrali verificati. Esistono contenuti legacy approvati per Uzbekistan e Vietnam, ma non vengono promossi senza verifica né esecuzione Bedrock autorizzata |
+| UAT-RA-06 | Analytics | Superato | KPI principali presenti; 3 valutazioni aggregate e 3 schede di dettaglio coerenti, con sintesi per città, gruppo e viaggio |
+| UAT-RA-07 | Menu e sezioni del viaggio | Superato | Programma, Gruppi, Documenti, Chat, Comunicazioni, Operatività e Assicurazione aperti senza errore; menu invariato e Preventivi sempre presente |
 
-La ripresa del collaudo responsabile richiede la distribuzione della correzione e la verifica della stessa pagina in produzione.
+## UAT agente e personale operativo
+
+| ID | Verifica | Risultato | Evidenza osservata |
+| --- | --- | --- | --- |
+| UAT-AG-01 | Accesso assistito agente | Superato | `Agente 1` entra nel pannello Golden Terra Travel e vede i 3 viaggi del tenant |
+| UAT-OP-01 | Accesso assistito accompagnatore | Anomalia riprodotta, correzione pronta | `acco1`, pur assegnato a un viaggio, viene inviato a `/viaggio` e vede lo stato vuoto. Il redirect superuser distingueva solo amministratori e viaggiatori |
+| UAT-OP-02 | Correzione redirect personale | Verifica unitaria superata | Il redirect ora consulta le assegnazioni e porta agenti operativi, accompagnatori e guide a `/tour-leader`; 3 test dedicati superati |

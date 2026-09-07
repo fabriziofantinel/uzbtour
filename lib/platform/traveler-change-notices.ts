@@ -5,7 +5,7 @@ export async function readTravelerChangeNotices(input: { agencyId: string; depar
   const sql = getSql();
   const rows = await sql`SELECT id::text,departure_day_id::text,itinerary_item_id::text,
   change_type,severity,title,summary,previous_value,current_value,published_at::text,read_at::text
- FROM app.list_traveler_change_notices_v3(${input.userId},${input.agencyId}::uuid,${input.departureId}::uuid,100)`;
+ FROM app.list_traveler_change_notices_v3(${input.userId}::uuid,${input.agencyId}::uuid,${input.departureId}::uuid,100)`;
   return rows.map((row) => ({
     id: String(row.id),
     dayId: row.departure_day_id ? String(row.departure_day_id) : null,
@@ -27,6 +27,6 @@ export async function acknowledgeTravelerChangeNotice(input: {
   clientOperationId: string;
 }) {
   const rows =
-    await getSql()`SELECT app.acknowledge_traveler_change_notice_v3(${input.userId},${input.noticeId}::uuid,${input.clientOperationId}::uuid) acknowledged`;
+    await getSql()`SELECT app.acknowledge_traveler_change_notice_v3(${input.userId}::uuid,${input.noticeId}::uuid,${input.clientOperationId}::uuid) acknowledged`;
   return Boolean(rows[0]?.acknowledged);
 }

@@ -26,7 +26,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     if (!file || !Number.isSafeInteger(sizeBytes) || sizeBytes <= 0 || sizeBytes > MAX_TICKET_SIZE_BYTES) {
       return NextResponse.json({ error: "Biglietto non valido o superiore a 25 MB" }, { status: 400 });
     }
-    const { agencyId } = await requireAgencyTicketItem({ departureId, itemId, actorId: actor.id });
+    const { agencyId } = await requireAgencyTicketItem({ departureId, itemId, actorId: actor.nativeId });
     await assertTenantStorageCapacity(agencyId, sizeBytes, "document");
     const key = `agencies/${agencyId}/departures/${departureId}/tickets/${itemId}/${crypto.randomUUID()}.${file.extension}`;
     return NextResponse.json(await getObjectStorage().createUploadAuthorization(key, file.contentType, 10 * 60));

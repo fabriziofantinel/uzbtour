@@ -1,4 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
+import { readMyDepartureStaff } from "./departure-operational-control";
 import { endV3Impersonation, startV3AgencyTravelerImpersonation, startV3Impersonation } from "./v3-identity-access";
 
 export const IMPERSONATION_DURATION_SECONDS = 4 * 60 * 60;
@@ -19,7 +20,15 @@ export async function startImpersonation(input: { actorId: string; targetId: str
     expiresAt: expiresAt.toISOString(),
     userAgent: input.userAgent,
   });
-  const redirectUrl = target.isSuperAdmin ? "/admin" : target.isAgencyAdmin ? "/agenzia" : "/viaggio";
+  const isDepartureStaff =
+    !target.isSuperAdmin && !target.isAgencyAdmin && (await readMyDepartureStaff(target.nativeId)).length > 0;
+  const redirectUrl = target.isSuperAdmin
+    ? "/admin"
+    : target.isAgencyAdmin
+      ? "/agenzia"
+      : isDepartureStaff
+        ? "/tour-leader"
+        : "/viaggio";
   return { token, expiresAt, redirectUrl };
 }
 

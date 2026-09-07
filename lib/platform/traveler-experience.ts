@@ -80,10 +80,10 @@ export async function getTravelerExperience(
     readV3ProgrammeFeedbackRows({ agencyId, departureId, partyId, actorUserId }),
     readV3TravelCatalog({ agencyId, departureId, templateVersionId: versionId, partyId, actorUserId }),
     readV3Gamification({ agencyId, departureId, templateVersionId: versionId, partyId, userId, actorUserId }),
-    readTravelerChangeNotices({ agencyId, departureId, userId }),
-    readV3TravelerDestinationProfile(userId, departureId),
-    readDepartureInsurance(userId, departureId),
-    readDepartureExperienceProfile(userId, departureId),
+    readTravelerChangeNotices({ agencyId, departureId, userId: actorUserId }),
+    readV3TravelerDestinationProfile(actorUserId, departureId),
+    readDepartureInsurance(actorUserId, departureId),
+    readDepartureExperienceProfile(actorUserId, departureId),
   ]);
   const activeNoteRows = v3Journal.notes;
   const activeRestaurantRows = v3Journal.restaurants;

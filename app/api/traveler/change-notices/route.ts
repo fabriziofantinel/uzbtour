@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
     const parsed = schema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Dati non validi" }, { status: 400 });
-    await acknowledgeTravelerChangeNotice({ userId: user.id, ...parsed.data });
+    await acknowledgeTravelerChangeNotice({ userId: user.nativeId, ...parsed.data });
     return NextResponse.json({ ok: true });
   } catch (error) {
     return platformApiError(error, "Presa visione non registrata");

@@ -432,7 +432,7 @@ export async function publishImport(input: {
   const published = await sql`
     SELECT template_id::text,departure_id::text
     FROM app.publish_import_programme_v3(
-      ${input.actorId},${input.importId},${input.agencyId},
+      ${input.actorId}::uuid,${input.importId},${input.agencyId},
       ${JSON.stringify(draft)}::jsonb,
       ${JSON.stringify({
         countryIds: catalog.countries.map((country) => country.id),
@@ -444,7 +444,7 @@ export async function publishImport(input: {
   `;
   if (!published[0]) throw new PlatformRequestError("Pubblicazione del programma non riuscita");
   await sql`SELECT app.set_departure_experience_profile_v3(
-    ${input.actorId},${String(published[0].departure_id)}::uuid,${input.experienceProfile}
+    ${input.actorId}::uuid,${String(published[0].departure_id)}::uuid,${input.experienceProfile}
   )`;
   return {
     templateId: String(published[0].template_id),

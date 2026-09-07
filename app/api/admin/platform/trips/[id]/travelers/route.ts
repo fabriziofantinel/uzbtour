@@ -44,7 +44,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const invitation = await addJourneyTraveler({
       ...input,
       role: firstTraveler ? "organizer" : "member",
-      actorId: actor.id,
+      actorId: actor.nativeId,
     });
     let invitationEmailSent = false;
     if (invitation.activationToken) {

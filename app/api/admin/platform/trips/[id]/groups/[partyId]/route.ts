@@ -55,7 +55,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       if (!traveler || traveler.memberType !== "dependent_minor")
         return NextResponse.json({ error: "Il consenso è previsto solo per un minore del gruppo" }, { status: 400 });
       await setMinorImageConsent({
-        actorId: actor.id,
+        actorId: actor.nativeId,
         agencyId: input.agencyId,
         departureId: id,
         partyId,
@@ -67,7 +67,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         return NextResponse.json({ error: "Il capogruppo deve appartenere al gruppo" }, { status: 400 });
       }
       await setJourneyGroupLeader({
-        actorId: actor.id,
+        actorId: actor.nativeId,
         agencyId: input.agencyId,
         departureId: id,
         partyId,
@@ -78,7 +78,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         return NextResponse.json({ error: "Il viaggiatore deve appartenere al gruppo" }, { status: 400 });
       }
       await updateJourneyGroupCompetition({
-        actorId: actor.id,
+        actorId: actor.nativeId,
         agencyId: input.agencyId,
         departureId: id,
         partyId,
@@ -107,13 +107,13 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       if (!group.travelers.some((item) => item.id === input.travelerId))
         return NextResponse.json({ error: "Viaggiatore non valido" }, { status: 404 });
       await removeJourneyTraveler({
-        actorId: actor.id,
+        actorId: actor.nativeId,
         agencyId: input.agencyId,
         departureId: id,
         partyId,
         travelerId: input.travelerId,
       });
-    } else await deleteJourneyGroup({ actorId: actor.id, agencyId: input.agencyId, departureId: id, partyId });
+    } else await deleteJourneyGroup({ actorId: actor.nativeId, agencyId: input.agencyId, departureId: id, partyId });
     return NextResponse.json({ data: await getJourneyManagement(id, actor.id, actor.nativeId) });
   } catch (error) {
     return platformApiError(error, "Eliminazione non riuscita");

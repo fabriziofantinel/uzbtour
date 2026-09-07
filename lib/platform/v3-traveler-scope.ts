@@ -20,7 +20,7 @@ export async function readV3TravelerDestinationProfile(userId: string, departure
   const sql = getSql();
   const rows = await sql`
     SELECT currency_code,time_zone,profile_version
-    FROM app.read_traveler_destination_profile_v3(${userId},${departureId}::uuid)
+    FROM app.read_traveler_destination_profile_v3(${userId}::uuid,${departureId}::uuid)
   `;
   return rows[0] as Row | undefined;
 }

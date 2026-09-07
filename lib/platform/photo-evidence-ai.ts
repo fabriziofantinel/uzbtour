@@ -112,7 +112,7 @@ export async function processPhotoEvidenceValidation(input: {
       approved = verdict.compatible && verdict.confidence >= (profile?.minimumConfidence ?? 0.65);
     await sql.transaction((txn) => [
       txn`SELECT set_config('app.agency_id',${input.agencyId},true)`,
-      txn`SELECT * FROM app.save_activity_item_result_v3(${input.userId},${input.agencyId},${input.departureId},${input.partyId},${input.dayId},${input.itemId},${input.resultId},${approved ? 10 : 0},10,${approved ? "approved" : "rejected"},${JSON.stringify({ mediaId: input.mediaId, aiValidation: { approved, confidence: verdict.confidence, reason: verdict.reason, modelId, status: approved ? "approved" : "rejected", attemptCount: input.attemptNumber, attemptsRemaining: approved ? 0 : Math.max(0, 2 - input.attemptNumber) } })}::jsonb,${input.mediaId}::uuid)`,
+      txn`SELECT * FROM app.save_activity_item_result_v3(${input.userId}::uuid,${input.agencyId},${input.departureId},${input.partyId},${input.dayId},${input.itemId},${input.resultId},${approved ? 10 : 0},10,${approved ? "approved" : "rejected"},${JSON.stringify({ mediaId: input.mediaId, aiValidation: { approved, confidence: verdict.confidence, reason: verdict.reason, modelId, status: approved ? "approved" : "rejected", attemptCount: input.attemptNumber, attemptsRemaining: approved ? 0 : Math.max(0, 2 - input.attemptNumber) } })}::jsonb,${input.mediaId}::uuid)`,
     ]);
     await sql`SELECT app.complete_platform_job_v3(${input.jobId},${input.agencyId})`;
     return { approved, confidence: verdict.confidence };

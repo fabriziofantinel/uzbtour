@@ -19,7 +19,7 @@ export async function getAgencyProgramme(
   const scopeRows = staffAccess
     ? await sql`SELECT agency_id::text FROM app.read_staff_trip_cards_v3(${actorNativeId}::uuid)
       WHERE departure_id=${departureId}::uuid LIMIT 1`
-    : await sql`SELECT agency_id::text FROM app.read_journey_management(${actorId}, ${departureId}) LIMIT 1`;
+    : await sql`SELECT agency_id::text FROM app.read_journey_management(${actorNativeId}::uuid, ${departureId}) LIMIT 1`;
   if (!scopeRows[0]) throw new PlatformRequestError("Partenza non trovata");
   const agencyId = String(scopeRows[0].agency_id);
   const [, departures, brandingRows] = await sql.transaction(
@@ -260,7 +260,7 @@ export async function updateAgencyProgrammeDay(input: {
         ${input.staffActorId}::uuid,${input.departureId}::uuid,${input.dayId}::uuid,${input.label},${input.title},
         ${input.city},${input.description},${JSON.stringify(input.items)}::jsonb,${JSON.stringify(input.hotels)}::jsonb) AS updated`
     : await sql`SELECT app.update_departure_programme_day_v3(
-        ${input.actorId},${input.departureId},${input.dayId},${input.label},${input.title},
+        ${input.actorNativeId}::uuid,${input.departureId},${input.dayId},${input.label},${input.title},
         ${input.city},${input.description},${JSON.stringify(input.items)}::jsonb,${JSON.stringify(input.hotels)}::jsonb) AS updated`;
   if (!Boolean(rows[0]?.updated)) throw new PlatformRequestError("Giornata non disponibile");
   const previous = previousRows[0] ?? {};

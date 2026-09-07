@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     if (!/^[0-9a-f-]{36}$/i.test(contentId)) return NextResponse.json({ error: "Contest non valido" }, { status: 400 });
     try {
       const confirmed = await confirmV3PhotoContest({
-        userId: user.id,
+        userId: user.nativeId,
         agencyId,
         departureId,
         partyId,
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
         if (participantSlot !== null && ![1, 2].includes(participantSlot))
           return NextResponse.json({ error: "Posizione foto non valida" }, { status: 400 });
         const row = await addV3PhotoContestEntry({
-          userId: user.id,
+          userId: user.nativeId,
           agencyId,
           departureId,
           partyId,
@@ -117,7 +117,7 @@ export async function POST(request: Request) {
     let row: Record<string, unknown>;
     try {
       row = await submitV3PhotoEvidence({
-        userId: user.id,
+        userId: user.nativeId,
         agencyId,
         departureId,
         partyId,
@@ -142,7 +142,16 @@ export async function POST(request: Request) {
         agencyId,
         type: "photo-evidence.validate",
         idempotencyKey: `photo-evidence:${resultId}`,
-        payload: { userId: user.id, departureId, partyId, dayId, itemId: contentId, mediaId, resultId, attemptNumber },
+        payload: {
+          userId: user.nativeId,
+          departureId,
+          partyId,
+          dayId,
+          itemId: contentId,
+          mediaId,
+          resultId,
+          attemptNumber,
+        },
       });
     } catch (error) {
       console.error("Accodamento validazione foto non riuscito", error);
@@ -172,7 +181,13 @@ export async function POST(request: Request) {
     if (!/^[0-9a-f-]{36}$/i.test(resultId))
       return NextResponse.json({ error: "Risultato non valido" }, { status: 400 });
     try {
-      const reviewed = await reviewV3ActivityEvidence({ userId: user.id, agencyId, partyId, resultId, approved });
+      const reviewed = await reviewV3ActivityEvidence({
+        userId: user.nativeId,
+        agencyId,
+        partyId,
+        resultId,
+        approved,
+      });
       return NextResponse.json({
         id: String(reviewed.id),
         status: String(reviewed.status),
@@ -213,7 +228,7 @@ export async function POST(request: Request) {
       (Boolean(expected) && normalizedAnswer(answer) === normalizedAnswer(expected));
     const score = correct ? 10 : 0;
     const saved = await saveV3ActivityItemResult({
-      userId: user.id,
+      userId: user.nativeId,
       agencyId,
       departureId,
       partyId,
@@ -247,7 +262,7 @@ export async function POST(request: Request) {
   });
   for (const result of results) {
     await saveV3ActivityItemResult({
-      userId: user.id,
+      userId: user.nativeId,
       agencyId,
       departureId,
       partyId,

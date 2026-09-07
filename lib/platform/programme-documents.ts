@@ -4,7 +4,7 @@ import { PlatformRequestError } from "./errors";
 export async function requireAgencyTicketItem(input: { departureId: string; itemId: string; actorId: string }) {
   const sql = getSql();
   const scope = await sql`SELECT agency_id::text FROM app.read_journey_management(
-    ${input.actorId},${input.departureId}) LIMIT 1`;
+    ${input.actorId}::uuid,${input.departureId}) LIMIT 1`;
   if (!scope[0]) throw new PlatformRequestError("Volo o treno non disponibile");
   const agencyId = String(scope[0].agency_id);
   const [, rows] = await sql.transaction(
@@ -33,7 +33,7 @@ export async function requireAgencyDepartureDay(input: {
         WHERE departure.id=${input.departureId}::uuid
           AND app.is_departure_operator_v3(${input.actorNativeId}::uuid,departure.id) LIMIT 1`
     : await sql`SELECT agency_id::text FROM app.read_journey_management(
-        ${input.actorId},${input.departureId}) LIMIT 1`;
+        ${input.actorId}::uuid,${input.departureId}) LIMIT 1`;
   if (!scope[0]) throw new PlatformRequestError("Partenza non disponibile");
   const agencyId = String(scope[0].agency_id);
   const [, rows] = await sql.transaction(

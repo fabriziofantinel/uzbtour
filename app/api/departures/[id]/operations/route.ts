@@ -112,7 +112,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       await recordAttendance({ actorUserId: user.nativeId, ...parsed.data });
     else
       await saveOperationalAlert({
-        actorId: user.id,
+        actorId: user.nativeId,
         departureId: id,
         travelerId: parsed.data.travelerId,
         summary: parsed.data.summary,

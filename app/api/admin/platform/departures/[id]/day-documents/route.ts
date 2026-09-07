@@ -42,7 +42,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const { agencyId } = await requireAgencyDepartureDayDocumentAudience({
       departureId,
       dayId,
-      actorId: actor.id,
+      actorId: actor.nativeId,
       actorNativeId: actor.nativeId,
       partyId: targetPartyId,
       travelerId: targetTravelerId,
@@ -118,7 +118,7 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
     const actor = await requireDepartureCollaborator(departureId);
     const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
     await archiveAgencyDayDocument({
-      actorId: actor.id,
+      actorId: actor.nativeId,
       agencyId: String(body?.agencyId || ""),
       departureId,
       documentId: String(body?.documentId || ""),

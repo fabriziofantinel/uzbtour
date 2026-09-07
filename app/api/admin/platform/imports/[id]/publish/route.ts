@@ -80,7 +80,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const published = await publishImport({
       importId: id,
       agencyId,
-      actorId: actor.id,
+      actorId: actor.nativeId,
       draft: imported.draft,
       experienceProfile,
     });

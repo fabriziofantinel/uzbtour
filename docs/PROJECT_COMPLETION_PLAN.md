@@ -50,7 +50,7 @@ Aggiornato al 7 settembre 2026.
 - Corretta con la migrazione 196 l'ambiguità SQL che bloccava la lettura della chat operativa nativa.
 - Corretta con la migrazione 197 la mancata invalidazione di sessioni Cognito e impersonazioni per un'agenzia sospesa.
 - Rimossi dai collaudi residui gli identificativi attore e le firme funzione legacy; gli script possono assumere localmente il ruolo `smf_app` tramite la DSN owner senza richiedere o leggere una seconda password runtime.
-- Individuata in produzione l'anomalia `1090945064` nella pagina Informazioni Paesi durante il login come responsabile: il controllo usava l'identità Cognito del superuser anziché il profilo corrente impersonato. La correzione locale separa esplicitamente identità corrente e attore autenticato ed è coperta da tre test unitari; attende refresh approvato della baseline e distribuzione.
+- Individuata in produzione l'anomalia `1090945064` nella pagina Informazioni Paesi durante il login come responsabile: il controllo usava l'identità Cognito del superuser anziché il profilo corrente impersonato. La correzione separa esplicitamente identità corrente e attore autenticato, è coperta da tre test unitari ed è stata distribuita con `ec0f43b`; il nuovo collaudo ha aperto correttamente la pagina. Il tenant non ha ancora profili Paese centrali verificati, quindi la validazione effettiva dei contenuti resta da eseguire senza avviare automaticamente Bedrock.
 
 ### Limiti di verifica non bloccanti
 

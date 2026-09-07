@@ -28,18 +28,14 @@ export type DepartureCommunication = {
 };
 
 export async function readDepartureCommunications(
-  actorId: string,
+  _actorId: string,
   departureId: string,
-  actorNativeId?: string,
+  actorNativeId: string,
 ): Promise<DepartureCommunication[]> {
   const sql = getSql();
   const [travelerRows, staffRows] = await Promise.all([
-    actorNativeId
-      ? sql`SELECT * FROM app.read_departure_communications_native_v3(${actorNativeId}::uuid,${departureId}::uuid)`
-      : sql`SELECT * FROM app.read_departure_communications_v3(${actorId},${departureId}::uuid)`,
-    actorNativeId
-      ? sql`SELECT * FROM app.read_staff_departure_communications_v3(${actorNativeId}::uuid,${departureId}::uuid)`
-      : Promise.resolve([]),
+    sql`SELECT * FROM app.read_departure_communications_native_v3(${actorNativeId}::uuid,${departureId}::uuid)`,
+    sql`SELECT * FROM app.read_staff_departure_communications_v3(${actorNativeId}::uuid,${departureId}::uuid)`,
   ]);
   const travelerCommunications = travelerRows.map((row) => ({
     id: String(row.id),
@@ -184,7 +180,7 @@ export async function recordCommunicationReminder(input: {
 }
 
 export async function readDepartureInsurance(actorId: string, departureId: string) {
-  const rows = await getSql()`SELECT * FROM app.read_departure_insurance_v3(${actorId},${departureId}::uuid)`;
+  const rows = await getSql()`SELECT * FROM app.read_departure_insurance_v3(${actorId}::uuid,${departureId}::uuid)`;
   const row = rows[0] as Row | undefined;
   if (!row) return null;
   return {
@@ -256,12 +252,13 @@ export async function setDepartureExperienceProfile(
   profile: "essential" | "standard" | "complete",
 ) {
   const rows =
-    await getSql()`SELECT app.set_departure_experience_profile_v3(${actorId},${departureId}::uuid,${profile}) updated`;
+    await getSql()`SELECT app.set_departure_experience_profile_v3(${actorId}::uuid,${departureId}::uuid,${profile}) updated`;
   if (!Boolean(rows[0]?.updated)) throw new PlatformRequestError("Profilo esperienza non aggiornato");
 }
 
 export async function readDepartureExperienceProfile(actorId: string, departureId: string) {
-  const rows = await getSql()`SELECT app.read_departure_experience_profile_v3(${actorId},${departureId}::uuid) profile`;
+  const rows =
+    await getSql()`SELECT app.read_departure_experience_profile_v3(${actorId}::uuid,${departureId}::uuid) profile`;
   const profile = String(rows[0]?.profile || "complete");
   return profile === "essential" || profile === "standard" ? profile : "complete";
 }

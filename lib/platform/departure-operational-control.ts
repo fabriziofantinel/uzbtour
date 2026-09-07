@@ -215,6 +215,6 @@ export async function saveOperationalAlert(input: {
   consent: boolean;
 }) {
   const rows =
-    await getSql()`SELECT app.save_operational_alert_v3(${input.actorId},${input.departureId}::uuid,${input.travelerId}::uuid,${input.summary},${input.instructions},${input.consent})::text id`;
+    await getSql()`SELECT app.save_operational_alert_v3(${input.actorId}::uuid,${input.departureId}::uuid,${input.travelerId}::uuid,${input.summary},${input.instructions},${input.consent})::text id`;
   return String(rows[0]?.id || "");
 }

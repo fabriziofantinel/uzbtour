@@ -25,14 +25,14 @@ export async function PATCH(request: Request) {
     const input = schema.parse(await request.json());
     if (input.action === "competition")
       await updateOwnTripCompetition({
-        userId: user.id,
+        userId: user.nativeId,
         departureId: input.departureId,
         partyId: input.partyId,
         enabled: input.enabled,
       });
     else
       await transferOwnGroupLeadership({
-        userId: user.id,
+        userId: user.nativeId,
         departureId: input.departureId,
         partyId: input.partyId,
         travelerId: input.travelerId,

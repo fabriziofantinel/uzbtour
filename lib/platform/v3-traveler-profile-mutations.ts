@@ -8,7 +8,7 @@ export async function updateOwnTripCompetition(input: {
   enabled: boolean;
 }) {
   const rows = await getSql()`SELECT app.update_own_trip_competition_v3(
-    ${input.userId},${input.departureId}::uuid,${input.partyId}::uuid,${input.enabled}) updated`;
+    ${input.userId}::uuid,${input.departureId}::uuid,${input.partyId}::uuid,${input.enabled}) updated`;
   return Boolean(rows[0]?.updated);
 }
 
@@ -19,6 +19,6 @@ export async function transferOwnGroupLeadership(input: {
   travelerId: string;
 }) {
   const rows = await getSql()`SELECT app.transfer_own_group_leadership_v3(
-    ${input.userId},${input.departureId}::uuid,${input.partyId}::uuid,${input.travelerId}::uuid) updated`;
+    ${input.userId}::uuid,${input.departureId}::uuid,${input.partyId}::uuid,${input.travelerId}::uuid) updated`;
   return Boolean(rows[0]?.updated);
 }

@@ -83,6 +83,6 @@ export async function archiveAgencyDayDocument(input: {
   documentId: string;
 }) {
   const rows =
-    await getSql()`SELECT app.archive_day_document_v3(${input.actorId},${input.agencyId}::uuid,${input.departureId}::uuid,${input.documentId}::uuid) archived`;
+    await getSql()`SELECT app.archive_day_document_v3(${input.actorId}::uuid,${input.agencyId}::uuid,${input.departureId}::uuid,${input.documentId}::uuid) archived`;
   if (!rows[0]?.archived) throw new Error("Documento non disponibile");
 }

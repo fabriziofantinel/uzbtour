@@ -21,7 +21,7 @@ function googleUrl(label: string) {
 async function ensureCountry(actorId: string, agencyId: string, name: string) {
   const sql = getSql();
   const rows = await sql`
-    SELECT id::text,name FROM app.upsert_reference_catalog_v3(${actorId},${agencyId},
+    SELECT id::text,name FROM app.upsert_reference_catalog_v3(${actorId}::uuid,${agencyId},
       'country',NULL,${countryCodeForName(name)},${name.trim()},${normalizedName(name)},
       ${googleUrl(name)},NULL,NULL)
   `;
@@ -32,7 +32,7 @@ async function ensureCity(actorId: string, agencyId: string, countryId: string, 
   const sql = getSql();
   const rows = await sql`
     SELECT id::text,name,latitude,longitude FROM app.upsert_reference_catalog_v3(
-      ${actorId},${agencyId},'city',${countryId},NULL,${name.trim()},${normalizedName(name)},
+      ${actorId}::uuid,${agencyId},'city',${countryId},NULL,${name.trim()},${normalizedName(name)},
       ${googleUrl(`${name}, ${countryName}`)},NULL,NULL)
   `;
   const city = rows[0];
@@ -40,7 +40,7 @@ async function ensureCity(actorId: string, agencyId: string, countryId: string, 
     try {
       const coordinates = await geocodeCity(String(city.name), countryName);
       if (coordinates) {
-        await sql`SELECT id FROM app.upsert_reference_catalog_v3(${actorId},${agencyId},
+        await sql`SELECT id FROM app.upsert_reference_catalog_v3(${actorId}::uuid,${agencyId},
           'city',${countryId},NULL,${name.trim()},${normalizedName(name)},
           ${googleUrl(`${name}, ${countryName}`)},${coordinates.latitude},${coordinates.longitude})`;
       }
@@ -64,7 +64,7 @@ async function ensureSite(
 ) {
   const sql = getSql();
   const rows = await sql`
-    SELECT id::text,name FROM app.upsert_reference_catalog_v3(${actorId},${agencyId},
+    SELECT id::text,name FROM app.upsert_reference_catalog_v3(${actorId}::uuid,${agencyId},
       'site',${cityId},NULL,${name.trim()},${normalizedName(name)},
       ${googleUrl(`${name}, ${cityName}, ${countryName}`)},NULL,NULL)
   `;
@@ -81,7 +81,7 @@ async function ensureHotel(
 ) {
   const sql = getSql();
   const rows = await sql`
-    SELECT id::text FROM app.upsert_reference_catalog_v3(${actorId},${agencyId},
+    SELECT id::text FROM app.upsert_reference_catalog_v3(${actorId}::uuid,${agencyId},
       'hotel',${cityId},NULL,${name.trim()},${normalizedName(name)},
       ${googleUrl(`${name}, ${cityName}, ${countryName}`)},NULL,NULL)
   `;

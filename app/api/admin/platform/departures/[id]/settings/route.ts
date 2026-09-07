@@ -43,7 +43,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const travelerId = z.string().uuid().nullable().catch(null).parse(url.searchParams.get("travelerId"));
     const insurance =
       audienceScope === "trip"
-        ? await readDepartureInsurance(actor.id, id)
+        ? await readDepartureInsurance(actor.nativeId, id)
         : await readDepartureInsuranceScoped({
             actorNativeId: actor.nativeId,
             departureId: id,

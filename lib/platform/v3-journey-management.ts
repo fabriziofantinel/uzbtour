@@ -23,7 +23,7 @@ export async function readV3JourneyManagement(
     ? await sql`SELECT * FROM app.read_staff_journey_management_v3(
         ${actorNativeId}::uuid,${departureId}::uuid
       )`
-    : await sql`SELECT * FROM app.read_journey_management(${actorId},${departureId}::uuid)`;
+    : await sql`SELECT * FROM app.read_journey_management(${actorNativeId}::uuid,${departureId}::uuid)`;
   const brandingRows =
     await sql`SELECT agency_id::text,branding FROM app.read_agency_branding_v3(${actorNativeId}::uuid)`;
   const first = rows[0];

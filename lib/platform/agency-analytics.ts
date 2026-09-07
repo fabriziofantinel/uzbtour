@@ -221,7 +221,7 @@ export async function recordTravelerAnalytics(input: {
   properties?: Record<string, unknown>;
 }) {
   const rows = await getSql()`SELECT app.record_product_analytics_event_v3(
-    ${input.userId},${input.departureId}::uuid,${input.partyId}::uuid,${input.dayId ?? null}::uuid,
+    ${input.userId}::uuid,${input.departureId}::uuid,${input.partyId}::uuid,${input.dayId ?? null}::uuid,
     ${input.eventName},${input.sessionId}::uuid,${input.clientOperationId}::uuid,${JSON.stringify(input.properties ?? {})}::jsonb
   )::text AS id`;
   return String(rows[0].id);

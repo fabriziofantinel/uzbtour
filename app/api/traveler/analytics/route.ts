@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: "Non autenticato" }, { status: 401 });
     const parsed = inputSchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return NextResponse.json({ error: "Evento analytics non valido" }, { status: 400 });
-    const id = await recordTravelerAnalytics({ userId: user.id, ...parsed.data });
+    const id = await recordTravelerAnalytics({ userId: user.nativeId, ...parsed.data });
     return NextResponse.json({ id }, { status: 201 });
   } catch (error) {
     return platformApiError(error, "Analytics non disponibile");

@@ -18,7 +18,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       departureId: id,
       agencyId: input.agencyId,
       name: input.name,
-      actorId: actor.id,
+      actorId: actor.nativeId,
     });
     return NextResponse.json(
       { familyId, data: await getJourneyManagement(id, actor.id, actor.nativeId) },

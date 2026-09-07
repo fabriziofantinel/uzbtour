@@ -80,7 +80,7 @@ export async function updateJourneyGroupCompetition(input: {
 }) {
   const sql = getSql();
   const rows = await sql`SELECT app.update_journey_traveler_competition(
-    ${input.actorId},${input.agencyId}::uuid,${input.departureId}::uuid,
+    ${input.actorId}::uuid,${input.agencyId}::uuid,${input.departureId}::uuid,
     ${input.partyId}::uuid,${input.travelerId}::uuid,${input.enabled}
   ) AS updated`;
   return Boolean(rows[0]?.updated);
@@ -95,7 +95,7 @@ export async function setJourneyGroupLeader(input: {
 }) {
   const sql = getSql();
   const rows = await sql`SELECT app.set_journey_party_leader(
-    ${input.actorId},${input.agencyId}::uuid,${input.departureId}::uuid,
+    ${input.actorId}::uuid,${input.agencyId}::uuid,${input.departureId}::uuid,
     ${input.partyId}::uuid,${input.travelerId}::uuid
   ) AS updated`;
   return Boolean(rows[0]?.updated);
@@ -110,7 +110,7 @@ export async function setMinorImageConsent(input: {
   decision: "granted" | "denied" | "withdrawn";
 }) {
   const rows =
-    await getSql()`SELECT app.set_minor_image_consent_v3(${input.actorId},${input.agencyId}::uuid,${input.departureId}::uuid,${input.partyId}::uuid,${input.travelerId}::uuid,${input.decision},'') consent_id`;
+    await getSql()`SELECT app.set_minor_image_consent_v3(${input.actorId}::uuid,${input.agencyId}::uuid,${input.departureId}::uuid,${input.partyId}::uuid,${input.travelerId}::uuid,${input.decision},'') consent_id`;
   return String(rows[0]?.consent_id || "");
 }
 
@@ -122,7 +122,7 @@ export async function removeJourneyTraveler(input: {
   travelerId: string;
 }) {
   const rows =
-    await getSql()`SELECT app.remove_journey_traveler_v3(${input.actorId},${input.agencyId}::uuid,${input.departureId}::uuid,${input.partyId}::uuid,${input.travelerId}::uuid) removed`;
+    await getSql()`SELECT app.remove_journey_traveler_v3(${input.actorId}::uuid,${input.agencyId}::uuid,${input.departureId}::uuid,${input.partyId}::uuid,${input.travelerId}::uuid) removed`;
   return Boolean(rows[0]?.removed);
 }
 export async function deleteJourneyGroup(input: {
@@ -132,7 +132,7 @@ export async function deleteJourneyGroup(input: {
   partyId: string;
 }) {
   const rows =
-    await getSql()`SELECT app.delete_empty_journey_party_v3(${input.actorId},${input.agencyId}::uuid,${input.departureId}::uuid,${input.partyId}::uuid) deleted`;
+    await getSql()`SELECT app.delete_empty_journey_party_v3(${input.actorId}::uuid,${input.agencyId}::uuid,${input.departureId}::uuid,${input.partyId}::uuid) deleted`;
   return Boolean(rows[0]?.deleted);
 }
 

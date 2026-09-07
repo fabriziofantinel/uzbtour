@@ -56,7 +56,7 @@ async function reviewCountryProfileAction(formData: FormData) {
     !["approve", "reject"].includes(decision)
   )
     return;
-  await reviewCountryProfile(actor.id, agencyId, countryId, decision === "approve");
+  await reviewCountryProfile(actor.nativeId, agencyId, countryId, decision === "approve");
   revalidatePath("/agenzia/informazioni-paese");
 }
 
@@ -66,7 +66,7 @@ async function saveCountryProfileAction(formData: FormData) {
   const agencyId = String(formData.get("agencyId") || "");
   const countryId = String(formData.get("countryId") || "");
   if (![agencyId, countryId].every((value) => /^[0-9a-f-]{36}$/i.test(value))) return;
-  const profiles = await readCountryProfilesForReview(actor.id);
+  const profiles = await readCountryProfilesForReview(actor.nativeId);
   const selected = profiles.find((profile) => profile.agencyId === agencyId && profile.countryId === countryId);
   if (!selected?.profile || typeof selected.profile !== "object" || Array.isArray(selected.profile)) return;
   const profile = structuredClone(selected.profile) as Record<string, unknown>;
@@ -98,7 +98,7 @@ export default async function CountryInformationReviewPage() {
   try {
     const actor = await requireCurrentAgencyAdmin();
     const [profiles, overview] = await Promise.all([
-      readCountryProfilesForReview(actor.id),
+      readCountryProfilesForReview(actor.nativeId),
       getPlatformOverview(actor),
     ]);
     const agency = overview.agencies[0];

@@ -3,7 +3,7 @@ import { getSql } from "@/lib/db";
 
 export async function readCountryProfilesForReview(actorId: string) {
   const sql = getSql();
-  const rows = await sql`SELECT * FROM app.read_country_profiles_for_review_v3(${actorId})`;
+  const rows = await sql`SELECT * FROM app.read_country_profiles_for_review_v3(${actorId}::uuid)`;
   return rows.map((row) => ({
     agencyId: String(row.agency_id),
     countryId: String(row.country_id),
@@ -38,6 +38,6 @@ export async function saveCountryProfileOverride(
 export async function reviewCountryProfile(actorId: string, agencyId: string, countryId: string, approve: boolean) {
   const sql = getSql();
   const rows =
-    await sql`SELECT app.review_country_profile_v3(${actorId},${agencyId}::uuid,${countryId}::uuid,${approve}) AS updated`;
+    await sql`SELECT app.review_country_profile_v3(${actorId}::uuid,${agencyId}::uuid,${countryId}::uuid,${approve}) AS updated`;
   return Boolean(rows[0]?.updated);
 }
