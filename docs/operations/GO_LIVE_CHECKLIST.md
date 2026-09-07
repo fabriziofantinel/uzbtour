@@ -7,7 +7,7 @@ Questa checklist definisce le prove necessarie per dichiarare una release pronta
 - [x] Commit candidato presente su `smftravel/main`: `ec5feee`.
 - [x] Deployment Vercel di produzione `dpl_9Us1pR3SbnTC7woR3w4GeYNKcw5v` completato sul commit `ec5feee` il 7 settembre 2026.
 - [x] Health check pubblico, login e manifest PWA validi su `https://smf-travel.vercel.app`; smoke Playwright mobile 5/5.
-- [x] Schema Neon dichiarato dall'app uguale all'ultima migrazione applicata (`197_v3_suspended_agency_session_boundary`).
+- [x] Schema Neon dichiarato dall'app uguale all'ultima migrazione applicata (`200_v3_rooming_and_post_trip_reviews`).
 - [x] `npm run quality:guard`, `npm run build` e test pubblici Playwright verdi sul commit candidato, come attestato anche dai log di build Vercel.
 - [ ] Nessun file locale non versionato necessario alla release.
 

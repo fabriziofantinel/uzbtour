@@ -3,6 +3,117 @@
   background: var(--smf-paper);
   color: var(--smf-ink);
 }
+
+.postTripSettings {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(260px, 1fr) auto;
+  gap: 16px;
+  align-items: end;
+  margin-bottom: 20px;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--smf-paper, #faf7f0);
+}
+.postTripSettings > div {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.postTripSettings h4 {
+  margin: 0 0 3px;
+  font-size: 14px;
+}
+.postTripSettings p {
+  margin: 0;
+  color: var(--smf-muted);
+  font-size: 12px;
+}
+.postTripSettings svg {
+  width: 19px;
+  flex: 0 0 19px;
+  color: #111;
+}
+.postTripSettings label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 750;
+}
+.postTripSettings input {
+  min-height: 44px;
+  padding: 9px 11px;
+  border: 1px solid var(--smf-line);
+  border-radius: 9px;
+  color: #111;
+  background: #fff;
+}
+.postTripSettings button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  color: #111;
+  background: var(--agency-ui);
+  font-weight: 800;
+}
+.postTripSettings > small {
+  grid-column: 2/-1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--smf-success);
+}
+.postTripReviewList {
+  display: grid;
+  gap: 10px;
+}
+.postTripReviewList article {
+  padding: 16px 0;
+  border-top: 1px solid var(--smf-line);
+}
+.postTripReviewList article > header,
+.postTripReviewList article > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.postTripReviewList article > header span {
+  display: grid;
+}
+.postTripReviewList article > header strong {
+  font-size: 20px;
+}
+.postTripReviewList article :is(small, time, footer) {
+  color: var(--smf-muted);
+  font-size: 12px;
+}
+.postTripReviewList article > p {
+  margin: 12px 0;
+  color: var(--smf-ink);
+  font-size: 14px;
+}
+@media (max-width: 760px) {
+  .postTripSettings {
+    grid-template-columns: 1fr;
+  }
+  .postTripSettings > small {
+    grid-column: auto;
+  }
+  .postTripSettings button {
+    width: 100%;
+    justify-content: center;
+  }
+  .postTripReviewList article > header,
+  .postTripReviewList article > footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+}
 .analyticsBanner {
   padding: 26px clamp(32px, 6vw, 96px);
   background: var(--agency-ui);

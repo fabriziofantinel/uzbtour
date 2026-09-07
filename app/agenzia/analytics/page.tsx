@@ -6,6 +6,7 @@ import {
   BarChart3,
   CalendarRange,
   FileText,
+  HeartHandshake,
   LogOut,
   MapPinned,
   MessageCircle,
@@ -17,6 +18,8 @@ import { CSSProperties } from "react";
 import { PlatformAuthorizationError, requirePlatformAdmin } from "@/lib/platform/authorization";
 import { getPlatformOverview } from "@/lib/platform/repository";
 import { getAgencyAnalytics } from "@/lib/platform/agency-analytics";
+import { readAgencyPostTripSettings } from "@/lib/platform/post-trip-reviews";
+import PostTripSettings from "./post-trip-settings";
 import {
   accessibleBrandBackground,
   accessibleBrandColor,
@@ -47,7 +50,10 @@ export default async function AgencyAnalyticsPage({
     const period = [7, 30, 90].includes(Number(query.period)) ? Number(query.period) : 30;
     const departureIds = new Set(agency.trips.flatMap((trip) => trip.departures.map((item) => item.id)));
     const departure = query.departure && departureIds.has(query.departure) ? query.departure : undefined;
-    const analytics = await getAgencyAnalytics({ agencyId: agency.id, periodDays: period, departureId: departure });
+    const [analytics, postTripSettings] = await Promise.all([
+      getAgencyAnalytics({ agencyId: agency.id, periodDays: period, departureId: departure }),
+      readAgencyPostTripSettings(actor.nativeId, agency.id),
+    ]);
     const color = validBrandColor(agency.primaryColor);
     const style = {
       "--agency-ui": accessibleBrandBackground(color),
@@ -204,6 +210,16 @@ export default async function AgencyAnalyticsPage({
               </article>
               <article>
                 <span>
+                  <HeartHandshake />
+                </span>
+                <div>
+                  <small>POST-VIAGGIO</small>
+                  <strong>{s.postTripAverage == null ? "—" : s.postTripAverage.toFixed(1)}</strong>
+                  <p>{s.postTripReviewCount} valutazioni complessive</p>
+                </div>
+              </article>
+              <article>
+                <span>
                   <UsersRound />
                 </span>
                 <div>
@@ -315,6 +331,7 @@ export default async function AgencyAnalyticsPage({
                         <th>Assistenza</th>
                         <th>Engagement</th>
                         <th>Feedback</th>
+                        <th>Post-viaggio</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -340,6 +357,16 @@ export default async function AgencyAnalyticsPage({
                             ) : (
                               <span className={item.feedbackAverage < 3 ? "needsAttention" : ""}>
                                 {item.feedbackAverage.toFixed(1)} / 5
+                              </span>
+                            )}
+                          </td>
+                          <td>
+                            {item.postTripAverage == null ? (
+                              "—"
+                            ) : (
+                              <span>
+                                {item.postTripAverage.toFixed(1)} / 10
+                                <small>{item.postTripReviewCount} valutazioni</small>
                               </span>
                             )}
                           </td>
@@ -461,6 +488,52 @@ export default async function AgencyAnalyticsPage({
                     ))}
                   </div>
                 </>
+              )}
+            </section>
+            <section className="analyticsSection postTripPanel">
+              <div className="analyticsSectionTitle">
+                <div>
+                  <h3>Valutazioni dopo il rientro</h3>
+                  <p>Voto complessivo da 0 a 10, commenti e confronto con i feedback raccolti durante il viaggio.</p>
+                </div>
+                <HeartHandshake />
+              </div>
+              <PostTripSettings agencyId={agency.id} initialUrl={postTripSettings.publicReviewUrl} />
+              {analytics.postTripReviews.length === 0 ? (
+                <div className="analyticsEmpty">Non sono ancora presenti valutazioni post-viaggio nel periodo.</div>
+              ) : (
+                <div className="postTripReviewList">
+                  {analytics.postTripReviews.map((review) => {
+                    const departureFeedback = analytics.feedback.filter(
+                      (item) => item.departureId === review.departureId,
+                    );
+                    const stageAverage = departureFeedback.length
+                      ? departureFeedback.reduce((sum, item) => sum + item.average * item.responses, 0) /
+                        departureFeedback.reduce((sum, item) => sum + item.responses, 0)
+                      : null;
+                    return (
+                      <article key={review.id}>
+                        <header>
+                          <span>
+                            <strong>{review.rating} / 10</strong>
+                            <small>
+                              {review.departureTitle} · {review.groupName}
+                            </small>
+                          </span>
+                          <time>{new Intl.DateTimeFormat("it-IT").format(new Date(review.submittedAt))}</time>
+                        </header>
+                        <p>{review.comment || "Nessun commento."}</p>
+                        <footer>
+                          <span>{review.travelerName}</span>
+                          <span>
+                            Feedback tappe:{" "}
+                            {stageAverage == null ? "non disponibile" : `${stageAverage.toFixed(1)} / 5`}
+                          </span>
+                        </footer>
+                      </article>
+                    );
+                  })}
+                </div>
               )}
             </section>
           </section>

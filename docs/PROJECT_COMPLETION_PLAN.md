@@ -19,7 +19,7 @@ Aggiornato al 7 settembre 2026.
 
 - Quality guard, TypeScript, sicurezza migrazioni e confini runtime.
 - Build Next.js 16.3.2 di produzione completato con 33 pagine statiche e dinamiche, oltre alle route API.
-- Validazione schema Neon 197: 96 tabelle, 70 con RLS, nessun vincolo o indice invalido e nessuna tabella tenant priva di indice leading.
+- Schema Neon portato alla migrazione 200 con 99 tabelle, 73 protette da RLS, nessun vincolo o indice invalido e nessuna tabella tenant priva di indice leading.
 - Flussi database: profili Paese, gruppi, inviti, utenti, analytics, cancellazioni, engagement e write cutover.
 - PWA: installabilità, manifest dinamico, service worker, offline e sincronizzazione finanziaria.
 - Push: sottoscrizione, invio pianificato e contratti applicativi.
@@ -52,6 +52,8 @@ Aggiornato al 7 settembre 2026.
 - Rimossi dai collaudi residui gli identificativi attore e le firme funzione legacy; gli script possono assumere localmente il ruolo `smf_app` tramite la DSN owner senza richiedere o leggere una seconda password runtime.
 - Individuata in produzione l'anomalia `1090945064` nella pagina Informazioni Paesi durante il login come responsabile: il controllo usava l'identità Cognito del superuser anziché il profilo corrente impersonato. La correzione separa esplicitamente identità corrente e attore autenticato, è coperta da tre test unitari ed è stata distribuita con `ec0f43b`; il nuovo collaudo ha aperto correttamente la pagina. Il tenant non ha ancora profili Paese centrali verificati, quindi la validazione effettiva dei contenuti resta da eseguire senza avviare automaticamente Bedrock.
 - Completata la bonifica delle firme attore legacy: il censimento live ha individuato 51 firme testuali (una in più della baseline statica), sono stati creati e distribuiti i sostituti UUID prima del cutover e la migrazione 199 le ha eliminate tutte senza `CASCADE`. Gate finale: 0 firme legacy e 195 firme native UUID.
+- Aggiunte la rooming list per pernottamento e gruppo, con autorizzazioni di responsabile, agente e accompagnatore, controlli di capienza e tutela dei minori, ed esportazione DOCX priva di dati documentali sensibili.
+- Aggiunto il ciclo post-viaggio a costo AI zero: valutazione 0-10 dal secondo giorno dopo il rientro, push idempotente, percorso differenziato per promotori e detrattori, codice passaparola e analisi per partenza incrociata con i feedback di tappa.
 
 ### Limiti di verifica non bloccanti
 
@@ -98,4 +100,4 @@ Audit statico Impeccable 4.2.2 completato il 7 settembre 2026: 14/20, nessuna an
 
 Checklist go-live, rollback, backup/restore, dati demo, documentazione operativa e accettazione finale.
 
-Checklist predisposta in `docs/operations/GO_LIVE_CHECKLIST.md`. Il commit candidato `ec5feee` è distribuito e ha superato build e smoke pubblici. Il punto resta aperto finché non sono disponibili: capacità Vercel con margine, UAT ruoli/dispositivi, almeno un restore Neon dimostrato, rollback Vercel provato e accettazione dell'operatore pilota. Lo script storico dei dati demo richiede revisione prima di qualsiasi esecuzione perché usa ancora strutture legacy e identificativi fissi.
+Checklist predisposta in `docs/operations/GO_LIVE_CHECKLIST.md`. Il punto resta aperto finché non sono disponibili: capacità Vercel con margine, UAT ruoli/dispositivi comprendente rooming list e post-viaggio, almeno un restore Neon dimostrato, rollback Vercel provato e accettazione dell'operatore pilota. Lo script storico dei dati demo richiede revisione prima di qualsiasi esecuzione perché usa ancora strutture legacy e identificativi fissi.

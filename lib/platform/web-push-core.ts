@@ -1,7 +1,7 @@
 import webpush from "web-push";
 import { getSql } from "@/lib/db";
 
-type PushKind = "quiz_unlock" | "disruption" | "departure_reminder" | "chat_message";
+type PushKind = "quiz_unlock" | "disruption" | "departure_reminder" | "chat_message" | "post_trip_review";
 const copy: Record<PushKind, { title: string; body: string; url: string }> = {
   quiz_unlock: {
     title: "Il quiz di oggi è disponibile",
@@ -22,6 +22,11 @@ const copy: Record<PushKind, { title: string; body: string; url: string }> = {
     title: "Nuovo messaggio dall’agenzia",
     body: "Apri la chat operativa del tuo viaggio.",
     url: "/viaggio?tab=chat",
+  },
+  post_trip_review: {
+    title: "Com’è andato il viaggio?",
+    body: "Dedica un minuto alla valutazione complessiva e condividi la tua esperienza con l’agenzia.",
+    url: "/viaggio?tab=valutazione",
   },
 };
 

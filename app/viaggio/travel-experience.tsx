@@ -63,6 +63,7 @@ import { calculateExpenseBalances } from "@/lib/finance-calculations";
 import PwaCompanion from "@/components/pwa-companion";
 import OperationalChat from "@/components/operational-chat";
 import OperationalAlertForm from "@/components/operational-alert-form";
+import PostTripReview from "@/components/post-trip-review";
 import { useAppConfirm } from "@/components/app-confirm-dialog";
 import { downloadTripForOffline, type OfflinePackageState } from "@/lib/pwa/offline-package";
 
@@ -93,7 +94,8 @@ type Tab =
   | "sfide"
   | "sos"
   | "chat"
-  | "assicurazione";
+  | "assicurazione"
+  | "valutazione";
 type Day = Experience["days"][number];
 const colors = ["#D6663D", "#715C9D", "#C4902F", "#177A78", "#3D8B68", "#A35D55"];
 const wholeNumber = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0 });
@@ -171,10 +173,10 @@ function exchangeRateLabel(euroAmount: number | null, localAmount: number, local
   if (!euroAmount || euroAmount <= 0) return "Cambio non disponibile";
   return `1 € = ${wholeNumber.format(localAmount / euroAmount)} ${localCurrency}`;
 }
-function todayInTimeZone(timeZone: string) {
+function todayInTimeZone(timeZone: string, value = new Date()) {
   try {
     return new Intl.DateTimeFormat("sv-SE", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(
-      new Date(),
+      value,
     );
   } catch {
     return new Intl.DateTimeFormat("sv-SE", {
@@ -182,8 +184,14 @@ function todayInTimeZone(timeZone: string) {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
-    }).format(new Date());
+    }).format(value);
   }
+}
+
+function addCalendarDays(date: string, days: number) {
+  const value = new Date(`${date}T00:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
 }
 
 function currentDayIndex(days: Experience["days"], timeZone: string) {
@@ -292,6 +300,9 @@ export default function TravelExperience({
   const firstTabRender = useRef(true);
   const gestureStart = useRef<{ x: number; y: number; atTop: boolean } | null>(null);
   const day = experience.days[active] ?? experience.days[0];
+  const postTripReviewAvailable = useMemo(() => {
+    return todayInTimeZone(experience.journey.timezone, now) >= addCalendarDays(experience.journey.endsOn, 2);
+  }, [experience.journey.endsOn, experience.journey.timezone, now]);
   const photosByDay = useMemo(
     () =>
       experience.photos.reduce<Record<number, Experience["photos"]>>((all, photo) => {
@@ -584,6 +595,7 @@ export default function TravelExperience({
           "sos",
           "chat",
           "assicurazione",
+          "valutazione",
         ].includes(requestedTab || "") &&
         !(requestedTab === "sfide" && experience.experienceProfile === "essential")
       ) {
@@ -1269,7 +1281,9 @@ export default function TravelExperience({
           <button
             ref={moreButtonRef}
             type="button"
-            className={moreOpen || ["ricordi", "info", "frasario", "assicurazione"].includes(tab) ? "active" : ""}
+            className={
+              moreOpen || ["ricordi", "info", "frasario", "assicurazione", "valutazione"].includes(tab) ? "active" : ""
+            }
             aria-expanded={moreOpen}
             aria-haspopup="true"
             aria-controls="travel-more-menu"
@@ -1300,6 +1314,23 @@ export default function TravelExperience({
               </span>
               <ChevronRight />
             </button>
+            {postTripReviewAvailable && (
+              <button
+                type="button"
+                aria-current={tab === "valutazione" ? "page" : undefined}
+                onClick={() => {
+                  selectTab("valutazione");
+                  setMoreOpen(false);
+                }}
+              >
+                <Star />
+                <span>
+                  <strong>Valuta il viaggio</strong>
+                  <small>Giudizio complessivo e passaparola</small>
+                </span>
+                <ChevronRight />
+              </button>
+            )}
             <button
               type="button"
               aria-current={tab === "info" ? "page" : undefined}
@@ -2376,6 +2407,16 @@ export default function TravelExperience({
               userName={userName}
               isAdmin={isAgencyAdmin}
               onResultsChange={(challengeResults) => setExperience((current) => ({ ...current, challengeResults }))}
+            />
+          )}
+          {tab === "valutazione" && (
+            <PostTripReview
+              departureId={experience.journey.departureId}
+              partyId={experience.journey.partyId}
+              onOpenChat={() => {
+                setChatScope("traveler");
+                selectTab("chat");
+              }}
             />
           )}
         </div>

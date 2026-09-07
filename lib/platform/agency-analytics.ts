@@ -14,6 +14,8 @@ export type AgencyAnalytics = {
     engagementActions: number;
     averageFeedback: number | null;
     feedbackCount: number;
+    postTripAverage: number | null;
+    postTripReviewCount: number;
   };
   departures: Array<{
     id: string;
@@ -27,9 +29,12 @@ export type AgencyAnalytics = {
     assistanceRequests: number;
     engagementActions: number;
     feedbackAverage: number | null;
+    postTripAverage: number | null;
+    postTripReviewCount: number;
   }>;
   feedback: Array<{
     itemId: string;
+    departureId: string;
     dayNumber: number;
     dayTitle: string;
     itemTitle: string;
@@ -39,6 +44,16 @@ export type AgencyAnalytics = {
     targetType: string;
     average: number;
     responses: number;
+  }>;
+  postTripReviews: Array<{
+    id: string;
+    departureId: string;
+    departureTitle: string;
+    groupName: string;
+    travelerName: string;
+    rating: number;
+    comment: string;
+    submittedAt: string;
   }>;
   definitions: Array<{
     code: string;
@@ -62,7 +77,7 @@ export async function getAgencyAnalytics(input: {
   const sql = getSql();
   const periodDays = [7, 30, 90].includes(input.periodDays) ? input.periodDays : 30;
   const departureId = input.departureId || null;
-  const [, , summaryRows, departureRows, feedbackRows, definitionRows] = await sql.transaction(
+  const [, , summaryRows, departureRows, feedbackRows, postTripRows, definitionRows] = await sql.transaction(
     (txn) => [
       txn`SELECT set_config('app.agency_id',${input.agencyId},true)`,
       txn`SELECT set_config('app.analytics_days',${String(periodDays)},true)`,
@@ -97,7 +112,12 @@ export async function getAgencyAnalytics(input: {
         SELECT avg(rating)::numeric(4,2) AS average,count(*) AS count FROM journey.programme_feedback
         WHERE agency_id=${input.agencyId} AND updated_at>=now()-make_interval(days=>${periodDays})
           AND (${departureId}::uuid IS NULL OR departure_id=${departureId}::uuid)
-      ) SELECT * FROM population,events,assistance,engagement,feedback`,
+      ), post_trip AS (
+        SELECT avg(rating)::numeric(4,2) AS post_trip_average,count(*) AS post_trip_count
+        FROM journey.post_trip_reviews
+        WHERE agency_id=${input.agencyId} AND submitted_at>=now()-make_interval(days=>${periodDays})
+          AND (${departureId}::uuid IS NULL OR departure_id=${departureId}::uuid)
+      ) SELECT * FROM population,events,assistance,engagement,feedback,post_trip`,
       txn`
       SELECT departure.id::text,departure.title,departure.starts_on::text,
         count(DISTINCT membership.traveler_id) FILTER (WHERE membership.status<>'removed') AS travelers,
@@ -115,6 +135,10 @@ export async function getAgencyAnalytics(input: {
           AND entry.departure_id=departure.id AND entry.submitted_at>=now()-make_interval(days=>${periodDays})) AS engagement_actions,
         (SELECT avg(rating)::numeric(4,2) FROM journey.programme_feedback feedback WHERE feedback.agency_id=departure.agency_id
           AND feedback.departure_id=departure.id AND feedback.updated_at>=now()-make_interval(days=>${periodDays})) AS feedback_average
+        ,(SELECT avg(rating)::numeric(4,2) FROM journey.post_trip_reviews review WHERE review.agency_id=departure.agency_id
+          AND review.departure_id=departure.id AND review.submitted_at>=now()-make_interval(days=>${periodDays})) AS post_trip_average
+        ,(SELECT count(*) FROM journey.post_trip_reviews review WHERE review.agency_id=departure.agency_id
+          AND review.departure_id=departure.id AND review.submitted_at>=now()-make_interval(days=>${periodDays})) AS post_trip_count
       FROM travel.departures departure
       LEFT JOIN travel.party_memberships membership ON membership.agency_id=departure.agency_id AND membership.departure_id=departure.id
       LEFT JOIN travel.traveler_profiles profile ON profile.agency_id=membership.agency_id AND profile.id=membership.traveler_id
@@ -125,6 +149,7 @@ export async function getAgencyAnalytics(input: {
       ORDER BY departure.starts_on DESC,departure.title`,
       txn`
       SELECT COALESCE(item.id::text,stay.id::text,feedback.departure_day_id::text) AS item_id,
+        feedback.departure_id::text AS departure_id,
         template_day.day_number,COALESCE(NULLIF(template_day.title,''),'Giornata '||template_day.day_number) AS day_title,
         COALESCE(NULLIF(item.title,''),NULLIF(stay.name_snapshot,''),'Feedback della giornata') AS item_title,
         COALESCE(city.name,'') AS city,COALESCE(party.name,'Gruppo non disponibile') AS group_name,
@@ -149,9 +174,18 @@ export async function getAgencyAnalytics(input: {
         AND party.departure_id=feedback.departure_id AND party.id=feedback.party_id
       WHERE feedback.agency_id=${input.agencyId} AND feedback.updated_at>=now()-make_interval(days=>${periodDays})
         AND (${departureId}::uuid IS NULL OR feedback.departure_id=${departureId}::uuid)
-      GROUP BY item.id,stay.id,feedback.departure_day_id,template_day.day_number,template_day.title,item.title,stay.name_snapshot,
+      GROUP BY item.id,stay.id,feedback.departure_id,feedback.departure_day_id,template_day.day_number,template_day.title,item.title,stay.name_snapshot,
         city.name,party.name,departure.title,feedback.target_type
       ORDER BY average ASC,template_day.day_number,item_title LIMIT 80`,
+      txn`SELECT review.id::text,review.departure_id::text,departure.title departure_title,
+        party.name group_name,traveler.display_name traveler_name,review.rating,review.comment,review.submitted_at::text
+        FROM journey.post_trip_reviews review
+        JOIN travel.departures departure ON departure.id=review.departure_id AND departure.agency_id=review.agency_id
+        JOIN travel.travel_parties party ON party.id=review.party_id AND party.agency_id=review.agency_id
+        JOIN travel.traveler_profiles traveler ON traveler.id=review.traveler_id AND traveler.agency_id=review.agency_id
+        WHERE review.agency_id=${input.agencyId} AND review.submitted_at>=now()-make_interval(days=>${periodDays})
+          AND (${departureId}::uuid IS NULL OR review.departure_id=${departureId}::uuid)
+        ORDER BY review.submitted_at DESC LIMIT 200`,
       txn`SELECT code,label,formula,numerator_definition,denominator_definition,
       GREATEST(1,extract(epoch FROM refresh_interval)/60)::int refresh_minutes,version
       FROM ops.analytics_kpi_definitions WHERE effective_to IS NULL ORDER BY code`,
@@ -172,6 +206,8 @@ export async function getAgencyAnalytics(input: {
       engagementActions: numberValue(summary.actions),
       averageFeedback: nullableNumber(summary.average),
       feedbackCount: numberValue(summary.count),
+      postTripAverage: nullableNumber(summary.post_trip_average),
+      postTripReviewCount: numberValue(summary.post_trip_count),
     },
     departures: departureRows.map((row) => ({
       id: String(row.id),
@@ -185,9 +221,12 @@ export async function getAgencyAnalytics(input: {
       assistanceRequests: numberValue(row.assistance_requests),
       engagementActions: numberValue(row.engagement_actions),
       feedbackAverage: nullableNumber(row.feedback_average),
+      postTripAverage: nullableNumber(row.post_trip_average),
+      postTripReviewCount: numberValue(row.post_trip_count),
     })),
     feedback: feedbackRows.map((row) => ({
       itemId: String(row.item_id),
+      departureId: String(row.departure_id),
       dayNumber: numberValue(row.day_number),
       dayTitle: String(row.day_title),
       itemTitle: String(row.item_title),
@@ -197,6 +236,16 @@ export async function getAgencyAnalytics(input: {
       targetType: String(row.target_type || "activity"),
       average: numberValue(row.average),
       responses: numberValue(row.responses),
+    })),
+    postTripReviews: postTripRows.map((row) => ({
+      id: String(row.id),
+      departureId: String(row.departure_id),
+      departureTitle: String(row.departure_title),
+      groupName: String(row.group_name),
+      travelerName: String(row.traveler_name),
+      rating: numberValue(row.rating),
+      comment: String(row.comment || ""),
+      submittedAt: String(row.submitted_at),
     })),
     definitions: definitionRows.map((row) => ({
       code: String(row.code),

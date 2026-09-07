@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   ArrowLeft,
+  BedDouble,
   BookOpen,
   ClipboardCheck,
   FileText,
@@ -15,7 +16,15 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 
-type Tab = "programma" | "gruppi" | "documenti" | "chat" | "comunicazioni" | "operativita" | "configurazione";
+type Tab =
+  | "programma"
+  | "gruppi"
+  | "rooming"
+  | "documenti"
+  | "chat"
+  | "comunicazioni"
+  | "operativita"
+  | "configurazione";
 
 type Props = {
   departureId: string;
@@ -54,6 +63,16 @@ export default function AgencyManagementNav({
           >
             <BookOpen /> Programma
           </Link>
+          {staffRole !== "guida" &&
+            (activeTab === "rooming" ? (
+              <span aria-current="page">
+                <BedDouble /> Rooming list
+              </span>
+            ) : (
+              <Link href={staffHref(`/agenzia/viaggi/${departureId}/rooming`)}>
+                <BedDouble /> Rooming list
+              </Link>
+            ))}
           {staffRole !== "guida" &&
             (activeTab === "documenti" ? (
               <span aria-current="page">
@@ -121,6 +140,15 @@ export default function AgencyManagementNav({
         ) : (
           <Link href={`/agenzia/viaggi/${departureId}`}>
             <UsersRound /> Gruppi
+          </Link>
+        )}
+        {activeTab === "rooming" ? (
+          <span aria-current="page">
+            <BedDouble /> Rooming list
+          </span>
+        ) : (
+          <Link href={`/agenzia/viaggi/${departureId}/rooming`}>
+            <BedDouble /> Rooming list
           </Link>
         )}
         {activeTab === "documenti" ? (

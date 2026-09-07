@@ -2,7 +2,7 @@ import { getSql } from "@/lib/db";
 import { loadScheduledPushParameters } from "@/lib/platform/scheduled-push-parameters";
 import { sendDeparturePush } from "@/lib/platform/web-push-core";
 
-type ScheduledPushKind = "quiz_unlock" | "departure_reminder";
+type ScheduledPushKind = "quiz_unlock" | "departure_reminder" | "post_trip_review";
 
 export async function handler() {
   const startedAt = Date.now();

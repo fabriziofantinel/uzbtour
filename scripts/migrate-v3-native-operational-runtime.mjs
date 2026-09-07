@@ -39,6 +39,7 @@ const migrations = [
   "197_v3_suspended_agency_session_boundary",
   "198_v3_native_remaining_actor_signatures",
   "199_v3_drop_remaining_legacy_actor_signatures",
+  "200_v3_rooming_and_post_trip_reviews",
 ];
 const sources = await Promise.all(
   migrations.map(async (name) => ({
@@ -107,6 +108,10 @@ try {
       EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='197_v3_suspended_agency_session_boundary') suspended_agency_session_boundary_marker,
       EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='198_v3_native_remaining_actor_signatures') native_remaining_actor_signatures_marker,
       EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='199_v3_drop_remaining_legacy_actor_signatures') drop_remaining_legacy_actor_signatures_marker,
+      EXISTS(SELECT 1 FROM public.platform_schema_migrations WHERE version='200_v3_rooming_and_post_trip_reviews') rooming_post_trip_marker,
+      to_regprocedure('app.save_rooming_list_v3(uuid,uuid,uuid,uuid,jsonb)') IS NOT NULL rooming_write,
+      to_regprocedure('app.save_own_post_trip_review_v3(uuid,uuid,uuid,integer,text,uuid)') IS NOT NULL post_trip_review_write,
+      to_regprocedure('app.update_agency_post_trip_settings_v3(uuid,uuid,text)') IS NOT NULL post_trip_settings_write,
       to_regprocedure('app.save_country_profile_override_v3(uuid,uuid,uuid,jsonb)') IS NOT NULL country_profile_override_write,
       to_regprocedure('app.acknowledge_staff_communication_v3(uuid,uuid,uuid)') IS NOT NULL staff_communication_ack`)
   ).rows[0];

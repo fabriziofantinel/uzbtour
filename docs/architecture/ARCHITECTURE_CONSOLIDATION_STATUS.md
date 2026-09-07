@@ -35,6 +35,7 @@ Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migraz
 29. L'inventario live ha distinto 90 overload testuali reali dalla precedente baseline statica di 54 nomi funzione. Le migrazioni 165-166 hanno eliminato senza `CASCADE` 37 firme già revocate o già sostituite da chiamate UUID; rimangono 53 firme eseguibili da convertire per dominio.
 30. La migrazione 167 ha rimosso i tre contratti di impersonificazione storici dopo aver verificato i sostituti UUID e l'assenza di chiamanti runtime; il residuo live era di 50 firme.
 31. Le migrazioni 198-199 hanno creato i contratti UUID mancanti, spostato i chiamanti applicativi sull'identità IAM nativa e rimosso senza `CASCADE` tutte le 51 firme testuali rilevate dal censimento live. Il residuo verificato in produzione è zero; restano 195 firme applicative con primo parametro UUID.
+32. La migrazione 200 introduce rooming list tenant-isolated sotto i pernottamenti, con vincoli su capienza, unicità dell'assegnazione e minore accompagnato, più valutazioni post-viaggio idempotenti e relativa notifica schedulata. Nessun flusso richiede servizi AI.
 
 ## Finding del Solution Architect
 
@@ -67,7 +68,7 @@ Data di riferimento: 2026-09-03. Revisione allineata al modello V3 e alle migraz
 
 ## Residui necessari prima della chiusura operativa
 
-1. Convertire per dominio le 50 firme SQL ancora eseguibili con attore testuale, verificando il sostituto UUID prima di ogni revoca e rimozione.
+1. Completato: tutte le firme SQL eseguibili con attore testuale sono state sostituite e rimosse; il censimento live rileva zero firme legacy residue.
 2. In sospeso per decisione del proprietario: staging Vercel isolato e account Cognito E2E dedicati.
 3. In sospeso fino alla commercializzazione: test AI live periodici; restano manuali e disattivati per impostazione predefinita.
 4. In sospeso: dominio personalizzato e WAF Cloudflare. Non bloccano il consolidamento software corrente.

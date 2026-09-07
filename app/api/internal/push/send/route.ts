@@ -4,7 +4,7 @@ import { z } from "zod";
 import { sendDeparturePush } from "@/lib/platform/web-push";
 const schema = z.object({
   departureId: z.string().uuid(),
-  kind: z.enum(["quiz_unlock", "disruption", "departure_reminder"]),
+  kind: z.enum(["quiz_unlock", "disruption", "departure_reminder", "post_trip_review"]),
   body: z.string().trim().max(500).optional(),
 });
 function authorized(request: Request) {

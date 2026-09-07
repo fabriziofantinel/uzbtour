@@ -16,7 +16,7 @@ const publicRoutes = new Set([
 ]);
 const internalRoutes = new Set(["internal/push/send"]);
 const authSignal =
-  /(?:getCurrentUser|getAuthenticatedActor|require(?:SuperAdmin|PlatformAdmin|AgencyAdmin|AgencyAdminActor|SuperAdminActor|DepartureOperator))\s*\(/;
+  /(?:getCurrentUser|getAuthenticatedActor|require(?:SuperAdmin|PlatformAdmin|AgencyAdmin|CurrentAgencyAdmin|AgencyAdminActor|SuperAdminActor|DepartureOperator|DepartureCollaborator))\s*\(/;
 const internalSignal = /(?:timingSafeEqual|authorized)\s*\(/;
 const failures = [];
 let checked = 0;
