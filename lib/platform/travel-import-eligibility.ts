@@ -1,5 +1,7 @@
 import type { TravelProgrammeDraft } from "./import-schema";
 
+type TravelDocumentAssessment = TravelProgrammeDraft["documentAssessment"];
+
 export class TravelImportAbstentionError extends Error {
   readonly code = "TRAVEL_IMPORT_ABSTAINED";
 
@@ -9,8 +11,7 @@ export class TravelImportAbstentionError extends Error {
   }
 }
 
-export function assertImportableTravelDocument(draft: TravelProgrammeDraft) {
-  const assessment = draft.documentAssessment;
+export function assertTravelDocumentAssessment(assessment: TravelDocumentAssessment) {
   if (assessment.classification === "unreadable") {
     throw new TravelImportAbstentionError(
       `Documento non sufficientemente leggibile. Carica un PDF o DOCX più nitido. Motivo: ${assessment.reason}`,
@@ -26,6 +27,10 @@ export function assertImportableTravelDocument(draft: TravelProgrammeDraft) {
       `Non è possibile confermare che il documento contenga un programma di viaggio. Motivo: ${assessment.reason}`,
     );
   }
+}
+
+export function assertImportableTravelDocument(draft: TravelProgrammeDraft) {
+  assertTravelDocumentAssessment(draft.documentAssessment);
 
   const hasSubstantiveDay = draft.days.some(
     (day) =>

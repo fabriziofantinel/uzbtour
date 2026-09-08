@@ -1,7 +1,8 @@
 import { describe, expect, test } from "vitest";
-import { travelProgrammeDraftSchema } from "../../lib/platform/import-schema";
+import { travelProgrammeDraftSchema, travelProgrammeMainExtractionSchema } from "../../lib/platform/import-schema";
 import {
   assertImportableTravelDocument,
+  assertTravelDocumentAssessment,
   TravelImportAbstentionError,
 } from "../../lib/platform/travel-import-eligibility";
 
@@ -77,5 +78,27 @@ describe("travel import eligibility", () => {
         draft({ classification: "travel_programme", confidence: 0.9, reason: "Itinerario leggibile" }),
       ),
     ).not.toThrow();
+  });
+
+  test("allows an empty main extraction so a non-travel document can abstain", () => {
+    const result = travelProgrammeMainExtractionSchema.parse({
+      documentAssessment: {
+        classification: "not_travel_programme",
+        confidence: 0.99,
+        reason: "Elenco di una competizione sportiva",
+      },
+      title: "Documento caricato",
+      destinationCountry: "",
+      startDate: "",
+      endDate: "",
+      summary: "",
+      days: [],
+      usefulInformation: [],
+    });
+
+    expect(result.days).toEqual([]);
+    expect(() => assertTravelDocumentAssessment(result.documentAssessment)).toThrow(
+      "non è stato riconosciuto come programma di viaggio",
+    );
   });
 });

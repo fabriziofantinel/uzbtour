@@ -12,6 +12,7 @@ import {
   extractionEvidenceSchema,
   reconciliationIssueSchema,
   travelProgrammeDraftSchema,
+  travelProgrammeMainExtractionSchema,
 } from "./import-schema";
 import { travelDocumentType } from "./travel-document";
 import { normalizeTravelProgramme } from "./travel-programme-normalizer";
@@ -22,7 +23,8 @@ import {
   type BedrockDocumentPart,
 } from "./document-preprocessor";
 import { mergeReconciliationIssues } from "./travel-import-quality";
-import { assertImportableTravelDocument } from "./travel-import-eligibility";
+import { assertImportableTravelDocument, assertTravelDocumentAssessment } from "./travel-import-eligibility";
+import { BedrockStructuredOutputError, extractBedrockStructuredOutput } from "./bedrock-structured-output";
 
 const bedrockClients = new Map<string, BedrockRuntimeClient>();
 
@@ -108,9 +110,6 @@ REGOLE DI SICUREZZA E QUALITÀ:
 - description deve sintetizzare fedelmente il testo senza materiale promozionale superfluo.
 - usefulInformation deve contenere solo informazioni realmente presenti nel documento.
 - usefulInformation deve essere sempre presente come array; usa un array vuoto se il documento non contiene informazioni utili.
-- Compila commercialDetails leggendo tutte le sezioni del preventivo esterne al programma: agenzia e contatti, codice/versione/data, cliente, numero viaggiatori, lingua guida, valuta, quotazione, servizi inclusi o esclusi, condizioni e referenti operativi.
-- Per pricingRows, includedServices, conditions e contacts conserva tutte le righe esplicite del documento senza inventare valori mancanti.
-- quoteDate deve essere YYYY-MM-DD quando la data è esplicita, altrimenti stringa vuota.
 - label deve essere una breve etichetta della giornata e non deve superare 120 caratteri.
 - Per phone e url usa una stringa vuota quando il dato non è presente; non inventare recapiti o collegamenti.
 - Se un trasferimento è un treno o un volo, usa rispettivamente type train o flight.
@@ -126,9 +125,7 @@ REGOLE DI SICUREZZA E QUALITÀ:
 - Ogni countryValidation, cityValidation, placeValidation e accommodation.validation deve indicare needsValidation e reason.
 - Imposta needsValidation=true quando il nome è generico, abbreviato, ambiguo, non specificato nel documento, incoerente con la località o dedotto invece che esplicito.
 - Imposta needsValidation=false soltanto quando nome e associazione geografica sono espliciti e non ambigui nel documento. Non dichiarare verifiche web che non hai eseguito.
-- Compila extractionEvidence per titolo, destinazione, date, dati commerciali, ciascuna giornata, visita e sistemazione estratta. fieldPath deve usare il percorso JSON esatto; sourceText deve essere una breve citazione letterale del documento, sourcePage la pagina se identificabile, confidence 0-1 e method bedrock_native oppure textract.
-- Non usare una confidenza alta per dati dedotti. Se manca una prova testuale, non creare una falsa evidenza.
-- reconciliationIssues deve essere un array vuoto: le anomalie saranno calcolate da un passaggio separato.
+- In questo primo passaggio restituisci soltanto valutazione del documento, titolo, destinazione, date, sintesi, giornate e informazioni utili presenti nella fonte. Dati commerciali, evidenze e anomalie sono elaborati separatamente.
 `;
 
 function requiredEnvironment(name: string) {
@@ -154,17 +151,38 @@ function safeDocumentName(filename: string) {
   return (withoutExtension.replace(/[^a-zA-Z0-9 _\-()[\]]/g, " ").trim() || "programma-viaggio").slice(0, 120);
 }
 
-function extractToolInput(content: ContentBlock[] | undefined) {
-  const toolUse = content?.find((block) => "toolUse" in block)?.toolUse;
-  if (!toolUse?.input) throw new Error("Bedrock non ha restituito il programma strutturato");
-  return toolUse.input;
+function extractToolInput(
+  content: ContentBlock[] | undefined,
+  options: { toolName?: string; label?: string; stopReason?: string } = {},
+) {
+  return extractBedrockStructuredOutput(content, {
+    toolName: options.toolName,
+    label: options.label ?? "i dati richiesti",
+    stopReason: options.stopReason,
+  });
 }
 
 function retryableModelOutputError(error: unknown) {
   if (error instanceof z.ZodError) return true;
+  if (error instanceof BedrockStructuredOutputError) return true;
   const name = error instanceof Error ? error.name : "";
   const message = error instanceof Error ? error.message : String(error);
   return name === "ModelErrorException" || /non ha restituito|invalid sequence as part of ToolUse/i.test(message);
+}
+
+function textRetryContent(sourceText: string) {
+  const maximumCharacters = 320_000;
+  const normalized = sourceText.trim();
+  if (!normalized) return null;
+  const text =
+    normalized.length <= maximumCharacters
+      ? normalized
+      : `${normalized.slice(0, 240_000)}\n\n[sezione centrale omessa]\n\n${normalized.slice(-80_000)}`;
+  return [
+    {
+      text: `Testo estratto dal documento originale. Mantieni l'ordine delle sezioni e delle giornate.\n\n${text}\n\n${extractionPrompt}`,
+    },
+  ] satisfies ContentBlock[];
 }
 
 function clipped(value: unknown, maximum: number) {
@@ -555,7 +573,7 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
     ? ("textract" as const)
     : ("bedrock_native" as const);
 
-  const schema = novaToolSchema(travelProgrammeDraftSchema);
+  const schema = novaToolSchema(travelProgrammeMainExtractionSchema);
   const client = getBedrockClient(region);
   const request: ConverseCommandInput = {
     modelId: model,
@@ -589,23 +607,54 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     let stopReason: string | undefined;
     try {
-      const response = await client.send(new ConverseCommand(request));
+      const retryContent = attempt === 2 ? textRetryContent(sourceTextForValidation) : null;
+      const attemptRequest: ConverseCommandInput = retryContent
+        ? {
+            ...request,
+            messages: [{ role: "user", content: retryContent }],
+            requestMetadata: {
+              application: "smf-travel",
+              operation: "travel-import-main-extraction-text-retry",
+            },
+          }
+        : request;
+      const response = await client.send(new ConverseCommand(attemptRequest));
       captureBedrockGeneration({
         model,
-        operation: "travel-import-main-extraction",
+        operation: retryContent ? "travel-import-main-extraction-text-retry" : "travel-import-main-extraction",
         region,
-        prompt: request,
+        prompt: attemptRequest,
         usage: response.usage,
       });
       stopReason = response.stopReason;
-      const normalized = normalizeTravelProgramme(extractToolInput(response.output?.message?.content), {
-        fallbackTitle: safeDocumentName(filename),
-        sourceText: sourceTextForValidation,
-      });
+      const normalized = normalizeTravelProgramme(
+        extractToolInput(response.output?.message?.content, {
+          toolName: "emit_travel_programme",
+          label: "il programma",
+          stopReason,
+        }),
+        {
+          fallbackTitle: safeDocumentName(filename),
+          sourceText: sourceTextForValidation,
+        },
+      );
       if (normalized.changes.length > 0) {
         console.warn("Bedrock travel programme normalized", { attempt, changes: normalized.changes });
       }
-      let draft = travelProgrammeDraftSchema.parse(normalized.value);
+      const mainExtraction = travelProgrammeMainExtractionSchema.parse(normalized.value);
+      assertTravelDocumentAssessment(mainExtraction.documentAssessment);
+      if (mainExtraction.days.length === 0) {
+        throw new BedrockStructuredOutputError(
+          "Bedrock ha riconosciuto il programma ma non ha ricostruito alcuna giornata",
+          stopReason,
+        );
+      }
+      let draft = travelProgrammeDraftSchema.parse({
+        ...mainExtraction,
+        commercialDetails: {},
+        extractionEvidence: [],
+        reconciliationIssues: [],
+      });
       assertImportableTravelDocument(draft);
       const specializedInput = {
         client,

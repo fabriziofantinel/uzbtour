@@ -196,6 +196,22 @@ export const travelProgrammeDraftSchema = z.object({
 
 export type TravelProgrammeDraft = z.infer<typeof travelProgrammeDraftSchema>;
 
+// The first Bedrock pass only reconstructs the itinerary. Commercial data,
+// detailed evidence and reconciliation are produced by the dedicated passes.
+// An empty days array is intentional here: it lets the model abstain cleanly
+// when the uploaded file is not a travel programme.
+export const travelProgrammeMainExtractionSchema = travelProgrammeDraftSchema
+  .omit({
+    commercialDetails: true,
+    extractionEvidence: true,
+    reconciliationIssues: true,
+  })
+  .extend({
+    days: z.array(importedDaySchema).max(90),
+  });
+
+export type TravelProgrammeMainExtraction = z.infer<typeof travelProgrammeMainExtractionSchema>;
+
 export function catalogValidationIssues(draft: TravelProgrammeDraft) {
   const issues: string[] = [];
   for (const [index, day] of draft.days.entries()) {
