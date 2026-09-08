@@ -185,11 +185,10 @@ function normalizeEvidencePage(item: Record<string, unknown>) {
 }
 
 function normalizeSpecializedToolInput(input: unknown) {
-  if (!input || typeof input !== "object" || Array.isArray(input)) return input;
-  const root = input as Record<string, unknown>;
-  const normalizeSection = (value: unknown) => {
-    if (!value || typeof value !== "object" || Array.isArray(value)) return value;
-    const section = value as Record<string, unknown>;
+  const root = input && typeof input === "object" && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
+  const normalizeSection = (value: unknown): Record<string, unknown> => {
+    const section =
+      value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
     return {
       ...section,
       evidence: Array.isArray(section.evidence)
@@ -198,14 +197,23 @@ function normalizeSpecializedToolInput(input: unknown) {
               ? normalizeEvidencePage(item as Record<string, unknown>)
               : item,
           )
-        : section.evidence,
+        : [],
     };
   };
+  const commercial = normalizeSection(root.commercial);
+  const accommodations = normalizeSection(root.accommodations);
+  const activities = normalizeSection(root.activities);
   return {
     ...root,
-    commercial: normalizeSection(root.commercial),
-    accommodations: normalizeSection(root.accommodations),
-    activities: normalizeSection(root.activities),
+    commercial,
+    accommodations: {
+      ...accommodations,
+      accommodations: Array.isArray(accommodations.accommodations) ? accommodations.accommodations : [],
+    },
+    activities: {
+      ...activities,
+      days: Array.isArray(activities.days) ? activities.days : [],
+    },
   };
 }
 
@@ -719,6 +727,21 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
           const currentHasHotel = Boolean(day.accommodation.name.trim());
           return currentHasHotel ? withActivities : { ...withActivities, accommodation: recovered };
         }),
+        reconciliationIssues:
+          activityRecovery.days.length > 0
+            ? draft.reconciliationIssues
+            : [
+                ...draft.reconciliationIssues,
+                {
+                  code: "ACTIVITIES_NOT_EXTRACTED",
+                  severity: "warning",
+                  fieldPath: "days",
+                  message:
+                    "Le giornate sono state ricostruite, ma il dettaglio delle attività non è stato restituito dall'analisi automatica. Verificarlo durante la revisione.",
+                  sourceText: "",
+                  resolved: false,
+                },
+              ],
       });
       draft = flagAccommodationCityConflicts(draft);
       let reconciliation: Awaited<ReturnType<typeof reconcileExtraction>> | undefined;
