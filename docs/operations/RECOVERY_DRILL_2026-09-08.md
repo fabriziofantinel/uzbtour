@@ -152,8 +152,10 @@ CloudFormation che ha modificato esclusivamente `ImportWorker`, senza sostituire
 la funzione o ripubblicarne il codice.
 
 Dopo il fix, un secondo messaggio sintetico è stato riconosciuto dal worker come
-job obsoleto e confermato in 122 ms. La DLQ è rimasta vuota e nei log non compare
-alcuna generazione AI. La configurazione effettiva della Lambda riporta
+job obsoleto e confermato in 122 ms. Alla successiva scadenza di visibilità anche
+il messaggio effettivamente recuperato dalla DLQ è stato riconosciuto e
+confermato in 129 ms. Coda sorgente e DLQ risultano entrambe vuote e nei log non
+compare alcuna generazione AI. La configurazione effettiva della Lambda riporta
 `WORKLOAD=import`, stato `Active` e aggiornamento `Successful`.
 
 Nessuna chiamata Bedrock e nessun test AI live sono stati eseguiti durante queste

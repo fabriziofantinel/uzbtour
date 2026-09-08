@@ -70,7 +70,7 @@ UAT esplicitamente rinviati e non fanno parte della chiusura tecnica corrente.
 - [x] Recupero campione R2 eseguito l'8 settembre 2026 senza sovrascrivere l'originale: DOCX 25.947 byte, 26 entry ZIP, `word/document.xml` presente e checksum SHA-256 registrato nell'evidenza.
 - [x] Rollback Vercel provato l'8 settembre 2026 verso `dpl_8mvCgFtW1HixG8d87U9sV8ugsW9E`: alias pubblico HTTP 200; release corrente `dpl_Ee36v8rcdbuReDxegRW1HdU5HHbN` ripristinata e nuovamente HTTP 200.
 - [x] Compatibilità dello schema verificata: fra le due release cambiano soltanto `.vercelignore` e `scripts/vercel-ignore-build-step.mjs`; codice applicativo e migrazione 200 sono invariati.
-- [x] Ripristino job da DLQ provato l'8 settembre 2026 con un workload innocuo: redrive 1/1 dalla DLQ import, correzione `WORKLOAD=import` distribuita via CloudFormation e job obsoleto riconosciuto in 122 ms senza invocare Bedrock.
+- [x] Ripristino job da DLQ provato l'8 settembre 2026 con un workload innocuo: redrive 1/1 dalla DLQ import, correzione `WORKLOAD=import` distribuita via CloudFormation, messaggio recuperato riconosciuto in 129 ms e code finali vuote, senza invocare Bedrock.
 
 ## 8. Dati demo e documentazione
 
