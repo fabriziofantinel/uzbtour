@@ -13,7 +13,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import AgencyManagementNav from "@/components/agency-management-nav";
-import { accessibleBrandColor, validBrandColor } from "@/lib/platform/branding-ui";
+import { validBrandColor } from "@/lib/platform/branding-ui";
 import type { RoomingListData, RoomingRoom, RoomType } from "@/lib/platform/rooming-list";
 
 const capacity: Record<RoomType, number> = { single: 1, double: 2, matrimonial: 2, triple: 3 };
@@ -49,12 +49,13 @@ export default function RoomingListClient({
   const [stayId, setStayId] = useState(initialData.stays[0]?.id ?? "");
   const [partyId, setPartyId] = useState(initialData.groups[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [message, setMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const primary = validBrandColor(initialData.departure.agencyPrimaryColor);
   const style = {
     "--agency-ui": primary,
     "--smf-brand": primary,
-    "--smf-brand-deep": accessibleBrandColor(primary),
+    "--smf-brand-deep": primary,
   } as React.CSSProperties;
   const stay = initialData.stays.find((item) => item.id === stayId);
   const group = initialData.groups.find((item) => item.id === partyId);
@@ -114,6 +115,55 @@ export default function RoomingListClient({
     }
   }
 
+  async function downloadRoomingList() {
+    if (!stayId || downloading) return;
+    setDownloading(true);
+    setMessage(null);
+    try {
+      const response = await fetch(
+        `/api/admin/platform/departures/${initialData.departure.id}/rooming-list/export?stayId=${stayId}`,
+        { cache: "no-store", credentials: "same-origin" },
+      );
+      if (!response.ok) {
+        const result = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(result.error || "Download del documento non riuscito");
+      }
+      const contentType = response.headers.get("Content-Type") ?? "";
+      if (!contentType.includes("application/vnd.openxmlformats-officedocument.wordprocessingml.document")) {
+        throw new Error("Il server non ha restituito un documento DOCX valido. Riprova.");
+      }
+      const blob = await response.blob();
+      if (!blob.size) throw new Error("Il documento generato è vuoto. Riprova.");
+
+      const disposition = response.headers.get("Content-Disposition") ?? "";
+      const headerFilename = disposition.match(/filename="([^"]+)"/i)?.[1];
+      const fallbackHotel = (stay?.hotelName || "hotel")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/gi, "-")
+        .replace(/^-|-$/g, "")
+        .toLowerCase();
+      const filename = headerFilename || `rooming-list-${fallbackHotel || "hotel"}.docx`;
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = filename;
+      anchor.style.display = "none";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setMessage({ kind: "success", text: "Documento DOCX scaricato." });
+    } catch (error) {
+      setMessage({
+        kind: "error",
+        text: error instanceof Error ? error.message : "Download del documento non riuscito",
+      });
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   return (
     <main className="journeyManagePage roomingPage" style={style}>
       <AgencyManagementNav
@@ -170,12 +220,14 @@ export default function RoomingListClient({
             </select>
           </label>
           {stayId && (
-            <a
+            <button
+              type="button"
               className="roomingExport"
-              href={`/api/admin/platform/departures/${initialData.departure.id}/rooming-list/export?stayId=${stayId}`}
+              disabled={downloading}
+              onClick={() => void downloadRoomingList()}
             >
-              <Download /> Scarica DOCX per l’hotel
-            </a>
+              <Download /> {downloading ? "Preparazione DOCX…" : "Scarica DOCX per l’hotel"}
+            </button>
           )}
         </section>
 

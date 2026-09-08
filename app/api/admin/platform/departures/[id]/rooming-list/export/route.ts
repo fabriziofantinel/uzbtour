@@ -24,7 +24,9 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "Content-Disposition": `attachment; filename="${filename}"`,
+        "Content-Length": String(bytes.byteLength),
         "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
       },
     });
   } catch (error) {

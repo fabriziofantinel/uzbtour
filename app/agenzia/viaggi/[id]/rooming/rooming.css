@@ -114,6 +114,10 @@
   text-decoration: none;
   cursor: pointer;
 }
+.roomingExport:disabled {
+  opacity: 0.62;
+  cursor: wait;
+}
 .roomingExport svg,
 .roomingRooms button svg {
   width: 18px;
