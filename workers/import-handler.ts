@@ -163,6 +163,16 @@ export async function handler(event: SqsEvent | ScheduledEvent): Promise<SqsBatc
       } catch (error) {
         if (message.type === "agency.delete") throw error;
         const status = await getPlatformJobStatus(message.jobId, message.agencyId).catch(() => null);
+        if (message.type === "travel-programme.import" && status === "failed") {
+          console.info("Failed travel import acknowledged without queue retry", {
+            messageId: record.messageId,
+            jobId: message.jobId,
+            agencyId: message.agencyId,
+            importId: message.payload.importId,
+            durationMs: Date.now() - startedAt,
+          });
+          continue;
+        }
         if (status !== "completed" && status !== null) throw error;
         console.info(status === null ? "Obsolete import job acknowledged" : "Duplicate import job acknowledged", {
           messageId: record.messageId,
