@@ -70,7 +70,11 @@ jobs:
             --role-name neondb_owner \
             --database-name neondb \
             --output json --no-color --no-analytics)"
-          database_url="$(printf '%s' "$result" | jq -r 'if type == "string" then . else (.connection_uri // .connectionString // .uri // empty) end')"
+          if [[ "$result" == postgresql://* || "$result" == postgres://* ]]; then
+            database_url="$result"
+          else
+            database_url="$(printf '%s' "$result" | jq -r 'if type == "string" then . else (.connection_uri // .connectionString // .uri // empty) end')"
+          fi
           test -n "$database_url"
           echo "::add-mask::$database_url"
           echo "database_url=$database_url" >> "$GITHUB_OUTPUT"
