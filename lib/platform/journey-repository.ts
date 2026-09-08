@@ -49,7 +49,7 @@ export async function addJourneyTraveler(input: {
   username: string;
   email: string;
   phone: string;
-  birthDate?: string;
+  birthDate: string;
   role: "organizer" | "member";
   actorId: string;
 }) {

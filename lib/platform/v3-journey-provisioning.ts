@@ -28,7 +28,7 @@ export async function provisionV3JourneyTraveler(input: {
   username: string;
   email: string;
   phone: string;
-  birthDate?: string;
+  birthDate: string;
   role: "organizer" | "member";
   tokenHash: string;
   expiresAt: string;
@@ -39,7 +39,7 @@ export async function provisionV3JourneyTraveler(input: {
     FROM app.provision_journey_traveler(
       ${input.actorId}::uuid,${input.agencyId}::uuid,${input.partyId}::uuid,
       ${input.name},${input.initials},${input.username},${input.email},${input.phone},
-      ${input.birthDate || null}::date,${input.role},${input.tokenHash},
+      ${input.birthDate}::date,${input.role},${input.tokenHash},
       ${input.expiresAt}::timestamptz
     )
   `;
