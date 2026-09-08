@@ -626,7 +626,7 @@ Resources:
       Runtime: nodejs22.x
       Architectures: [arm64]
       MemorySize: 2048
-      Timeout: 300
+      Timeout: 840
       Tracing: Active
       LoggingConfig:
         LogFormat: JSON

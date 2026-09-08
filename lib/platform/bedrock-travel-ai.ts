@@ -123,11 +123,17 @@ function getBedrockClient(region: string) {
   if (existing) return existing;
   const client = new BedrockRuntimeClient({
     region,
-    maxAttempts: 5,
+    maxAttempts: 3,
     retryMode: "adaptive",
   });
   bedrockClients.set(region, client);
   return client;
+}
+
+function sendBedrock(client: BedrockRuntimeClient, input: ConverseCommandInput, timeoutMs: number) {
+  return client.send(new ConverseCommand(input), {
+    abortSignal: AbortSignal.timeout(timeoutMs),
+  });
 }
 
 function safeDocumentName(filename: string) {
@@ -367,8 +373,9 @@ async function extractSpecializedDetails(input: {
   method: "bedrock_native" | "textract";
   days: Array<{ dayNumber: number; date: string; city: string; country: string }>;
 }) {
-  const response = await input.client.send(
-    new ConverseCommand({
+  const response = await sendBedrock(
+    input.client,
+    {
       modelId: input.model,
       system: [
         {
@@ -398,10 +405,11 @@ async function extractSpecializedDetails(input: {
         ],
         toolChoice: { tool: { name: "emit_specialized_extraction" } },
       },
-      inferenceConfig: { maxTokens: Math.min(input.maxOutputTokens, 20_000), temperature: 0 },
+      inferenceConfig: { maxTokens: Math.min(input.maxOutputTokens, 16_000), temperature: 0 },
       additionalModelRequestFields: { inferenceConfig: { topK: 1 } },
       requestMetadata: { application: "smf-travel", operation: "travel-import-specialized-extraction" },
-    }),
+    },
+    180_000,
   );
   captureBedrockGeneration({
     model: input.model,
@@ -482,8 +490,9 @@ async function reconcileExtraction(input: {
     commercialDetails: input.draft.commercialDetails,
     days: input.draft.days,
   };
-  const response = await input.client.send(
-    new ConverseCommand({
+  const response = await sendBedrock(
+    input.client,
+    {
       modelId: input.model,
       system: [
         {
@@ -516,7 +525,8 @@ async function reconcileExtraction(input: {
       inferenceConfig: { maxTokens: Math.min(input.maxOutputTokens, 3000), temperature: 0 },
       additionalModelRequestFields: { inferenceConfig: { topK: 1 } },
       requestMetadata: { application: "smf-travel", operation: "travel-import-reconciliation" },
-    }),
+    },
+    45_000,
   );
   captureBedrockGeneration({
     model: input.model,
@@ -580,12 +590,13 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
       ],
       toolChoice: { tool: { name: "emit_travel_programme" } },
     },
-    inferenceConfig: { maxTokens: maxOutputTokens, temperature: 0 },
+    inferenceConfig: { maxTokens: Math.min(maxOutputTokens, 6_000), temperature: 0 },
     additionalModelRequestFields: { inferenceConfig: { topK: 1 } },
     requestMetadata: { application: "smf-travel", operation: "travel-import-main-extraction" },
   };
 
   let lastError: unknown;
+  let mainExtractionCompleted = false;
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     let stopReason: string | undefined;
     try {
@@ -600,7 +611,7 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
             },
           }
         : request;
-      const response = await client.send(new ConverseCommand(attemptRequest));
+      const response = await sendBedrock(client, attemptRequest, 120_000);
       captureBedrockGeneration({
         model,
         operation: retryContent ? "travel-import-main-extraction-text-retry" : "travel-import-main-extraction",
@@ -650,6 +661,7 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
         })),
       });
       assertImportableTravelDocument(draft);
+      mainExtractionCompleted = true;
       const specializedInput = {
         client,
         documentParts,
@@ -709,8 +721,15 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
         }),
       });
       draft = flagAccommodationCityConflicts(draft);
-      const reconciliation = await reconcileExtraction({ client, documentParts, model, maxOutputTokens, draft });
-      draft = mergeReconciliationIssues(draft, reconciliation.result.issues);
+      let reconciliation: Awaited<ReturnType<typeof reconcileExtraction>> | undefined;
+      try {
+        reconciliation = await reconcileExtraction({ client, documentParts, model, maxOutputTokens, draft });
+        draft = mergeReconciliationIssues(draft, reconciliation.result.issues);
+      } catch (error) {
+        console.warn("Bedrock reconciliation skipped after extraction completed", {
+          error: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500),
+        });
+      }
       return {
         draft,
         model,
@@ -718,12 +737,12 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
         usage: {
           extraction: response.usage ?? null,
           specializedExtraction: specialized.usage,
-          reconciliation: reconciliation.usage,
+          reconciliation: reconciliation?.usage ?? null,
         },
       };
     } catch (error) {
       lastError = error;
-      if (attempt === 2 || !retryableModelOutputError(error)) throw error;
+      if (mainExtractionCompleted || attempt === 2 || !retryableModelOutputError(error)) throw error;
       console.warn("Bedrock travel extraction response rejected, retrying", {
         attempt,
         stopReason,
