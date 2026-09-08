@@ -15,11 +15,11 @@ Questa checklist definisce le prove necessarie per dichiarare una release pronta
 
 - [x] Capacità Vercel bonificata l'8 settembre 2026: rimossi 189 deployment obsoleti, mantenuti 20 deployment di produzione pronti per rollback e 4 deployment protetti da alias. Retention impostata a 7 giorni e build non applicative escluse tramite `ignoreCommand`; l'aggiornamento del dato di utilizzo nel portale Vercel può essere asincrono.
 - [x] Filtro dei build verificato anche con clone Git a cronologia ridotta: il confronto considera soltanto gli input applicativi dichiarati e i commit che modificano esclusivamente documentazione, test manuali o materiali operativi non producono nuovi artefatti Vercel.
-- [ ] Quote Neon, connessioni e storage verificati.
-- [ ] Code SQS operative e DLQ senza messaggi non analizzati.
-- [ ] Lambda operative con allarmi CloudWatch attivi.
+- [x] Capacità Neon verificata l'8 settembre 2026: database circa 44,5 MiB, 3 connessioni osservate su 901 disponibili; schema e integrità validati.
+- [x] Code SQS operative l'8 settembre 2026: 10 code/DLQ senza messaggi visibili, in volo o ritardati; redrive e retention di 14 giorni presenti sulle code applicative.
+- [x] Lambda operative con allarmi CloudWatch attivi: 7 funzioni `Active`, tracing abilitato, 5 event source mapping attivi e 9 allarmi in stato `OK`.
 - [ ] R2 raggiungibile e CORS verificato per upload/download dai domini effettivi.
-- [ ] Cognito, SES e mittente delle e-mail di invito verificati nell'ambiente di produzione.
+- [ ] Cognito e mittente SES verificati; resta da ottenere l'uscita di SES dalla sandbox (`ProductionAccessEnabled: false`, quota corrente 200 messaggi/giorno e 1 messaggio/secondo).
 
 ## 3. Collaudo ruoli
 
@@ -61,9 +61,9 @@ Questa checklist definisce le prove necessarie per dichiarare una release pronta
 
 ## 7. Backup e rollback
 
-- [ ] Branch Neon temporaneo creato da un punto precedente e validato con `npm run db:validate:v3`.
-- [ ] Primo restore drill completato entro RPO/RTO osservati e registrato.
-- [ ] Secondo restore drill consecutivo completato prima di inserire RPO/RTO nei contratti.
+- [x] Branch Neon temporaneo creato da un punto precedente e validato con `npm run db:validate:v3`.
+- [x] Primo restore drill completato l'8 settembre 2026: punto a -5 minuti, verifica operativa in 15 secondi, branch temporaneo eliminato.
+- [x] Secondo restore drill consecutivo completato l'8 settembre 2026: punto a -10 minuti, verifica operativa in 14 secondi, branch temporaneo eliminato.
 - [ ] Recupero campione R2 eseguito senza sovrascrivere l'oggetto originale.
 - [ ] Rollback Vercel provato verso il deployment precedente.
 - [ ] Compatibilità dello schema verificata con la versione applicativa di rollback oppure procedura di forward-fix approvata.

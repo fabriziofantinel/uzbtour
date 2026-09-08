@@ -23,6 +23,13 @@ contratti soltanto dopo due restore drill consecutivi conclusi entro tali soglie
 
 ## Restore drill Neon mensile
 
+Il percorso preferito è il workflow GitHub Actions manuale
+`.github/workflows/manual-recovery-drill.yml`. Non ha trigger pianificati e non
+consuma risorse finché il proprietario non lo avvia esplicitamente. L'input
+`restore_offset_minutes` indica il punto da verificare; il workflow crea un
+branch Neon isolato con scadenza a 24 ore, acquisisce soltanto evidenze
+sanitizzate, esegue `npm run db:validate:v3` e cancella sempre il branch.
+
 1. Registrare UTC iniziale, branch di origine, numero di tabelle e checksum delle
    principali cardinalità (`iam.agencies`, `travel.departures`,
    `ops.platform_jobs`, `ops.media_assets`).
@@ -34,6 +41,10 @@ contratti soltanto dopo due restore drill consecutivi conclusi entro tali soglie
 5. Confrontare schema, foreign key, funzioni `SECURITY DEFINER` e cardinalità.
 6. Eliminare il branch temporaneo solo dopo aver salvato l'evidenza del test.
 7. Registrare durata, RPO osservato, RTO osservato ed eventuali anomalie.
+
+Le prime due esecuzioni consecutive conformi sono registrate in
+`docs/operations/RECOVERY_DRILL_2026-09-08.md`. I tempi osservati sono molto
+inferiori ai target, ma non costituiscono da soli un impegno contrattuale.
 
 In un incidente reale si crea prima un branch di sicurezza dello stato corrente,
 si individua il punto corretto con Time Travel Assist e si esegue il restore della
@@ -69,3 +80,12 @@ S3 di lettura/scrittura oggetti non possono modificare questa regola.
 Ogni drill conserva: data UTC, operatore, branch/punto di ripristino, comandi di
 verifica, conteggi pre/post, durata, esito, finding e approvazione. Non inserire
 URL di connessione, token, contenuti personali o credenziali nelle evidenze.
+
+## Limite operativo R2
+
+Il recupero campione R2 deve essere eseguito con un'identità temporanea e a
+privilegio minimo. Non leggere o stampare il parametro cifrato
+`/smf-travel/production/r2-credentials` nella shell o nei log. Il test deve
+scaricare un oggetto campione in una destinazione nuova, confrontarne dimensione
+e checksum e lasciare invariato l'oggetto originale. Il risultato va registrato
+senza nome oggetto, contenuto, URL firmato o credenziali.
