@@ -84,6 +84,7 @@ jobs:
           RESTORE_POINT_UTC: ${{ steps.recovery.outputs.restore_point }}
         shell: bash
         run: |
+          touch .env.local
           node scripts/capture-neon-recovery-evidence.mjs | tee neon-recovery-evidence.json
           npm run db:validate:v3 | tee neon-schema-validation.json
           completed_epoch="$(date +%s)"
