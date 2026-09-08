@@ -67,6 +67,8 @@ jobs:
           result="$(npx --yes neonctl@4.14.3 connection-string \
             "${{ steps.branch.outputs.branch_id }}" \
             --project-id "$NEON_PROJECT_ID" \
+            --role-name neondb_owner \
+            --database-name neondb \
             --output json --no-color --no-analytics)"
           database_url="$(printf '%s' "$result" | jq -r 'if type == "string" then . else (.connection_uri // .connectionString // .uri // empty) end')"
           test -n "$database_url"
