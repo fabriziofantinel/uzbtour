@@ -179,9 +179,20 @@ function clipped(value: unknown, maximum: number) {
   return typeof value === "string" ? value.trim().slice(0, maximum) : "";
 }
 
-function normalizeEvidencePage(item: Record<string, unknown>) {
+function normalizeEvidence(item: Record<string, unknown>) {
   const sourcePage = Number(item.sourcePage);
-  return { ...item, sourcePage: Number.isInteger(sourcePage) && sourcePage > 0 ? sourcePage : null };
+  const confidence = Number(item.confidence);
+  const method = ["bedrock_native", "textract", "derived", "agent"].includes(String(item.method))
+    ? String(item.method)
+    : "derived";
+  return {
+    ...item,
+    fieldPath: clipped(item.fieldPath, 300) || "days",
+    sourcePage: Number.isInteger(sourcePage) && sourcePage > 0 ? sourcePage : null,
+    sourceText: clipped(item.sourceText, 1200) || "Evidenza non testuale restituita dal modello",
+    confidence: Number.isFinite(confidence) ? Math.max(0, Math.min(1, confidence)) : 0.5,
+    method,
+  };
 }
 
 function normalizeSpecializedToolInput(input: unknown) {
@@ -194,7 +205,7 @@ function normalizeSpecializedToolInput(input: unknown) {
       evidence: Array.isArray(section.evidence)
         ? section.evidence.map((item) =>
             item && typeof item === "object" && !Array.isArray(item)
-              ? normalizeEvidencePage(item as Record<string, unknown>)
+              ? normalizeEvidence(item as Record<string, unknown>)
               : item,
           )
         : [],
@@ -203,16 +214,57 @@ function normalizeSpecializedToolInput(input: unknown) {
   const commercial = normalizeSection(root.commercial);
   const accommodations = normalizeSection(root.accommodations);
   const activities = normalizeSection(root.activities);
+  const records = (value: unknown) =>
+    Array.isArray(value)
+      ? value.filter(
+          (item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item),
+        )
+      : [];
   return {
     ...root,
     commercial,
     accommodations: {
       ...accommodations,
-      accommodations: Array.isArray(accommodations.accommodations) ? accommodations.accommodations : [],
+      accommodations: records(accommodations.accommodations)
+        .filter((item) => Number.isInteger(Number(item.dayNumber)) && Number(item.dayNumber) > 0)
+        .map((item) => {
+          const validation =
+            item.validation && typeof item.validation === "object" && !Array.isArray(item.validation)
+              ? (item.validation as Record<string, unknown>)
+              : {};
+          return {
+            dayNumber: Number(item.dayNumber),
+            name: clipped(item.name, 240),
+            city: clipped(item.city, 240),
+            country: clipped(item.country, 120),
+            notes: clipped(item.notes, 2000),
+            validation: {
+              needsValidation: validation.needsValidation !== false,
+              reason: clipped(validation.reason, 1000) || "Sistemazione da verificare",
+            },
+          };
+        }),
     },
     activities: {
       ...activities,
-      days: Array.isArray(activities.days) ? activities.days : [],
+      days: records(activities.days)
+        .filter((day) => Number.isInteger(Number(day.dayNumber)) && Number(day.dayNumber) > 0)
+        .map((day) => ({
+          dayNumber: Number(day.dayNumber),
+          activities: records(day.activities).map((item) => ({
+            type: ["visit", "transport", "flight", "train", "meal", "free_time", "meeting", "other"].includes(
+              String(item.type),
+            )
+              ? item.type
+              : "other",
+            title: clipped(item.title, 240) || clipped(item.description, 240) || "Attività da verificare",
+            description: clipped(item.description, 3000),
+            includedInQuote: typeof item.includedInQuote === "boolean" ? item.includedInQuote : null,
+            placeName: clipped(item.placeName, 240),
+            placeCity: clipped(item.placeCity, 240),
+            placeCountry: clipped(item.placeCountry, 120),
+          })),
+        })),
     },
   };
 }
@@ -296,7 +348,7 @@ function normalizeCommercialToolInput(input: unknown) {
     evidence: rows(root.evidence)
       .slice(0, 300)
       .map((item) => ({
-        ...normalizeEvidencePage(item),
+        ...normalizeEvidence(item),
         fieldPath: evidencePath(item.fieldPath),
         sourceText: clipped(item.sourceText, 1200) || "Evidenza non testuale restituita dal modello",
       })),
