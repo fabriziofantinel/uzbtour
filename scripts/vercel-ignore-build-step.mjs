@@ -12,6 +12,8 @@ const deploymentInputs = [
   /^package(?:-lock)?\.json$/,
   /^tsconfig\.json$/,
   /^vercel\.json$/,
+  /^\.vercelignore$/,
+  /^scripts\/vercel-ignore-build-step\.mjs$/,
 ];
 
 function git(...args) {
