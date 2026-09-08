@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "200_v3_rooming_and_post_trip_reviews",
+  "schemaVersion": "201_v3_rooming_read_scope",
   "applicationTables": [
     "content.activities",
     "content.activity_item_translations",

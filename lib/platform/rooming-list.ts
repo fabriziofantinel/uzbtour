@@ -30,10 +30,8 @@ function stringValue(value: unknown) {
 
 export async function readRoomingList(actorId: string, departureId: string): Promise<RoomingListData> {
   const sql = getSql();
-  const scope = await sql`SELECT departure.agency_id::text,departure.title,agency.name agency_name,
-    COALESCE(agency.branding->>'primaryColor','#247A6B') primary_color
-    FROM travel.departures departure JOIN iam.agencies agency ON agency.id=departure.agency_id
-    WHERE departure.id=${departureId}::uuid AND app.can_manage_rooming_list_v3(${actorId}::uuid,departure.id)`;
+  const scope = await sql`SELECT agency_id::text,title,agency_name,primary_color
+    FROM app.read_rooming_list_scope_v3(${actorId}::uuid,${departureId}::uuid)`;
   if (!scope[0]) throw new PlatformRequestError("Rooming list non disponibile");
   const agencyId = String(scope[0].agency_id);
   const [, stayRows, travelerRows, roomRows] = await sql.transaction(
