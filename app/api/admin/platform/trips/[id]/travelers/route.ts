@@ -17,13 +17,17 @@ const schema = z.object({
     .regex(/^[A-Za-z0-9][A-Za-z0-9._-]{2,79}$/),
   email: z.email(),
   phone: z.string().trim().max(60).default(""),
-  birthDate: z.union([z.literal(""), z.iso.date()]).default(""),
+  birthDate: z.iso.date(),
 });
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const input = schema.parse(await request.json());
+    const birthDate = new Date(`${input.birthDate}T12:00:00Z`);
+    if (input.birthDate < "1900-01-01" || birthDate > new Date()) {
+      return NextResponse.json({ error: "Data di nascita non valida" }, { status: 400 });
+    }
     const actor = await requireAgencyAdmin(input.agencyId);
     const current = await getJourneyManagement(id, actor.id, actor.nativeId);
     const group = current.groups.find((item) => item.id === input.partyId);
@@ -31,7 +35,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: "Gruppo non valido" }, { status: 403 });
     }
     const firstTraveler = group.travelers.length === 0;
-    if (firstTraveler && input.birthDate) {
+    if (firstTraveler) {
       const eighteenthBirthday = new Date(`${input.birthDate}T12:00:00Z`);
       eighteenthBirthday.setUTCFullYear(eighteenthBirthday.getUTCFullYear() + 18);
       if (eighteenthBirthday > new Date(`${current.journey.startsOn}T12:00:00Z`)) {

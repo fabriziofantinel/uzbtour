@@ -36,6 +36,54 @@
   width: 18px;
   color: #111;
 }
+.roomingNights {
+  display: grid;
+  gap: 14px;
+  padding: 18px 20px;
+  border: 1px solid color-mix(in srgb, var(--agency-ui) 55%, #d8ddd9);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--agency-ui) 14%, #fff);
+}
+.roomingNights > header {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.roomingNights > header svg {
+  width: 24px;
+  flex: 0 0 24px;
+  color: #111;
+}
+.roomingNights > header div {
+  display: grid;
+  gap: 2px;
+}
+.roomingNights > header strong {
+  font-size: 17px;
+}
+.roomingNights > header span {
+  color: #39433f;
+  font-size: 13px;
+}
+.roomingNightDates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.roomingNightDates > span {
+  display: grid;
+  gap: 2px;
+  padding: 9px 11px;
+  border: 1px solid rgba(17, 17, 17, 0.14);
+  border-radius: 9px;
+  background: #fff;
+  color: #111;
+  font-size: 12px;
+}
+.roomingNightDates b {
+  font-size: 11px;
+  text-transform: uppercase;
+}
 .roomingPage :is(select, input, textarea) {
   width: 100%;
   min-height: 48px;
@@ -187,9 +235,22 @@
   display: grid;
 }
 .roomingTravelers small {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 7px;
   color: var(--smf-muted);
   font-size: 11px;
   font-weight: 500;
+}
+.roomingTravelers small b {
+  color: #111;
+}
+.roomingTravelers label.minor {
+  border-color: #d19a2c;
+  background: #fff8e9;
+}
+.roomingTravelers label.minor small b {
+  color: #704707;
 }
 .roomingActions {
   display: flex;
@@ -237,6 +298,12 @@
   .roomingSelectors,
   .roomingRooms {
     padding: 16px;
+  }
+  .roomingNights {
+    padding: 15px;
+  }
+  .roomingNightDates {
+    display: grid;
   }
   .roomingTravelers {
     grid-template-columns: 1fr;

@@ -15,17 +15,45 @@ export type RoomingRoom = {
 
 export type RoomingListData = {
   departure: { id: string; title: string; agencyName: string; agencyPrimaryColor: string };
-  stays: Array<{ id: string; dayId: string; dayNumber: number; serviceDate: string; hotelName: string; notes: string }>;
+  stays: Array<{
+    id: string;
+    stayIds: string[];
+    hotelName: string;
+    notes: string;
+    nights: Array<{
+      id: string;
+      dayId: string;
+      dayNumber: number;
+      serviceDate: string;
+      nightDate: string;
+      checkoutDate: string;
+    }>;
+  }>;
   groups: Array<{
     id: string;
     name: string;
-    travelers: Array<{ id: string; name: string; memberType: "adult" | "dependent_minor" }>;
+    travelers: Array<{
+      id: string;
+      name: string;
+      birthDate: string;
+      memberType: "adult" | "dependent_minor";
+    }>;
   }>;
   rooms: Array<RoomingRoom & { stayId: string; partyId: string }>;
 };
 
 function stringValue(value: unknown) {
   return value == null ? "" : String(value);
+}
+
+function shiftIsoDate(value: string, days: number) {
+  const date = new Date(`${value}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function normalizedHotelName(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLocaleLowerCase("it-IT");
 }
 
 export async function readRoomingList(actorId: string, departureId: string): Promise<RoomingListData> {
@@ -37,7 +65,7 @@ export async function readRoomingList(actorId: string, departureId: string): Pro
   const [, stayRows, travelerRows, roomRows] = await sql.transaction(
     (transaction) => [
       transaction`SELECT set_config('app.agency_id',${agencyId},true)`,
-      transaction`SELECT stay.id::text,stay.departure_day_id::text day_id,template_day.day_number,
+      transaction`SELECT stay.id::text,stay.hotel_id::text,stay.departure_day_id::text day_id,template_day.day_number,
         day.service_date::text,stay.name_snapshot hotel_name,stay.notes
         FROM travel.departure_accommodation_stays stay
         JOIN travel.departure_days day ON day.agency_id=stay.agency_id AND day.departure_id=stay.departure_id
@@ -48,7 +76,7 @@ export async function readRoomingList(actorId: string, departureId: string): Pro
           AND stay.operational_status<>'cancelled'
         ORDER BY day.service_date,stay.sort_order,stay.id`,
       transaction`SELECT party.id::text party_id,party.name party_name,profile.id::text traveler_id,
-        profile.display_name traveler_name,membership.member_type
+        profile.display_name traveler_name,profile.birth_date::text,membership.member_type
         FROM travel.travel_parties party
         LEFT JOIN travel.party_memberships membership ON membership.agency_id=party.agency_id
           AND membership.departure_id=party.departure_id AND membership.party_id=party.id
@@ -70,6 +98,49 @@ export async function readRoomingList(actorId: string, departureId: string): Pro
     ],
     { readOnly: true },
   );
+  const rawStays = stayRows.map((row) => ({
+    id: String(row.id),
+    hotelId: stringValue(row.hotel_id),
+    dayId: String(row.day_id),
+    dayNumber: Number(row.day_number),
+    serviceDate: String(row.service_date),
+    hotelName: String(row.hotel_name),
+    notes: stringValue(row.notes),
+  }));
+  const groupedStays = new Map<string, RoomingListData["stays"][number]>();
+  for (const rawStay of rawStays) {
+    const key = rawStay.hotelId ? `hotel:${rawStay.hotelId}` : `name:${normalizedHotelName(rawStay.hotelName)}`;
+    const hotel = groupedStays.get(key) ?? {
+      id: rawStay.id,
+      stayIds: [],
+      hotelName: rawStay.hotelName,
+      notes: rawStay.notes,
+      nights: [],
+    };
+    hotel.stayIds.push(rawStay.id);
+    hotel.nights.push({
+      id: rawStay.id,
+      dayId: rawStay.dayId,
+      dayNumber: rawStay.dayNumber,
+      serviceDate: rawStay.serviceDate,
+      nightDate: rawStay.serviceDate,
+      checkoutDate: shiftIsoDate(rawStay.serviceDate, 1),
+    });
+    if (!hotel.notes && rawStay.notes) hotel.notes = rawStay.notes;
+    groupedStays.set(key, hotel);
+  }
+  const stays = [...groupedStays.values()].map((hotel) => {
+    const totals = new Map<string, number>();
+    const seen = new Map<string, number>();
+    for (const night of hotel.nights) totals.set(night.serviceDate, (totals.get(night.serviceDate) ?? 0) + 1);
+    const nights = hotel.nights.map((night) => {
+      const index = seen.get(night.serviceDate) ?? 0;
+      seen.set(night.serviceDate, index + 1);
+      const nightDate = shiftIsoDate(night.serviceDate, index - (totals.get(night.serviceDate) ?? 1) + 1);
+      return { ...night, nightDate, checkoutDate: shiftIsoDate(nightDate, 1) };
+    });
+    return { ...hotel, nights };
+  });
   const grouped = new Map<string, RoomingListData["groups"][number]>();
   for (const row of travelerRows) {
     const partyId = String(row.party_id);
@@ -78,6 +149,7 @@ export async function readRoomingList(actorId: string, departureId: string): Pro
       group.travelers.push({
         id: String(row.traveler_id),
         name: String(row.traveler_name),
+        birthDate: stringValue(row.birth_date),
         memberType: String(row.member_type) === "dependent_minor" ? "dependent_minor" : "adult",
       });
     grouped.set(partyId, group);
@@ -89,24 +161,29 @@ export async function readRoomingList(actorId: string, departureId: string): Pro
       agencyName: String(scope[0].agency_name),
       agencyPrimaryColor: String(scope[0].primary_color),
     },
-    stays: stayRows.map((row) => ({
-      id: String(row.id),
-      dayId: String(row.day_id),
-      dayNumber: Number(row.day_number),
-      serviceDate: String(row.service_date),
-      hotelName: String(row.hotel_name),
-      notes: stringValue(row.notes),
-    })),
+    stays,
     groups: [...grouped.values()],
-    rooms: roomRows.map((row) => ({
-      id: String(row.id),
-      stayId: String(row.stay_id),
-      partyId: String(row.party_id),
-      label: String(row.room_label),
-      type: String(row.room_type) as RoomType,
-      specialRequirements: stringValue(row.special_requirements),
-      occupantIds: Array.isArray(row.occupant_ids) ? row.occupant_ids.map(String) : [],
-    })),
+    rooms: stays.flatMap((hotel) => {
+      const hotelRows = roomRows.filter((row) => hotel.stayIds.includes(String(row.stay_id)));
+      const partyIds = [...new Set(hotelRows.map((row) => String(row.party_id)))];
+      return partyIds.flatMap((partyId) => {
+        const partyRows = hotelRows.filter((row) => String(row.party_id) === partyId);
+        const sourceStayId = partyRows.some((row) => String(row.stay_id) === hotel.id)
+          ? hotel.id
+          : String(partyRows[0]?.stay_id ?? "");
+        return partyRows
+          .filter((row) => String(row.stay_id) === sourceStayId)
+          .map((row) => ({
+            id: String(row.id),
+            stayId: hotel.id,
+            partyId,
+            label: String(row.room_label),
+            type: String(row.room_type) as RoomType,
+            specialRequirements: stringValue(row.special_requirements),
+            occupantIds: Array.isArray(row.occupant_ids) ? row.occupant_ids.map(String) : [],
+          }));
+      });
+    }),
   };
 }
 
@@ -174,8 +251,23 @@ export async function createRoomingListDocx(data: RoomingListData, stayId: strin
           new Paragraph({ text: "Rooming list", heading: HeadingLevel.TITLE }),
           new Paragraph({ children: [new TextRun({ text: data.departure.agencyName, bold: true })] }),
           new Paragraph(`${data.departure.title} · ${stay.hotelName}`),
-          new Paragraph(
-            `Arrivo previsto: ${new Intl.DateTimeFormat("it-IT").format(new Date(`${stay.serviceDate}T12:00:00`))}`,
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: `${stay.nights.length} ${stay.nights.length === 1 ? "notte" : "notti"}`,
+                bold: true,
+              }),
+            ],
+          }),
+          ...stay.nights.map(
+            (night, index) =>
+              new Paragraph(
+                `Notte ${index + 1}: ${new Intl.DateTimeFormat("it-IT", { dateStyle: "full" }).format(
+                  new Date(`${night.nightDate}T12:00:00`),
+                )} - ${new Intl.DateTimeFormat("it-IT", { dateStyle: "full" }).format(
+                  new Date(`${night.checkoutDate}T12:00:00`),
+                )}`,
+              ),
           ),
           new Paragraph("Il documento contiene esclusivamente nomi, assegnazioni ed esigenze operative."),
           new Paragraph({ text: "Assegnazione camere", heading: HeadingLevel.HEADING_1 }),

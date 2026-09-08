@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "201_v3_rooming_read_scope",
+  "schemaVersion": "202_v3_hotel_rooming_and_traveler_birth_date",
   "applicationTables": [
     "content.activities",
     "content.activity_item_translations",

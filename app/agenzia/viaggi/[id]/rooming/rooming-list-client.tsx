@@ -24,6 +24,20 @@ const labels: Record<RoomType, string> = {
   triple: "Tripla",
 };
 
+function formatNightDate(value: string) {
+  return new Intl.DateTimeFormat("it-IT", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(`${value}T12:00:00`));
+}
+
+function formatBirthDate(value: string) {
+  if (!value) return "data non disponibile";
+  return new Intl.DateTimeFormat("it-IT").format(new Date(`${value}T12:00:00`));
+}
+
 export default function RoomingListClient({
   initialData,
   staffRole,
@@ -118,10 +132,10 @@ export default function RoomingListClient({
         </p>
       </section>
       <div className="roomingShell">
-        <section className="roomingSelectors" aria-label="Pernottamento e gruppo">
+        <section className="roomingSelectors" aria-label="Hotel e gruppo">
           <label>
             <span>
-              <CalendarDays /> Pernottamento
+              <CalendarDays /> Hotel
             </span>
             <select
               value={stayId}
@@ -132,7 +146,7 @@ export default function RoomingListClient({
             >
               {initialData.stays.map((item) => (
                 <option key={item.id} value={item.id}>
-                  Giorno {item.dayNumber} · {item.hotelName}
+                  {item.hotelName} · {item.nights.length} {item.nights.length === 1 ? "notte" : "notti"}
                 </option>
               ))}
             </select>
@@ -164,6 +178,29 @@ export default function RoomingListClient({
             </a>
           )}
         </section>
+
+        {stay && (
+          <section className="roomingNights" aria-label={`Notti presso ${stay.hotelName}`}>
+            <header>
+              <BedDouble />
+              <div>
+                <strong>{stay.hotelName}</strong>
+                <span>
+                  {stay.nights.length} {stay.nights.length === 1 ? "notte inclusa" : "notti incluse"} nella stessa
+                  soluzione camere
+                </span>
+              </div>
+            </header>
+            <div className="roomingNightDates">
+              {stay.nights.map((night, index) => (
+                <span key={night.id}>
+                  <b>Notte {index + 1}</b>
+                  {formatNightDate(night.nightDate)} → {formatNightDate(night.checkoutDate)}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
 
         {!initialData.stays.length || !initialData.groups.length ? (
           <section className="roomingEmpty">
@@ -248,7 +285,12 @@ export default function RoomingListClient({
                         const checked = room.occupantIds.includes(traveler.id);
                         const usedElsewhere = !checked && assigned.has(traveler.id);
                         return (
-                          <label key={traveler.id} className={usedElsewhere ? "disabled" : ""}>
+                          <label
+                            key={traveler.id}
+                            className={`${usedElsewhere ? "disabled" : ""} ${
+                              traveler.memberType === "dependent_minor" ? "minor" : ""
+                            }`}
+                          >
                             <input
                               type="checkbox"
                               checked={checked}
@@ -263,7 +305,10 @@ export default function RoomingListClient({
                             />
                             <span>
                               {traveler.name}
-                              <small>{traveler.memberType === "dependent_minor" ? "Minore" : "Adulto"}</small>
+                              <small>
+                                <b>{traveler.memberType === "dependent_minor" ? "MINORE" : "Adulto"}</b>
+                                Nato/a il {formatBirthDate(traveler.birthDate)}
+                              </small>
                             </span>
                           </label>
                         );

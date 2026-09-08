@@ -591,12 +591,14 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
                         />
                       </label>
                       <label htmlFor={`traveler-birth-${family.id}`}>
-                        Data di nascita <span>(facoltativa)</span>
+                        Data di nascita *
                         <input
                           id={`traveler-birth-${family.id}`}
                           name="birthDate"
                           type="date"
                           autoComplete="bday"
+                          required
+                          min="1900-01-01"
                           max={new Date().toISOString().slice(0, 10)}
                         />
                       </label>
