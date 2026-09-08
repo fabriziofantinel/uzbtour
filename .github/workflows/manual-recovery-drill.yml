@@ -1,0 +1,104 @@
+name: Manual recovery drill
+
+on:
+  workflow_dispatch:
+    inputs:
+      restore_offset_minutes:
+        description: Minutes before the run to use as the Neon recovery point
+        required: true
+        default: "5"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: manual-recovery-drill
+  cancel-in-progress: false
+
+jobs:
+  neon-point-in-time-restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+      NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Validate manual drill configuration
+        shell: bash
+        run: |
+          test -n "$NEON_API_KEY"
+          test -n "$NEON_PROJECT_ID"
+          [[ "${{ inputs.restore_offset_minutes }}" =~ ^[1-9][0-9]*$ ]]
+      - name: Calculate isolated recovery point
+        id: recovery
+        shell: bash
+        run: |
+          restore_point="$(date -u --date '-${{ inputs.restore_offset_minutes }} minutes' +'%Y-%m-%dT%H:%M:%SZ')"
+          expires_at="$(date -u --date '+1 day' +'%Y-%m-%dT%H:%M:%SZ')"
+          branch_name="drill/pitr-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "restore_point=$restore_point" >> "$GITHUB_OUTPUT"
+          echo "expires_at=$expires_at" >> "$GITHUB_OUTPUT"
+          echo "branch_name=$branch_name" >> "$GITHUB_OUTPUT"
+          echo "started_epoch=$(date +%s)" >> "$GITHUB_OUTPUT"
+      - name: Create point-in-time Neon branch
+        id: branch
+        shell: bash
+        run: |
+          result="$(npx --yes neonctl@4.14.3 branches create \
+            --project-id "$NEON_PROJECT_ID" \
+            --name "${{ steps.recovery.outputs.branch_name }}" \
+            --parent "${{ steps.recovery.outputs.restore_point }}" \
+            --expires-at "${{ steps.recovery.outputs.expires_at }}" \
+            --output json --no-color --no-analytics)"
+          branch_id="$(printf '%s' "$result" | jq -r '.branch.id // .id // empty')"
+          test -n "$branch_id"
+          echo "branch_id=$branch_id" >> "$GITHUB_OUTPUT"
+      - name: Resolve temporary connection without logging credentials
+        id: connection
+        shell: bash
+        run: |
+          result="$(npx --yes neonctl@4.14.3 connection-string \
+            "${{ steps.branch.outputs.branch_id }}" \
+            --project-id "$NEON_PROJECT_ID" \
+            --output json --no-color --no-analytics)"
+          database_url="$(printf '%s' "$result" | jq -r 'if type == "string" then . else (.connection_uri // .connectionString // .uri // empty) end')"
+          test -n "$database_url"
+          echo "::add-mask::$database_url"
+          echo "database_url=$database_url" >> "$GITHUB_OUTPUT"
+      - name: Capture sanitized recovery evidence
+        env:
+          DATABASE_MIGRATION_URL: ${{ steps.connection.outputs.database_url }}
+          RESTORE_POINT_UTC: ${{ steps.recovery.outputs.restore_point }}
+        shell: bash
+        run: |
+          node scripts/capture-neon-recovery-evidence.mjs | tee neon-recovery-evidence.json
+          npm run db:validate:v3 | tee neon-schema-validation.json
+          completed_epoch="$(date +%s)"
+          duration_seconds="$((completed_epoch - ${{ steps.recovery.outputs.started_epoch }}))"
+          printf '{"status":"passed","duration_seconds":%s,"restore_offset_minutes":%s}\n' \
+            "$duration_seconds" "${{ inputs.restore_offset_minutes }}" | tee neon-drill-summary.json
+      - name: Upload sanitized drill evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neon-recovery-drill-${{ github.run_id }}
+          path: |
+            neon-recovery-evidence.json
+            neon-schema-validation.json
+            neon-drill-summary.json
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Delete temporary Neon branch
+        if: always() && steps.branch.outputs.branch_id != ''
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ env.NEON_PROJECT_ID }}
+          branch: ${{ steps.branch.outputs.branch_id }}
+          api_key: ${{ env.NEON_API_KEY }}
