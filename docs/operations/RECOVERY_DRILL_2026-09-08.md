@@ -16,8 +16,10 @@ personali.
 | Event source mapping | Superato | 5 mapping abilitati, batch size 1 |
 | CloudWatch | Superato | dashboard presente e 9 allarmi attivi in stato `OK` |
 | Cognito | Superato con nota | user pool protetto dalla cancellazione, 15 utenti stimati, MFA non obbligatoria |
-| SES | Parziale | invio abilitato e mittente verificato, ma account ancora in sandbox |
-| Cloudflare R2 | Da completare | configurazione individuata; recupero campione e CORS non eseguiti per non esporre il parametro cifrato |
+| SES | Blocco esterno AWS | invio abilitato e mittente verificato; `ReviewStatus: DENIED`, caso Support ancora aperto dopo i chiarimenti |
+| Cloudflare R2 | Superato | bucket privato EU, CORS produzione verificato e campione DOCX recuperato senza modificare l'originale |
+| Vercel rollback | Superato | rollback alla release precedente e ripristino della corrente, entrambi con HTTP 200 |
+| SQS DLQ recovery | Superato | redrive controllato 1/1 e worker import corretto; nessuna invocazione Bedrock |
 
 ## Restore drill Neon
 
@@ -62,19 +64,97 @@ umani di decisione e promozione in un incidente reale.
 - SES in stato operativo `HEALTHY`, invio abilitato, quota 200 messaggi/giorno e
   1 messaggio/secondo, ma `ProductionAccessEnabled=false`.
 
+La richiesta di accesso SES production è stata inviata l'8 settembre 2026 con
+tipo `TRANSACTIONAL`, sito pubblico SMF Travel e descrizione dei soli flussi di
+invito, recupero password e comunicazione operativa. AWS ha registrato la
+richiesta e successivamente l'API SES ha riportato `ReviewStatus: DENIED`;
+l'approvazione è un'attività esterna e non può essere dichiarata completata
+finché `ProductionAccessEnabled` non diventa `true`.
+
+Il dettaglio richiesto da AWS è stato inviato nello stesso giorno tramite il
+Support Center: frequenza prevista, origine dei destinatari, esempi dei messaggi,
+gestione di bounce e complaint, suppression list e assenza di campagne
+marketing. Il caso Support resta aperto senza una nuova risposta successiva ai
+chiarimenti; occorre attendere l'esito del team AWS o fornire gli eventuali
+ulteriori elementi che verranno richiesti.
+
 Il bucket temporaneo OCR usa cifratura AES-256, blocco accesso pubblico completo
 e lifecycle. La coda di completamento OCR usa la chiave gestita AWS per SQS e
 non usa long polling; la differenza è coerente con il suo ingresso da SNS e non
 ha prodotto backlog.
 
+## Recupero campione Cloudflare R2
+
+La verifica è stata eseguita dalla console Cloudflare autenticata, senza leggere
+o esportare le credenziali S3 conservate in AWS Parameter Store.
+
+- bucket `smf-travel-private`, giurisdizione UE, accesso pubblico disabilitato;
+- 32 oggetti per 8,07 MB al momento dell'osservazione;
+- CORS configurato per `PUT` da `https://smf-travel.vercel.app` e
+  `http://localhost:3000`, con header consentito `Content-Type`;
+- Public Development URL e custom domain disabilitati;
+- regola Bucket Lock `smf-travel-retention-30d` attiva sul prefisso `agencies/`
+  per 30 giorni;
+- campione DOCX scaricato in una nuova copia locale, lasciando invariato
+  l'oggetto sorgente;
+- dimensione osservata e recuperata: 25.947 byte;
+- archivio Open XML valido: 26 entry e `word/document.xml` presente;
+- SHA-256 della copia recuperata:
+  `2E55772B32762B85FDCB1FFA87436E7A3AA046E823A398C9FE5EFC7D2C6A26FB`.
+
+Il download applicativo ha prodotto correttamente un URL R2 firmato e
+temporaneo. Il browser di automazione ha impedito l'apertura diretta dell'origine
+privata; il recupero è stato quindi completato dalla console Cloudflare, che non
+richiede l'esposizione del token S3. I download applicativi sono navigazioni
+firmate e non richiedono `GET` nella policy CORS; l'upload browser è coperto dalla
+regola `PUT` sull'origine di produzione.
+
 ## Azioni residue
 
-1. Richiedere l'uscita di SES dalla sandbox prima di invitare utenti reali non
-   preventivamente verificati.
-2. Eseguire il recupero di un campione R2 e lo smoke CORS con una procedura che
-   risolva il segreto solo a runtime e non lo inserisca nei log o nel contesto.
-3. Decidere in sede di sicurezza se rendere obbligatoria MFA per i ruoli
-   amministrativi; lo stato attuale è `MFA OFF`.
+1. Attendere la risposta del team AWS nel caso Support SES e, se richiesto,
+   integrare la pratica prima di invitare utenti reali non verificati.
+
+La configurazione `MFA OFF` è registrata come decisione di lancio non bloccante
+per mantenere semplice l'onboarding con Cognito Lite; dovrà essere rivalutata
+prima di ampliare il perimetro commerciale o introdurre dati più sensibili.
+
+## Rollback Vercel
+
+Il rollback controllato è stato eseguito l'8 settembre 2026:
+
+- release corrente iniziale: `dpl_Ee36v8rcdbuReDxegRW1HdU5HHbN`, commit
+  `b08db9efb34f97a454dc4720e936cedb2841726f`;
+- release di rollback: `dpl_8mvCgFtW1HixG8d87U9sV8ugsW9E`, commit
+  `17bf77cbae42d2b6f250bd11f50d793f7fac9e28`;
+- risposta di `https://smf-travel.vercel.app/login` dopo rollback: HTTP 200;
+- promozione immediata della release corrente completata;
+- risposta dello stesso endpoint dopo il ripristino: HTTP 200.
+
+Il confronto Git fra le due release contiene esclusivamente il filtro degli
+artefatti Vercel (`.vercelignore` e `scripts/vercel-ignore-build-step.mjs`):
+schema, route e logica applicativa sono identici. Il test dimostra quindi sia il
+meccanismo di rollback sia il ritorno controllato alla release corrente senza
+richiedere migrazioni inverse.
+
+## Recupero job dalla DLQ
+
+È stato inserito nella DLQ import un solo messaggio sintetico con identificativi
+casuali e riferimenti inesistenti, così da rendere impossibile qualunque
+mutazione applicativa o chiamata Bedrock. Prima della prova entrambe le code
+erano vuote.
+
+Il task SQS di redrive ha concluso con stato `COMPLETED`, spostando 1 messaggio
+su 1 verso la coda import. La prima elaborazione ha rilevato un difetto di
+configurazione: al worker import mancava la variabile `WORKLOAD=import`, benché
+fosse presente negli altri worker isolati. La variabile è stata aggiunta al
+template SAM e distribuita allo stack `smf-travel-worker` tramite un change set
+CloudFormation che ha modificato esclusivamente `ImportWorker`, senza sostituire
+la funzione o ripubblicarne il codice.
+
+Dopo il fix, un secondo messaggio sintetico è stato riconosciuto dal worker come
+job obsoleto e confermato in 122 ms. La DLQ è rimasta vuota e nei log non compare
+alcuna generazione AI. La configurazione effettiva della Lambda riporta
+`WORKLOAD=import`, stato `Active` e aggiornamento `Successful`.
 
 Nessuna chiamata Bedrock e nessun test AI live sono stati eseguiti durante queste
 verifiche.

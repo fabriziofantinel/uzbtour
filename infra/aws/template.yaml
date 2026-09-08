@@ -637,6 +637,7 @@ Resources:
           DATABASE_PARAMETER_NAME: !Ref DatabaseParameterName
           PLATFORM_OBJECT_STORAGE_PROVIDER: r2
           PLATFORM_JOB_QUEUE_PROVIDER: sqs
+          WORKLOAD: import
           CONFIG_REVISION: "2026-08-30-photo-contest-v1"
           AWS_BEDROCK_TEXT_MODEL: !Ref BedrockTextModel
           AWS_BEDROCK_MAX_DOCUMENT_BYTES: "4500000"
