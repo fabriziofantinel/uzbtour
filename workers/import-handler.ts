@@ -91,6 +91,20 @@ export async function handler(event: SqsEvent | ScheduledEvent): Promise<SqsBatc
         traceId: message.traceId,
         importId: message.payload.importId,
       });
+      if (message.type === "travel-programme.import") {
+        const currentStatus = await getPlatformJobStatus(message.jobId, message.agencyId).catch(() => null);
+        if (currentStatus === null || ["completed", "failed", "dead_letter"].includes(currentStatus)) {
+          console.info("Terminal travel import message acknowledged before processing", {
+            messageId: record.messageId,
+            jobId: message.jobId,
+            agencyId: message.agencyId,
+            importId: message.payload.importId,
+            status: currentStatus,
+            durationMs: Date.now() - startedAt,
+          });
+          continue;
+        }
+      }
       try {
         const result = await withAiGenerationTelemetry(
           { agencyId: message.agencyId, platformJobId: message.jobId },
