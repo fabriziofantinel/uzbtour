@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "ignoreCommand": "node scripts/vercel-ignore-build-step.mjs",
   "regions": ["fra1"],
   "fluid": true
 }
