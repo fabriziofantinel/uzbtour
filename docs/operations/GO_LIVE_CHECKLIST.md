@@ -13,7 +13,7 @@ Questa checklist definisce le prove necessarie per dichiarare una release pronta
 
 ## 2. Capacità e piattaforme
 
-- [ ] Vercel Function Storage sotto soglia, con margine per almeno due deployment e rollback. Il precedente avviso di utilizzo al 100% deve essere risolto o formalmente accettato.
+- [x] Capacità Vercel bonificata l'8 settembre 2026: rimossi 189 deployment obsoleti, mantenuti 20 deployment di produzione pronti per rollback e 4 deployment protetti da alias. Retention impostata a 7 giorni e build non applicative escluse tramite `ignoreCommand`; l'aggiornamento del dato di utilizzo nel portale Vercel può essere asincrono.
 - [ ] Quote Neon, connessioni e storage verificati.
 - [ ] Code SQS operative e DLQ senza messaggi non analizzati.
 - [ ] Lambda operative con allarmi CloudWatch attivi.
