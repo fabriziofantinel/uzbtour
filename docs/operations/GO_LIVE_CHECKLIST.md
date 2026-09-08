@@ -14,7 +14,7 @@ Questa checklist definisce le prove necessarie per dichiarare una release pronta
 ## 2. Capacità e piattaforme
 
 - [x] Capacità Vercel bonificata l'8 settembre 2026: rimossi 189 deployment obsoleti, mantenuti 20 deployment di produzione pronti per rollback e 4 deployment protetti da alias. Retention impostata a 7 giorni e build non applicative escluse tramite `ignoreCommand`; l'aggiornamento del dato di utilizzo nel portale Vercel può essere asincrono.
-- [x] Filtro dei build verificato anche con clone Git a cronologia ridotta: i commit che modificano soltanto documentazione, test manuali o materiali operativi non producono nuovi artefatti Vercel.
+- [x] Filtro dei build verificato anche con clone Git a cronologia ridotta: il confronto considera soltanto gli input applicativi dichiarati e i commit che modificano esclusivamente documentazione, test manuali o materiali operativi non producono nuovi artefatti Vercel.
 - [ ] Quote Neon, connessioni e storage verificati.
 - [ ] Code SQS operative e DLQ senza messaggi non analizzati.
 - [ ] Lambda operative con allarmi CloudWatch attivi.
