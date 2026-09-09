@@ -12,6 +12,7 @@ import {
   BookOpen,
   Download,
   Eye,
+  FileText,
   FileCheck2,
   LayoutGrid,
   List,
@@ -498,6 +499,9 @@ export default function AgencyDashboard({ initialOverview }: Props) {
             <a className="active" href="#viaggi">
               <MapPinned size={18} /> Viaggi
             </a>
+            <a href="#preventivi">
+              <FileText size={18} /> Preventivi
+            </a>
             <Link href="/agenzia/agenti">
               <UserPlus size={18} /> Personale
             </Link>
@@ -553,6 +557,52 @@ export default function AgencyDashboard({ initialOverview }: Props) {
               </span>
             </article>
           </div>
+
+          <section id="preventivi" className="agencySection quoteArchive">
+            <div className="agencySectionHead">
+              <div>
+                <h2>Preventivi</h2>
+                <p>Scarica il documento ricevuto dal cliente o la copia rielaborata da SMF Travel.</p>
+              </div>
+            </div>
+            {overview.recentImports.length > 0 ? (
+              <div className="quoteArchiveList">
+                {overview.recentImports.map((item) => {
+                  const normalizedAvailable = item.status === "ready_for_review" || item.status === "published";
+                  return (
+                    <article key={item.id}>
+                      <div>
+                        <FileText />
+                        <span>
+                          <b>{item.tripTitle}</b>
+                          <small>{item.fileName}</small>
+                        </span>
+                      </div>
+                      <span className={`status ${item.status}`}>{statusLabels[item.status] ?? item.status}</span>
+                      <div className="quoteArchiveActions">
+                        <a href={`/api/admin/platform/imports/${item.id}/original`}>
+                          <Download /> Originale
+                        </a>
+                        {normalizedAvailable ? (
+                          <a href={`/api/admin/platform/imports/${item.id}/normalized`}>
+                            <FileCheck2 /> Rielaborato
+                          </a>
+                        ) : (
+                          <span>Rielaborato non ancora disponibile</span>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="agencyEmpty">
+                <FileText />
+                <h3>Nessun preventivo</h3>
+                <p>I documenti caricati per creare un viaggio compariranno qui.</p>
+              </div>
+            )}
+          </section>
 
           <section id="viaggi" className="agencySection">
             <div className="agencySectionHead">

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAgencyAdmin } from "@/lib/platform/authorization";
-import { platformApiError } from "@/lib/platform/http";
+import { PlatformRequestError, platformApiError } from "@/lib/platform/http";
 import {
   deleteJourneyGroup,
   getJourneyManagement,
@@ -54,37 +54,40 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       const traveler = group.travelers.find((item) => item.id === input.travelerId);
       if (!traveler || traveler.memberType !== "dependent_minor")
         return NextResponse.json({ error: "Il consenso è previsto solo per un minore del gruppo" }, { status: 400 });
-      await setMinorImageConsent({
-        actorId: actor.nativeId,
+      const consentId = await setMinorImageConsent({
+        actorId: actor.id,
         agencyId: input.agencyId,
         departureId: id,
         partyId,
         travelerId: input.travelerId,
         decision: input.decision,
       });
+      if (!consentId) throw new PlatformRequestError("Il consenso immagini non è stato aggiornato");
     } else if (input.action === "leader") {
       if (!group.travelers.some((traveler) => traveler.id === input.travelerId)) {
         return NextResponse.json({ error: "Il capogruppo deve appartenere al gruppo" }, { status: 400 });
       }
-      await setJourneyGroupLeader({
-        actorId: actor.nativeId,
+      const updated = await setJourneyGroupLeader({
+        actorId: actor.id,
         agencyId: input.agencyId,
         departureId: id,
         partyId,
         travelerId: input.travelerId,
       });
+      if (!updated) throw new PlatformRequestError("Il capogruppo non è stato aggiornato");
     } else {
       if (!group.travelers.some((traveler) => traveler.id === input.travelerId)) {
         return NextResponse.json({ error: "Il viaggiatore deve appartenere al gruppo" }, { status: 400 });
       }
-      await updateJourneyGroupCompetition({
-        actorId: actor.nativeId,
+      const updated = await updateJourneyGroupCompetition({
+        actorId: actor.id,
         agencyId: input.agencyId,
         departureId: id,
         partyId,
         travelerId: input.travelerId,
         enabled: input.enabled,
       });
+      if (!updated) throw new PlatformRequestError("La partecipazione ai giochi non è stata aggiornata");
     }
     return NextResponse.json({ data: await getJourneyManagement(id, actor.id, actor.nativeId) });
   } catch (error) {
@@ -106,14 +109,23 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     if (input.travelerId) {
       if (!group.travelers.some((item) => item.id === input.travelerId))
         return NextResponse.json({ error: "Viaggiatore non valido" }, { status: 404 });
-      await removeJourneyTraveler({
-        actorId: actor.nativeId,
+      const removed = await removeJourneyTraveler({
+        actorId: actor.id,
         agencyId: input.agencyId,
         departureId: id,
         partyId,
         travelerId: input.travelerId,
       });
-    } else await deleteJourneyGroup({ actorId: actor.nativeId, agencyId: input.agencyId, departureId: id, partyId });
+      if (!removed) throw new PlatformRequestError("Il viaggiatore non è stato rimosso");
+    } else {
+      const deleted = await deleteJourneyGroup({
+        actorId: actor.id,
+        agencyId: input.agencyId,
+        departureId: id,
+        partyId,
+      });
+      if (!deleted) throw new PlatformRequestError("Il gruppo non è stato eliminato");
+    }
     return NextResponse.json({ data: await getJourneyManagement(id, actor.id, actor.nativeId) });
   } catch (error) {
     return platformApiError(error, "Eliminazione non riuscita");

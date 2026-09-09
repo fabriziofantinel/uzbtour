@@ -120,6 +120,14 @@ export default function DepartureSettingsClient({
   async function saveInsurance(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const incompleteGuarantee = guarantees.find((guarantee) => !guarantee.label.trim());
+    if (incompleteGuarantee) {
+      setMessage({
+        kind: "error",
+        text: "Completa il nome di ogni garanzia oppure elimina le righe vuote prima di salvare.",
+      });
+      return;
+    }
     setBusy("insurance");
     setMessage(null);
     try {

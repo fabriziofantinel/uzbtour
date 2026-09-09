@@ -14,11 +14,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const current = await getJourneyManagement(id, actor.id, actor.nativeId);
     if (current.journey.agencyId !== input.agencyId)
       return NextResponse.json({ error: "Agenzia non valida" }, { status: 403 });
+    const normalizedName = input.name.trim().toLocaleLowerCase("it");
+    if (current.groups.some((group) => group.name.trim().toLocaleLowerCase("it") === normalizedName)) {
+      return NextResponse.json({ error: "Esiste già un gruppo con questo nome" }, { status: 409 });
+    }
     const familyId = await createJourneyFamily({
       departureId: id,
       agencyId: input.agencyId,
       name: input.name,
-      actorId: actor.nativeId,
+      actorId: actor.id,
     });
     return NextResponse.json(
       { familyId, data: await getJourneyManagement(id, actor.id, actor.nativeId) },

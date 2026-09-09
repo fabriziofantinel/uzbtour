@@ -484,6 +484,9 @@ export default function ImportReview({
             <small>PREVENTIVO ORIGINALE</small>
             <b>{initialImport.sourceFileName}</b>
           </div>
+          <a href={`/api/admin/platform/imports/${initialImport.id}/original`}>
+            <ExternalLink /> Scarica originale
+          </a>
           <span>interpretato in</span>
           <div>
             <small>FONTE EFFETTIVAMENTE IMPORTATA</small>

@@ -74,6 +74,32 @@ export default function RoomingListClient({
       messages.push(`${room.label}: un minore deve essere assegnato con almeno un adulto del gruppo.`);
     return messages;
   });
+  const hotelStatuses = initialData.stays.map((hotel) => {
+    let incompleteGroups = 0;
+    for (const candidateGroup of initialData.groups) {
+      const candidateRooms = rooms.filter(
+        (room) => room.stayId === hotel.id && room.partyId === candidateGroup.id,
+      );
+      const occupants = candidateRooms.flatMap((room) => room.occupantIds);
+      const assignedIds = new Set(occupants);
+      const invalidRoom = candidateRooms.some((room) => {
+        const roomOccupants = candidateGroup.travelers.filter((traveler) => room.occupantIds.includes(traveler.id));
+        return (
+          roomOccupants.length > capacity[room.type] ||
+          (roomOccupants.some((traveler) => traveler.memberType === "dependent_minor") &&
+            !roomOccupants.some((traveler) => traveler.memberType === "adult"))
+        );
+      });
+      const complete =
+        candidateGroup.travelers.length > 0 &&
+        candidateRooms.length > 0 &&
+        assignedIds.size === candidateGroup.travelers.length &&
+        occupants.length === assignedIds.size &&
+        !invalidRoom;
+      if (!complete) incompleteGroups += 1;
+    }
+    return { ...hotel, complete: incompleteGroups === 0 && initialData.groups.length > 0, incompleteGroups };
+  });
 
   function updateRoom(id: string, changes: Partial<RoomingRoom>) {
     setRooms((current) => current.map((room) => (room.id === id ? { ...room, ...changes } : room)));
@@ -182,6 +208,70 @@ export default function RoomingListClient({
         </p>
       </section>
       <div className="roomingShell">
+        {initialData.stays.length > 0 && (
+          <section className="roomingHotelStatus" aria-labelledby="rooming-hotel-status-title">
+            <header>
+              <div>
+                <h2 id="rooming-hotel-status-title">Hotel da configurare</h2>
+                <p>Controlla che ogni gruppo abbia camere valide e tutti i viaggiatori assegnati.</p>
+              </div>
+              <strong>
+                {hotelStatuses.filter((hotel) => hotel.complete).length}/{hotelStatuses.length} completi
+              </strong>
+            </header>
+            <div>
+              {hotelStatuses.map((hotel) => (
+                <button
+                  type="button"
+                  key={hotel.id}
+                  className={`${hotel.complete ? "complete" : "incomplete"} ${stayId === hotel.id ? "selected" : ""}`}
+                  aria-pressed={stayId === hotel.id}
+                  onClick={() => {
+                    setStayId(hotel.id);
+                    if (!hotel.complete) {
+                      const firstIncompleteGroup = initialData.groups.find((candidateGroup) => {
+                        const hotelRooms = rooms.filter(
+                          (room) => room.stayId === hotel.id && room.partyId === candidateGroup.id,
+                        );
+                        const occupantIds = hotelRooms.flatMap((room) => room.occupantIds);
+                        const assignedIds = new Set(occupantIds);
+                        const invalidRoom = hotelRooms.some((room) => {
+                          const roomOccupants = candidateGroup.travelers.filter((traveler) =>
+                            room.occupantIds.includes(traveler.id),
+                          );
+                          return (
+                            roomOccupants.length > capacity[room.type] ||
+                            (roomOccupants.some((traveler) => traveler.memberType === "dependent_minor") &&
+                              !roomOccupants.some((traveler) => traveler.memberType === "adult"))
+                          );
+                        });
+                        return (
+                          candidateGroup.travelers.length === 0 ||
+                          hotelRooms.length === 0 ||
+                          assignedIds.size !== candidateGroup.travelers.length ||
+                          occupantIds.length !== assignedIds.size ||
+                          invalidRoom
+                        );
+                      });
+                      if (firstIncompleteGroup) setPartyId(firstIncompleteGroup.id);
+                    }
+                    setMessage(null);
+                  }}
+                >
+                  {hotel.complete ? <CheckCircle2 /> : <CircleAlert />}
+                  <span>
+                    <b>{hotel.hotelName}</b>
+                    <small>
+                      {hotel.complete
+                        ? "Configurazione completa"
+                        : `${hotel.incompleteGroups} ${hotel.incompleteGroups === 1 ? "gruppo incompleto" : "gruppi incompleti"}`}
+                    </small>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
         <section className="roomingSelectors" aria-label="Hotel e gruppo">
           <label>
             <span>

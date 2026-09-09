@@ -1383,6 +1383,97 @@ body::-webkit-scrollbar-thumb {
     serif;
   letter-spacing: -0.02em;
 }
+.quoteArchive {
+  scroll-margin-top: 24px;
+}
+.quoteArchive .agencySectionHead p {
+  margin: 5px 0 0;
+  color: var(--smf-muted);
+  font-size: 14px;
+}
+.quoteArchiveList {
+  display: grid;
+  border-top: 1px solid var(--smf-line);
+}
+.quoteArchiveList > article {
+  min-height: 72px;
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) auto minmax(250px, auto);
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--smf-line);
+}
+.quoteArchiveList > article > div:first-child {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.quoteArchiveList > article > div:first-child > svg {
+  width: 20px;
+  flex: 0 0 20px;
+}
+.quoteArchiveList > article > div:first-child span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.quoteArchiveList small {
+  overflow: hidden;
+  color: var(--smf-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.quoteArchiveActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.quoteArchiveActions a {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 1px solid var(--smf-line);
+  border-radius: 9px;
+  color: var(--smf-ink);
+  font-size: 13px;
+  font-weight: 750;
+  text-decoration: none;
+}
+.quoteArchiveActions a:hover {
+  border-color: var(--agency-ui);
+  background: color-mix(in srgb, var(--agency-ui) 10%, #fff);
+}
+.quoteArchiveActions svg {
+  width: 17px;
+}
+.quoteArchiveActions > span {
+  max-width: 180px;
+  color: var(--smf-muted);
+  font-size: 12px;
+  text-align: right;
+}
+@media (max-width: 760px) {
+  .quoteArchiveList > article {
+    grid-template-columns: 1fr auto;
+  }
+  .quoteArchiveActions {
+    grid-column: 1 / -1;
+    justify-content: stretch;
+  }
+  .quoteArchiveActions a {
+    flex: 1;
+    justify-content: center;
+  }
+  .quoteArchiveActions > span {
+    max-width: none;
+    text-align: left;
+  }
+}
 .agencySectionActions > .newTripButton {
   min-height: 44px;
   padding: 0 15px;

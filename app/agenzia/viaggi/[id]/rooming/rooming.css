@@ -9,6 +9,74 @@
   display: grid;
   gap: 16px;
 }
+.roomingHotelStatus {
+  padding: 20px;
+  border: 1px solid var(--smf-line);
+  border-radius: 14px;
+  background: #fff;
+}
+.roomingHotelStatus > header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.roomingHotelStatus h2,
+.roomingHotelStatus p {
+  margin: 0;
+}
+.roomingHotelStatus h2 {
+  font: 700 22px/1.2 var(--font-serif);
+}
+.roomingHotelStatus p {
+  margin-top: 4px;
+  color: var(--smf-muted);
+  font-size: 14px;
+}
+.roomingHotelStatus > header > strong {
+  white-space: nowrap;
+  font-size: 14px;
+}
+.roomingHotelStatus > div {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+}
+.roomingHotelStatus button {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--smf-line);
+  border-radius: 10px;
+  background: var(--smf-paper);
+  color: var(--smf-ink);
+  text-align: left;
+  cursor: pointer;
+}
+.roomingHotelStatus button.selected {
+  border-color: var(--agency-ui);
+  outline: 2px solid color-mix(in srgb, var(--agency-ui) 28%, transparent);
+}
+.roomingHotelStatus button.complete svg {
+  color: #247a6b;
+}
+.roomingHotelStatus button.incomplete svg {
+  color: #a96516;
+}
+.roomingHotelStatus button svg {
+  width: 21px;
+  flex: 0 0 21px;
+}
+.roomingHotelStatus button span {
+  display: grid;
+  gap: 2px;
+}
+.roomingHotelStatus button small {
+  color: var(--smf-muted);
+}
 .roomingSelectors {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) auto;
@@ -305,6 +373,13 @@
   }
   .roomingNights {
     padding: 15px;
+  }
+  .roomingHotelStatus {
+    padding: 16px;
+  }
+  .roomingHotelStatus > header {
+    align-items: flex-start;
+    flex-direction: column;
   }
   .roomingNightDates {
     display: grid;

@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { getSql } from "@/lib/db";
+import { PlatformRequestError } from "./errors";
 import { createV3JourneyParty, provisionV3JourneyTraveler } from "./v3-journey-provisioning";
 import { readV3JourneyManagement } from "./v3-journey-management";
 import { setDeparturePartyExperienceProfile } from "./departure-operations";
@@ -39,7 +40,14 @@ export async function createJourneyFamily(input: {
   name: string;
   actorId: string;
 }) {
-  return createV3JourneyParty({ ...input, code: familyCode(input.name) });
+  try {
+    return await createV3JourneyParty({ ...input, code: familyCode(input.name) });
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "23505") {
+      throw new PlatformRequestError("Esiste già un gruppo con questo nome");
+    }
+    throw error;
+  }
 }
 
 export async function addJourneyTraveler(input: {
@@ -80,7 +88,7 @@ export async function updateJourneyGroupCompetition(input: {
 }) {
   const sql = getSql();
   const rows = await sql`SELECT app.update_journey_traveler_competition(
-    ${input.actorId}::uuid,${input.agencyId}::uuid,${input.departureId}::uuid,
+    ${input.actorId}::text,${input.agencyId}::uuid,${input.departureId}::uuid,
     ${input.partyId}::uuid,${input.travelerId}::uuid,${input.enabled}
   ) AS updated`;
   return Boolean(rows[0]?.updated);
@@ -95,7 +103,7 @@ export async function setJourneyGroupLeader(input: {
 }) {
   const sql = getSql();
   const rows = await sql`SELECT app.set_journey_party_leader(
-    ${input.actorId}::uuid,${input.agencyId}::uuid,${input.departureId}::uuid,
+    ${input.actorId}::text,${input.agencyId}::uuid,${input.departureId}::uuid,
     ${input.partyId}::uuid,${input.travelerId}::uuid
   ) AS updated`;
   return Boolean(rows[0]?.updated);
@@ -110,7 +118,7 @@ export async function setMinorImageConsent(input: {
   decision: "granted" | "denied" | "withdrawn";
 }) {
   const rows =
-    await getSql()`SELECT app.set_minor_image_consent_v3(${input.actorId}::uuid,${input.agencyId}::uuid,${input.departureId}::uuid,${input.partyId}::uuid,${input.travelerId}::uuid,${input.decision},'') consent_id`;
+    await getSql()`SELECT app.set_minor_image_consent_v3(${input.actorId}::text,${input.agencyId}::uuid,${input.departureId}::uuid,${input.partyId}::uuid,${input.travelerId}::uuid,${input.decision},'') consent_id`;
   return String(rows[0]?.consent_id || "");
 }
 
@@ -122,7 +130,7 @@ export async function removeJourneyTraveler(input: {
   travelerId: string;
 }) {
   const rows =
-    await getSql()`SELECT app.remove_journey_traveler_v3(${input.actorId}::uuid,${input.agencyId}::uuid,${input.departureId}::uuid,${input.partyId}::uuid,${input.travelerId}::uuid) removed`;
+    await getSql()`SELECT app.remove_journey_traveler_v3(${input.actorId}::text,${input.agencyId}::uuid,${input.departureId}::uuid,${input.partyId}::uuid,${input.travelerId}::uuid) removed`;
   return Boolean(rows[0]?.removed);
 }
 export async function deleteJourneyGroup(input: {
@@ -132,7 +140,7 @@ export async function deleteJourneyGroup(input: {
   partyId: string;
 }) {
   const rows =
-    await getSql()`SELECT app.delete_empty_journey_party_v3(${input.actorId}::uuid,${input.agencyId}::uuid,${input.departureId}::uuid,${input.partyId}::uuid) deleted`;
+    await getSql()`SELECT app.delete_empty_journey_party_v3(${input.actorId}::text,${input.agencyId}::uuid,${input.departureId}::uuid,${input.partyId}::uuid) deleted`;
   return Boolean(rows[0]?.deleted);
 }
 

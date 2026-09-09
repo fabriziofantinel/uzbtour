@@ -239,11 +239,25 @@ export async function saveDepartureInsurance(input: {
   partyId: string | null;
   travelerId: string | null;
 }) {
-  const rows = await getSql()`SELECT app.save_departure_insurance_scoped_v3(
-    ${input.actorNativeId}::uuid,${input.departureId}::uuid,${input.audienceScope},${input.partyId}::uuid,${input.travelerId}::uuid,${input.providerName},${input.productName},${input.policyNumber},
-    ${input.assistancePhone},${input.validFrom}::date,${input.validTo}::date,${JSON.stringify(input.guarantees)}::jsonb,
-    ${input.documentId}::uuid)::text id`;
-  return String(rows[0]?.id || "");
+  try {
+    const rows = await getSql()`SELECT app.save_departure_insurance_scoped_v3(
+      ${input.actorNativeId}::uuid,${input.departureId}::uuid,${input.audienceScope},${input.partyId}::uuid,${input.travelerId}::uuid,${input.providerName},${input.productName},${input.policyNumber},
+      ${input.assistancePhone},${input.validFrom}::date,${input.validTo}::date,${JSON.stringify(input.guarantees)}::jsonb,
+      ${input.documentId}::uuid)::text id`;
+    const id = String(rows[0]?.id || "");
+    if (!id) throw new PlatformRequestError("La polizza non è stata registrata");
+    return id;
+  } catch (error) {
+    if (error instanceof PlatformRequestError) throw error;
+    const message = error instanceof Error ? error.message : "";
+    if (/invalid insurance document/i.test(message))
+      throw new PlatformRequestError("Il PDF selezionato non appartiene ai destinatari della polizza. Ricaricalo.");
+    if (/invalid insurance audience/i.test(message))
+      throw new PlatformRequestError("Seleziona nuovamente il gruppo o il viaggiatore destinatario.");
+    if (/invalid insurance policy|date|check constraint/i.test(message))
+      throw new PlatformRequestError("Controlla le date e i dati obbligatori della polizza.");
+    throw error;
+  }
 }
 
 export async function readDepartureExperienceProfile(actorId: string, departureId: string) {

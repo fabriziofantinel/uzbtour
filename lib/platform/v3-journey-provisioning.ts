@@ -12,7 +12,7 @@ export async function createV3JourneyParty(input: {
   const sql = getSql();
   const rows = await sql`
     SELECT app.create_journey_party(
-      ${input.actorId}::uuid,${input.agencyId}::uuid,${input.departureId}::uuid,
+      ${input.actorId}::text,${input.agencyId}::uuid,${input.departureId}::uuid,
       ${input.code},${input.name}
     )::text AS id
   `;

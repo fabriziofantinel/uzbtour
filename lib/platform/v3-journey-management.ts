@@ -33,7 +33,13 @@ export async function readV3JourneyManagement(
     brandingRow?.branding && typeof brandingRow.branding === "object" && !Array.isArray(brandingRow.branding)
       ? (brandingRow.branding as Record<string, unknown>)
       : {};
-  const partyIds = [...new Set(rows.filter((row) => row.party_id).map((row) => String(row.party_id)))];
+  const partyIds = [
+    ...new Set(
+      rows
+        .filter((row) => row.party_id && String(row.party_status) !== "archived")
+        .map((row) => String(row.party_id)),
+    ),
+  ];
   return {
     journey: {
       id: String(first.departure_id),

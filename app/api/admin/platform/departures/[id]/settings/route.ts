@@ -30,6 +30,16 @@ const schema = z.discriminatedUnion("action", [
   }),
 ]);
 
+function insuranceValidationMessage(error: z.ZodError) {
+  const field = error.issues[0]?.path[0];
+  if (field === "providerName") return "Indica una compagnia assicurativa di almeno 2 caratteri";
+  if (field === "policyNumber") return "Indica il numero della polizza";
+  if (field === "assistancePhone") return "Indica il telefono della centrale operativa";
+  if (field === "validFrom" || field === "validTo") return "Indica entrambe le date di validità della polizza";
+  if (field === "guarantees") return "Completa il nome di ogni garanzia oppure elimina le righe vuote";
+  return "Controlla i dati obbligatori della polizza";
+}
+
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const actor = await requirePlatformAdmin();
@@ -62,20 +72,23 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     const actor = await requirePlatformAdmin();
     const { id } = await context.params;
     const parsed = schema.safeParse(await request.json().catch(() => null));
-    if (!parsed.success) return NextResponse.json({ error: "Dati non validi" }, { status: 400 });
+    if (!parsed.success)
+      return NextResponse.json({ error: insuranceValidationMessage(parsed.error) }, { status: 400 });
     if (parsed.data.validTo < parsed.data.validFrom)
       return NextResponse.json({ error: "La validità finale precede quella iniziale" }, { status: 400 });
     const partyId = parsed.data.audienceScope === "trip" ? null : parsed.data.partyId;
     const travelerId = parsed.data.audienceScope === "traveler" ? parsed.data.travelerId : null;
     if ((parsed.data.audienceScope !== "trip" && !partyId) || (parsed.data.audienceScope === "traveler" && !travelerId))
       return NextResponse.json({ error: "Seleziona i destinatari della polizza" }, { status: 400 });
-    await saveDepartureInsurance({
+    const insuranceId = await saveDepartureInsurance({
       actorNativeId: actor.nativeId,
       departureId: id,
       ...parsed.data,
       partyId,
       travelerId,
     });
+    if (!insuranceId)
+      return NextResponse.json({ error: "La polizza non è stata registrata. Riprova." }, { status: 400 });
     return NextResponse.json({
       insurance: await readDepartureInsuranceScoped({
         actorNativeId: actor.nativeId,
