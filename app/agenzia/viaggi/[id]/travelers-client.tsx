@@ -201,7 +201,7 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
         }),
       );
       setData(result.data);
-      setNotice("Livello di coinvolgimento del gruppo aggiornato.");
+      setNotice("Profilo esperienza del gruppo aggiornato.");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Aggiornamento non riuscito");
     } finally {
@@ -472,7 +472,7 @@ export default function JourneyTravelers({ initialData }: { initialData: Journey
                         <b>{leader?.name ?? "Da indicare"}</b>
                       </span>
                       <label className="groupExperienceControl">
-                        <span>Coinvolgimento</span>
+                        <span>Profilo esperienza</span>
                         <select
                           value={family.experienceProfile}
                           disabled={Boolean(busy)}

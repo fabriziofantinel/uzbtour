@@ -503,7 +503,6 @@ export async function processReferenceEnrichment(
   templateId: string,
   targets: ReferenceTarget[],
   contentTypes: string[] = [],
-  experienceProfile: "essential" | "standard" | "complete" = "complete",
 ) {
   const sql = getSql();
   const claimed = await sql`SELECT app.claim_platform_job_v3(${jobId},${agencyId},
@@ -511,8 +510,7 @@ export async function processReferenceEnrichment(
   if (!Boolean(claimed[0]?.claimed)) throw new Error("Lavoro di arricchimento già elaborato o non disponibile");
   try {
     let refreshed = 0;
-    const selectedTargets =
-      experienceProfile === "essential" ? targets.filter((target) => target.entityType === "country") : targets;
+    const selectedTargets = targets;
     for (let offset = 0; offset < selectedTargets.length; offset += referenceTargetConcurrency) {
       const batch = selectedTargets.slice(offset, offset + referenceTargetConcurrency);
       const results = await Promise.all(
@@ -554,7 +552,7 @@ export async function processReferenceEnrichment(
     const usefulOnly = contentTypes.length === 1 && contentTypes[0] === "useful_info";
     const materialized = usefulOnly
       ? await materializeTripUsefulInformation(jobId, templateId, agencyId)
-      : await materializeTripExperience(jobId, templateId, agencyId, experienceProfile);
+      : await materializeTripExperience(jobId, templateId, agencyId);
     await sql`SELECT app.complete_platform_job_v3(${jobId},${agencyId})`;
     return { refreshed, ...materialized };
   } catch (error) {

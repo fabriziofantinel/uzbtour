@@ -373,7 +373,6 @@ export async function publishImport(input: {
   agencyId: string;
   actorId: string;
   draft: TravelProgrammeDraft;
-  experienceProfile: "essential" | "standard" | "complete";
 }) {
   const draft = travelProgrammeDraftSchema.parse(normalizeTravelProgramme(input.draft).value);
   const validationIssues = catalogValidationIssues(draft);
@@ -443,9 +442,6 @@ export async function publishImport(input: {
     )
   `;
   if (!published[0]) throw new PlatformRequestError("Pubblicazione del programma non riuscita");
-  await sql`SELECT app.set_departure_experience_profile_v3(
-    ${input.actorId}::uuid,${String(published[0].departure_id)}::uuid,${input.experienceProfile}
-  )`;
   return {
     templateId: String(published[0].template_id),
     departureId: String(published[0].departure_id),

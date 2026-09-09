@@ -246,16 +246,6 @@ export async function saveDepartureInsurance(input: {
   return String(rows[0]?.id || "");
 }
 
-export async function setDepartureExperienceProfile(
-  actorId: string,
-  departureId: string,
-  profile: "essential" | "standard" | "complete",
-) {
-  const rows =
-    await getSql()`SELECT app.set_departure_experience_profile_v3(${actorId}::uuid,${departureId}::uuid,${profile}) updated`;
-  if (!Boolean(rows[0]?.updated)) throw new PlatformRequestError("Profilo esperienza non aggiornato");
-}
-
 export async function readDepartureExperienceProfile(actorId: string, departureId: string) {
   const rows =
     await getSql()`SELECT app.read_departure_experience_profile_v3(${actorId}::uuid,${departureId}::uuid) profile`;

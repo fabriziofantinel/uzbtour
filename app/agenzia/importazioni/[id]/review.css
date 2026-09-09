@@ -832,58 +832,6 @@
   border-radius: 12px;
   box-shadow: 0 12px 35px color-mix(in srgb, var(--shadow-base) 14%, transparent);
 }
-.reviewExperienceProfile {
-  margin: 24px 0;
-  padding: 20px;
-  border: 1px solid #d7d2c8;
-  border-radius: 18px;
-  background: #fff;
-}
-.reviewExperienceProfile legend {
-  padding: 0 8px;
-  font-weight: 800;
-  font-size: 18px;
-}
-.reviewExperienceProfile > p {
-  margin: 0 0 14px;
-  color: #566568;
-}
-.reviewExperienceProfile > div {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-.reviewExperienceProfile label {
-  display: grid;
-  grid-template-columns: 24px 1fr;
-  gap: 4px 8px;
-  align-items: start;
-  min-height: 110px;
-  padding: 15px;
-  border: 1px solid #d5d0c6;
-  border-radius: 12px;
-  cursor: pointer;
-}
-.reviewExperienceProfile label.selected {
-  border: 3px solid var(--agency-ui);
-  background: color-mix(in srgb, var(--agency-ui) 15%, white);
-}
-.reviewExperienceProfile input {
-  width: 20px;
-  height: 20px;
-}
-.reviewExperienceProfile b {
-  font-size: 17px;
-}
-.reviewExperienceProfile span {
-  grid-column: 2;
-  color: #4f5f62;
-}
-@media (max-width: 720px) {
-  .reviewExperienceProfile > div {
-    grid-template-columns: 1fr;
-  }
-}
 .reviewActions > div {
   display: flex;
   align-items: center;

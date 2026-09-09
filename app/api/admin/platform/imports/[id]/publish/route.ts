@@ -24,10 +24,6 @@ export const runtime = "nodejs";
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await context.params;
-    const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
-    const experienceProfile = ["essential", "standard", "complete"].includes(String(body.experienceProfile))
-      ? (String(body.experienceProfile) as "essential" | "standard" | "complete")
-      : "complete";
     const agencyId = await getImportAgency(id);
     const actor = await requireAgencyAdmin(agencyId);
     const limited = await enforceApiRateLimit(
@@ -82,7 +78,6 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       agencyId,
       actorId: actor.nativeId,
       draft: imported.draft,
-      experienceProfile,
     });
     const enrichmentJob = await getJobQueue().enqueue({
       actorId: actor.nativeId,
@@ -92,7 +87,6 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         importId: id,
         templateId: published.templateId,
         targets: published.referenceTargets,
-        experienceProfile,
       },
       // Ogni pubblicazione deve avviare la verifica dei contenuti. La chiave
       // include l'oggetto normalizzato, univoco per questo tentativo.
