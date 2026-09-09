@@ -270,6 +270,337 @@
   min-width: 0;
   padding: 30px clamp(18px, 4vw, 52px) 70px;
 }
+.countryReviewHero {
+  background: var(--agency-ui);
+  color: #111;
+}
+.countryReviewHero p,
+.countryReviewHero span {
+  color: #111;
+  opacity: 0.78;
+}
+.countryReviewContent {
+  display: grid;
+  align-content: start;
+  gap: 20px;
+}
+.countryReviewIntro,
+.countryReviewEmpty {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 18px;
+  border: 1px solid #dce7e1;
+  border-radius: 12px;
+  background: #fff;
+}
+.countryReviewIntro > svg,
+.countryReviewEmpty > svg {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  padding: 9px;
+  border-radius: 10px;
+  background: var(--agency-ui);
+  color: #111;
+}
+.countryReviewIntro h2,
+.countryReviewEmpty h2 {
+  margin: 0;
+  font: 700 20px/1.2 var(--font-serif);
+}
+.countryReviewIntro p,
+.countryReviewEmpty p {
+  max-width: 760px;
+  margin: 5px 0 0;
+  color: #61726f;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.countryReviewList {
+  display: grid;
+  gap: 14px;
+}
+.countryReviewList > details {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #dce7e1;
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 8px 26px rgba(32, 64, 58, 0.04);
+}
+.countryReviewList > details > summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 72px;
+  padding: 13px 16px;
+  cursor: pointer;
+  list-style: none;
+}
+.countryReviewList > details > summary::-webkit-details-marker {
+  display: none;
+}
+.countryReviewFlag {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  background: var(--agency-ui);
+  color: #111;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+.countryReviewList > details > summary strong,
+.countryReviewList > details > summary small {
+  display: block;
+}
+.countryReviewList > details > summary strong {
+  font: 700 19px/1.2 var(--font-serif);
+}
+.countryReviewList > details > summary small {
+  margin-top: 4px;
+  color: #73817f;
+  font-size: 9px;
+}
+.countryReviewStatus {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: #fff1d8;
+  color: #6f4a0b;
+  font-size: 9px;
+  white-space: nowrap;
+}
+.countryReviewStatus.status-approved {
+  background: #e5f4e9;
+  color: #205c35;
+}
+.countryReviewStatus.status-rejected,
+.countryReviewStatus.status-stale {
+  background: #fde9e4;
+  color: #873b2b;
+}
+.countryReviewBody {
+  display: grid;
+  gap: 17px;
+  padding: 0 16px 18px;
+  border-top: 1px solid #edf1ee;
+}
+.countryReviewLifecycle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 11px 12px;
+  border-radius: 9px;
+  background: #f3f7f5;
+}
+.countryReviewLifecycle svg {
+  flex: 0 0 auto;
+  width: 20px;
+  color: var(--smf-brand-deep);
+}
+.countryReviewLifecycle p {
+  margin: 0;
+  color: #526461;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.countryReviewWarnings,
+.countryReviewInlineEmpty {
+  padding: 13px 14px;
+  border: 1px solid #f0cfaf;
+  border-radius: 9px;
+  background: #fff8ee;
+  color: #71451f;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.countryReviewWarnings ul {
+  margin: 7px 0 0;
+  padding-left: 18px;
+}
+.countryReviewEditor,
+.countryReviewInformation {
+  display: grid;
+  gap: 14px;
+}
+.countryReviewInformation fieldset {
+  min-width: 0;
+  display: grid;
+  gap: 11px;
+  margin: 0;
+  padding: 15px;
+  border: 1px solid #e1e8e4;
+  border-radius: 11px;
+  background: #fbfcfb;
+}
+.countryReviewInformation legend {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 2px;
+  color: #183c3c;
+  font-size: 11px;
+  font-weight: 800;
+}
+.countryCriticality {
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: #eef3f1;
+  color: #536663;
+  font-size: 8px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.countryCriticality.criticality-high {
+  background: #fde9e4;
+  color: #873b2b;
+}
+.countryCriticality.criticality-medium {
+  background: #fff1d8;
+  color: #6f4a0b;
+}
+.countryReviewInformation label {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  color: #526461;
+  font-size: 9px;
+  font-weight: 800;
+}
+.countryReviewInformation input,
+.countryReviewInformation textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #d8e2dc;
+  border-radius: 8px;
+  background: #fff;
+  color: #183c3c;
+  padding: 10px 11px;
+  font: 500 11px/1.5 inherit;
+}
+.countryReviewInformation textarea {
+  min-height: 112px;
+  resize: vertical;
+}
+.countryReviewInformation input:focus,
+.countryReviewInformation textarea:focus {
+  border-color: var(--smf-brand-deep);
+  outline: 2px solid color-mix(in srgb, var(--agency-ui) 50%, transparent);
+  outline-offset: 1px;
+}
+.countryReviewFieldRow {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 11px;
+}
+.countryReviewActions,
+.countryReviewDecision {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.countryReviewActions small {
+  color: #71817e;
+  font-size: 9px;
+}
+.countryReviewActions button,
+.countryReviewDecision button {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 13px;
+  border: 1px solid #d9e3de;
+  border-radius: 8px;
+  background: #fff;
+  color: #111;
+  font-size: 10px;
+  font-weight: 800;
+}
+.countryReviewActions button svg,
+.countryReviewDecision button svg {
+  width: 16px;
+  height: 16px;
+}
+.countryReviewActions .countryReviewPrimary,
+.countryReviewDecision button[value="approve"] {
+  border-color: var(--agency-ui);
+  background: var(--agency-ui);
+}
+.countryReviewDecision button[value="reject"] {
+  color: #873b2b;
+}
+.countryReviewSources {
+  padding: 12px 14px;
+  border: 1px solid #e1e8e4;
+  border-radius: 9px;
+}
+.countryReviewSources > summary {
+  cursor: pointer;
+  color: #405653;
+  font-size: 10px;
+  font-weight: 800;
+}
+.countryReviewSources ul {
+  display: grid;
+  gap: 8px;
+  margin: 11px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.countryReviewSources li {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.countryReviewSources a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  color: var(--smf-brand-deep);
+  overflow-wrap: anywhere;
+  font-size: 10px;
+  font-weight: 700;
+}
+.countryReviewSources a svg {
+  flex: 0 0 auto;
+  width: 13px;
+}
+.countryReviewSources small {
+  color: #7a8986;
+  font-size: 8px;
+}
+@media (max-width: 700px) {
+  .countryReviewList > details > summary {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .countryReviewStatus {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .countryReviewFieldRow {
+    grid-template-columns: 1fr;
+  }
+  .countryReviewInformation legend {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .countryReviewActions button,
+  .countryReviewDecision button {
+    width: 100%;
+  }
+}
 .agencyMessage {
   display: flex;
   gap: 9px;

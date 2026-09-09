@@ -119,12 +119,39 @@ export async function readV3TravelCatalog(input: {
         ORDER BY membership.role, profile.display_name
       `,
         txn`
-        SELECT info.category, info.title, info.body, info.phone, info.url,info.source_name,info.source_url,
+        WITH agency_information AS (
+          SELECT country.name AS country_name,entry.item,entry.ordinality::integer AS sort_order,
+            candidate.grounded_at,candidate.refresh_after
+          FROM travel.trip_template_versions version
+          JOIN travel.template_countries link ON link.agency_id=version.agency_id
+            AND link.template_id=version.template_id
+          JOIN ref.countries country ON country.id=link.country_id
+          JOIN ref.country_verified_profiles candidate ON candidate.country_id=country.id
+          JOIN ref.country_profile_agency_reviews review ON review.agency_id=version.agency_id
+            AND review.country_id=country.id AND review.profile_version=candidate.version
+            AND review.status='approved'
+          CROSS JOIN LATERAL jsonb_array_elements(
+            COALESCE(review.profile_override,candidate.profile)->'usefulInfo'
+          ) WITH ORDINALITY AS entry(item,ordinality)
+          WHERE version.agency_id=${input.agencyId}
+            AND version.id=${input.templateVersionId}
+        )
+        SELECT COALESCE(item->>'category','Generale') AS category,
+          COALESCE(item->>'title',item->>'category','Informazione utile') AS title,
+          COALESCE(item->>'body','') AS body,NULLIF(item->>'phone','') AS phone,
+          NULLIF(item->>'url','') AS url,'Profilo Paese validato dall’agenzia' AS source_name,
+          NULLIF(item->>'url','') AS source_url,grounded_at AS verified_at,
+          refresh_after AS expires_at,'approved' AS review_status,
+          'Informazione personalizzata e validata dall’agenzia. Per dati sensibili consulta comunque la fonte ufficiale.' AS disclaimer
+        FROM agency_information
+        UNION ALL
+        SELECT info.category,info.title,info.body,info.phone,info.url,info.source_name,info.source_url,
           info.verified_at,info.expires_at,info.review_status,info.disclaimer
         FROM travel.template_useful_information info
-        WHERE info.agency_id = ${input.agencyId}
-          AND info.template_version_id = ${input.templateVersionId}
-        ORDER BY info.sort_order, info.title
+        WHERE info.agency_id=${input.agencyId}
+          AND info.template_version_id=${input.templateVersionId}
+          AND NOT EXISTS(SELECT 1 FROM agency_information)
+        ORDER BY category,title
       `,
         txn`
         SELECT phrase.language_code, phrase.category, phrase.term,

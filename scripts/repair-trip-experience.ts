@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { getSql } from "@/lib/db";
+import { neon } from "@neondatabase/serverless";
 import { processReferenceEnrichment } from "@/lib/platform/reference-enrichment";
 import type { ReferenceTarget } from "@/lib/platform/travel-catalog";
 
@@ -8,9 +8,13 @@ async function main() {
   const tripOrDepartureId = process.argv[2];
   const refreshCountry = process.argv.includes("--refresh-country");
   const refreshDestinations = process.argv.includes("--refresh-destinations");
+  const profileOnly = process.argv.includes("--profile-only");
   if (!tripOrDepartureId || !/^[0-9a-f-]{36}$/i.test(tripOrDepartureId)) throw new Error("Viaggio non valido");
 
-  const sql = getSql();
+  const databaseUrl = process.env.DATABASE_MIGRATION_URL ?? process.env.DATABASE_URL;
+  if (!databaseUrl) throw new Error("DATABASE_MIGRATION_URL o DATABASE_URL non configurata");
+  process.env.DATABASE_URL = databaseUrl;
+  const sql = neon(databaseUrl);
   const scope = await sql`
   SELECT departure.agency_id::text,departure.template_id::text
   FROM travel.departures departure WHERE departure.id=${tripOrDepartureId}
@@ -42,11 +46,13 @@ async function main() {
     JOIN ref.visit_sites site ON site.id=link.visit_site_id WHERE link.agency_id=${agencyId}
   ) SELECT * FROM targets ORDER BY entity_type,entity_id
 `;
-  const targets = targetRows.map((row) => ({
-    entityType: String(row.entity_type) as ReferenceTarget["entityType"],
-    entityId: String(row.entity_id),
-    name: String(row.name),
-  }));
+  const targets = targetRows
+    .map((row) => ({
+      entityType: String(row.entity_type) as ReferenceTarget["entityType"],
+      entityId: String(row.entity_id),
+      name: String(row.name),
+    }))
+    .filter((target) => !profileOnly || target.entityType === "country");
   if (!targets.length) throw new Error("Anagrafiche del viaggio non disponibili");
 
   if (refreshCountry) {
@@ -80,7 +86,13 @@ async function main() {
     ${`maintenance:travel-reference.enrich:${templateId}:${jobId}`})
 `;
 
-  const result = await processReferenceEnrichment(jobId, agencyId, templateId, targets);
+  const result = await processReferenceEnrichment(
+    jobId,
+    agencyId,
+    templateId,
+    targets,
+    profileOnly ? ["useful_info"] : undefined,
+  );
   console.log(JSON.stringify({ status: "completed", jobId, agencyId, targets: targets.length, ...result }, null, 2));
 }
 

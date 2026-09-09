@@ -14,7 +14,7 @@ import {
   validateSiteReferenceContent,
 } from "./reference-content-normalizer";
 import { materializeTripExperience, materializeTripUsefulInformation } from "./trip-content-materializer";
-import { validateGroundingSources } from "./grounding-source-policy";
+import { isAllowedGroundingSource, validateGroundingSources } from "./grounding-source-policy";
 import { captureBedrockGeneration } from "./ai-generation-telemetry";
 import {
   validateVerifiedCountryProfile,
@@ -98,12 +98,14 @@ async function groundedReferenceDossier(target: ReferenceTarget, context: string
       }
       if (text.length === 0 || urls.size === 0)
         throw new Error(`Grounding privo di contenuto o fonti per ${target.name}`);
-      return { text: text.join("\n"), urls: validateGroundingSources(urls) };
+      return { text: text.join("\n"), urls: [...urls].filter(isAllowedGroundingSource) };
     }),
   );
+  const acceptedUrls = validateGroundingSources(dossiers.flatMap((dossier) => dossier.urls));
+  if (acceptedUrls.length < 4) throw new Error("Grounding insufficiente: servono almeno quattro fonti autorizzate");
   return {
     text: dossiers.map((dossier) => `${dossier.text}\nFONTI CITATE:\n${dossier.urls.join("\n")}`).join("\n\n---\n\n"),
-    urls: [...new Set(dossiers.flatMap((dossier) => dossier.urls))],
+    urls: acceptedUrls,
     modelId,
   };
 }
@@ -127,63 +129,78 @@ async function verifiedCountryProfile(jobId: string, agencyId: string, target: R
 
   const dossier = await groundedReferenceDossier(target, context);
   const modelId = referenceModelId();
-  const response = await bedrockClient().send(
-    new ConverseCommand({
-      modelId,
-      system: [
-        {
-          text: "Sei un estrattore di dati. Copia soltanto fatti esplicitamente presenti nel dossier e associa ogni dato sensibile alla fonte citata. Non completare per conoscenza interna.",
-        },
-      ],
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              text: `Estrai il profilo verificabile del Paese '${target.name}' dal dossier delimitato. Usa esattamente le 11 categorie richieste dallo schema. Nei campi phone copia solo recapiti presenti nel dossier. Ogni URL deve essere uno degli URL elencati nel dossier. Per fuso orario usa identificatori IANA; per valuta usa il codice ISO 4217. Se un dato non è presente, lascia il testo esplicitamente da verificare: non inventarlo. <dossier>${dossier.text}</dossier>`,
-            },
-          ],
-        },
-      ],
-      toolConfig: {
-        tools: [
+  let previousValidation = "";
+  for (let attempt = 1; attempt <= contentAttemptLimit; attempt += 1) {
+    const correction = previousValidation
+      ? ` Il tentativo precedente non era valido: ${previousValidation}. Correggi esattamente questi errori e restituisci l'intero profilo.`
+      : "";
+    const response = await bedrockClient().send(
+      new ConverseCommand({
+        modelId,
+        system: [
           {
-            toolSpec: {
-              name: "emit_verified_country_profile",
-              description: "Profilo Paese strutturato con fonti",
-              inputSchema: {
-                json: z.toJSONSchema(verifiedCountryProfileSchema, { target: "draft-7" }) as unknown as DocumentType,
-              },
-            },
+            text: "Sei un estrattore di dati. Copia soltanto fatti esplicitamente presenti nel dossier e associa ogni dato sensibile alla fonte citata. Non completare per conoscenza interna.",
           },
         ],
-        toolChoice: { tool: { name: "emit_verified_country_profile" } },
-      },
-      inferenceConfig: { maxTokens: 7000, temperature: 0 },
-      requestMetadata: { application: "smf-travel", operation: "verified-country-profile-extraction" },
-    }),
-  );
-  captureBedrockGeneration({
-    model: modelId,
-    operation: "verified-country-profile",
-    region: process.env.AWS_REGION || "",
-    prompt: dossier.text,
-    usage: response.usage,
-  });
-  const validation = validateVerifiedCountryProfile(
-    toolInput(response.output?.message?.content),
-    dossier.urls,
-    dossier.text,
-  );
-  const saved = await sql`SELECT * FROM app.save_country_profile_candidate_v3(${jobId},${agencyId},${target.entityId},
-    ${JSON.stringify(validation.profile)}::jsonb,${JSON.stringify(validation.profile.sources)}::jsonb,
-    ${JSON.stringify(validation.errors)}::jsonb,${modelId},${dossier.modelId},NOW()+(30*INTERVAL '1 day'))`;
-  if (!saved[0]) throw new Error("Salvataggio del profilo Paese non riuscito");
-  throw new Error(
-    validation.errors.length
-      ? `Il responsabile dell'agenzia deve validare le informazioni del Paese: ${validation.errors.join("; ")}`
-      : "Il responsabile dell'agenzia deve validare le informazioni del Paese prima di proseguire",
-  );
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                text: `Estrai il profilo verificabile del Paese '${target.name}' dal dossier delimitato. Usa esattamente le 11 categorie richieste dallo schema. Per Numeri di emergenza e Ambasciata italiana valorizza sempre sia phone sia url con dati presenti nel dossier. Per ogni categoria sensibile usa nel campo url la stessa fonte inserita nell'array sources con la categoria corrispondente. Nei campi phone copia solo recapiti presenti nel dossier. Ogni URL deve essere uno degli URL elencati nel dossier. Per fuso orario usa identificatori IANA; per valuta usa il codice ISO 4217. Se un dato non è presente, dichiaralo nel testo senza inventarlo.${correction} <dossier>${dossier.text}</dossier>`,
+              },
+            ],
+          },
+        ],
+        toolConfig: {
+          tools: [
+            {
+              toolSpec: {
+                name: "emit_verified_country_profile",
+                description: "Profilo Paese strutturato con fonti",
+                inputSchema: {
+                  json: z.toJSONSchema(verifiedCountryProfileSchema, {
+                    target: "draft-7",
+                  }) as unknown as DocumentType,
+                },
+              },
+            },
+          ],
+          toolChoice: { tool: { name: "emit_verified_country_profile" } },
+        },
+        inferenceConfig: { maxTokens: 7000, temperature: 0 },
+        requestMetadata: { application: "smf-travel", operation: "verified-country-profile-extraction" },
+      }),
+    );
+    captureBedrockGeneration({
+      model: modelId,
+      operation: "verified-country-profile",
+      region: process.env.AWS_REGION || "",
+      prompt: { target, attempt },
+      usage: response.usage,
+    });
+    try {
+      const validation = validateVerifiedCountryProfile(
+        toolInput(response.output?.message?.content),
+        dossier.urls,
+        dossier.text,
+      );
+      const saved =
+        await sql`SELECT * FROM app.save_country_profile_candidate_v3(${jobId},${agencyId},${target.entityId},
+        ${JSON.stringify(validation.profile)}::jsonb,${JSON.stringify(validation.profile.sources)}::jsonb,
+        ${JSON.stringify(validation.errors)}::jsonb,${modelId},${dossier.modelId},NOW()+(180*INTERVAL '1 day'))`;
+      if (!saved[0]) throw new Error("Salvataggio del profilo Paese non riuscito");
+      return validation.profile;
+    } catch (error) {
+      previousValidation = validationMessage(error).slice(0, 1600);
+      if (attempt === contentAttemptLimit) {
+        throw new Error(
+          `Profilo Paese Bedrock non valido dopo ${contentAttemptLimit} tentativi: ${previousValidation}`,
+        );
+      }
+    }
+  }
+  throw new Error("Generazione del profilo Paese non completata");
 }
 
 async function generatePhotoValidationProfiles(
