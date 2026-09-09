@@ -81,9 +81,34 @@ const normalizedActivityRecoverySchema = z.preprocess(
   (input) => (normalizeSpecializedToolInput({ activities: input }) as { activities: unknown }).activities,
   activityRecoverySchema,
 );
+const commercialToolOutputSchema = z.object({ commercialDetails: commercialDetailsSchema });
+const accommodationToolOutputSchema = accommodationRecoverySchema.omit({ evidence: true });
+const activityToolOutputSchema = z.object({
+  days: z
+    .array(
+      z.object({
+        dayNumber: z.number().int().positive(),
+        sourceCoverage: z.string().min(1).max(6000),
+        activities: z.array(recoveredActivitySchema).max(40),
+      }),
+    )
+    .max(1),
+});
 
 const reconciliationSchema = z.object({
   issues: z.array(reconciliationIssueSchema).max(100),
+});
+const reconciliationToolSchema = z.object({
+  issues: z
+    .array(
+      reconciliationIssueSchema.extend({
+        code: z.string().max(80).optional(),
+        fieldPath: z.string().max(300).optional(),
+        sourceText: z.string().max(1200).optional(),
+        resolved: z.boolean().optional(),
+      }),
+    )
+    .max(100),
 });
 
 const extractionPrompt = `
@@ -139,7 +164,12 @@ function sendBedrock(client: BedrockRuntimeClient, input: ConverseCommandInput, 
 
 function safeDocumentName(filename: string) {
   const withoutExtension = filename.replace(/\.(pdf|docx?)$/i, "");
-  return (withoutExtension.replace(/[^a-zA-Z0-9 _\-()[\]]/g, " ").trim() || "programma-viaggio").slice(0, 120);
+  return (
+    withoutExtension
+      .replace(/[^a-zA-Z0-9 _\-()[\]]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim() || "programma-viaggio"
+  ).slice(0, 120);
 }
 
 function extractToolInput(
@@ -241,7 +271,11 @@ function normalizeSpecializedToolInput(input: unknown) {
             notes: clipped(item.notes, 2000),
             validation: {
               needsValidation: validation.needsValidation !== false,
-              reason: clipped(validation.reason, 1000) || "Sistemazione da verificare",
+              reason:
+                clipped(validation.reason, 1000) ||
+                (validation.needsValidation === false
+                  ? "Pernottamento associato alla giornata dal documento"
+                  : "Sistemazione da verificare"),
             },
           };
         }),
@@ -385,44 +419,41 @@ function filterRecoveredActivities(
   hotelNames: string[],
 ) {
   const hotels = hotelNames.map(normalizedLocation).filter(Boolean);
-  return activities.filter((activity) => {
-    const title = normalizedLocation(activity.title);
-    const place = normalizedLocation(activity.placeName);
-    if (/^(fine|termine) (dei |del )?(servizi|viaggio|programma)$/.test(title)) return false;
+  const filtered = activities
+    .filter((activity) => {
+      const title = normalizedLocation(activity.title);
+      const place = normalizedLocation(activity.placeName);
+      if (/^(fine|termine) (dei |del )?(servizi|viaggio|programma)$/.test(title)) return false;
+      if (/\b(pernottamento|sistemazione)\b.*\b(hotel|giunca|resort|cabina)\b/.test(title)) return false;
+      if (activity.type !== "visit") return true;
+      return !hotels.some(
+        (hotel) =>
+          hotel === title ||
+          hotel === place ||
+          title.includes(hotel) ||
+          place.includes(hotel) ||
+          hotel.includes(title) ||
+          hotel.includes(place),
+      );
+    })
+    .map((activity) => {
+      const location = `${normalizedLocation(activity.title)} ${normalizedLocation(activity.placeName)}`;
+      return activity.type === "visit" && /\baeroport[oi]\b/.test(location)
+        ? { ...activity, type: "transport" as const }
+        : activity;
+    });
+  const specificVisitCities = new Map<string, number>();
+  for (const activity of filtered) {
+    if (activity.type !== "visit") continue;
+    const city = normalizedLocation(activity.placeCity);
+    const place = normalizedLocation(activity.placeName || activity.title);
+    if (city && place && city !== place) specificVisitCities.set(city, (specificVisitCities.get(city) ?? 0) + 1);
+  }
+  return filtered.filter((activity) => {
     if (activity.type !== "visit") return true;
-    return !hotels.some(
-      (hotel) =>
-        hotel === title ||
-        hotel === place ||
-        title.includes(hotel) ||
-        place.includes(hotel) ||
-        hotel.includes(title) ||
-        hotel.includes(place),
-    );
-  });
-}
-
-function flagAccommodationCityConflicts(draft: z.infer<typeof travelProgrammeDraftSchema>) {
-  return travelProgrammeDraftSchema.parse({
-    ...draft,
-    days: draft.days.map((day) => {
-      const dayCity = normalizedLocation(day.city);
-      const hotelCity = normalizedLocation(day.accommodation.city);
-      if (!day.accommodation.name.trim() || !dayCity || !hotelCity || dayCity === hotelCity) return day;
-      return {
-        ...day,
-        accommodation: {
-          ...day.accommodation,
-          validation: {
-            needsValidation: true,
-            reason:
-              day.accommodation.validation.needsValidation && day.accommodation.validation.reason.trim()
-                ? day.accommodation.validation.reason
-                : `Hotel indicato a ${day.accommodation.city}, mentre la giornata è associata a ${day.city}`,
-          },
-        },
-      };
-    }),
+    const city = normalizedLocation(activity.placeCity);
+    const place = normalizedLocation(activity.placeName || activity.title);
+    return !(city && city === place && (specificVisitCities.get(city) ?? 0) > 0);
   });
 }
 
@@ -457,13 +488,73 @@ function assignPredominantVisitCities(draft: z.infer<typeof travelProgrammeDraft
   });
 }
 
+function removeUnsupportedDateYears(draft: z.infer<typeof travelProgrammeDraftSchema>, sourceText: string) {
+  if (!sourceText.trim()) return draft;
+  const explicitYears = new Set(sourceText.match(/\b20\d{2}\b/g) ?? []);
+  const supportedDate = (value: string) => !value || explicitYears.has(value.slice(0, 4));
+  return travelProgrammeDraftSchema.parse({
+    ...draft,
+    startDate: supportedDate(draft.startDate) ? draft.startDate : "",
+    endDate: supportedDate(draft.endDate) ? draft.endDate : "",
+    days: draft.days.map((day) => ({ ...day, date: supportedDate(day.date) ? day.date : "" })),
+  });
+}
+
+function filterUnsupportedReconciliationIssues(
+  draft: z.infer<typeof travelProgrammeDraftSchema>,
+  issues: z.infer<typeof reconciliationIssueSchema>[],
+) {
+  return issues.filter((issue) => {
+    const match = issue.fieldPath.match(/^days\[(\d+)]\.(?:accommodation|additionalAccommodations)/);
+    if (!match) return true;
+    const day = draft.days[Number(match[1])];
+    if (!day) return false;
+    return [day.accommodation, ...day.additionalAccommodations].some(
+      (stay) => stay.name.trim() && stay.validation.needsValidation,
+    );
+  });
+}
+
+function extractDayTextSegments(sourceText: string) {
+  const segments = new Map<number, string>();
+  if (!sourceText.trim()) return segments;
+  const headings = [...sourceText.matchAll(/(?:^|\n)\s*(\d{1,2})\s*[°º]?\s*GIORNO\b/gi)];
+  headings.forEach((heading, index) => {
+    const dayNumber = Number(heading[1]);
+    if (!Number.isInteger(dayNumber) || dayNumber < 1) return;
+    const start = heading.index ?? 0;
+    const end = headings[index + 1]?.index ?? sourceText.length;
+    const segment = sourceText.slice(start, end).trim();
+    if (segment) segments.set(dayNumber, segment.slice(0, 18_000));
+  });
+  return segments;
+}
+
+function overnightEvidence(sourceText: string) {
+  if (!sourceText.trim()) return [];
+  return sourceText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => /\b(pernottamento|sistemazione|hotel|resort|cruise)\b/i.test(line))
+    .slice(0, 12);
+}
+
 type SpecialistInput = {
   client: BedrockRuntimeClient;
   documentParts: BedrockDocumentPart[];
   model: string;
   maxOutputTokens: number;
   method: "bedrock_native" | "textract";
-  days: Array<{ dayNumber: number; date: string; city: string; country: string }>;
+  days: Array<{
+    dayNumber: number;
+    date: string;
+    city: string;
+    country: string;
+    title: string;
+    description: string;
+    sourceText: string;
+    sourceTextIsOriginal: boolean;
+  }>;
 };
 
 async function invokeSpecialist<T>(
@@ -474,8 +565,10 @@ async function invokeSpecialist<T>(
     description: string;
     prompt: string;
     schema: z.ZodType<T>;
+    toolSchema?: z.ZodType;
     maxTokens: number;
     timeoutMs: number;
+    includeDocument?: boolean;
   },
 ) {
   const response = await sendBedrock(
@@ -490,7 +583,10 @@ async function invokeSpecialist<T>(
       messages: [
         {
           role: "user",
-          content: [...bedrockDocumentBlocks(input.documentParts), { text: options.prompt }],
+          content: [
+            ...(options.includeDocument === false ? [] : bedrockDocumentBlocks(input.documentParts)),
+            { text: options.prompt },
+          ],
         },
       ],
       toolConfig: {
@@ -499,7 +595,7 @@ async function invokeSpecialist<T>(
             toolSpec: {
               name: options.toolName,
               description: options.description,
-              inputSchema: { json: novaToolSchema(options.schema) },
+              inputSchema: { json: novaToolSchema(options.toolSchema ?? options.schema) },
             },
           },
         ],
@@ -531,39 +627,53 @@ async function invokeSpecialist<T>(
 }
 
 async function extractSpecializedDetails(input: SpecialistInput) {
+  const accommodationDays = input.days.map(({ sourceText, ...day }) => ({
+    ...day,
+    overnightEvidence: overnightEvidence(sourceText),
+  }));
   const commercial = await invokeSpecialist(input, {
     operation: "travel-import-commercial-extraction",
     toolName: "emit_commercial_details",
     description: "dati commerciali del preventivo",
     schema: normalizedCommercialExtractionSchema,
+    toolSchema: commercialToolOutputSchema,
     maxTokens: 4_000,
     timeoutMs: 90_000,
-    prompt: `Estrai esclusivamente testata, agenzia, cliente, partecipanti, prezzi, valuta, servizi inclusi o esclusi, condizioni e contatti. Non estrarre programma, hotel o attività. Conserva solo righe esplicite. Per ogni dato aggiungi una breve evidenza letterale con fieldPath JSON e method=${input.method}.`,
+    prompt:
+      "Estrai esclusivamente testata, agenzia, cliente, partecipanti, prezzi, valuta, servizi inclusi o esclusi, condizioni e contatti. Non estrarre programma, hotel o attività. Conserva solo righe esplicite.",
   });
   const accommodations = await invokeSpecialist(input, {
     operation: "travel-import-accommodation-extraction",
     toolName: "emit_accommodations",
     description: "pernottamenti associati alle giornate",
     schema: normalizedAccommodationRecoverySchema,
+    toolSchema: accommodationToolOutputSchema,
     maxTokens: 5_000,
     timeoutMs: 90_000,
-    prompt: `Giornate già ricostruite: ${JSON.stringify(input.days)}. Estrai esclusivamente gli hotel e gli altri pernottamenti. Associa ciascun soggiorno al dayNumber della notte successiva a quella giornata, usando date, check-in, check-out, numero di notti e località; non associare gli hotel in base alla posizione nell'elenco. Se lo stesso hotel copre più notti, restituiscilo per ciascun dayNumber interessato. Se due hotel sono previsti nella stessa notte, restituisci due elementi con lo stesso dayNumber. Non inventare strutture e imposta needsValidation=true quando l'associazione non è esplicita. Aggiungi evidenze con method=${input.method}.`,
+    prompt: `Giornate già ricostruite con le rispettive righe di pernottamento: ${JSON.stringify(accommodationDays)}. Estrai esclusivamente hotel, crociere e altri pernottamenti. Associa ogni notte al dayNumber che contiene la relativa frase "Pernottamento" o "Sistemazione"; usa la tabella riepilogativa per ricavare il nome esatto della struttura e verificare il totale delle notti. Non associare mai gli hotel in base alla posizione nell'elenco. Il numero totale di elementi restituiti deve coincidere con il numero totale di notti esplicito nel documento. Se il giorno 1 contiene una notte di arrivo prima delle visite e un'altra al termine della giornata, restituisci due elementi distinti con dayNumber=1. Se lo stesso hotel copre più notti, ripetilo per ciascun dayNumber interessato. Non inventare strutture e imposta needsValidation=true quando città del pernottamento e città della struttura sono discordanti.`,
   });
   const activityResults: Array<z.infer<typeof activityRecoverySchema>> = [];
   const activityUsage: unknown[] = [];
-  for (let offset = 0; offset < input.days.length; offset += 4) {
-    const requestedDays = input.days.slice(offset, offset + 4);
-    const extracted = await invokeSpecialist(input, {
-      operation: "travel-import-activity-extraction",
-      toolName: "emit_daily_activities",
-      description: "attività delle giornate richieste",
-      schema: normalizedActivityRecoverySchema,
-      maxTokens: 6_000,
-      timeoutMs: 100_000,
-      prompt: `Estrai esclusivamente le attività delle seguenti giornate: ${JSON.stringify(requestedDays)}. Restituisci una voce days per ogni dayNumber richiesto. Mantieni la sequenza completa, separa ogni sito visitato e includi trasferimenti, treni, voli, incontri e solo pasti esplicitamente inclusi. Non trasformare hotel o pernottamenti in attività. Per placeCity usa la città del luogo visitato, non quella dell'hotel. Se una giornata non ha attività esplicite restituisci comunque il dayNumber con activities vuoto. Aggiungi evidenze brevi con method=${input.method}.`,
-    });
-    activityResults.push(extracted.result);
-    activityUsage.push(extracted.usage);
+  for (let offset = 0; offset < input.days.length; offset += 2) {
+    const extractedDays = await Promise.all(
+      input.days.slice(offset, offset + 2).map(async (requestedDay) =>
+        invokeSpecialist(input, {
+          operation: "travel-import-activity-extraction",
+          toolName: "emit_daily_activities",
+          description: `attività della giornata ${requestedDay.dayNumber}`,
+          schema: normalizedActivityRecoverySchema,
+          toolSchema: activityToolOutputSchema,
+          maxTokens: 5_000,
+          timeoutMs: 75_000,
+          includeDocument: requestedDay.sourceTextIsOriginal ? false : true,
+          prompt: `Estrai esclusivamente le attività della giornata ${requestedDay.dayNumber}: ${JSON.stringify(requestedDay)}. ${requestedDay.sourceTextIsOriginal ? "sourceText è il testo originale della giornata e prevale sul riepilogo description." : "Il riepilogo può essere incompleto: rileggi nel documento allegato l'intera sezione relativa a questa giornata."} In sourceCoverage trascrivi o riporta in modo completo tutte le frasi operative della giornata prima di strutturarle, incluse le frasi collocate in riquadri, continuazioni o pagine successive. Restituisci esattamente una voce days con dayNumber=${requestedDay.dayNumber}; non usare attività di altre giornate. Mantieni la sequenza completa. Ogni sito, monumento, edificio, museo, mercato, villaggio, spettacolo o esperienza nominata deve diventare un'attività distinta: non raggruppare più luoghi sotto una generica visita della città o del villaggio. Se una frase nomina più luoghi, crea un'attività per ciascun luogo. Includi inoltre trasferimenti, treni, voli, incontri, tempo libero e ogni pasto esplicitamente previsto come attività separata. Non trasformare hotel o pernottamenti in attività. Per placeName usa il nome proprio completo; per placeCity usa la città del luogo visitato, non quella dell'hotel.`,
+        }),
+      ),
+    );
+    for (const extracted of extractedDays) {
+      activityResults.push(extracted.result);
+      activityUsage.push(extracted.usage);
+    }
   }
   return {
     result: {
@@ -658,7 +768,7 @@ async function reconcileExtraction(input: {
           content: [
             ...bedrockDocumentBlocks(input.documentParts),
             {
-              text: `Confronta il documento con questa estrazione: ${JSON.stringify(compact)}. Segnala solo contraddizioni concrete, omissioni importanti e associazioni dubbie relative a date, durata, città, visite, trasporti, pasti, hotel, pernottamenti, prezzi, valuta, partecipanti e servizi. fieldPath deve puntare al JSON. severity=blocking solo se la pubblicazione rischia di produrre dati materialmente errati. sourceText deve citare il frammento rilevante, oppure essere vuoto.`,
+              text: `Confronta il documento con questa estrazione: ${JSON.stringify(compact)}. Segnala solo contraddizioni concrete e omissioni importanti rispetto a dati esplicitamente presenti nella fonte; non richiedere dettagli che il documento non contiene. La città principale della giornata è intenzionalmente quella con più visite e può differire dalla città del pernottamento: non segnalarlo se l'hotel estratto coincide con la frase di pernottamento. Un prezzo per persona non è in conflitto con il numero totale dei partecipanti; una camera tripla è coerente con tre viaggiatori. Non contestare un dato quando il valore estratto e sourceText coincidono. fieldPath deve puntare al JSON. severity=blocking solo se la pubblicazione rischia di produrre dati materialmente errati. sourceText deve citare il frammento rilevante, oppure essere vuoto.`,
             },
           ],
         },
@@ -669,7 +779,7 @@ async function reconcileExtraction(input: {
             toolSpec: {
               name: "emit_reconciliation_issues",
               description: "Anomalie della conversione",
-              inputSchema: { json: novaToolSchema(reconciliationSchema) },
+              inputSchema: { json: novaToolSchema(reconciliationToolSchema) },
             },
           },
         ],
@@ -688,8 +798,23 @@ async function reconcileExtraction(input: {
     prompt: { documentParts: input.documentParts, draft: compact },
     usage: response.usage,
   });
+  const raw = extractToolInput(response.output?.message?.content) as { issues?: unknown };
+  const issues = Array.isArray(raw?.issues) ? raw.issues : [];
   return {
-    result: reconciliationSchema.parse(extractToolInput(response.output?.message?.content)),
+    result: reconciliationSchema.parse({
+      issues: issues.map((issue, index) => {
+        const item =
+          issue && typeof issue === "object" && !Array.isArray(issue) ? (issue as Record<string, unknown>) : {};
+        return {
+          code: clipped(item.code, 80) || `AI_RECONCILIATION_${index + 1}`,
+          severity: item.severity === "blocking" ? "blocking" : "warning",
+          fieldPath: clipped(item.fieldPath, 300),
+          message: clipped(item.message, 1200) || "Anomalia rilevata dal confronto con il documento",
+          sourceText: clipped(item.sourceText, 1200),
+          resolved: false,
+        };
+      }),
+    }),
     usage: response.usage ?? null,
   };
 }
@@ -813,6 +938,7 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
           additionalAccommodations: [],
         })),
       });
+      draft = removeUnsupportedDateYears(draft, sourceTextForValidation);
       assertImportableTravelDocument(draft);
       mainExtractionCompleted = true;
       const specializedInput = {
@@ -821,12 +947,19 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
         model,
         maxOutputTokens,
         method: evidenceMethod,
-        days: draft.days.map((day) => ({
-          dayNumber: day.dayNumber,
-          date: day.date,
-          city: day.city,
-          country: day.country,
-        })),
+        days: draft.days.map((day) => {
+          const originalDayText = extractDayTextSegments(sourceTextForValidation).get(day.dayNumber);
+          return {
+            dayNumber: day.dayNumber,
+            date: day.date,
+            city: day.city,
+            country: day.country,
+            title: day.title,
+            description: day.description,
+            sourceText: originalDayText || day.description,
+            sourceTextIsOriginal: Boolean(originalDayText),
+          };
+        }),
       } as const;
       let specialized: Awaited<ReturnType<typeof extractSpecializedDetails>> | undefined;
       for (let specializedAttempt = 1; specializedAttempt <= 2; specializedAttempt += 1) {
@@ -896,12 +1029,17 @@ export async function extractTravelProgrammeWithBedrock(documentBytes: Uint8Arra
                 },
               ],
       });
+      draft = travelProgrammeDraftSchema.parse(
+        normalizeTravelProgramme(draft, { sourceText: sourceTextForValidation }).value,
+      );
       draft = assignPredominantVisitCities(draft);
-      draft = flagAccommodationCityConflicts(draft);
       let reconciliation: Awaited<ReturnType<typeof reconcileExtraction>> | undefined;
       try {
         reconciliation = await reconcileExtraction({ client, documentParts, model, maxOutputTokens, draft });
-        draft = mergeReconciliationIssues(draft, reconciliation.result.issues);
+        draft = mergeReconciliationIssues(
+          draft,
+          filterUnsupportedReconciliationIssues(draft, reconciliation.result.issues),
+        );
       } catch (error) {
         console.warn("Bedrock reconciliation skipped after extraction completed", {
           error: error instanceof Error ? error.message.slice(0, 500) : String(error).slice(0, 500),

@@ -21,6 +21,7 @@ function safeName(filename: string, suffix = "") {
     filename
       .replace(/\.(pdf|docx?)$/i, "")
       .replace(/[^a-zA-Z0-9 _\-()[\]]/g, " ")
+      .replace(/\s+/g, " ")
       .trim() || "programma-viaggio";
   return `${stem.slice(0, Math.max(1, 110 - suffix.length))}${suffix}`;
 }

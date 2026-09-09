@@ -48,8 +48,12 @@ function activity(value: unknown, path: string, changes: string[]) {
   if (!item) return value;
   const placeName = text(item.placeName, 240, `${path}.placeName`, changes);
   const originalTitle = text(item.title, 240, `${path}.title`, changes);
-  const title = item.type === "visit" && typeof placeName === "string" && placeName.trim() ? placeName : originalTitle;
-  if (item.type === "visit" && title !== item.title) changes.push(`${path}.title: uniformato al sito`);
+  const title =
+    typeof originalTitle === "string" && originalTitle.trim()
+      ? originalTitle
+      : item.type === "visit" && typeof placeName === "string"
+        ? placeName
+        : originalTitle;
   if (item.startsAt) changes.push(`${path}.startsAt: orario rimosso`);
   if (item.endsAt) changes.push(`${path}.endsAt: orario rimosso`);
   return {
@@ -142,7 +146,12 @@ function day(value: unknown, index: number, changes: string[]) {
           reason: `Città predominante della giornata: ${dominantCity.count} visite`,
         }
       : validation(item.cityValidation, `${path}.cityValidation`, changes),
-    description: text(item.description, 6000, `${path}.description`, changes),
+    description:
+      typeof item.description === "string"
+        ? text(item.description, 6000, `${path}.description`, changes)
+        : typeof item.title === "string"
+          ? item.title.slice(0, 6000)
+          : "",
     activities: normalizedActivities,
     accommodation: accommodation(item.accommodation, `${path}.accommodation`, changes),
     additionalAccommodations: Array.isArray(additionalAccommodations)

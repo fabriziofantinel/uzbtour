@@ -102,10 +102,12 @@ export function deterministicImportIssues(draftInput: TravelProgrammeDraft): Iss
         "Sono presenti prezzi senza una valuta indicata.",
       ),
     );
-  const evidencePaths = new Set(draft.extractionEvidence.map((evidence) => evidence.fieldPath));
-  for (const required of ["title", "destinationCountry", "startDate", "endDate"]) {
-    if (String(draft[required as keyof TravelProgrammeDraft] ?? "").trim() && !evidencePaths.has(required))
-      issues.push(issue("EVIDENCE_MISSING", "warning", required, `Origine non disponibile per ${required}.`));
+  if (draft.extractionEvidence.length > 0) {
+    const evidencePaths = new Set(draft.extractionEvidence.map((evidence) => evidence.fieldPath));
+    for (const required of ["title", "destinationCountry", "startDate", "endDate"]) {
+      if (String(draft[required as keyof TravelProgrammeDraft] ?? "").trim() && !evidencePaths.has(required))
+        issues.push(issue("EVIDENCE_MISSING", "warning", required, `Origine non disponibile per ${required}.`));
+    }
   }
   return issues;
 }
