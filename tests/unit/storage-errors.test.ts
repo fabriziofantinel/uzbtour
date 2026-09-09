@@ -11,6 +11,25 @@ describe("object storage errors", () => {
     expect(isObjectRetentionLockedError(error)).toBe(true);
   });
 
+  it("recognizes the structurally serialized R2 error returned in production", () => {
+    expect(
+      isObjectRetentionLockedError({
+        name: "ObjectLockedByBucketPolicy",
+        message: "The object is locked by the bucket policy.",
+        $metadata: { httpStatusCode: 409 },
+      }),
+    ).toBe(true);
+  });
+
+  it("recognizes the retention message when the SDK omits the error name", () => {
+    expect(
+      isObjectRetentionLockedError({
+        message: "The object is locked by the bucket policy.",
+        $metadata: { httpStatusCode: 403 },
+      }),
+    ).toBe(true);
+  });
+
   it("does not hide unrelated storage failures", () => {
     const error = Object.assign(new Error("Service unavailable"), {
       name: "ServiceUnavailable",
