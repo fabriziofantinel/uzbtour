@@ -442,14 +442,35 @@ function filterRecoveredActivities(
         ? { ...activity, type: "transport" as const }
         : activity;
     });
+  const expanded = filtered.flatMap((activity) => {
+    if (activity.type !== "meal") return [activity];
+    const match = activity.title.match(/^(.*?\b)(colazione|pranzo|cena)\s+e\s+(colazione|pranzo|cena)(\b.*)$/i);
+    if (!match || match[2].toLocaleLowerCase("it") === match[3].toLocaleLowerCase("it")) return [activity];
+    return [match[2], match[3]].map((meal) => ({
+      ...activity,
+      title: `${match[1]}${meal}${match[4]}`.replace(/\s+/g, " ").trim(),
+    }));
+  });
+  const unique = new Map<string, (typeof expanded)[number]>();
+  for (const activity of expanded) {
+    const activityKey = [
+      activity.type,
+      normalizedLocation(activity.title),
+      normalizedLocation(activity.placeName),
+      normalizedLocation(activity.placeCity),
+    ].join(":");
+    const existing = unique.get(activityKey);
+    if (!existing || activity.description.length > existing.description.length) unique.set(activityKey, activity);
+  }
+  const deduplicated = [...unique.values()];
   const specificVisitCities = new Map<string, number>();
-  for (const activity of filtered) {
+  for (const activity of deduplicated) {
     if (activity.type !== "visit") continue;
     const city = normalizedLocation(activity.placeCity);
     const place = normalizedLocation(activity.placeName || activity.title);
     if (city && place && city !== place) specificVisitCities.set(city, (specificVisitCities.get(city) ?? 0) + 1);
   }
-  return filtered.filter((activity) => {
+  return deduplicated.filter((activity) => {
     if (activity.type !== "visit") return true;
     const city = normalizedLocation(activity.placeCity);
     const place = normalizedLocation(activity.placeName || activity.title);
