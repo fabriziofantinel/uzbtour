@@ -528,18 +528,26 @@ export async function processReferenceEnrichment(
   try {
     let refreshed = 0;
     const selectedTargets = targets;
+    const profileOnly = contentTypes.length === 1 && contentTypes[0] === "country_profile";
     for (let offset = 0; offset < selectedTargets.length; offset += referenceTargetConcurrency) {
       const batch = selectedTargets.slice(offset, offset + referenceTargetConcurrency);
       const results = await Promise.all(
         batch.map(async (target) => {
-          if (!(await needsRefresh(jobId, agencyId, target))) return false;
+          if (profileOnly && target.entityType !== "country") return false;
+          if (!profileOnly && !(await needsRefresh(jobId, agencyId, target))) return false;
           console.info("Reference target generation started", {
             entityType: target.entityType,
             entityId: target.entityId,
             name: target.name,
           });
           const context = await targetContext(target);
-          if (target.entityType === "country" && contentTypes.length === 1 && contentTypes[0] === "useful_info") {
+          if (profileOnly) {
+            await verifiedCountryProfile(jobId, agencyId, target, context);
+          } else if (
+            target.entityType === "country" &&
+            contentTypes.length === 1 &&
+            contentTypes[0] === "useful_info"
+          ) {
             const generated = await generateCountryUsefulInfo(jobId, agencyId, target, context);
             await sql`SELECT app.save_reference_content_v3(${jobId},${agencyId},'country',${target.entityId},
             'useful_info',${JSON.stringify(generated.data)}::jsonb,${generated.modelId},NOW()+(180*INTERVAL '1 day'))`;
@@ -567,9 +575,11 @@ export async function processReferenceEnrichment(
       });
     }
     const usefulOnly = contentTypes.length === 1 && contentTypes[0] === "useful_info";
-    const materialized = usefulOnly
-      ? await materializeTripUsefulInformation(jobId, templateId, agencyId)
-      : await materializeTripExperience(jobId, templateId, agencyId);
+    const materialized = profileOnly
+      ? {}
+      : usefulOnly
+        ? await materializeTripUsefulInformation(jobId, templateId, agencyId)
+        : await materializeTripExperience(jobId, templateId, agencyId);
     await sql`SELECT app.complete_platform_job_v3(${jobId},${agencyId})`;
     return { refreshed, ...materialized };
   } catch (error) {

@@ -129,7 +129,7 @@ export async function handler(event: SqsEvent | ScheduledEvent): Promise<SqsBatc
                       )
                       .parse(message.payload.targets),
                     z
-                      .array(z.enum(["useful_info", "phrasebook", "bingo"]))
+                      .array(z.enum(["useful_info", "phrasebook", "bingo", "country_profile"]))
                       .default([])
                       .parse(message.payload.contentTypes),
                   )

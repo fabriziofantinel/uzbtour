@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "204_v3_country_information_lifecycle",
+  "schemaVersion": "205_v3_import_country_profile_trigger",
   "applicationTables": [
     "content.activities",
     "content.activity_item_translations",

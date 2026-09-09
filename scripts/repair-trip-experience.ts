@@ -91,7 +91,7 @@ async function main() {
     agencyId,
     templateId,
     targets,
-    profileOnly ? ["useful_info"] : undefined,
+    profileOnly ? ["country_profile"] : undefined,
   );
   console.log(JSON.stringify({ status: "completed", jobId, agencyId, targets: targets.length, ...result }, null, 2));
 }

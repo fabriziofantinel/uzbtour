@@ -4,6 +4,7 @@ import {
   claimImportJob,
   completeImport,
   failImport,
+  linkImportCountryCatalog,
   markImportGenerating,
   markImportOcrPending,
   resumeImportOcr,
@@ -26,6 +27,8 @@ import {
 import { OcrRequiredError } from "./document-preprocessor";
 import { cleanupImportOcr, readImportOcr, startImportOcr } from "./textract-ocr";
 import { assertTenantStorageCapacity } from "./storage-quota";
+import { prepareCountryCatalog } from "./travel-catalog";
+import { getJobQueue } from "./job-queue";
 
 export async function processTravelImport(
   importId: string,
@@ -111,6 +114,33 @@ export async function processTravelImport(
     }
     const importedDraft = await readNormalizedTravelDocument(savedNormalizedObject.bytes);
     await completeImport({ importId, ...extraction, draft: importedDraft });
+    if (!source.uploaded_by_user_id) throw new Error("Utente che ha caricato il preventivo non disponibile");
+    const countryCatalog = await prepareCountryCatalog(importedDraft, {
+      actorId: source.uploaded_by_user_id,
+      agencyId: source.agency_id,
+    });
+    await linkImportCountryCatalog({
+      actorId: source.uploaded_by_user_id,
+      importId,
+      agencyId: source.agency_id,
+      primaryCountryId: countryCatalog.primaryCountry.id,
+      countryIds: countryCatalog.countries.map((country) => country.id),
+    });
+    const refreshWindow = Math.floor(Date.now() / (180 * 24 * 60 * 60 * 1000));
+    await getJobQueue().enqueue({
+      actorId: source.uploaded_by_user_id,
+      agencyId: source.agency_id,
+      type: "travel-reference.enrich",
+      payload: {
+        templateId: source.template_id,
+        targets: countryCatalog.targets,
+        contentTypes: ["country_profile"],
+      },
+      idempotencyKey: `country-profile:${countryCatalog.countries
+        .map((country) => country.id)
+        .sort()
+        .join(":")}:${refreshWindow}`,
+    });
     if (ocrCompletion) await cleanupImportOcr(importId).catch(() => {});
     return {
       status: "ready_for_review",

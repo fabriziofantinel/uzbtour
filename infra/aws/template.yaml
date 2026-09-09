@@ -649,6 +649,7 @@ Resources:
           OCR_TEMP_BUCKET: !Ref OcrTemporaryBucket
           OCR_TOPIC_ARN: !Ref OcrCompletionTopic
           OCR_TEXTRACT_ROLE_ARN: !GetAtt TextractNotificationRole.Arn
+          AWS_SQS_ENRICHMENT_QUEUE_URL: !Ref EnrichmentQueue
       Policies:
         - SQSPollerPolicy:
             QueueName: !GetAtt ImportQueue.QueueName
@@ -689,6 +690,9 @@ Resources:
             - Effect: Allow
               Action: [s3:PutObject, s3:GetObject, s3:DeleteObject]
               Resource: !Sub "${OcrTemporaryBucket.Arn}/ocr-input/*"
+            - Effect: Allow
+              Action: sqs:SendMessage
+              Resource: !GetAtt EnrichmentQueue.Arn
       Events:
         ImportQueueEvent:
           Type: SQS

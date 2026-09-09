@@ -165,6 +165,20 @@ export async function completeImport(input: {
     ${input.model},${input.provider},${JSON.stringify(input.usage ?? {})}::jsonb)`;
 }
 
+export async function linkImportCountryCatalog(input: {
+  actorId: string;
+  importId: string;
+  agencyId: string;
+  primaryCountryId: string;
+  countryIds: string[];
+}) {
+  const sql = getSql();
+  const rows = await sql`SELECT app.link_import_country_catalog_v3(
+    ${input.actorId}::uuid,${input.importId}::uuid,${input.agencyId}::uuid,
+    ${input.primaryCountryId}::uuid,${input.countryIds}::uuid[]) AS linked`;
+  if (rows[0]?.linked !== true) throw new PlatformRequestError("Collegamento del Paese al viaggio non riuscito");
+}
+
 export async function failImport(importId: string, error: unknown) {
   const sql = getSql();
   const message = (error instanceof Error ? error.message : "Errore sconosciuto").slice(0, 1200);
@@ -386,8 +400,9 @@ export async function publishImport(input: {
     (txn) => [
       txn`SELECT set_config('app.agency_id', ${input.agencyId}, true)`,
       txn`
-      SELECT ij.template_id::text
+      SELECT ij.template_id::text,tt.title
       FROM ops.import_jobs ij
+      JOIN travel.trip_templates tt ON tt.id=ij.template_id AND tt.agency_id=ij.agency_id
       JOIN travel.trip_template_versions tv
         ON tv.template_id = ij.template_id AND tv.agency_id = ij.agency_id
       WHERE ij.id = ${input.importId} AND ij.agency_id = ${input.agencyId}
@@ -400,6 +415,7 @@ export async function publishImport(input: {
   );
   if (!versionRows[0]) throw new PlatformRequestError("Importazione non pubblicabile");
   const templateId = String(versionRows[0].template_id);
+  const publishedDraft = { ...draft, title: String(versionRows[0].title) };
   const startDate = validDate(draft.startDate) ?? draft.days.map((day) => validDate(day.date)).find(Boolean) ?? null;
   const endDate =
     validDate(draft.endDate) ??
@@ -432,7 +448,7 @@ export async function publishImport(input: {
     SELECT template_id::text,departure_id::text
     FROM app.publish_import_programme_v3(
       ${input.actorId}::uuid,${input.importId},${input.agencyId},
-      ${JSON.stringify(draft)}::jsonb,
+      ${JSON.stringify(publishedDraft)}::jsonb,
       ${JSON.stringify({
         countryIds: catalog.countries.map((country) => country.id),
         primaryCountryId: catalog.primaryCountry.id,

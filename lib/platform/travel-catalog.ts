@@ -88,7 +88,7 @@ async function ensureHotel(
   return String(rows[0].id);
 }
 
-export async function prepareTravelCatalog(draft: TravelProgrammeDraft, scope: { actorId: string; agencyId: string }) {
+export async function prepareCountryCatalog(draft: TravelProgrammeDraft, scope: { actorId: string; agencyId: string }) {
   const countryNames = [
     ...draft.destinationCountry.split(/[,;/]+/),
     ...draft.days.flatMap((day) => [
@@ -105,10 +105,20 @@ export async function prepareTravelCatalog(draft: TravelProgrammeDraft, scope: {
     uniqueCountryNames.map((name) => ensureCountry(scope.actorId, scope.agencyId, name)),
   );
   const primaryCountry = countries[0];
-  const countryByName = new Map(countries.map((country) => [normalizedName(country.name), country]));
   const targets = new Map<string, ReferenceTarget>();
   countries.forEach((country) =>
     targets.set(`country:${country.id}`, { entityType: "country", entityId: country.id, name: country.name }),
+  );
+
+  return { countries, primaryCountry, targets: [...targets.values()] };
+}
+
+export async function prepareTravelCatalog(draft: TravelProgrammeDraft, scope: { actorId: string; agencyId: string }) {
+  const countryCatalog = await prepareCountryCatalog(draft, scope);
+  const { countries, primaryCountry } = countryCatalog;
+  const countryByName = new Map(countries.map((country) => [normalizedName(country.name), country]));
+  const targets = new Map<string, ReferenceTarget>(
+    countryCatalog.targets.map((target) => [`${target.entityType}:${target.entityId}`, target]),
   );
 
   const cityCache = new Map<string, { id: string; name: string }>();
