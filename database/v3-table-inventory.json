@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "202_v3_hotel_rooming_and_traveler_birth_date",
+  "schemaVersion": "203_v3_group_only_experience_profile",
   "applicationTables": [
     "content.activities",
     "content.activity_item_translations",
